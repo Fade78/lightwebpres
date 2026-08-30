@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.48.0
+## v0.48.0
 
 Language packs are now physically split by responsibility: interface strings
 live in `interface/{lang}.json`, while build-time typography rules live in
@@ -42,6 +42,22 @@ live in `interface/{lang}.json`, while build-time typography rules live in
 independently. Domain environment variables, installed FHS resources,
 template commands, watch paths and incremental-build fingerprints follow the
 same resolution. Browser payloads continue to carry interface strings only.
+
+Read-only commands now follow the same resolved directories as `build`: demo
+uses `LWP_SOURCES_DIR`, `LWP_TEMPLATES_DIR` and `LWP_OUTPUT_DIR`, theme reports
+and theme changes follow moved templates, and a bare `theme show` follows
+`LWP_SERIES_DIR`. `series slug` reports the effective `slug_prefix` names.
+`audit` reports missing or invalid `series.json` without blocking (while
+`--strict` still fails), `watch --quiet` suppresses its progress, and Node
+script validation uses stdin rather than a temporary file. Boolean global
+actions reject `--help=value` and `--version=value`. A dry-run demo journals
+its scaffold and reports the build plan without inspecting the old series.
+
+The share popover now clears its transient copy confirmation when it closes,
+keeps its advertised shortcuts active from the presenter menu, and supports
+arrow-key movement through its matrix. QR output uses an explicit black-on-
+white square with intrinsic dimensions; local or non-HTTP(S) addresses are
+identified instead of being presented as links a phone can reach.
 
 ## v0.47.5
 

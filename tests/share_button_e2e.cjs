@@ -4,7 +4,7 @@
 // or the current fiche (slide). Invoked by
 // tests/test_share_button.py — not a standalone entry point.
 //
-// argv: <pageUrl> <expectedArticleUrl> <expectedSeriesUrl>
+// argv: <pageUrl> <expectedArticleUrl> <expectedSeriesUrl> [filePageUrl]
 
 const { chromium } = require('playwright');
 const { collectConsoleErrors } = require('./console_errors.cjs');
@@ -15,9 +15,9 @@ function fail(msg) {
 }
 
 async function main() {
-  const [pageUrl, expectedArticleUrl, expectedSeriesUrl] = process.argv.slice(2);
+  const [pageUrl, expectedArticleUrl, expectedSeriesUrl, filePageUrl] = process.argv.slice(2);
   if (!pageUrl || !expectedArticleUrl || !expectedSeriesUrl) {
-    console.error('usage: share_button_e2e.cjs <pageUrl> <expectedArticleUrl> <expectedSeriesUrl>');
+    console.error('usage: share_button_e2e.cjs <pageUrl> <expectedArticleUrl> <expectedSeriesUrl> [filePageUrl]');
     process.exit(2);
   }
 
@@ -63,6 +63,14 @@ async function main() {
     const focusAfterShareEscape = await page.evaluate(() => document.activeElement && document.activeElement.id);
     if (focusAfterShareEscape !== 'navMenu') fail('share Escape did not restore nav focus');
 
+    // The shortcuts remain usable while the presenter menu is open: S must
+    // activate the visible Share action, not be swallowed by the focus trap.
+    await page.click('#navMenu');
+    await page.keyboard.press('s');
+    const openedFromMenuShortcut = await page.evaluate(() => document.getElementById('sharePopover').classList.contains('open'));
+    if (!openedFromMenuShortcut) fail('S must activate Share from the presenter menu');
+    await page.keyboard.press('Escape');
+
     // S is the direct keyboard entry point for the same action. It must work
     // after the menu has closed, without requiring a pointer or focus on the
     // menu button.
@@ -71,6 +79,12 @@ async function main() {
     if (!openedByShortcut) fail('S must open the share popover');
     const shortcutFocus = await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-scope'));
     if (shortcutFocus !== 'series') fail('S did not move focus into the share dialog');
+    await page.keyboard.press('s');
+    const closedByShortcut = await page.evaluate(() => !document.getElementById('sharePopover').classList.contains('open'));
+    if (!closedByShortcut) fail('S must close the share popover when it is already open');
+    await page.keyboard.press('s');
+    const reopenedByShortcut = await page.evaluate(() => document.getElementById('sharePopover').classList.contains('open'));
+    if (!reopenedByShortcut) fail('S must reopen the share popover');
     await page.keyboard.press('Escape');
     const focusAfterShortcutEscape = await page.evaluate(() => document.activeElement && document.activeElement.id);
     if (focusAfterShortcutEscape !== 'navMenu') fail('S dialog Escape did not restore nav focus');
@@ -83,6 +97,23 @@ async function main() {
     await openShare();
     const popoverOpenOnCover = await page.evaluate(() => document.getElementById('sharePopover').classList.contains('open'));
     if (!popoverOpenOnCover) fail('popover did not open on share button click');
+
+    await page.keyboard.press('ArrowRight');
+    const shareRightFocus = await page.evaluate(() => {
+      const button = document.activeElement;
+      return button && { action: button.getAttribute('data-action'), scope: button.getAttribute('data-scope') };
+    });
+    await page.keyboard.press('ArrowDown');
+    const shareDownFocus = await page.evaluate(() => {
+      const button = document.activeElement;
+      return button && { action: button.getAttribute('data-action'), scope: button.getAttribute('data-scope') };
+    });
+    if (!shareRightFocus || shareRightFocus.action !== 'copy' || shareRightFocus.scope !== 'article'
+        || !shareDownFocus || shareDownFocus.action !== 'qr' || shareDownFocus.scope !== 'article') {
+      fail('share dialog arrow navigation is wrong: '
+        + JSON.stringify({ shareRightFocus, shareDownFocus }));
+    }
+    await page.keyboard.press('Home');
 
     await page.keyboard.press('Shift+Tab');
     const shareLastFocus = await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-scope'));
@@ -116,6 +147,17 @@ async function main() {
     await page.keyboard.press('Escape');
     const popoverClosedByEscape = await page.evaluate(() => !document.getElementById('sharePopover').classList.contains('open'));
     if (!popoverClosedByEscape) fail('Escape must close the share popover');
+    const copyFeedbackAfterClose = await page.evaluate(() => {
+      const button = document.querySelector('[data-action="copy"][data-scope="fiche"]');
+      return {
+        text: button && button.textContent,
+        status: document.getElementById('shareStatus').textContent,
+      };
+    });
+    if (copyFeedbackAfterClose.text === '✓' || copyFeedbackAfterClose.status) {
+      fail('closing the share popover must clear copy feedback: '
+        + JSON.stringify(copyFeedbackAfterClose));
+    }
 
     // 1b. A click on the GROUND while the popover is open closes it and
     // does NOT advance the deck: closing the window you opened is not a
@@ -191,9 +233,30 @@ async function main() {
     if (qrUrlText !== expectedSeriesUrl) {
       fail('QR modal URL mismatch: got ' + qrUrlText + ' expected ' + expectedSeriesUrl);
     }
+    const qrWarning = await page.evaluate(() => {
+      const hint = document.getElementById('shareQrModalHint');
+      return { hidden: hint.hidden, text: hint.textContent };
+    });
+    if (qrWarning.hidden || !qrWarning.text) {
+      fail('QR modal must explain that a loopback URL is not reachable from a phone: '
+        + JSON.stringify(qrWarning));
+    }
     const rectCount = await page.evaluate(() =>
       document.querySelectorAll('#shareQrModalContent svg rect').length);
     if (rectCount < 10) fail('QR SVG has implausibly few rects: ' + rectCount);
+    const qrShape = await page.evaluate(() => {
+      const svg = document.querySelector('#shareQrModalContent svg');
+      const dark = svg && svg.querySelector('g');
+      return {
+        width: svg && svg.getAttribute('width'),
+        height: svg && svg.getAttribute('height'),
+        dark: dark && dark.getAttribute('fill'),
+      };
+    });
+    if (!qrShape.width || !qrShape.height || qrShape.dark !== '#000') {
+      fail('QR SVG must expose intrinsic dimensions and pure black modules: '
+        + JSON.stringify(qrShape));
+    }
 
     // 5. Closing the QR modal via its close button.
     await page.click('.share-qr-close');
@@ -203,6 +266,29 @@ async function main() {
     }));
     if (!qrClosed.closed || qrClosed.focus !== 'navMenu') {
       fail('QR modal did not close and restore nav focus: ' + JSON.stringify(qrClosed));
+    }
+
+    // A file:// page has no address a phone can open. It must say so visibly
+    // instead of silently doing nothing when the QR action is clicked.
+    if (filePageUrl) {
+      const filePage = await context.newPage();
+      try {
+        await filePage.goto(filePageUrl);
+        await filePage.click('#navMenu');
+        await filePage.click('#menuShare');
+        await filePage.click('[data-action="qr"][data-scope="article"]');
+        const unavailable = await filePage.evaluate(() => ({
+          visible: document.getElementById('shareStatus').classList.contains('share-status-visible'),
+          text: document.getElementById('shareStatus').textContent,
+          qrOpen: document.getElementById('shareQrModal').classList.contains('open'),
+        }));
+        if (!unavailable.visible || !unavailable.text || unavailable.qrOpen) {
+          fail('file:// sharing must explain why QR is unavailable: '
+            + JSON.stringify(unavailable));
+        }
+      } finally {
+        await filePage.close();
+      }
     }
 
     // 6. Fiche-scope copy on the standard slide: the clipboard URL must

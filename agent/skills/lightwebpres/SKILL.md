@@ -340,6 +340,10 @@ command writes is meant to be renamed to something readable before
 publication. `slug_prefix:` in the meta block (or in `series_meta`) puts
 a namespace in front of every id on the page.
 
+`lightwebpres series slug` reports those effective, prefixed names rather than
+the raw `slug:` lines, so its output is the address a reader will actually
+receive.
+
 **The `source` field on a standard slide** is the designated place for
 the slide's citation. Write the reference there (e.g. `source: Baking
 guide, 2024 edition.`). You may optionally refer to it in the fact-box

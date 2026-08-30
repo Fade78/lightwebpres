@@ -84,6 +84,7 @@ class ShareButton(unittest.TestCase):
 
         cls.httpd = HTTPServer(('127.0.0.1', 0), lambda *a: _QuietHandler(*a, directory=str(output_dir)))
         cls.port = cls.httpd.server_address[1]
+        cls.file_page_url = (output_dir / 'a.html').resolve().as_uri()
         cls.thread = threading.Thread(target=cls.httpd.serve_forever, daemon=True)
         cls.thread.start()
 
@@ -96,7 +97,8 @@ class ShareButton(unittest.TestCase):
     def test_share_matrix_copy_and_qr(self):
         base = 'http://127.0.0.1:%d' % self.port
         result = subprocess.run(
-            ['node', str(SHARE_BUTTON_SCRIPT), base + '/a.html', base + '/a.html', base + '/index.html'],
+            ['node', str(SHARE_BUTTON_SCRIPT), base + '/a.html', base + '/a.html',
+             base + '/index.html', self.file_page_url],
             capture_output=True, text=True,
             env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
             timeout=30,

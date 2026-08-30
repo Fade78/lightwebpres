@@ -990,6 +990,32 @@ class AuditCommand(unittest.TestCase):
         self.assertIn('warning(s)', result.stdout)
         self.assertNotIn('Traceback', result.stderr)
 
+    def test_audit_missing_series_json_never_blocks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            root.mkdir()
+            plain = run('audit', str(root))
+            strict = run('audit', str(root), '--strict')
+
+        self.assertEqual(plain.returncode, 0, plain.stderr)
+        self.assertIn('series.json not found', plain.stderr)
+        self.assertIn('1 warning(s)', plain.stdout)
+        self.assertEqual(strict.returncode, 1, strict.stderr)
+        self.assertIn('series.json not found', strict.stderr)
+
+    def test_audit_invalid_series_json_never_blocks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            root.mkdir()
+            (root / 'series.json').write_text('{not json', encoding='utf-8')
+            plain = run('audit', str(root))
+            strict = run('audit', str(root), '--strict')
+
+        self.assertEqual(plain.returncode, 0, plain.stderr)
+        self.assertIn('invalid JSON', plain.stderr)
+        self.assertIn('1 warning(s)', plain.stdout)
+        self.assertEqual(strict.returncode, 1, strict.stderr)
+
 
 class HighlightField(unittest.TestCase):
     """§4.3: the highlight/highlight-caption fields (renamed from the former
@@ -3383,6 +3409,14 @@ class CliVersionAndShortcuts(unittest.TestCase):
                     self.assertEqual(run(*argv).returncode, 0,
                                      f'`{" ".join(argv)}` broke')
 
+    def test_action_flags_with_equals_are_not_executed(self):
+        for flag in ('--help', '--version'):
+            with self.subTest(flag=flag):
+                result = run(flag + '=unexpected')
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertIn('takes no value', result.stderr)
+                self.assertNotIn('LightWebPres v', result.stdout)
+
     def test_the_double_dash_terminator_covers_the_action_flags(self):
         """`--` means everything after it is a positional, whatever it
         looks like. The `--help` check scanned the whole tail, so
@@ -3598,6 +3632,43 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             report = json.loads(result.stdout)
             self.assertEqual(report['target']['kind'], 'series')
+
+    def test_series_theme_reads_a_moved_templates_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            self.assertEqual(run('init', str(root), '--theme', 'nord').returncode, 0)
+            elsewhere = Path(tmp) / 'templates-elsewhere'
+            (root / 'templates').rename(elsewhere)
+            result = run('series', 'theme', str(root),
+                         env={'LWP_TEMPLATES_DIR': str(elsewhere)})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('nord', result.stdout)
+
+    def test_series_theme_set_writes_to_a_moved_templates_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            elsewhere = Path(tmp) / 'templates-elsewhere'
+            (root / 'templates').rename(elsewhere)
+            result = run('series', 'theme', 'set', str(root), '--theme', 'nord',
+                         env={'LWP_TEMPLATES_DIR': str(elsewhere)})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('theme: nord',
+                          (elsewhere / 'settings.conf').read_text(encoding='utf-8'))
+
+    def test_resolve_theme_property_reads_a_moved_templates_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            elsewhere = Path(tmp) / 'templates-elsewhere'
+            (root / 'templates').rename(elsewhere)
+            settings = elsewhere / 'settings.conf'
+            settings.write_text('color.page: #123456\n', encoding='utf-8')
+            result = run('resolve', str(root), 'color.page',
+                         env={'LWP_TEMPLATES_DIR': str(elsewhere)})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('value: #123456FF', result.stdout)
+        self.assertIn('from:  settings', result.stdout)
 
     def test_theme_show_all_describes_every_theme(self):
         # `theme show --all` describes every built-in theme (DECISION §1 P2).
@@ -4572,11 +4643,9 @@ class CliVersionAndShortcuts(unittest.TestCase):
         tree = ast.parse(EXECUTABLE.read_text(encoding='utf-8'))
         HELPER_NAMES = {'_write_file', '_mkdir', '_copy', '_copytree', '_remove'}
         # The one allowed bare print to stderr is inside log() itself.
-        # validate_page_scripts is the one documented exception: it writes a
-        # temp .js under $TMPDIR to run `node --check` and unlinks it in a
-        # finally. It never touches a path the user named, so --dry-run has
-        # nothing to journal there.
-        ALLOWED_IN = HELPER_NAMES | {'log', 'validate_page_scripts'}
+        # Script validation sends its input directly to node, so it has no
+        # filesystem exception to this guard.
+        ALLOWED_IN = HELPER_NAMES | {'log'}
         # Methods on a Path (or anything else) that create or destroy.
         PATH_METHODS = {
             'write_text', 'write_bytes', 'mkdir', 'touch',   # create
@@ -6360,6 +6429,21 @@ class WatchPathCoverage(unittest.TestCase):
             build_args = build.call_args.args[1]
             self.assertEqual(build_args['--scroll-duration'], '75')
 
+    def test_watch_progress_respects_quiet(self):
+        lwp = load_lightwebpres_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            root.mkdir()
+            output = io.StringIO()
+            with mock.patch.object(lwp, 'cmd_build'), \
+                    mock.patch.object(lwp, '_watch_paths', return_value=[]), \
+                    mock.patch.object(lwp, '_cmd_watch_poll',
+                                      side_effect=KeyboardInterrupt), \
+                    mock.patch.dict(lwp._LOG_STATE, {'quiet': True}, clear=False), \
+                    contextlib.redirect_stdout(output):
+                lwp.cmd_watch(str(root), {'--quiet': True})
+        self.assertEqual(output.getvalue(), '')
+
 
 class DemoCommand(unittest.TestCase):
     """§11.2: `demo` must produce a series that builds cleanly."""
@@ -6377,6 +6461,62 @@ class DemoCommand(unittest.TestCase):
             self.assertTrue((root / 'public' / 'middle.html').exists())
             self.assertTrue((root / 'public' / 'last.html').exists())
             self.assertTrue((root / 'public' / 'index.html').exists())
+
+    def test_demo_uses_moved_source_and_template_directories(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            sources = Path(tmp) / 'sources-elsewhere'
+            templates = Path(tmp) / 'templates-elsewhere'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            (root / 'templates').rename(templates)
+            sources.mkdir()
+            result = run(
+                'demo', str(root),
+                env={'LWP_SOURCES_DIR': str(sources),
+                     'LWP_TEMPLATES_DIR': str(templates)})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((sources / 'first.md').exists())
+            self.assertTrue((templates / 'settings.conf').exists())
+            self.assertTrue((root / 'public' / 'index.html').exists())
+
+    def test_demo_dry_run_does_not_build_the_untouched_scaffold(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            result = run('--dry-run', 'demo', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse((root / 'sources' / 'first.md').exists())
+            self.assertFalse((root / 'public' / 'index.html').exists())
+            self.assertNotIn('Build complete: 0 articles', result.stdout)
+            self.assertNotIn('Demo created:', result.stdout)
+            self.assertIn('Would create demo:', result.stdout)
+            self.assertIn('Would run the build', result.stdout)
+
+
+class SeriesSlugCommand(unittest.TestCase):
+    def test_inventory_reports_effective_slug_prefixes(self):
+        first = (
+            '<!-- lwp:meta -->\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: first\nkicker: T\n# First\n')
+        second = (
+            '<!-- lwp:meta -->\nslug_prefix: article-\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: second\nkicker: T\n# Second\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, first, source_name='first.md',
+                            file_name='first.html')
+            (root / 'sources' / 'second.md').write_text(second, encoding='utf-8')
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            data['series_meta'] = {'slug_prefix': 'series-'}
+            data['articles'].append({'page_source': 'second.md',
+                                     'page_dest': 'second.html',
+                                     'nav_title': 'Second', 'nav_desc': 'Second'})
+            (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+            result = run('series', 'slug', str(root), '--format', 'json')
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        slugs = [article['slides'][0]['slug'] for article in report['articles']]
+        self.assertEqual(slugs, ['series-first', 'article-second'])
 
 
 class InstallContent(unittest.TestCase):
@@ -11716,6 +11856,16 @@ class ThemesCommand(unittest.TestCase):
             named = run('series', 'theme', str(root))
             self.assertEqual(named.stdout, bare.stdout)
 
+    def test_bare_theme_show_uses_lwp_series_dir(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'content'
+            self.assertEqual(run('init', str(root), '--theme', 'nord').returncode, 0)
+            result = run('theme', 'show', cwd=tmp,
+                         env={'LWP_SERIES_DIR': str(root)})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('effective theme', result.stdout)
+        self.assertIn('nord', result.stdout)
+
     def test_a_slug_still_wins_over_the_series_you_are_standing_in(self):
         """The default may not shadow the command's own subject. Standing
         in a series, `theme show nord` still describes nord."""
@@ -13878,6 +14028,22 @@ class GeneratedHtmlValidation(unittest.TestCase):
         ok, detail = lwp.validate_page_scripts(
             '<script data-x=">">var answer = 42;</script>')
         self.assertTrue(ok, detail)
+
+    def test_script_validation_does_not_create_a_temp_file(self):
+        lwp = load_lightwebpres_module()
+        if lwp.shutil.which('node') is None:
+            self.skipTest('node is not available')
+        with mock.patch.object(
+                lwp.subprocess, 'run',
+                return_value=subprocess.CompletedProcess(
+                    [lwp.shutil.which('node'), '--check', '-'], 0, '', '')) as node_run:
+            ok, detail = lwp.validate_page_scripts(
+                '<script>const answer = 42;</script>')
+        self.assertTrue(ok, detail)
+        self.assertEqual(node_run.call_args.args[0],
+                         [lwp.shutil.which('node'), '--check', '-'])
+        self.assertEqual(node_run.call_args.kwargs['input'],
+                         'const answer = 42;')
 
     def test_image_scanner_finds_src_after_a_quoted_gt_in_another_attr(self):
         lwp = load_lightwebpres_module()

@@ -504,7 +504,7 @@ lightwebpres template update [répertoire] [--scaffold]
 lightwebpres template show <nav.js|fr.json|en.json|interface/...|typography/...>
 lightwebpres template write <nav.js|fr.json|en.json|interface/...|typography/...> [répertoire] [--force]
 lightwebpres theme list [--polarity light|dark] [--hue teinte] [--family nom]
-lightwebpres theme show [slug… | --all | répertoire] [--format text|json]   # sans cible : la série courante
+lightwebpres theme show [slug… | --all] [--format text|json]   # sans cible : la série courante
 lightwebpres series theme [répertoire] [--format text|json]
 lightwebpres series theme set [répertoire] --theme nom
 lightwebpres theme gallery [slug… | --all] [--output chemin]
@@ -516,7 +516,7 @@ lightwebpres completion --shell bash|zsh
 lightwebpres --help
 ```
 
-- `[répertoire]` : le chemin du répertoire de série (défaut : `.`, ou `$LWP_SERIES_DIR`)
+- `[répertoire]` : le chemin du répertoire de série (défaut : `.`, ou `$LWP_SERIES_DIR`). `theme show` sans slug lit la série courante de la même façon ; avec un slug, il lit toujours le catalogue intégré.
 - `--lang` : la langue — règles typographiques et chaînes d'interface (défaut : `fr`, ou `$LWP_LANG`)
 - `--output` : `demo` / `build` / `verify` — le répertoire de sortie
   (défaut : `public/`, ou `$LWP_OUTPUT_DIR`) ; un chemin **relatif** est
@@ -542,12 +542,14 @@ lightwebpres --help
 - `--tag nom` : `series tags` seulement — réduit les lignes de tags au tag
   canonique demandé, sans réduire les totaux de la série
 
-Les variables d'environnement `LWP_SERIES_DIR`/`LWP_LANG`/`LWP_OUTPUT_DIR`
-sont honorées par toute commande qui opère sur un répertoire de série —
-`LWP_SERIES_DIR` est résolu une seule fois dans `main()`, avant l'aiguillage,
-donc `init`, `demo` et `series theme set` l'honorent aussi. Seules `theme list` et
-`theme gallery` y échappent : la première n'interroge que la table `THEMES`
-intégrée, la seconde ne prend qu'un chemin de sortie.
+Les variables d'environnement `LWP_SERIES_DIR`/`LWP_LANG`/`LWP_OUTPUT_DIR` et
+les variables de domaines (`LWP_SOURCES_DIR`, `LWP_TEMPLATES_DIR`,
+`LWP_INTERFACE_DIR`, `LWP_TYPOGRAPHY_DIR`, `LWP_LANGUAGE_DIR`) sont honorées
+par les commandes qui opèrent sur une série. `demo`, `series theme`,
+`series theme set`, `series slug`, `resolve` et `watch` lisent donc les mêmes
+emplacements résolus que `build`. Seules `theme list` et `theme gallery` y
+échappent : la première n'interroge que la table `THEMES` intégrée, la seconde
+ne prend qu'un chemin de sortie.
 
 L'aide s'obtient par `help`, `--help` ou `-h` (les trois formes sont
 équivalentes) ; sans argument du tout, l'aide s'affiche aussi. Une
@@ -1737,12 +1739,14 @@ d'aide (`help_*`), panneau présentateur (`presenter_*`), menu de tags
 | `copy_link`                  | Libellé de la ligne « copier le lien » de la matrice de partage |
 | `copy_link_done`             | Retour visuel transitoire après une copie            |
 | `copy_prompt`                | Texte du repli `prompt()` (navigateurs sans presse-papiers) |
+| `share_unavailable`          | Retour visible si la page n'est pas servie par HTTP(S) |
 | `share_action_qr`            | Libellé de la ligne « afficher le QR code » de la matrice de partage |
 | `share_scope_series`         | En-tête de colonne « Série » de la matrice de partage |
 | `share_scope_article`        | En-tête de colonne « Article » de la matrice de partage |
 | `share_scope_fiche`          | En-tête de colonne « Fiche » de la matrice de partage |
 | `qr_modal_title`             | Titre de la fenêtre modale affichant le QR code      |
 | `qr_modal_close`             | Texte du bouton de fermeture de la fenêtre modale QR |
+| `qr_modal_localhost`         | Avertissement pour une adresse locale non joignable depuis un téléphone |
 
 ### 7.4 Override et repli
 
@@ -2036,6 +2040,11 @@ continuent alors de naviguer le deck.
 
 Quand le build porte un payload de thèmes (§9.3.7), **C** ouvre son
 sélecteur et **M** ouvre le menu présentateur global.
+
+Quand ce menu est ouvert, les touches des actions qu'il affiche restent
+actives : elles déclenchent directement l'action correspondante, notamment
+**S** pour ouvrir le partage. Les flèches, `Tab`, `Début` et `Fin` restent
+réservées au parcours des contrôles du menu.
 
 Le menu présentateur contient aussi l'action **Scroll**, marquée par un
 éclair. Elle n'a pas de raccourci : **S** reste celui du partage. Le libellé
@@ -2698,7 +2707,9 @@ portée « Fiche » est désactivée (pas de fiche courante) :
   avec repli sur `prompt()` si l'API est indisponible (ou si l'écriture
   échoue). Après une copie réussie, le bouton affiche « ✓ » et son
   infobulle devient la chaîne `copy_link_done` pendant **1600 ms**,
-  puis les deux reviennent à leur état initial.
+  puis les deux reviennent à leur état initial. Fermer la pop-up rétablit
+  immédiatement le bouton et efface le statut, y compris si le délai n'est
+  pas arrivé à son terme.
 - Fermetures : la touche **Échap** ferme la pop-up de partage et la
   modale QR ; un clic **hors** de la pop-up la ferme (un clic à
   l'intérieur ne la ferme pas) ; la modale QR se ferme par un clic sur
@@ -2713,7 +2724,13 @@ portée « Fiche » est désactivée (pas de fiche courante) :
   vectoriel, généré **entièrement côté client** par un encodeur JS
   embarqué dans `nav.js` — pas d'appel à un service tiers de génération
   d'image, cohérent avec la contrainte d'autonomie du §13.4 (aucune
-  dépendance réseau au runtime).
+  dépendance réseau au runtime). Le code est noir sur blanc, expose sa taille
+  intrinsèque et conserve une zone blanche de quatre modules. Le lien encodé
+  est l'URL HTTP(S) courante : une page ouverte par `file://` ne propose pas
+  de lien partageable, et une adresse `localhost`/boucle locale est signalée
+  dans la modale parce qu'un téléphone ne peut généralement pas la joindre.
+  Les flèches déplacent le focus dans la matrice, `Tab` le fait circuler et
+  `Échap` ferme la surface.
 
 #### 9.3.5 Parcours (flèches et boutons Haut/Bas)
 
@@ -4068,6 +4085,13 @@ ou de `templates/nav.js` pour qu'une série installée avant la refonte §9
 reste reconnue). Si non, erreur fatale invitant à lancer `init`
 d'abord.
 
+Les chemins `sources/`, `templates/` et `public/` sont ceux résolus par §2.3,
+donc `LWP_SOURCES_DIR`, `LWP_TEMPLATES_DIR` et `LWP_OUTPUT_DIR` s'appliquent
+également à `demo`. Sous `--dry-run`, les fichiers de démonstration et
+`series.json` sont seulement journalisés ; le build final n'est pas exécuté
+contre l'ancienne série encore présente sur disque. La sortie indique qu'il
+serait lancé et où il écrirait, sans annoncer un résultat construit.
+
 Refuse de s'exécuter si l'un des 7 fichiers de démo (6 `.md` +
 `img/demo-figure.svg`) existe déjà dans `sources/`, **ou si
 `series.json` liste déjà au moins un article** (erreur fatale dans les
@@ -4090,10 +4114,11 @@ série :
    « last » ; bloc meta vide — démontre la cascade complète §20.3.1)
 4. Met à jour `series.json` avec ces trois articles (`series_meta`
    inclus, avec `author`/`license` de démonstration)
-5. Lance le build → génère `public/first.html`, `public/middle.html`,
-   `public/last.html` et `public/index.html`
+5. Hors `--dry-run`, lance le build → génère `public/first.html`,
+   `public/middle.html`, `public/last.html` et `public/index.html`
 6. Affiche un message : « Demo site generated in public/. Open
-   public/index.html in a browser. »
+   public/index.html in a browser. » ; sous `--dry-run`, journalise les
+   fichiers et annonce ce build sans le lancer ni écrire sur disque.
 
 ### 11.3 `build`
 
@@ -5948,7 +5973,8 @@ identité que l'auteur écrit ne dit rien du type, donc le type s'écrit.
 ### 12.1.2 `series slug` et `series slug set`
 
 `lightwebpres series slug [dir]` liste, article par article, chaque fiche
-et le nom sous lequel elle est publiée. `status` répond par **article**,
+et le nom effectif sous lequel elle est publiée, après application de
+`slug_prefix`. `status` répond par **article**,
 qui est l'unité que décrit `series.json` ; un lien vise une **fiche**, et
 sans cette commande le seul moyen de connaître l'ancre d'une fiche était
 de construire la page et de lire le HTML. `--format json` en donne la

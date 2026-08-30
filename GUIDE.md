@@ -116,6 +116,11 @@ work. It drops three example articles (first, middle and last position in
 the navigation) plus a captioned image, so you have something real to
 look at before writing your own.
 
+Normally `demo` also runs the build. With `--dry-run`, it only journals the
+demo files and reports that build as a plan: the new `series.json` is not on
+disk yet, so the command does not build the old series and claim a misleading
+zero-article result.
+
 `build` reads `series.json` and every article it lists, and writes
 `public/*.html` plus `public/index.html`. A generated `README.md` lands
 beside `series.json`, at the root of the series rather than in `public/`

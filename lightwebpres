@@ -40,7 +40,6 @@ import re
 import json
 import shutil
 import subprocess
-import tempfile
 import base64
 import mimetypes
 import difflib
@@ -1212,6 +1211,7 @@ LANG_FR = r'''{
     "copy_link": "Copier le lien",
     "copy_link_done": "Lien copié !",
     "copy_prompt": "Copie ce lien :",
+    "share_unavailable": "Le partage nécessite une page servie par une URL HTTP(S).",
     "share_action_qr": "Afficher le QR code",
     "share_scope_series": "Série",
     "share_scope_article": "Article",
@@ -1219,6 +1219,7 @@ LANG_FR = r'''{
     "qr_modal_title": "QR code du lien",
     "qr_modal_close": "Fermer",
     "qr_modal_error": "Impossible de générer un QR code pour ce lien.",
+    "qr_modal_localhost": "Cette adresse locale peut être inaccessible depuis un téléphone. Utilisez une adresse réseau accessible.",
     "nav_fullscreen": "Plein écran (touche F)",
     "tags_menu": "Filtrer les slides",
     "tags_active": "Tag actif",
@@ -1341,6 +1342,7 @@ LANG_EN = r'''{
     "copy_link": "Copy link",
     "copy_link_done": "Link copied!",
     "copy_prompt": "Copy this link:",
+    "share_unavailable": "Sharing requires a page served from an HTTP(S) URL.",
     "share_action_qr": "Show QR code",
     "share_scope_series": "Series",
     "share_scope_article": "Article",
@@ -1348,6 +1350,7 @@ LANG_EN = r'''{
     "qr_modal_title": "QR code for this link",
     "qr_modal_close": "Close",
     "qr_modal_error": "A QR code could not be generated for this link.",
+    "qr_modal_localhost": "This local address may not be reachable from a phone. Use a reachable network address.",
     "nav_fullscreen": "Fullscreen (F key)",
     "tags_menu": "Filter slides",
     "tags_active": "Active tag",
@@ -6447,6 +6450,17 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
   white-space: nowrap;
   border: 0;
 }
+.share-status.share-status-visible {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 4px 0 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  text-align: center;
+}
 .share-qr-modal {
   position: fixed;
   inset: 0;
@@ -6479,6 +6493,10 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
   height: auto;
   display: block;
   margin-bottom: 12px;
+}
+.share-qr-modal-hint {
+  margin-bottom: 12px;
+  overflow-wrap: anywhere;
 }
 .share-qr-modal-url {
   font-size: max(12px, 1.5vmin);
@@ -7987,8 +8005,8 @@ document.addEventListener('DOMContentLoaded', function() {
     return false;
   }
 
-  function movePresenterFocus(direction) {
-    var actions = focusablesWithin(presenterMenu);
+  function moveGridFocus(container, direction) {
+    var actions = focusablesWithin(container);
     if (!actions.length) return;
     var at = actions.indexOf(document.activeElement);
     if (at < 0) {
@@ -7996,8 +8014,8 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    // The menu is a responsive CSS grid, so the column count changes with
-    // the viewport and hidden actions can shorten its final row. Use the
+    // These surfaces are responsive CSS grids, so the column count changes
+    // with the viewport and hidden actions can shorten the final row. Use the
     // rendered rectangles rather than assuming a fixed number of columns.
     var positioned = actions.map(function (button) {
       var rect = button.getBoundingClientRect();
@@ -8035,9 +8053,17 @@ document.addEventListener('DOMContentLoaded', function() {
     targetRow[0].button.focus();
   }
 
-  function focusPresenterEdge(last) {
-    var actions = focusablesWithin(presenterMenu);
+  function movePresenterFocus(direction) {
+    moveGridFocus(presenterMenu, direction);
+  }
+
+  function focusGridEdge(container, last) {
+    var actions = focusablesWithin(container);
     if (actions.length) actions[last ? actions.length - 1 : 0].focus();
+  }
+
+  function focusPresenterEdge(last) {
+    focusGridEdge(presenterMenu, last);
   }
 
   function closeThemeMenu(restoreFocus) {
@@ -8109,6 +8135,20 @@ document.addEventListener('DOMContentLoaded', function() {
     else if (action === 'pause-black') togglePause('b');
     else if (action === 'pause-white') togglePause('w');
     else if (action === 'pause-theme') togglePause('t');
+  }
+
+  function runMenuShortcut(key) {
+    var actions = {
+      f: 'fullscreen', c: 'theme', n: 'presenter', l: 'tags',
+      s: 'share', h: 'help', b: 'pause-black', w: 'pause-white',
+      t: 'pause-theme'
+    };
+    var action = actions[String(key || '').toLowerCase()];
+    if (!action || !presenterMenu) return false;
+    var button = presenterMenu.querySelector('[data-menu-action="' + action + '"]');
+    if (!button || button.hidden || button.disabled) return false;
+    button.click();
+    return true;
   }
 
   if (presenterMenu) {
@@ -8652,9 +8692,11 @@ document.addEventListener('DOMContentLoaded', function() {
        return;
      }
       if (presenterMenu && presenterMenu.classList.contains('open')) {
-        if (e.key === 'Escape' || e.key === 'm' || e.key === 'M') {
+       if (e.key === 'Escape' || e.key === 'm' || e.key === 'M') {
+         e.preventDefault();
+         closePresenterMenu();
+        } else if (runMenuShortcut(e.key)) {
           e.preventDefault();
-          closePresenterMenu();
         } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
           e.preventDefault();
           movePresenterFocus(e.key === 'ArrowDown' ? 'down' : 'right');
@@ -8710,6 +8752,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'Escape') {
           e.preventDefault();
           closeSharePopover();
+        } else if (e.key === 's' || e.key === 'S') {
+          e.preventDefault();
+          closeSharePopover();
+        } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          moveGridFocus(sharePopover, e.key === 'ArrowDown' ? 'down' : 'right');
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          moveGridFocus(sharePopover, e.key === 'ArrowUp' ? 'up' : 'left');
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          focusGridEdge(sharePopover, false);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          focusGridEdge(sharePopover, true);
         } else if (e.key === 'Tab') {
           var shareFocus = focusablesWithin(sharePopover);
           if (shareFocus.length) {
@@ -8926,6 +8983,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function shareUrl(scope) {
+    if (location.protocol !== 'http:' && location.protocol !== 'https:') return null;
     if (scope === 'series') {
       return location.origin + location.pathname.replace(/[^\/]*$/, '') + 'index.html';
     }
@@ -8945,6 +9003,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var qrModalContent   = document.getElementById('shareQrModalContent');
   var qrModalUrl       = document.getElementById('shareQrModalUrl');
   var qrModalError     = document.getElementById('shareQrModalError');
+  var qrModalHint      = document.getElementById('shareQrModalHint');
   var shareStatus      = document.getElementById('shareStatus');
   var shareFicheBtns   = sharePopover
     ? Array.prototype.slice.call(sharePopover.querySelectorAll('[data-scope="fiche"]'))
@@ -8958,6 +9017,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
   var shareReturnFocus = null;
   var qrReturnFocus = null;
+  var shareCopyButtons = sharePopover
+    ? Array.prototype.slice.call(sharePopover.querySelectorAll('[data-action="copy"]'))
+    : [];
+  var shareFeedbackGeneration = 0;
+
+  function setShareStatus(message, visible) {
+    if (!shareStatus) return;
+    shareStatus.textContent = message;
+    shareStatus.classList.toggle('share-status-visible', !!visible);
+  }
+
+  function resetShareCopyFeedback() {
+    shareFeedbackGeneration++;
+    shareCopyButtons.forEach(function (button) {
+      if (button._shareFeedbackTimer) {
+        clearTimeout(button._shareFeedbackTimer);
+        button._shareFeedbackTimer = null;
+      }
+      if (button._shareOriginalText !== undefined) {
+        button.textContent = button._shareOriginalText;
+        button.title = button._shareOriginalTitle;
+        delete button._shareOriginalText;
+        delete button._shareOriginalTitle;
+      }
+    });
+    setShareStatus('', false);
+  }
 
   function closeSharePopover(restoreFocus) {
     var wasOpen = sharePopover && sharePopover.classList.contains('open');
@@ -8966,6 +9052,7 @@ document.addEventListener('DOMContentLoaded', function() {
       sharePopover.setAttribute('aria-hidden', 'true');
     }
     if (menuShareAction) menuShareAction.setAttribute('aria-expanded', 'false');
+    resetShareCopyFeedback();
     if (wasOpen && restoreFocus !== false) {
       if (!focusIfVisible(shareReturnFocus)) focusIfVisible(btnMenu);
     }
@@ -8995,9 +9082,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (matrix[r][c]) rects += '<rect x="' + (c + border) + '" y="' + (r + border) + '" width="1" height="1"/>';
       }
     }
-    return '<svg viewBox="0 0 ' + size + ' ' + size + '" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">'
+    return '<svg viewBox="0 0 ' + size + ' ' + size + '" width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" focusable="false">'
       + '<rect width="' + size + '" height="' + size + '" fill="#fff"/>'
-      + '<g fill="#1a1a2e">' + rects + '</g></svg>';
+      + '<g fill="#000">' + rects + '</g></svg>';
   }
 
   function toggleSharePopover(returnFocus) {
@@ -9029,16 +9116,32 @@ document.addEventListener('DOMContentLoaded', function() {
         var scope = btn.getAttribute('data-scope');
         var action = btn.getAttribute('data-action');
         var url = shareUrl(scope);
-        if (!url) return;
+        if (!url) {
+          setShareStatus(lwpString('share_unavailable'), true);
+          return;
+        }
         if (action === 'copy') {
-          var original = btn.textContent;
-          var originalTitle = btn.title;
-           var done = function () {
-             btn.textContent = '✓';
-             btn.title = lwpString('copy_link_done');
-             if (shareStatus) shareStatus.textContent = lwpString('copy_link_done');
-             setTimeout(function () { btn.textContent = original; btn.title = originalTitle; }, 1600);
-           };
+          if (btn._shareOriginalText === undefined) {
+            btn._shareOriginalText = btn.textContent;
+            btn._shareOriginalTitle = btn.title;
+          }
+          if (btn._shareFeedbackTimer) clearTimeout(btn._shareFeedbackTimer);
+          var generation = shareFeedbackGeneration;
+          var done = function () {
+            if (generation !== shareFeedbackGeneration
+                || !sharePopover.classList.contains('open')) return;
+            btn.textContent = '✓';
+            btn.title = lwpString('copy_link_done');
+            setShareStatus(lwpString('copy_link_done'), false);
+            btn._shareFeedbackTimer = setTimeout(function () {
+              if (generation !== shareFeedbackGeneration) return;
+              btn.textContent = btn._shareOriginalText;
+              btn.title = btn._shareOriginalTitle;
+              delete btn._shareOriginalText;
+              delete btn._shareOriginalTitle;
+              btn._shareFeedbackTimer = null;
+            }, 1600);
+          };
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(url).then(done, function () { window.prompt(lwpString('copy_prompt'), url); });
           } else {
@@ -9047,6 +9150,13 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (action === 'qr' && qrModal && qrModalContent) {
           qrReturnFocus = shareReturnFocus || document.activeElement || btnMenu;
           if (qrModalError) qrModalError.hidden = true;
+          if (qrModalHint) {
+            var host = String(location.hostname || '').toLowerCase();
+            var localHost = host === 'localhost' || host === '127.0.0.1'
+              || host === '::1' || host === '[::1]';
+            qrModalHint.hidden = !localHost;
+            qrModalHint.textContent = localHost ? lwpString('qr_modal_localhost') : '';
+          }
           try {
             qrModalContent.innerHTML = qrToSvg(url);
           } catch (error) {
@@ -9824,6 +9934,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
     <div class="share-qr-modal-title" id="shareQrModalTitle" data-lwp-i18n="qr_modal_title">{{str_qr_modal_title}}</div>
     <div id="shareQrModalContent"></div>
     <div class="share-qr-modal-error" id="shareQrModalError" role="alert" hidden data-lwp-i18n="qr_modal_error">{{str_qr_modal_error}}</div>
+    <div class="share-qr-modal-hint" id="shareQrModalHint" role="status" hidden data-lwp-i18n="qr_modal_localhost">{{str_qr_modal_localhost}}</div>
     <div class="share-qr-modal-url" id="shareQrModalUrl"></div>
     <button type="button" class="share-qr-close" data-lwp-i18n="qr_modal_close">{{str_qr_modal_close}}</button>
   </div>
@@ -11255,19 +11366,13 @@ def validate_page_scripts(html):
             if not cached:
                 return False, 'previously invalid <script> block (cached)'
             continue
-        fd, path = tempfile.mkstemp(suffix='.js')
         try:
-            with os.fdopen(fd, 'w', encoding='utf-8') as fh:
-                fh.write(block)
-            try:
-                r = subprocess.run([node, '--check', path],
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   universal_newlines=True, timeout=30)
-            except subprocess.TimeoutExpired:
-                r = None
-        finally:
-            os.unlink(path)
+            r = subprocess.run([node, '--check', '-'], input=block,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE,
+                               universal_newlines=True, timeout=30)
+        except subprocess.TimeoutExpired:
+            r = None
         if r is None:
             _SCRIPT_VALIDITY_CACHE[sig] = False
             return False, 'node --check timed out after 30s'
@@ -16227,7 +16332,7 @@ def cmd_watch(series_dir, args):
     build_args.pop('--serve', None)
     build_args.pop('--port', None)
     build_args.pop('--open', None)
-    print(f'[watch] initial build of {sd}')
+    progress(f'[watch] initial build of {sd}')
     cmd_build(str(sd), build_args)
 
     # Start the HTTP server if --serve.
@@ -16238,7 +16343,7 @@ def cmd_watch(series_dir, args):
         httpd = http.server.HTTPServer(('127.0.0.1', port), handler)
         threading.Thread(target=httpd.serve_forever, daemon=True).start()
         url = f'http://127.0.0.1:{port}/'
-        print(f'[watch] serving {output_dir} at {url}')
+        progress(f'[watch] serving {output_dir} at {url}')
         if args.get('--open'):
             webbrowser.open(url)
     elif args.get('--open'):
@@ -16252,21 +16357,21 @@ def cmd_watch(series_dir, args):
     refresh_watch_paths = lambda: _watch_paths(str(sd), build_args)
     sources = refresh_watch_paths()
 
-    print(f'[watch] polling {len(sources)} source path(s). Ctrl-C to stop.')
+    progress(f'[watch] polling {len(sources)} source path(s). Ctrl-C to stop.')
     try:
         for changed in _cmd_watch_poll(sources, refresh=refresh_watch_paths):
             names = ', '.join(p.name for p in changed)
-            print(f'[watch] {names} changed — rebuilding...')
+            progress(f'[watch] {names} changed — rebuilding...')
             try:
                 cmd_build(str(sd), build_args)
-                print('[watch] rebuilt.')
+                progress('[watch] rebuilt.')
             except SystemExit as exc:
                 log('error', f'build failed (exit code {exc.code}); '
                     f'watching continues.')
             except Exception as exc:
                 log('error', f'build failed: {exc}')
     except KeyboardInterrupt:
-        print('\n[watch] stopped.')
+        progress('\n[watch] stopped.')
         return 0
 
 
@@ -17383,7 +17488,16 @@ def cmd_audit(series_dir, args):
         if args.get('--strict'):
             sys.exit(1)
         return
-    series_data = load_series_data(sd)
+    try:
+        series_data = load_series_data(sd)
+    except SystemExit:
+        # A report must still be useful when its primary input is missing or
+        # malformed. The loader already named the exact filesystem/JSON error;
+        # count that finding once and let --strict decide whether to fail.
+        print('1 warning(s). Reminder: audit never blocks the build, page layout remains the author\'s responsibility.')
+        if args.get('--strict'):
+            sys.exit(1)
+        return
     default_tag_warnings = audit_series_default_tag(series_data)
     meta_errors = []
     series_meta = series_meta_of(series_data, tolerate_invalid=True,
@@ -18561,6 +18675,7 @@ def cmd_series_slug(series_dir, args):
     sd, sources_dir, _t, _legacy, _interface, _typography, _o, _l, _lf = resolve_paths(
         series_dir, args)
     series_data = load_series_data(sd)
+    series_meta = series_meta_of(series_data)
     articles = (series_data.get('articles', series_data)
                 if isinstance(series_data, dict) else series_data)
     validate_series(articles)
@@ -18582,8 +18697,14 @@ def cmd_series_slug(series_dir, args):
                 {'page_source': entry['page_source'], 'source_read': False,
                  'slides': []})
             continue
+        meta, _slides, _has_meta, _before_meta = parse_markdown_extended(text)
+        prefix = resolve_slug_prefix(meta or {}, series_meta or {},
+                                     entry['page_source'])
         slides = [{'ordinal': n, 'slug': slug or None}
                   for n, (_i, slug) in enumerate(_slugs_in_article(text), 1)]
+        for slide in slides:
+            if slide['slug']:
+                slide['slug'] = prefix + slide['slug']
         report['articles'].append(
             {'page_source': entry['page_source'], 'source_read': True,
              'slides': slides})
@@ -18690,12 +18811,14 @@ def cmd_series_theme(series_dir, args):
         sys.exit(1)
 
     directory = Path(series_dir).resolve()
-    templates_dir = directory / 'templates'
     if not directory.is_dir():
         log('error', f'{series_dir!r} is not a directory. '
               f'`series theme` reads the effective theme of an installed '
               f'series; to read a built-in theme, use `theme show <slug>`.')
         sys.exit(1)
+    (directory, _sources_dir, templates_dir, _lang_dir, _interface_dir,
+     _typography_dir, _output_dir, _lang, _language_file) = resolve_paths(
+         directory, args)
     if not templates_dir.is_dir():
         log('error', f'{templates_dir} not found: {directory} is not an '
               f'installed series. Run init first.')
@@ -18731,8 +18854,6 @@ def cmd_set_theme(target_dir, args):
     tool wrote into the file the author edits. It no longer does: the
     stylesheet is composed at build time, so changing theme is changing a
     word."""
-    td = Path(target_dir).resolve()
-    settings_path = td / 'templates' / SETTINGS_FILENAME
     new_slug = args.get('--theme')
 
     if new_slug is None:
@@ -18743,6 +18864,11 @@ def cmd_set_theme(target_dir, args):
         log('error', f'Unknown theme: {new_slug!r}. '
               f'Run `lightwebpres theme list` to list the {len(THEMES)} valid slugs.')
         sys.exit(1)
+
+    (td, _sources_dir, templates_dir, _lang_dir, _interface_dir,
+     _typography_dir, _output_dir, _lang, _language_file) = resolve_paths(
+         target_dir, args)
+    settings_path = templates_dir / SETTINGS_FILENAME
 
     if not settings_path.parent.is_dir():
         # A directory that was never installed stays a clean error, as it
@@ -19160,14 +19286,13 @@ def classify_resolve_name(name):
     return None
 
 
-def resolve_theme_property(name, directory, article_meta, article_name):
+def resolve_theme_property(name, templates_dir, article_meta, article_name):
     """A theme property's cascade (§9.3), strongest level first.
 
     The VALUE comes from resolve_theme_properties() — the function the
     build calls — so there is one cascade here and not a second one that
     drifts. What this adds is the per-level detail that function does not
     keep: which layer held what, including the layers that lost."""
-    templates_dir = directory / 'templates'
     settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
     text = (read_text_file(settings_file)
             if settings_file is not None and settings_file.exists() else '')
@@ -19455,7 +19580,8 @@ def cmd_resolve(series_dir, name, args):
                       + '. templates/settings.conf lists every one of '
                         'them, commented out at your theme\'s values.')
                 sys.exit(1)
-            resolution = resolve_theme_property(name, sd, article_meta, only or name)
+            resolution = resolve_theme_property(
+                name, templates_dir, article_meta, only or name)
         elif kind == 'slide-field':
             if name not in _SLIDE_FIELD_ATTRS:
                 # `comment` is a slide field and is refused above, so it
@@ -19754,23 +19880,22 @@ def cmd_themes_gallery(positional, args):
 
 def cmd_demo(target_dir, args):
     """demo command — creates example articles."""
-    td = Path(target_dir).resolve()
-    lang = args.get('--lang', 'fr')
+    (td, sources_dir, templates_dir, _lang_dir, _interface_dir,
+     _typography_dir, _output_dir, _lang, _language_file) = resolve_paths(
+         target_dir, args)
 
     # Check that init has been run. settings.conf is the scaffolded
     # surface; nav.js keeps a pre-rewrite series recognized as scaffolded.
-    if not ((td / 'templates' / SETTINGS_FILENAME).exists()
-            or (td / 'templates' / 'nav.js').exists()):
+    if not (templates_dir / SETTINGS_FILENAME).exists() and not (
+            templates_dir / 'nav.js').exists():
         log('error', f'{td} has not been init\'d. Run first: lightwebpres init {td}')
         sys.exit(1)
-
-    sources_dir = td / 'sources'
 
     demo_filenames = ['first.md', 'first_article.md', 'middle.md', 'middle_article.md',
                        'last.md', 'last_article.md', 'img/demo-figure.svg']
     existing = [f for f in demo_filenames if (sources_dir / f).exists()]
     if existing:
-        log('error', f'{td}/sources already has demo file(s): {", ".join(existing)}. '
+        log('error', f'{sources_dir} already has demo file(s): {", ".join(existing)}. '
               f'Remove them first, or run demo in an empty series.')
         sys.exit(1)
 
@@ -20008,22 +20133,28 @@ This is the full article for the third demo article [^1].
     }
     _write_file(td / 'series.json', json.dumps(series_json, ensure_ascii=False, indent=2))
 
-    progress(f'Demo created: {td}')
+    dry = _LOG_STATE['dry_run']
+    output_label = args.get('--output', os.environ.get('LWP_OUTPUT_DIR', 'public/'))
+    progress(f'{"Would create demo" if dry else "Demo created"}: {td}')
     progress('  3 articles (first, middle, last) with full articles')
-    progress('  1 demo image with a caption (sources/img/demo-figure.svg)')
+    progress(f'  1 demo image with a caption ({sources_dir / "img" / "demo-figure.svg"})')
 
     # Run the build
     progress()
+    if dry:
+        # The demo inputs are deliberately not present on disk during a dry
+        # run, so building here would inspect the old series and report a
+        # misleading zero-article build. The write journal above is the
+        # complete dry-run plan; a real build happens on the next invocation.
+        progress('Would run the build...')
+        progress(f'Would generate the demo site in {output_label}. '
+                 f'Open {Path(output_label) / "index.html"} in a browser.')
+        return
     progress('Running the build...')
     cmd_build(str(td), args)
     progress()
-    # Name the directory the build actually wrote to, not the default:
-    # with --output the fixed string was simply false, and contradicted the
-    # build's own line two above it. The default still reads "public/"
-    # exactly as before.
-    out = args.get('--output', 'public/')
-    progress(f'Demo site generated in {out}. '
-          f'Open {Path(out) / "index.html"} in a browser.')
+    progress(f'Demo site generated in {output_label}. '
+             f'Open {Path(output_label) / "index.html"} in a browser.')
 
 
 # ============================================================================
@@ -20120,7 +20251,7 @@ COMMANDS
   lightwebpres init [directory] [--lang fr] [--force] [--theme name] [--gitlab-ci]
     Creates the directory structure
   lightwebpres demo [directory] [--lang fr] [--output public/]
-    Creates a demo site
+    Creates a demo site (or journals its files and build plan with --dry-run)
   lightwebpres build [directory] [--lang fr] [--output public/] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
     Builds the site (self-contained HTML)
   lightwebpres verify [directory] [--lang fr] [--output public/] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
@@ -20149,7 +20280,7 @@ COMMANDS
     DIRECTORY is not a form here: that is `series theme [directory]`.
   lightwebpres series theme [directory] [--format text|json]
     Same, for the EFFECTIVE theme of an installed series — after the
-    values it pins in templates/settings.conf
+    values it pins in templates/settings.conf (or $LWP_TEMPLATES_DIR)
   lightwebpres status [directory] [--format text|json]
     Says what is in a series without building: its articles in
     series.json order, each field RESOLVED as a build would resolve it,
@@ -20158,7 +20289,8 @@ COMMANDS
     Reports effective tag visibility, status totals and default output
     coverage without building (see §11.11.1)
   lightwebpres series slug [directory] [--format text|json]
-    Lists every card of the series and the name it is published under —
+    Lists every card of the series and the effective name it is published
+    under, including slug_prefix —
     the anchor a shared link and a printed QR code point at. `status`
     answers by article; this one answers by card (see §12.1.1)
   lightwebpres series slug set [directory] [--dry-run]
@@ -20211,7 +20343,7 @@ OPTIONS
   --timestamp
     Global: prefix each log line with an RFC 3339 timestamp
   --dry-run
-    Global: journal writes without touching the disk
+    Global: journal writes and planned build steps without touching the disk
   --version
     Print the version and exit. Head of the line only: it replaces the
     command rather than modifying one, so it is refused after a command
@@ -21002,6 +21134,9 @@ def _parse_global_options(args):
             # Not a global — leave it for the command parser. But stop here so
             # the command can flag it if it's unknown to it either.
             break
+        if name in _GLOBAL_ACTIONS and eq:
+            log('error', f'Option {name} takes no value.')
+            sys.exit(1)
         if name == '--version':
             print(f'LightWebPres v{VERSION}')
             sys.exit(0)
@@ -21162,9 +21297,12 @@ def main():
         # the series when you asked. A directory that is NOT a series falls
         # through to the usage error, which is the more useful answer for
         # someone who meant to name a slug and forgot.
+        series_root = Path(os.environ.get('LWP_SERIES_DIR', '.'))
+        series_templates = Path(os.environ.get(
+            'LWP_TEMPLATES_DIR', str(series_root / 'templates')))
         if (not positional and not opts.get('--all')
-                and (Path.cwd() / 'templates').is_dir()):
-            cmd_series_theme('.', opts)
+                and series_templates.is_dir()):
+            cmd_series_theme(str(series_root), opts)
         elif (positional and positional[0] not in THEMES
                 and Path(positional[0]).is_dir()):
             log('error', f'`theme show` reads the catalogue, not a series. '

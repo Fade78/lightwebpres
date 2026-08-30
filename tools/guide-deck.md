@@ -34,7 +34,7 @@ kicker: Setup
 fact-label: The whole loop
 source: Guide, section 2
 
-`init` scaffolds, `demo` fills it with something real to look at, `build` writes `public/`. Every page is a single self-contained file — no server, no external runtime dependency, nothing to load. The essential runtime theme bundle is embedded by default; explicit `--themes` or root `series.json` `themes` selections add to or shape the catalogue, and `--no-essential-theme` opts out.
+`init` scaffolds, `demo` fills it with something real to look at, `build` writes `public/`. Normally `demo` runs that build too. Under `--dry-run`, it journals the demo files and reports the build as a plan instead of reading the old on-disk series, which is not yet the demo series. Every page is a single self-contained file — no server, no external runtime dependency, nothing to load. The essential runtime theme bundle is embedded by default; explicit `--themes` or root `series.json` `themes` selections add to or shape the catalogue, and `--no-essential-theme` opts out.
 
 `--lang en` chooses the build-wide fallback. An article's meta-block `tags:`
 can gate the article itself; slide-header `tags:` selects content inside it.
@@ -139,8 +139,8 @@ out; the page then carries no runtime picker unless `--themes` or
 The picker is a visual catalogue as well as a list: each choice uses the
 theme's resolved page and cover background, including its gradient, and the
 foreground ink chosen for that ground. **M** opens the presenter menu; its
-actions carry icons and their keyboard shortcuts, and the lower-right Menu
-button opens the same list.
+actions carry icons and their keyboard shortcuts, which remain active while
+the menu is open, and the lower-right Menu button opens the same list.
 
 ---
 

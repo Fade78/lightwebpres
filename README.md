@@ -110,12 +110,14 @@ renders of that mode in the `lava`, `terminal` and `pop-lemon` themes.
   code, for the whole series, the current article, or the exact slide
   being read — generated entirely client-side. The share button sits on
   every page, the index included: there "series" points to `index.html`,
-  "article" to the page itself, and the slide scope is disabled (the
-  index has no slides). A slide's address is the
-  `slug:` its author declared, never where it sits and never its title,
-  so reordering the deck, rewriting a heading or dropping a slide does
-  not repoint the links you have already given out — including the
-  printed ones.
+   "article" to the page itself, and the slide scope is disabled (the
+   index has no slides). A slide's address is the
+   `slug:` its author declared, never where it sits and never its title,
+   so reordering the deck, rewriting a heading or dropping a slide does
+   not repoint the links you have already given out — including the
+   printed ones. QR codes require an HTTP(S) page reachable from the phone;
+   local browser addresses are called out instead of producing a misleading
+   link.
 - **Built-in presentation mode.** Every generated page can become a full-screen
   presenter deck: keyboard (↑/↓, Home, F fullscreen, B/W/T pause
    screens, C compiled themes, H keyboard help, S sharing, M presenter menu), mouse (click advance,
@@ -161,7 +163,8 @@ renders of that mode in the `lava`, `terminal` and `pop-lemon` themes.
   install: one file, the Python standard library only, no wheel, no
   lockfile, no network at build time, so any image with `python3` runs
    it. Every path is an environment variable (`LWP_SERIES_DIR`,
-   `LWP_INTERFACE_DIR`, `LWP_TYPOGRAPHY_DIR`, `LWP_OUTPUT_DIR`, …), and
+   `LWP_SOURCES_DIR`, `LWP_TEMPLATES_DIR`, `LWP_INTERFACE_DIR`,
+   `LWP_TYPOGRAPHY_DIR`, `LWP_LANGUAGE_DIR`, `LWP_OUTPUT_DIR`, …), and
    `--only file` targets one article when the
   navigation cache is safe, while refreshing derived outputs; otherwise it
   falls back to a full build. The Markdown can come from anywhere — a CMS
@@ -384,7 +387,7 @@ the series or within one article.
 | Command | What it does |
 |---|---|
 | `init [dir]` | Scaffolds a series directory (`sources/`, `templates/` with your `settings.conf` and `custom.css`, empty `interface/`, `typography/` and legacy `language/` directories, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed). The tool's own files — the navigation script and language packs — stay in the executable and are read from there, so upgrading it is the whole upgrade |
-| `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
+| `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field; `--dry-run` journals the files and reports the build plan without touching the series |
 | `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file` targets one article when the navigation cache is safe but still refreshes derived outputs (article, index/README/images according to the options, manifest and cache), falling back to a full build if anything affecting `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds Markdown images as base64 data URIs (no `img/` directory); the essential runtime theme bundle is embedded by default, with `--themes selectors|all` adding more |
 | `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate; pass the same `--themes` and `--no-essential-theme` decision used by the build |
 | `audit [dir]` | Non-blocking warnings. It reads the sources (editorial — e.g. "no cover slide" — tags and language packs), judges the *resolved* stylesheet (a navigation control nobody can see, text painted the colour of its own ground, a size under the readability floor), checks the presentation layer (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme), and renders the series in memory to report what only composing it can say. Exit 0 whatever it finds, unless `--strict` is passed |
@@ -392,14 +395,14 @@ the series or within one article.
 | `template show <file>` | Prints one of the files the executable owns — `nav.js`, `fr.json`, `en.json`, `interface/fr.json`, `interface/en.json`, `typography/fr.json`, `typography/en.json` — on stdout. No series needed: the answer is inside the program |
 | `template write <file> [dir]` | Installs one of them where the build reads it, to be modified. The build then prefers your copy to the built-in one and warns on every run that it no longer follows the tool's fixes — at warning level, so `--quiet` keeps it. `--force` to replace an existing file |
 | `theme list` | Lists the built-in color themes with their facets; `--family`/`--polarity`/`--hue` narrow the list |
-| `theme show <slug>` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. `--format json` for machines |
-| `series theme [dir]` | Same, for the *effective* theme of an installed series — after the values it pins in `templates/settings.conf` |
+| `theme show [<slug>]` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. With no slug from a series directory (or `$LWP_SERIES_DIR`), it shows that series' effective theme. `--format json` for machines |
+| `series theme [dir]` | Same, for the *effective* theme of an installed series — after the values it pins in `templates/settings.conf` or the directory selected by `$LWP_TEMPLATES_DIR` |
 | `status [dir]` | Says what is in a series without building anything: its articles in `series.json` order, every field *resolved* the way a build resolves it, and which level of the cascade each value came from. `--format json` for machines |
 | `series tags [dir]` | Inventories effective tag visibility, status totals, non-excluded slides and default-output coverage without building; `--tag` filters one tag. `--format json` for machines |
-| `series slug [dir]` | Lists every card of the series and the name it is published under — the anchor a shared link and a printed QR code point at. `status` answers by article; this answers by card. `--format json` for machines |
+| `series slug [dir]` | Lists every card of the series and the effective name it is published under, including `slug_prefix` — the anchor a shared link and a printed QR code point at. `status` answers by article; this answers by card. `--format json` for machines |
 | `series slug set [dir]` | Writes a `slug:` into every card that has none, and only those. The one command that edits your articles — a build never rewrites its own inputs. What it writes is random and meant to be renamed to something readable; `--dry-run` says what it would write |
 | `resolve [dir] <name>` | Says what ONE name is worth here and which level decided it, losing levels included. The shape of the name picks the cascade: dotted = theme property, `snake_case` = article/series field, `kebab-case` = slide field. `--article file.md` adds a page's own layer; `--format json` for machines |
-| `series theme set [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf`; your pinned values stay and apply on top |
+| `series theme set [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf` or `$LWP_TEMPLATES_DIR`; your pinned values stay and apply on top |
 | `theme gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
 | `clean [dir]` | Purges orphan files from `public/` using the build manifest (dry-run by default, `--force` to actually remove) |
 | `watch [dir]` | Polls `series.json`, sources, templates, split interface/typography packs and legacy language packs (including their current descendants), rebuilds on change, notices files created after startup, and keeps watching after a failed rebuild; optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
@@ -424,6 +427,7 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--drafts-only` | `build`, `watch` | builds only `status: draft` articles |
 | `--open` | `build`, `watch` | opens the result in the browser |
 | `--include-drafts` | `build`, `verify` | builds draft articles too |
+| `--force` | `init`, `template write`, `clean` | explicitly proceeds with a non-empty scaffold, replaces a tool-owned template file, or removes orphaned output files |
 | `--strict` | `audit` | exits non-zero on any warning — the complete gate: editorial warnings and everything the render raises alike, a failed render included |
 | `--templates` | `audit` | restricts the audit to the presentation/template layer: it still judges the resolved stylesheet, but skips the per-article editorial checks and does not render, so it stays cheap |
 | `--serve` / `--port N` | `watch` | serves on `127.0.0.1` (opt-in), port `N` (default 8000) |
