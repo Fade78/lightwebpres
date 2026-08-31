@@ -69,6 +69,7 @@ nav_desc: Pastry, baking, and plating
 ---
 
 <!-- lwp:slide:cover -->
+slug: apple-pie-cover
 kicker: Recipe
 # The apple pie
 summary: Nine things that make or break a homemade apple pie.
@@ -76,6 +77,7 @@ summary: Nine things that make or break a homemade apple pie.
 ---
 
 <!-- lwp:slide -->
+slug: temperature
 kicker: Baking
 ## Temperature changes everything
 summary: An oven that's too hot cooks the surface before the center is ready.
@@ -91,10 +93,12 @@ a blank line, stays a second paragraph.
 ---
 
 <!-- lwp:slide:series-nav -->
+slug: series-links
 
 ---
 
 <!-- lwp:slide:full-article -->
+slug: apple-pie-long
 article: apple-pie_article.md
 ```
 

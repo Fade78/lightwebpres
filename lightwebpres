@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.49.0"
+VERSION = "0.49.1"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -10971,10 +10971,12 @@ class TypoEngine:
         in ordinary prose as one giant fake tag spanning everything between
         them, silently skipping typography on real text in between."""
         disabled = disabled or ()
-        segments = re.split(r'(</?[a-zA-Z][^<>]*>)', text)
+        segments = _split_raw_html_tokens(text)
         skip_depth = 0
-        for i, segment in enumerate(segments):
-            if segment.startswith('<') and segment.endswith('>'):
+        output = []
+        for is_raw, segment in segments:
+            if is_raw:
+                output.append(segment)
                 m = re.match(r'</?([a-zA-Z][a-zA-Z0-9]*)', segment)
                 if m and m.group(1).lower() in self._NO_TYPO_TAGS:
                     if segment.startswith('</'):
@@ -10983,13 +10985,14 @@ class TypoEngine:
                         skip_depth += 1
                 continue
             if skip_depth > 0:
+                output.append(segment)
                 continue
             for name, pattern, replacement, count in self.rules:
                 if name in disabled:
                     continue
                 segment = pattern.sub(replacement, segment, count=count)
-            segments[i] = segment
-        return ''.join(segments)
+            output.append(segment)
+        return ''.join(output)
 
 
 def apply_typo(typo_engine, text, disabled=None):
@@ -11323,6 +11326,86 @@ def _tag_open_end(html, start):
     return None
 
 
+def _raw_html_tag_end(html, start):
+    """Returns the end of a raw HTML tag, or ``None`` if it is incomplete.
+
+    Unlike the script scanner above, this treats an unquoted ``<`` as the
+    start of another construct rather than allowing one malformed opener to
+    consume the rest of a paragraph. The scan remains linear for a run of
+    unterminated tag-looking text and still respects ``>`` inside quotes.
+    """
+    quote = None
+    for position in range(start + 1, len(html)):
+        char = html[position]
+        if quote:
+            if char == quote:
+                quote = None
+        elif char in ('"', "'"):
+            quote = char
+        elif char == '<':
+            return None
+        elif char == '>':
+            return position + 1
+    return None
+
+
+_RAW_HTML_TAG_START_RE = re.compile(r'</?[a-zA-Z]')
+
+
+def _split_raw_html_tokens(text):
+    """Splits raw HTML comments and tag tokens from ordinary text.
+
+    The returned pairs are ``(is_raw_html, text)``. Only the tag token is
+    protected: Markdown in the content between inline tags remains active,
+    while comments and quoted attributes pass through byte-for-byte. This is
+    shared by ampersand escaping, typography, Markdown conversion and audit so
+    those layers cannot disagree about the trust boundary.
+    """
+    parts = []
+    outside_start = 0
+    position = 0
+    length = len(text)
+    while position < length:
+        if text.startswith('<!--', position):
+            end = text.find('-->', position + 4)
+            end = length if end < 0 else end + 3
+            if outside_start < position:
+                parts.append((False, text[outside_start:position]))
+            parts.append((True, text[position:end]))
+            position = end
+            outside_start = end
+            continue
+        if text[position] == '<' and _RAW_HTML_TAG_START_RE.match(
+                text, position):
+            end = _raw_html_tag_end(text, position)
+            if end is not None:
+                if outside_start < position:
+                    parts.append((False, text[outside_start:position]))
+                parts.append((True, text[position:end]))
+                position = end
+                outside_start = end
+                continue
+        position += 1
+    if outside_start < length:
+        parts.append((False, text[outside_start:]))
+    if not parts:
+        parts.append((False, text))
+    return parts
+
+
+def _protect_raw_html_tokens(text):
+    """Replaces raw HTML tokens with private placeholders for Markdown passes."""
+    tokens = []
+    parts = []
+    for is_raw, part in _split_raw_html_tokens(text):
+        if is_raw:
+            tokens.append(part)
+            parts.append(f'\x01{len(tokens) - 1}\x01')
+        else:
+            parts.append(part)
+    return ''.join(parts), tokens
+
+
 def _page_script_blocks(html):
     """Yields script attributes and bodies without rescanning the same text.
 
@@ -11559,15 +11642,11 @@ class NoteScope:
         return '  <ol class="note-body">\n' + '\n'.join(items) + '\n  </ol>'
 
 
-# The same split the typography engine uses, and deliberately the same:
-# two mechanisms that disagree about where a tag begins would protect
-# different halves of the same document. See TypoEngine.apply for why the
-# pattern demands a tag name after `<` rather than matching `<[^>]+>` --
-# a stray "< 5 ... > 10" in prose would otherwise be read as one giant
-# tag spanning everything between them.
-_TAG_SPLIT_RE = re.compile(r'(</?[a-zA-Z][^<>]*>)')
-
-
+# The same quote-aware scanner is used by the typography engine and
+# escape_amps: two mechanisms that disagree about where a tag begins would
+# protect different halves of the same document. `_split_raw_html_tokens`
+# deliberately requires a tag name after `<`, so a stray "< 5 ... > 10" in
+# prose is not read as one giant tag spanning everything between them.
 def escape_amps(text):
     """Escapes `&` OUTSIDE a tag, and leaves what is inside one verbatim.
 
@@ -11595,20 +11674,21 @@ def escape_amps(text):
     tag is no longer corrected to `&amp;`. That is invalid HTML the author
     wrote, and repairing it would be exactly the interference §13.8 says
     this tool does not do."""
-    parts = _TAG_SPLIT_RE.split(text)
-    for i in range(0, len(parts), 2):   # even indices are outside a tag
-        parts[i] = parts[i].replace('&', '&amp;')
-    return ''.join(parts)
+    return ''.join(
+        part if is_raw else part.replace('&', '&amp;')
+        for is_raw, part in _split_raw_html_tokens(text))
 
 
 def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
     """Converts inline Markdown formatting to HTML."""
-    # This function owns two control characters as internal placeholders
-    # (U+0000 for code spans below, U+0002 for note calls). Neither is
-    # meaningful in a Markdown source, and letting one through would let a
-    # source forge a placeholder — so they are removed on the way in,
+    # This function owns three control characters as internal placeholders
+    # (U+0000 for code spans, U+0001 for raw HTML, U+0002 for note calls).
+    # None is meaningful in a Markdown source, and letting one through would
+    # let a source forge a placeholder — so they are removed on the way in,
     # before anything else can look at the text.
     text = text.replace('\x00', '').replace('\x02', '')
+    text = text.replace('\x01', '')
+    text, raw_html_tokens = _protect_raw_html_tokens(text)
     # Inline code spans (§6.3) come first, before any other substitution
     # below, for two reasons: their content must never be reinterpreted
     # as further Markdown (`` `**not bold**` `` stays literal), and —
@@ -11623,7 +11703,11 @@ def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
     code_spans = []
 
     def _code_span(m):
-        content = html_escape(m.group(1), quote=False)
+        content = m.group(1)
+        content = re.sub(
+            r'\x01(\d+)\x01',
+            lambda token: raw_html_tokens[int(token.group(1))], content)
+        content = html_escape(content, quote=False)
         code_spans.append(f'<code>{content}</code>')
         return f'\x00{len(code_spans) - 1}\x00'
 
@@ -11744,6 +11828,8 @@ def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
 
     for idx, html in enumerate(code_spans):
         text = text.replace(f'\x00{idx}\x00', html)
+    for idx, raw in enumerate(raw_html_tokens):
+        text = text.replace(f'\x01{idx}\x01', raw)
 
     return text
 
@@ -14273,7 +14359,9 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
                   if notes_placement == 'page' else None)
 
     # `excluded` is a source-level omission, not a runtime filter: no section,
-    # anchor, note scope, or slide number is created for it.
+    # anchor, note scope, or slide number is created for it. Validate and
+    # reserve every source card's slug first, because excluded cards still
+    # obey the author's declared-identity contract.
     visible_slides = [slide for slide in slides if 'excluded' not in slide.tags]
     own_entry = next((entry for entry in _series_entries(series_data)
                       if entry.get('page_dest') == current_file), None)
@@ -14286,15 +14374,18 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
         meta, series_meta_of(series_data), source_path.name, args)
     # Identities for the whole page, before any card is rendered: a card's
     # id has to be unique across the page, so it cannot be decided card by
-    # card (§12.1.1).
+    # card (§12.1.1). Keep only emitted identities after validating all
+    # source cards, including excluded ones.
     slug_prefix = resolve_slug_prefix(meta, series_meta_of(series_data),
                                       source_path.name)
     try:
-        identities = resolve_page_slide_ids(visible_slides, slug_prefix,
-                                            source_path.name)
+        all_identities = resolve_page_slide_ids(slides, slug_prefix,
+                                                source_path.name)
     except PropertyError as exc:
         log('error', f'{source_path.name}: {exc}')
         sys.exit(1)
+    identities = [identity for slide, identity in zip(slides, all_identities)
+                  if 'excluded' not in slide.tags]
 
     slide_htmls = []
 
@@ -16844,6 +16935,72 @@ _NOTE_SUSPECT_RE = re.compile(r'\[\^([^\[\]\n]{1,32})\](?!\()')
 # of the report below.
 _CODE_SPAN_RE = re.compile(r'(?<!\\)`([^`]+?)(?<!\\)`')
 
+_INSTANCE_TAG_OPEN_RE = re.compile(
+    r'\{(color|font|align|sc|u|strike|mono)[:}]')
+_MARKDOWN_IMAGE_SYNTAX_RE = re.compile(
+    r'!\[[^\]\[]*\]\((?:[^)\s"\[(]+)(?:\s+"[^"]*")?\)')
+_MARKDOWN_LINK_DEST_RE = re.compile(
+    r'(\[[^\]\[]+\]\()(https?://[^)\[]+)(\))')
+
+
+def _instance_tag_inventory(text):
+    """Returns instance-tag openers in Markdown that the renderer can read.
+
+    Fenced/inline code, raw HTML blocks and raw HTML tokens are not Markdown
+    text. Image destinations and link URLs are attributes, not styled prose,
+    so their contents are masked before the same opener census used by audit.
+    """
+    chunks = []
+    current = []
+    raw_html_depth = 0
+    in_code_block = False
+
+    def flush():
+        if current:
+            chunks.append('\n'.join(current))
+            current[:] = []
+
+    for raw in text.split('\n'):
+        line = rstrip_ws(raw)
+        if raw_html_depth > 0:
+            raw_html_depth = max(0, raw_html_depth + _html_tag_depth_delta(line))
+            continue
+        if in_code_block:
+            if line == '```':
+                in_code_block = False
+            continue
+        if _CODE_FENCE_RE.match(line):
+            flush()
+            in_code_block = True
+            continue
+        if not line.strip():
+            flush()
+            continue
+        if _is_raw_html_line(line):
+            flush()
+            raw_html_depth = max(0, _html_tag_depth_delta(line))
+            continue
+        current.append(line)
+    flush()
+
+    found = []
+    for chunk in chunks:
+        visible = _CODE_SPAN_RE.sub(
+            lambda match: ' ' * len(match.group(0)), chunk)
+        visible = ''.join(
+            ' ' * len(part) if is_raw else part
+            for is_raw, part in _split_raw_html_tokens(visible))
+        visible = _MARKDOWN_IMAGE_SYNTAX_RE.sub(
+            lambda match: ' ' * len(match.group(0)), visible)
+
+        def mask_link_destination(match):
+            return (match.group(1) + ' ' * len(match.group(2))
+                    + match.group(3))
+
+        visible = _MARKDOWN_LINK_DEST_RE.sub(mask_link_destination, visible)
+        found.extend(_INSTANCE_TAG_OPEN_RE.findall(visible))
+    return found
+
 
 def unrecognized_note_labels(text):
     """Every `[^...]` in `text` that the converter will not read as a note.
@@ -16900,6 +17057,9 @@ def unrecognized_note_labels(text):
         if _is_raw_html_line(line):
             raw_html_depth = max(0, _html_tag_depth_delta(line))
             continue
+        line = ''.join(
+            ' ' * len(part) if is_raw else part
+            for is_raw, part in _split_raw_html_tokens(line))
         # Blanked, not cut, one space per character, so the definition test
         # below still finds column 0 where the source put it.
         line = _CODE_SPAN_RE.sub(lambda m: ' ' * len(m.group(0)), line)
@@ -16955,7 +17115,14 @@ _FIELD_ATTRS = (
 )
 
 
-def unrendered_field_markup(slides):
+_ARTICLE_MARKUP_FIELDS = (
+    'page_title', 'page_desc', 'card_title', 'card_desc', 'card_label',
+    'nav_title', 'nav_desc', 'author', 'license', 'date',
+)
+_SERIES_MARKUP_FIELDS = ('title', 'subtitle', 'version', 'intro', 'author', 'license')
+
+
+def unrendered_field_markup(slides, fields=()):
     """Every structural field carrying markup that will ship literally.
 
     Reported on a 28-article corpus where 32 fields had accumulated it
@@ -16969,11 +17136,22 @@ def unrendered_field_markup(slides):
     it is a real emphasis, and only the parse says which side of the line a
     given occurrence fell on.
 
-    Returns [(slide_number, field_name, marker)], each field once, on its
-    first marker -- one mistake, one finding, and the author will see the
-    rest of the line when they open it.
+    ``fields`` optionally supplies ``(location, field_name, value)`` triples
+    for article- and series-level values. Those values are inspected as
+    written, before resolution mutates the article entry.
+
+    Returns [(location, field_name, marker)], each field once, on its first
+    marker -- one mistake, one finding, and the author will see the rest of
+    the line when they open it.
     """
     found = []
+    for location, name, value in fields:
+        if not isinstance(value, str):
+            continue
+        for marker, pattern in _FIELD_MARKUP_RES:
+            if pattern.search(value):
+                found.append((location, name, marker))
+                break
     for number, slide in enumerate(slides, 1):
         for name, attr in _FIELD_ATTRS:
             value = getattr(slide, attr, None)
@@ -16981,7 +17159,7 @@ def unrendered_field_markup(slides):
                 continue
             for marker, pattern in _FIELD_MARKUP_RES:
                 if pattern.search(value):
-                    found.append((number, name, marker))
+                    found.append((f'slide {number}', name, marker))
                     break
     return found
 
@@ -17738,6 +17916,12 @@ def cmd_audit(series_dir, args):
         # `--templates` restricts audit to the
         # presentation/template layer and skips per-article editorial checks.
         articles = []
+    raw_entry_markup = {
+        id(entry): tuple(
+            ('series.json entry', field, entry.get(field))
+            for field in _ARTICLE_MARKUP_FIELDS)
+        for entry in articles if isinstance(entry, dict)
+    }
     # entry['page_dest'] below needs the resolution §20.3.1 describes
     # (derived from `page_source` when series.json omits it, the common
     # case) — without this, an entry that legitimately has no explicit
@@ -17752,7 +17936,21 @@ def cmd_audit(series_dir, args):
 
     warnings = (default_tag_warnings + len(meta_errors)
                 + len(validation_errors))
+
+    def report_field_markup(source, slides, fields=()):
+        findings = unrendered_field_markup(slides, fields=fields)
+        for location, field, marker in findings:
+            log('warn', f'{source}: {location}, `{field}` contains {marker}, '
+                f'which a field does not render — it ships to the reader as '
+                f'the characters you typed. A field is a value; Markdown lives '
+                f'in the free text below it (§6.1).')
+        return len(findings)
+
     if not args.get('--templates'):
+        warnings += report_field_markup(
+            'series.json', [],
+            [('series_meta', field, series_meta.get(field))
+             for field in _SERIES_MARKUP_FIELDS])
         if not default_tag_warnings:
             print_tag_inventory_text(
                 tag_inventory_report(series_data, entries=articles),
@@ -17810,30 +18008,28 @@ def cmd_audit(series_dir, args):
             warnings += 1
             named_the_cause = True
             continue
+        meta, slides, has_meta_block, _ = parse_markdown_extended(md_text)
         # Instance tags are author interventions that survive every theme
         # change; audit enumerates them (never blocks) so an author changing
-        # themes knows where to look. The visibility is what makes literals
-        # in article text acceptable at all (§9).
-        #
-        # Scanned over the deck AND every long-form file it pulls in: the
-        # census used to read page_source alone, so the file holding most of
-        # the prose was the one place it never looked. `align` is in the
-        # alternation for the same reason — a census that silently omits a
-        # tag family is worse than no census.
-        census_text = md_text
-        for name in re.findall(r'^\s*article:\s*(\S+)\s*$', md_text, re.M):
-            extra = _resolve_contained(sources_dir, name)
+        # themes knows where to look. Count only free Markdown text: fields,
+        # code, raw HTML and attribute values are not instance-tag contexts.
+        census_texts = [slide.fact_content for slide in slides
+                        if slide.fact_content]
+        for slide in slides:
+            if slide.slide_type != 'full-article' or not slide.article_file:
+                continue
+            extra = _resolve_contained(sources_dir, slide.article_file)
             if extra is not None and extra.exists():
-                census_text += '\n' + (audit_read(extra) or '')
-        instance_tags = re.findall(
-            r'\{(color|font|align|sc|u|strike|mono)[:}]', census_text)
+                extra_text = audit_read(extra)
+                if extra_text is not None:
+                    census_texts.append(extra_text)
+        instance_tags = _instance_tag_inventory('\n\n'.join(census_texts))
         if instance_tags:
             counts = ', '.join(f'{instance_tags.count(t)} {t}'
                                for t in sorted(set(instance_tags)))
             print(f"[NOTE] {entry['page_source']}: "
                   f"{len(instance_tags)} instance tag(s) ({counts}) — "
                   f"author interventions that survive theme changes.")
-        meta, slides, has_meta_block, _ = parse_markdown_extended(md_text)
         warnings += audit_meta_keys(entry['page_source'], meta)
         warnings += audit_article_tags(entry['page_source'], meta)
         warnings += audit_slide_tags(
@@ -17849,13 +18045,12 @@ def cmd_audit(series_dir, args):
             log('warn', f'{entry["page_dest"]}: the first slide is not a cover (found: {slides[0].slide_type})')
             warnings += 1
 
-        for number, field, marker in unrendered_field_markup(slides):
-            warnings += 1
-            log('warn', f'{entry["page_source"]}: slide {number}, '
-                        f'`{field}` contains {marker}, which a field does not '
-                  f'render — it ships to the reader as the characters you '
-                  f'typed. A field is a value; Markdown lives in the free '
-                  f'text below it (§6.1).')
+        article_fields = [
+            ('article meta', field, meta.get(field))
+            for field in _ARTICLE_MARKUP_FIELDS]
+        article_fields.extend(raw_entry_markup.get(id(entry), ()))
+        warnings += report_field_markup(
+            entry['page_source'], slides, article_fields)
 
         warnings += audit_notes(entry, meta, series_meta, slides,
                                 sources_dir)

@@ -20,7 +20,6 @@ import contextlib
 import io
 import json
 import os
-import inspect
 import re
 import shlex
 import shutil
@@ -2394,17 +2393,18 @@ class OneRuleForTheAmpersand(unittest.TestCase):
             self.assertIn('<a href="https://x.test/?a=1&amp;b=2">link</a>', html)
 
     def test_the_split_is_the_one_the_typography_engine_uses(self):
-        """Two mechanisms that disagreed about where a tag begins would
-        protect different halves of the same document. Read from the
-        module, both of them, so a future edit to either has to move
-        both."""
+        """The escape and typography paths share one quote-aware splitter.
+
+        A regex cannot preserve a raw tag containing ``>`` in a quoted
+        attribute, so both paths must use the same scanner instead of
+        independently guessing where the tag ends.
+        """
         lwp = load_lightwebpres_module()
-        self.assertEqual(
-            lwp._TAG_SPLIT_RE.pattern, r'(</?[a-zA-Z][^<>]*>)',
-            'the escape split is no longer the typography engine\'s')
-        source = inspect.getsource(lwp.TypoEngine.apply)
-        self.assertIn(r"re.split(r'(</?[a-zA-Z][^<>]*>)', text)", source,
-                      'the typography engine no longer splits the same way')
+        parts = lwp._split_raw_html_tokens(
+            '<a title="2 > 1">x</a> and <!-- y > z -->')
+        raw = [part for is_raw, part in parts if is_raw]
+        self.assertEqual(raw, [
+            '<a title="2 > 1">', '</a>', '<!-- y > z -->'])
 
     def test_prose_that_looks_like_a_tag_is_not_one(self):
         """`3 < 4 … > 2 & 6` is arithmetic, not a tag spanning the middle
@@ -2414,6 +2414,11 @@ class OneRuleForTheAmpersand(unittest.TestCase):
         lwp = load_lightwebpres_module()
         self.assertEqual(lwp.escape_amps('3 < 4 and 5 > 2 & 6'),
                          '3 < 4 and 5 > 2 &amp; 6')
+
+    def test_ampersands_in_comments_and_quoted_attributes_are_untouched(self):
+        lwp = load_lightwebpres_module()
+        source = '<!-- &rarr; --> <a title="2 > 1 &copy;">x</a>'
+        self.assertEqual(lwp.escape_amps(source), source)
 
 
 class SeriesNavFullArticleStrictContent(unittest.TestCase):
@@ -5628,6 +5633,19 @@ class MarkdownConversion(unittest.TestCase):
     def test_raw_html_passthrough(self):
         html = self._build_article_html('Some text with a <br> line break.\n')
         self.assertIn('<br>', html)
+
+    def test_html_comment_is_verbatim(self):
+        html = self._build_article_html(
+            '<!-- **bold** &rarr; {sc}x{/sc} -->\n')
+        self.assertIn(
+            '<p><!-- **bold** &rarr; {sc}x{/sc} --></p>', html)
+
+    def test_raw_html_attributes_are_verbatim_but_content_stays_markdown(self):
+        html = self._build_article_html(
+            '**outside** <a title="2 > 1 &rarr; {sc}x{/sc}">**inside**</a>\n')
+        self.assertIn(
+            '<strong>outside</strong> <a title="2 > 1 &rarr; {sc}x{/sc}">'
+            '<strong>inside</strong></a>', html)
 
     def test_block_level_tag_at_line_start_is_raw_passthrough(self):
         # A line starting with a block-level tag is untouched raw HTML,
@@ -10721,6 +10739,15 @@ class ACardIsCalledWhatItsAuthorDeclared(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('slide 1 has no `slug:`', result.stderr)
             self.assertIn('series slug set', result.stderr)
+
+    def test_excluded_slide_still_requires_a_slug(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(
+                tmp, self.COVER + '\n---\n\n<!-- lwp:slide -->\n'
+                'tags: excluded\n## Removed\n')
+            result = self._build(root, tmp)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('slide 2 has no `slug:`', result.stderr)
 
     def test_editing_a_title_does_not_move_the_anchor(self):
         """The whole point, stated as a reader would meet it: the link
@@ -16940,12 +16967,16 @@ class InstanceTags(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             run('init', tmp, '--force')
             root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
-                                 '# Cover\n\nsummary: {color:#333}s{/color} '
-                                 'et {sc}x{/sc}\n')
+                                 '<!-- lwp:slide:cover -->\nslug: r227\n'
+                                 '# Cover\n\nsummary: s\n\n---\n\n'
+                                 '<!-- lwp:slide -->\nslug: r228\n## Body\n'
+                                 'fact-label: F\n\n'
+                                 '{color:#333}s{/color} et {sc}x{/sc}. '
+                                 '`{u}code{/u}` <!-- {mono}comment{/mono} --> '
+                                 '<a title="{strike}attribute{/strike}">link</a>\n')
             result = run('audit', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('[NOTE] a.md: 2 instance tag(s)', result.stdout)
-
 
 class InstanceAndArticleLayerSecurity(unittest.TestCase):
     """The audit's boundary findings, pinned. The article style.* layer and
@@ -19576,6 +19607,22 @@ class AFieldSaysWhenItIsCarryingMarkupItWillNotRender(unittest.TestCase):
             self.assertEqual(run('init', root).returncode, 0)
             self.assertEqual(run('demo', root).returncode, 0)
             self.assertIn('No warnings', run('audit', root).stdout)
+
+    def test_field_markup_in_article_and_series_metadata_is_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, self.HEAD.replace(
+                'page_title: T', 'page_title: Article **title**'))
+            path = Path(root) / 'series.json'
+            data = json.loads(path.read_text(encoding='utf-8'))
+            entries = data.get('articles', data) if isinstance(data, dict) else data
+            entries[-1]['card_desc'] = 'Series [description](https://example.org)'
+            data['series_meta'] = {'title': 'Series `title`'}
+            path.write_text(json.dumps(data, indent=2), encoding='utf-8')
+
+            report = run('audit', root).stderr
+            self.assertIn('`page_title` contains', report)
+            self.assertIn('`card_desc` contains', report)
+            self.assertIn('`title` contains', report)
 
 if __name__ == '__main__':
     unittest.main()

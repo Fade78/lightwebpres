@@ -33,6 +33,16 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.49.1
+
+Raw HTML comments and tag attributes in Markdown now pass verbatim through
+ampersand escaping, typography, and inline conversion, while Markdown remains
+active in the content between tags. `audit` reports Markdown markers written
+into rendered article and series metadata, and its instance-tag census now
+counts only renderable prose, including `full-article` sources.
+Authoring examples now show the required `slug:` on every card, including cards
+that are excluded from the published page.
+
 ## Unreleased — 0.49.0
 
 Standard builds now publish only local image files referenced by the rendered

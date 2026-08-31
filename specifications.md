@@ -798,6 +798,7 @@ card_desc: Température de cuisson, temps de repos de la pâte, et astuces de dr
 ---
 
 <!-- lwp:slide:cover -->
+slug: tarte-aux-pommes-cover
 kicker: Recette
 # La tarte aux pommes
 summary: Neuf repères pour réussir une tarte aux pommes maison, de la pâte brisée à la cuisson, en passant par le choix des pommes et le dressage.
@@ -805,6 +806,7 @@ summary: Neuf repères pour réussir une tarte aux pommes maison, de la pâte br
 ---
 
 <!-- lwp:slide -->
+slug: temperature
 kicker: Cuisson
 ## La température change tout
 summary: Un four trop chaud cuit la surface avant que le centre ne soit prêt : c'est le piège le plus courant de la tarte maison.
@@ -820,10 +822,12 @@ Le temps de cuisson varie ensuite selon l'**épaisseur** des pommes et la hauteu
 ---
 
 <!-- lwp:slide:series-nav -->
+slug: series-links
 
 ---
 
 <!-- lwp:slide:full-article -->
+slug: tarte-aux-pommes-long
 article: tarte-aux-pommes_article.md
 ```
 
