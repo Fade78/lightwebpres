@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.49.1
+## v0.49.1
 
 Raw HTML comments and tag attributes in Markdown now pass verbatim through
 ampersand escaping, typography, and inline conversion, while Markdown remains
@@ -42,6 +42,8 @@ into rendered article and series metadata, and its instance-tag census now
 counts only renderable prose, including `full-article` sources.
 Authoring examples now show the required `slug:` on every card, including cards
 that are excluded from the published page.
+At the end of a deck, pressing ArrowDown at the bottom of an overflowing last
+slide now stays there instead of returning to that slide's top.
 
 ## Unreleased — 0.49.0
 

@@ -4104,6 +4104,13 @@ document.addEventListener('DOMContentLoaded', function() {
       scrollWithinSlide(1);
       return;
     }
+    // At the end of the deck there is no next target. Do not call goTo()
+    // with the clamped current index: on an overflowing last slide that
+    // would animate back to the slide's top instead of staying at its end.
+    if (current >= slides.length - 1) {
+      focusedCard = -1;
+      return;
+    }
     goTo(current + 1);
   }
 

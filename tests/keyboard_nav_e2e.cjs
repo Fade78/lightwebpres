@@ -3,10 +3,11 @@
 // — on the series-nav slide — card-to-card with Enter jumping to the
 // linked article, then, for a slide taller than the viewport (typically
 // a long full-article), scrolling it down in increments before moving
-// on. Invoked by tests/test_keyboard_nav.py — not a standalone entry
-// point.
+// on, with a final overflowing slide staying at its bottom when there is
+// no next slide. Invoked by tests/test_keyboard_nav.py — not a standalone
+// entry point.
 //
-// argv: <tallArticleUrl> <navArticleUrl>
+// argv: <tallArticleUrl> <lastArticleUrl> <navArticleUrl> <heldArticleUrl>
 
 const { chromium } = require('playwright');
 const { collectConsoleErrors } = require('./console_errors.cjs');
@@ -43,9 +44,9 @@ async function press(page, key) {
 }
 
 async function main() {
-  const [tallArticleUrl, navArticleUrl, heldArticleUrl] = process.argv.slice(2);
-  if (!tallArticleUrl || !navArticleUrl || !heldArticleUrl) {
-    console.error('usage: keyboard_nav_e2e.cjs <tallArticleUrl> <navArticleUrl> <heldArticleUrl>');
+  const [tallArticleUrl, lastArticleUrl, navArticleUrl, heldArticleUrl] = process.argv.slice(2);
+  if (!tallArticleUrl || !lastArticleUrl || !navArticleUrl || !heldArticleUrl) {
+    console.error('usage: keyboard_nav_e2e.cjs <tallArticleUrl> <lastArticleUrl> <navArticleUrl> <heldArticleUrl>');
     process.exit(2);
   }
 
@@ -101,7 +102,43 @@ async function main() {
     else console.log('tall-slide eventually advances to the next slide OK');
     await page.close();
 
-    // --- 2. Series-nav: forward through the cards one by one, then
+    // --- 2. A tall full-article that is the LAST slide stays at its
+    // bottom when ArrowDown has no next slide to enter. -----------------
+    page = await context.newPage();
+    collectConsoleErrors(page, consoleErrors);
+    page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
+    await page.goto(lastArticleUrl);
+    await page.waitForSelector('.nav-dots a');
+
+    await press(page, 'ArrowDown'); // cover (0) -> full-article (1)
+    await page.waitForTimeout(600);
+    idx = await activeDotIndex(page);
+    if (idx !== 1) fail('expected slide 1 (the last full-article) after one ArrowDown, got ' + idx);
+
+    const bottomY = await page.evaluate(() => {
+      const maxY = Math.max(0, document.scrollingElement.scrollHeight - window.innerHeight);
+      window.scrollTo({ top: maxY, behavior: 'instant' });
+      return maxY;
+    });
+    await page.waitForTimeout(120);
+    const scrollYAtBottom = await page.evaluate(() => window.scrollY);
+    if (bottomY <= 0 || scrollYAtBottom < bottomY - 2) {
+      fail('setup did not reach the bottom of the last full-article (expected ' + bottomY + ', got ' + scrollYAtBottom + ')');
+    }
+
+    await press(page, 'ArrowDown');
+    await page.waitForTimeout(600);
+    idx = await activeDotIndex(page);
+    const scrollYAfterEnd = await page.evaluate(() => window.scrollY);
+    if (idx !== 1) fail('ArrowDown at the bottom of the last full-article moved to slide ' + idx);
+    if (scrollYAfterEnd < scrollYAtBottom - 20) {
+      fail('ArrowDown at the bottom of the last full-article moved back to its top (scrollY ' + scrollYAtBottom + ' -> ' + scrollYAfterEnd + ')');
+    } else {
+      console.log('last full-article bottom ArrowDown stays at the bottom OK');
+    }
+    await page.close();
+
+    // --- 3. Series-nav: forward through the cards one by one, then
     // exhausting them on the last slide stays put and clears focus,
     // then one more ArrowUp (no card was ever focused-and-released, so
     // there's nothing to step back through) leaves the slide backward --
@@ -156,7 +193,7 @@ async function main() {
     console.log('series-nav ArrowUp-with-nothing-to-step-back-through OK: left the slide backward');
     await page.close();
 
-    // --- 3. Backward through the cards from mid-walk, then Enter jumps
+    // --- 4. Backward through the cards from mid-walk, then Enter jumps
     // to the focused article — fresh page, so focusedCard is still
     // genuinely mid-walk (not reset by an exhausting extra press) -----
     page = await context.newPage();
@@ -192,7 +229,7 @@ async function main() {
     console.log('Enter-on-focused-card jump OK: navigated to ' + page.url());
     await page.close();
 
-    // --- 4. Regression: holding an arrow key down (native auto-repeat
+    // --- 5. Regression: holding an arrow key down (native auto-repeat
     // fires keydown much faster than a human can perceive, ~20-30ms
     // apart) must not race straight through the card-focus states — the
     // exact bug a real user hit before nav.js's step cooldown existed.

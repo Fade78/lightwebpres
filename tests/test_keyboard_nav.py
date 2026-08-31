@@ -1,24 +1,27 @@
 """End-to-end test for arrow-key navigation on an article page: a real
 browser keyboard-driven walk (not just string assertions against the
-generated HTML), covering two behaviors added on top of the plain
+generated HTML), covering the behaviors added on top of the plain
 slide-to-slide arrow navigation:
 
   - A slide taller than the viewport (typically a long full-article) gets
     scrolled down in increments before an arrow key advances past it.
+  - A final overflowing slide stays at its bottom when ArrowDown has no
+    next slide to enter.
   - On the series-nav slide, arrow keys step through its cards one by
     one (instead of skipping straight past the whole slide), and Enter
     on a focused card jumps to that article — like Tab, but confined to
     the natural slide/card/scroll journey instead of leaving the page.
 
-Two independent series (built separately, served side by side): 'tall'
-is a single-article series with nothing to link to, so its full-article
-slide is the only thing that can overflow the viewport; 'nav' is a
+Independent series (built separately, served side by side) keep the
+fixtures' navigation states separate: 'tall' is a single-article series
+with a trailing slide after its overflowing full-article, 'last' puts the
+overflowing full-article at the end of the deck, and 'nav' is a
 three-article series (nav, b, c) whose series-nav slide has exactly the
 two sibling cards + the back-to-index link the e2e script expects —
-sharing one series.json between both fixtures would give the nav
-article's series-nav slide an extra card for the unrelated 'tall'
-article too (every OTHER article gets a card, not just later ones),
-which doesn't serve either behavior under test.
+sharing one series.json between these fixtures would give the nav
+article's series-nav slide extra cards for unrelated articles too (every
+OTHER article gets a card, not just later ones), which doesn't serve the
+behaviors under test.
 
 Requires Node.js with the `playwright` package (and its Chromium browser)
 available; skips cleanly if either is missing, same as tests/test_web.py.
@@ -111,6 +114,26 @@ class KeyboardNav(unittest.TestCase):
         )
         _build(tall_root, served / 'tall')
 
+        # --- 'last' series: the same overflowing full-article, but as the
+        # final slide. This is the boundary case where a further ArrowDown
+        # must stay at the bottom instead of asking goTo() to revisit the
+        # current slide's top. --------------------------------------------
+        last_root = parent / 'last_series'
+        (last_root / 'sources').mkdir(parents=True)
+        (last_root / 'series.json').write_text(json.dumps({
+            'articles': [{'page_dest': 'last.html', 'page_source': 'last.md', 'nav_title': 'Last', 'nav_desc': 'Last'}],
+        }), encoding='utf-8')
+        (last_root / 'sources' / 'last_article.md').write_text(long_body, encoding='utf-8')
+        (last_root / 'sources' / 'last.md').write_text(
+            '<!-- lwp:meta -->\npage_dest: last.html\npage_title: Last test\n'
+            'nav_title: Last\nnav_desc: Last\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: c14\nkicker: T\n# Last test\n'
+            'summary: Cover slide.\n\n---\n\n'
+            '<!-- lwp:slide:full-article -->\nslug: c15\narticle: last_article.md\n',
+            encoding='utf-8',
+        )
+        _build(last_root, served / 'last')
+
         # --- 'nav' series: nav (cover + standard + series-nav) plus two
         # minimal sibling articles the series-nav slide links to, so its
         # cards are exactly [b.html, c.html, index.html]. ----------------
@@ -199,7 +222,7 @@ class KeyboardNav(unittest.TestCase):
     def test_tall_slide_scroll_and_series_nav_card_stepping(self):
         base = 'http://127.0.0.1:%d' % self.port
         result = subprocess.run(
-            ['node', str(KEYBOARD_NAV_SCRIPT), base + '/tall/tall.html', base + '/nav/nav.html', base + '/held/held.html'],
+            ['node', str(KEYBOARD_NAV_SCRIPT), base + '/tall/tall.html', base + '/last/last.html', base + '/nav/nav.html', base + '/held/held.html'],
             capture_output=True, text=True,
             env={**os.environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
             timeout=60,

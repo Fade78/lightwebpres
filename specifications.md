@@ -2764,7 +2764,9 @@ Ordre exact d'un appui sur Bas : s'il reste une carte non visitée sur la
 fiche courante, focus sur la carte suivante ; sinon, si la fiche dépasse
 l'écran et n'est pas encore défilée jusqu'en bas, défiler d'un incrément
 (90 % de la hauteur de fenêtre) ; sinon, passer à la fiche suivante. Bas
-est le miroir exact de Haut. Ce même mécanisme sert aussi de garde-fou
+est le miroir exact de Haut ; s'il n'existe pas de fiche suivante, rester à la
+position courante, notamment au bas d'une fiche longue en fin de parcours. Ce
+même mécanisme sert aussi de garde-fou
 pour la détection de fiche courante au scroll (`detectCurrent`, utilisée
 pour les nav-dots au scroll à la molette) : elle ne peut plus se fier à
 « quelle fiche a son centre le plus proche du centre de l'écran » dès
