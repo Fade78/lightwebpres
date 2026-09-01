@@ -167,7 +167,8 @@ renders of that mode in the `lava`, `terminal` and `pop-lemon` themes.
   lockfile, no network at build time, so any image with `python3` runs
    it. Every path is an environment variable (`LWP_SERIES_DIR`,
    `LWP_SOURCES_DIR`, `LWP_TEMPLATES_DIR`, `LWP_INTERFACE_DIR`,
-   `LWP_TYPOGRAPHY_DIR`, `LWP_LANGUAGE_DIR`, `LWP_OUTPUT_DIR`, …), and
+   `LWP_TYPOGRAPHY_DIR`, `LWP_LANGUAGE_DIR`, `LWP_OUTPUT_DIR`,
+   `LWP_THEMES_DIR`, …), and
    `--only file` targets one article when the
   navigation cache is safe, while refreshing derived outputs; otherwise it
   falls back to a full build. The Markdown can come from anywhere — a CMS
@@ -397,16 +398,20 @@ the series or within one article.
 | `template update [dir]` | Clears the tool's own files out of a series: a copy identical to the built-in one is removed (it did nothing but freeze you), a differing `nav.js` is saved as `.bak` and removed, and a differing interface or typography pack is reported and kept. Also creates a missing `settings.conf`/`custom.css`; never touches a file you own |
 | `template show <file>` | Prints one of the files the executable owns — `nav.js`, `fr.json`, `en.json`, `interface/fr.json`, `interface/en.json`, `typography/fr.json`, `typography/en.json` — on stdout. No series needed: the answer is inside the program |
 | `template write <file> [dir]` | Installs one of them where the build reads it, to be modified. The build then prefers your copy to the built-in one and warns on every run that it no longer follows the tool's fixes — at warning level, so `--quiet` keeps it. `--force` to replace an existing file |
-| `theme list` | Lists the built-in color themes with their facets; `--family`/`--polarity`/`--hue` narrow the list |
-| `theme show [<slug>]` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. With no slug from a series directory (or `$LWP_SERIES_DIR`), it shows that series' effective theme. `--format json` for machines |
+| `theme list` | Lists the effective catalogue available outside a series, built-in and external, with its facets; `--family`/`--polarity`/`--hue` narrow the list |
+| `theme show [<slug>]` | Describes one catalogue entry — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. With no slug from a series directory (or `$LWP_SERIES_DIR`), it shows that series' effective theme. `--format json` for machines |
 | `series theme [dir]` | Same, for the *effective* theme of an installed series — after the values it pins in `templates/settings.conf` or the directory selected by `$LWP_TEMPLATES_DIR` |
+| `theme create <slug>` | Writes a complete editable typed-theme snapshot to the user catalogue; `--from`, metadata options, `--output`, and `--force` control its source and destination |
+| `theme migrate [dir]` | Reduces a complete `settings.conf` scaffold to the selected theme plus explicit pins, preserving retired pins as comments |
+| `theme vendor [dir]` | Copies selected effective catalogue snapshots into `templates/themes/`, making a series independent of the user catalogue |
+| `theme path` | Prints the installed and user catalogue roots in precedence order |
 | `status [dir]` | Says what is in a series without building anything: its articles in `series.json` order, every field *resolved* the way a build resolves it, and which level of the cascade each value came from. `--format json` for machines |
 | `series tags [dir]` | Inventories effective tag visibility, status totals, non-excluded slides and default-output coverage without building; `--tag` filters one tag. `--format json` for machines |
 | `series slug [dir]` | Lists every card of the series and the effective name it is published under, including `slug_prefix` — the anchor a shared link and a printed QR code point at. `status` answers by article; this answers by card. `--format json` for machines |
 | `series slug set [dir]` | Writes a `slug:` into every card that has none, and only those. The one command that edits your articles — a build never rewrites its own inputs. What it writes is random and meant to be renamed to something readable; `--dry-run` says what it would write |
 | `resolve [dir] <name>` | Says what ONE name is worth here and which level decided it, losing levels included. The shape of the name picks the cascade: dotted = theme property, `snake_case` = article/series field, `kebab-case` = slide field. `--article file.md` adds a page's own layer; `--format json` for machines |
 | `series theme set [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf` or `$LWP_TEMPLATES_DIR`; your pinned values stay and apply on top |
-| `theme gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
+| `theme gallery [path]` | Generates a self-contained HTML page previewing every entry in the effective catalogue — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
 | `clean [dir]` | Purges orphan files from `public/` using the build manifest (dry-run by default, `--force` to actually remove) |
 | `watch [dir]` | Polls `series.json`, sources, templates, split interface/typography packs and legacy language packs (including their current descendants), rebuilds on change, notices files created after startup, and keeps watching after a failed rebuild; optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
 | `completion --shell bash\|zsh` | Prints a shell completion script — install with `eval "$(lightwebpres completion --shell bash)"` (or `zsh`) to get tab-completion for commands, subcommands, and options |
@@ -430,7 +435,7 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--drafts-only` | `build`, `watch` | builds only `status: draft` articles |
 | `--open` | `build`, `watch` | opens the result in the browser |
 | `--include-drafts` | `build`, `verify` | builds draft articles too |
-| `--force` | `init`, `template write`, `clean` | explicitly proceeds with a non-empty scaffold, replaces a tool-owned template file, or removes orphaned output files |
+| `--force` | `init`, `template write`, `theme create`, `theme vendor`, `clean` | explicitly proceeds with a non-empty scaffold, replaces an existing theme/template file, or removes orphaned output files |
 | `--strict` | `audit` | exits non-zero on any warning — the complete gate: editorial warnings and everything the render raises alike, a failed render included |
 | `--templates` | `audit` | restricts the audit to the presentation/template layer: it still judges the resolved stylesheet, but skips the per-article editorial checks and does not render, so it stays cheap |
 | `--serve` / `--port N` | `watch` | serves on `127.0.0.1` (opt-in), port `N` (default 8000) |
@@ -440,11 +445,14 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--nav-cache path` | `build` | reads and writes the fingerprint used to decide whether `--only` is safe |
 | `--build-stamp` | `build` | adds a version-and-time freshness marker to generated pages |
 | `--build-stamp-minimal` | `build` | adds the freshness marker without version or time; wins over `--build-stamp` |
-| `--themes selectors\|all` | `build`, `verify`, `watch` | embeds slugs, `essential` or `X:Y` facet selectors; the effective theme in `templates/settings.conf` is always included first, and `C` opens the picker |
+| `--themes selectors\|all` | `build`, `verify`, `watch`, `theme vendor` | embeds or vendors slugs, `essential` or `X:Y` facet selectors from the effective catalogue; the effective theme in `templates/settings.conf` is always included first for a build, and `C` opens the picker |
 | `--no-essential-theme` | `build`, `verify`, `watch` | do not embed the default `essential` bundle (Monochrome, Monochrome Night, Print Ink); an explicit `--themes` on the same command still applies |
 | `--gitlab-ci` | `init` | emits a `.gitlab-ci.yml` |
 | `--format json` | `resolve`, `status`, `series tags`, `series slug`, `theme show`, `series theme` | machine-readable output |
 | `--tag name` | `series tags` | restricts the inventory to one canonical tag |
+| `--from name` | `theme create` | starts a new complete snapshot from an embedded or external catalogue entry; `builtin:<slug>` forces the embedded entry |
+| `--label text`, `--family name`, `--source text`, `--note text` | `theme create` | writes the snapshot metadata; `--family` uses the closed family vocabulary |
+| `--output path` | `theme gallery`, `theme create` | chooses the gallery HTML path or the `.conf` destination (the latter must be named `<slug>.conf`) |
 
 The spellings this tool used before the CLI was reorganised — `install`,
 `check`, `themes`, `theme-info`, `set-theme`, `series-info`,
@@ -616,7 +624,39 @@ against a white page. The
 page/index HTML structure itself is fixed, not a template,
 so a build can't be broken by a malformed structural override.
 
-Dozens of colour themes are preconfigured. Some borrow known editor
+The executable ships a catalogue of colour themes, and it can load more
+without changing the executable. External themes are complete UTF-8 typed
+snapshots in `.conf` files: metadata followed by every registered property.
+They are not CSS and they do not support `extends`; a local file replaces the
+whole entry for its slug rather than inheriting hidden values.
+
+The catalogue is resolved in this order, from weakest to strongest:
+embedded themes, installed themes, the user catalogue, then
+`templates/themes/` in the series. An FHS installation reads
+`<prefix>/share/lightwebpres/themes/`; a standalone executable reads a sibling
+`themes/` directory. The user layer is `$XDG_DATA_HOME/lightwebpres/themes/`
+on Unix or `%APPDATA%/lightwebpres/themes/` on Windows, unless
+`LWP_THEMES_DIR` replaces it. Only direct `.conf` files are loaded. Use
+`builtin:<slug>` when a local slug shadows an embedded one.
+
+Create, migrate, or freeze a theme into a series explicitly:
+
+```bash
+./lightwebpres theme create my-theme --from evergreen
+./lightwebpres theme migrate my-series
+./lightwebpres theme vendor my-series --themes my-theme,evergreen
+./lightwebpres theme path
+```
+
+`theme create` writes an editable complete snapshot to the user catalogue.
+`theme migrate` turns an old complete `settings.conf` scaffold into the
+selected theme plus the values you actually pinned, retaining retired pins as
+comments. `theme vendor` copies complete snapshots into the series, so a build
+does not depend on a developer's user catalogue. `theme list`, `theme show`
+and `theme gallery` expose the installed/user catalogue; builds and series
+reports add the series' vendored layer.
+
+The embedded catalogue includes themes that borrow known editor
 palettes (Nord, Dracula, Solarized, Gruvbox, Catppuccin, Tokyo Night,
 Monokai, Everforest, Rosé Pine); the rest are the project's own —
 high-contrast and monochrome sets, skies at three hours, firelight, earth
@@ -719,8 +759,8 @@ does not have to repeat it:
 }
 ```
 
-Selectors use a slug, `all`, `essential` (Monochrome, Monochrome Night and
-Print Ink), or `X:Y`: `background`/`bg` selects light or dark backgrounds,
+Selectors use a slug from the effective catalogue, `all`, `essential`
+(Monochrome, Monochrome Night and Print Ink), or `X:Y`: `background`/`bg` selects light or dark backgrounds,
 `family`/`fam` selects an editorial family, and `background hue`/`bgh` selects
 the computed background hue. The long `background hue:red` form must be
 quoted in a shell. Several selectors add their matches; duplicates are
@@ -740,7 +780,10 @@ choice, even when it is omitted from the list. The file is read at build time,
 so an author's edit is respected; settings, `style.*` properties and declared
 theme variables in `custom.css` remain pinned while the reader switches. The
 runtime theme payload is inline and delta-encoded, so the runtime remains
-standalone even when the page also uses relative image files.
+standalone even when the page also uses relative image files. If an external
+file shadows an essential slug, the embedded version remains available as
+`builtin:<slug>`. The browser session key includes the loaded catalogue's
+digest, so changing a local file cannot reuse a choice from an older payload.
 On a page carrying runtime alternatives, **C** opens the searchable theme
 picker. Each theme choice previews its resolved page/cover background,
 including its gradient, with the matching foreground ink. **M** opens one menu for
@@ -799,7 +842,7 @@ Every panel, here and there, is a real rendering at its true size — the
 same parser, the same engine, the same stylesheet, in an iframe at the
 width it claims. Not a mock and not a scaled-down miniature, so a 14px
 note is 14px there too.
-It's generated straight from the tool's own `THEMES` data with
+It's generated straight from the tool's effective catalogue with
 `./lightwebpres theme gallery`, so it can never drift from what
 `init --theme` actually applies.
 
@@ -833,8 +876,9 @@ specifications.md §23.7 for the fix (`web/.htaccess` handles it
 automatically on Apache where allowed).
 
 - **Upload a zip** — drop a zip of your series, get back a zip of
-  `public/`. Nothing ever leaves the browser tab; Pyodide runs vendored
-  locally, not from a CDN.
+  `public/`. Archives over 500 MiB compressed or uncompressed are refused
+  before extraction. Nothing ever leaves the browser tab; Pyodide runs
+  vendored locally, not from a CDN.
 - **Sync with GitLab** — pull a series straight from a GitLab repository,
   build it, and push the result back. Up to 100 file actions go into each
   commit, so a larger push creates several successive commits. The `100`

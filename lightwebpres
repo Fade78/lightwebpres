@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.49.1"
+VERSION = "0.50.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -2352,12 +2352,11 @@ def theme_facets(theme):
     }
 
 
-def themes_matching(filters):
-    """The THEMES entries whose facets satisfy every filter in `filters`
-    (a facet-name -> value mapping; a None or absent value matches
-    anything). Returns a list of (slug, theme, facets) in table order."""
+def themes_matching(filters, catalog=None):
+    """The effective catalogue entries matching every requested facet."""
     out = []
-    for slug, theme in THEMES.items():
+    themes = catalog.themes if catalog is not None else THEMES
+    for slug, theme in themes.items():
         facets = theme_facets(theme)
         if all(want is None or facets[name] == want for name, want in filters.items()):
             out.append((slug, theme, facets))
@@ -3686,6 +3685,335 @@ if len(VAR_TO_KEY) != len(PROPERTY_REGISTRY):  # pragma: no cover
 
 
 # ----------------------------------------------------------------------------
+# External theme catalogue
+# ----------------------------------------------------------------------------
+# Built-in themes remain the immutable catalogue shipped by this executable.
+# External themes are complete snapshots of the typed property registry.  A
+# catalogue is built per command so a local collision replaces a whole theme,
+# rather than accidentally inheriting one of the built-in slug-specific maps.
+
+THEME_FILE_SCHEMA = 'lightwebpres.theme/1'
+_THEME_SLUG_RE = re.compile(r'^[a-z][a-z0-9-]*$')
+_THEME_META_ALIASES = {
+    'schema': 'schema', 'meta.schema': 'schema',
+    'label': 'label', 'meta.label': 'label',
+    'family': 'family', 'meta.family': 'family',
+    'source': 'source', 'meta.source': 'source',
+    'note': 'note', 'meta.note': 'note',
+}
+_THEME_RESERVED_SLUGS = frozenset({'default', 'all', 'essential', 'builtin'})
+
+
+def _theme_id_parts(theme_id):
+    """Returns ``(origin, slug)`` for a catalogue or explicit built-in id."""
+    if isinstance(theme_id, str) and theme_id.startswith('builtin:'):
+        return 'builtin', theme_id[len('builtin:'):]
+    return 'catalogue', theme_id
+
+
+class ThemeCatalog:
+    """Built-ins plus the external layers visible to one operation.
+
+    ``themes`` keeps the effective bare-slug order.  ``local_layers`` stores
+    the complete property layer for external entries, and ``sources`` keeps
+    enough provenance for diagnostics and the runtime cache digest.  The
+    built-in table itself is never mutated.
+    """
+
+    def __init__(self):
+        self.themes = dict(THEMES)
+        self.local_layers = {}
+        self.local_slugs = set()
+        self.sources = {}
+        self.scopes = {}
+        self._digest_parts = []
+
+    def add_local(self, slug, entry, layer, path, scope, text):
+        # Assignment preserves the original insertion position when a higher
+        # precedence source shadows an existing slug.  New names append in the
+        # deterministic filename order used by the loader.
+        self.themes[slug] = entry
+        self.local_layers[slug] = dict(layer)
+        self.local_slugs.add(slug)
+        self.sources[slug] = str(path)
+        self.scopes[slug] = scope
+        self._digest_parts.append(
+            f'{scope}\0{Path(path).resolve()}\0{text}')
+
+    def has(self, theme_id):
+        origin, slug = _theme_id_parts(theme_id)
+        return (slug in THEMES if origin == 'builtin' else slug in self.themes)
+
+    def is_local(self, theme_id):
+        origin, slug = _theme_id_parts(theme_id)
+        return origin != 'builtin' and slug in self.local_slugs
+
+    def entry(self, theme_id):
+        origin, slug = _theme_id_parts(theme_id)
+        if origin == 'builtin':
+            return THEMES[slug]
+        return self.themes[slug]
+
+    def layer(self, theme_id):
+        origin, slug = _theme_id_parts(theme_id)
+        if origin != 'builtin' and slug in self.local_layers:
+            return dict(self.local_layers[slug])
+        return _builtin_theme_property_layer(slug)
+
+    def builtin_runtime_id(self, slug):
+        """Keeps an essential built-in reachable when a local shadows it."""
+        return f'builtin:{slug}' if slug in self.local_slugs else slug
+
+    @property
+    def digest(self):
+        if not self._digest_parts:
+            return ''
+        payload = '\0'.join(self._digest_parts).encode('utf-8')
+        return hashlib.sha256(payload).hexdigest()
+
+
+def _theme_user_roots():
+    """The writable user theme library, unless the operator overrides it."""
+    explicit = os.environ.get('LWP_THEMES_DIR')
+    if explicit:
+        return [Path(explicit)]
+    if os.name == 'nt':
+        base = Path(os.environ.get('APPDATA',
+                                   str(Path.home() / 'AppData' / 'Roaming')))
+    else:
+        base = Path(os.environ.get('XDG_DATA_HOME',
+                                   str(Path.home() / '.local' / 'share')))
+    return [base / 'lightwebpres' / 'themes']
+
+
+def _installed_theme_roots():
+    """Read-only installation-local themes, lower than user themes.
+
+    FHS installs keep resources beside the executable under
+    ``<prefix>/share/lightwebpres/themes``.  A standalone executable may have
+    a sibling ``themes/`` directory; this also makes a copied executable plus
+    its resources self-contained.  Pyodide has no ``__file__`` and therefore
+    deliberately sees only embedded themes and the series catalogue.
+    """
+    source = globals().get('__file__')
+    if not source:
+        return []
+    try:
+        executable = Path(source).resolve()
+    except (OSError, RuntimeError):
+        return []
+    if executable.name != 'lightwebpres':
+        return []
+    if executable.parent.name == 'bin':
+        return [executable.parent.parent / 'share' / 'lightwebpres' / 'themes']
+    return [executable.parent / 'themes']
+
+
+def _theme_library_roots():
+    """Returns external roots from lowest to highest precedence."""
+    roots = _installed_theme_roots() + _theme_user_roots()
+    out, seen = [], set()
+    for root in roots:
+        key = str(Path(root).resolve())
+        if key not in seen:
+            seen.add(key)
+            out.append(Path(root))
+    return out
+
+
+def _theme_file_error(path, lineno, message):
+    location = f'{path}:{lineno}' if lineno else str(path)
+    raise PropertyError(f'{location}: {message}')
+
+
+def _read_theme_file(path):
+    try:
+        return Path(path).read_text(encoding='utf-8-sig')
+    except UnicodeDecodeError as exc:
+        _theme_file_error(path, None,
+                          f'not valid UTF-8 (byte offset {exc.start}: '
+                          f'{exc.reason})')
+    except OSError as exc:
+        _theme_file_error(path, None, f'cannot read theme file ({exc})')
+
+
+def parse_theme_file(path):
+    """Parse and validate one complete external theme file.
+
+    The format intentionally uses the same flat ``key: value`` vocabulary as
+    settings.  Metadata is reserved, while every other key must be a property
+    in the registry.  Complete files make local shadowing atomic: no value is
+    silently borrowed from a built-in theme.
+    """
+    path = Path(path)
+    text = _read_theme_file(path)
+    meta, props = {}, {}
+    for lineno, raw in enumerate(text.splitlines(), 1):
+        line = raw.strip()
+        if not line or line.startswith('#'):
+            continue
+        if ':' not in line:
+            _theme_file_error(path, lineno,
+                              f'not a `key: value` line: {line!r}')
+        key, value = (part.strip() for part in line.split(':', 1))
+        canonical = _THEME_META_ALIASES.get(key)
+        if canonical:
+            if canonical in meta:
+                _theme_file_error(path, lineno,
+                                  f'duplicate metadata key {key!r}')
+            meta[canonical] = value
+            continue
+        if key not in PROPERTY_REGISTRY:
+            _theme_file_error(path, lineno, f'unknown theme property {key!r}')
+        if key in props:
+            _theme_file_error(path, lineno, f'duplicate theme property {key!r}')
+        props[key] = value
+
+    schema = meta.get('schema')
+    if schema not in (THEME_FILE_SCHEMA, '1'):
+        _theme_file_error(path, None,
+                          f'missing or unsupported schema {schema!r}; expected '
+                          f'{THEME_FILE_SCHEMA!r}')
+    label = meta.get('label', '').strip()
+    if not label:
+        _theme_file_error(path, None, 'theme metadata requires a non-empty label')
+    family = meta.get('family', '').strip()
+    if not family:
+        _theme_file_error(path, None, 'theme metadata requires a family')
+    missing = [key for key in PROPERTY_REGISTRY if key not in props]
+    if missing:
+        shown = ', '.join(missing[:8])
+        suffix = '...' if len(missing) > 8 else ''
+        _theme_file_error(path, None,
+                          f'incomplete theme; missing {len(missing)} '
+                          f'property/properties: {shown}{suffix}')
+    try:
+        resolved = resolve_theme_properties(props)
+    except PropertyError as exc:
+        _theme_file_error(path, None, str(exc))
+    return text, meta, props, resolved
+
+
+def _local_theme_entry(slug, meta, resolved):
+    """Adapts a resolved local snapshot to the gallery/report entry shape."""
+    role_properties = {
+        'page': 'color.page', 'ink': 'color.ink',
+        'ink-muted': 'color.ink-quiet', 'marker': 'color.mark',
+        'accent': 'color.call', 'positive': 'color.affirm', 'nav': 'color.nav',
+    }
+    role_names = {resolved[prop]: role for role, prop in role_properties.items()}
+    highlight = role_names.get(resolved['fact.strong.bg'],
+                               resolved['fact.strong.bg'])
+    decoration_color = role_names.get(
+        resolved['fact.strong.decoration-color'],
+        resolved['fact.strong.decoration-color'])
+    # The catalogue facet is descriptive.  A local snapshot has no hidden
+    # dark-furniture flag, so its polarity follows the page it actually paints.
+    page = resolved['color.page']
+    lightness = _lab(page)[0]
+    return {
+        'family': meta.get('family', 'desk'),
+        'label': meta.get('label') or slug,
+        # Bracket access keeps these theme-file metadata names separate from
+        # the article/slide field registry's source and note vocabulary.
+        'source': (meta['source'] if 'source' in meta and meta['source']
+                   else 'local'),
+        'note': (meta['note'] if 'note' in meta and meta['note']
+                 else 'Local theme.'),
+        'page': page, 'ink': resolved['color.ink'],
+        'ink-muted': resolved['color.ink-quiet'],
+        'marker': resolved['color.mark'], 'accent': resolved['color.call'],
+        'positive': resolved['color.affirm'], 'nav': resolved['color.nav'],
+        'dark_background': lightness < 50,
+        'fact_weight': resolved['fact.strong.weight'],
+        'fact_style': resolved['fact.strong.style'],
+        'fact_highlight': (None if resolved['fact.strong.bg'] == '#00000000'
+                           else highlight),
+        'fact_decoration': (resolved['fact.strong.decoration']
+                            if resolved['fact.strong.decoration'] != 'none'
+                            else None),
+        'fact_decoration_color': (decoration_color
+                                  if resolved['fact.strong.decoration'] != 'none'
+                                  else None),
+    }
+
+
+def _theme_files_in(root, label):
+    """Returns direct, safe ``*.conf`` children of one external root."""
+    root = Path(root)
+    if not root.exists():
+        return []
+    if root.is_symlink() or not root.is_dir():
+        raise PropertyError(f'{label} {root} is not a real directory')
+    try:
+        children = sorted(root.iterdir(), key=lambda item: item.name)
+    except OSError as exc:
+        raise PropertyError(f'{label} {root}: cannot list themes ({exc})')
+    files = []
+    for child in children:
+        if child.is_symlink():
+            if child.suffix == '.conf':
+                raise PropertyError(f'{child}: symlinked theme files are not '
+                                    f'allowed')
+            continue
+        if child.is_file() and child.suffix == '.conf':
+            slug = child.stem
+            if (not _THEME_SLUG_RE.fullmatch(slug)
+                    or slug in _THEME_RESERVED_SLUGS):
+                raise PropertyError(f'{child}: invalid theme name {slug!r}; '
+                                    f'use lowercase letters, digits and hyphens')
+            files.append((slug, child))
+    return files
+
+
+def _load_theme_root(catalog, root, scope, label):
+    for slug, path in _theme_files_in(root, label):
+        text, meta, props, resolved = parse_theme_file(path)
+        family = meta['family']
+        if family not in THEME_FAMILIES:
+            raise PropertyError(f'{path}: unknown family {family!r}; valid '
+                                f'values: {", ".join(THEME_FAMILIES)}')
+        catalog.add_local(slug, _local_theme_entry(slug, meta, resolved),
+                          props, path, scope, text)
+
+
+def load_theme_catalog(series_dir=None, templates_dir=None):
+    """Build the effective catalogue: built-in < user < series."""
+    catalog = ThemeCatalog()
+    installed = {str(Path(root).resolve()) for root in _installed_theme_roots()}
+    for root in _theme_library_roots():
+        scope = 'installed' if str(Path(root).resolve()) in installed else 'user'
+        label = 'installed theme directory' if scope == 'installed' \
+            else 'user theme directory'
+        _load_theme_root(catalog, root, scope, label)
+    if templates_dir is None and series_dir is not None:
+        templates_dir = Path(series_dir) / 'templates'
+    if templates_dir is not None:
+        series_root = _resolve_contained(templates_dir, 'themes')
+        candidate = Path(templates_dir) / 'themes'
+        if series_root is None:
+            if candidate.exists() or candidate.is_symlink():
+                raise PropertyError(f'{candidate} resolves outside templates/ '
+                                    f'(symlink); refusing to read themes')
+        else:
+            _load_theme_root(catalog, series_root, 'series',
+                             'series theme directory')
+    return catalog
+
+
+def theme_file_text(slug, entry, resolved):
+    """Serializes a complete, resolved theme snapshot."""
+    lines = [f'schema: {THEME_FILE_SCHEMA}',
+             f'label: {entry.get("label", slug)}',
+             f'family: {entry.get("family", "desk")}',
+             f'source: {entry.get("source", "local")}',
+             f'note: {entry.get("note", "Local theme.")}', '']
+    for key in PROPERTY_REGISTRY:
+        lines.append(f'{key}: {resolved[key]}')
+    return '\n'.join(lines) + '\n'
+
+
+# ----------------------------------------------------------------------------
 # Catalogue port: THEMES entries expressed as property layers.
 #
 # Factored INSIDE, complete OUTSIDE — the owner's rule. Here, the dark
@@ -4401,8 +4729,8 @@ THEME_NOTE_PROPS = {
 }
 
 
-def theme_property_layer(theme_key):
-    """A THEMES entry as a property layer for the engine.
+def _builtin_theme_property_layer(theme_key):
+    """A built-in THEMES entry as a property layer for the engine.
 
     What dark_background used to switch behind the theme's back, the layer
     now says: the furniture veils invert, the cover stops inverting (its
@@ -4460,11 +4788,24 @@ def theme_property_layer(theme_key):
     return layer
 
 
+def theme_property_layer(theme_key, catalog=None):
+    """Returns one theme's layer from the effective catalogue.
+
+    Bare names use the local precedence chain when a contextual catalogue is
+    supplied.  ``builtin:<slug>`` is the explicit escape hatch used by the
+    essential runtime bundle and by callers that need the embedded palette
+    despite a local shadow.
+    """
+    if catalog is not None:
+        return catalog.layer(theme_key)
+    return _builtin_theme_property_layer(theme_key)
+
+
 _THEME_RUNTIME_DEFAULT = 'default'
 _THEME_RUNTIME_CUSTOM_VAR = re.compile(r'(?<![\w-])(--[\w-]+)\s*:')
 
 
-def _theme_runtime_resolved(theme_key):
+def _theme_runtime_resolved(theme_key, catalog=None):
     """The catalogue layer a browser must apply for one runtime theme.
 
     `default` is the empty layer: it is the sheet the engine ships before a
@@ -4474,7 +4815,7 @@ def _theme_runtime_resolved(theme_key):
     this result and are marked separately by `_theme_runtime_markup`.
     """
     layers = [] if theme_key == _THEME_RUNTIME_DEFAULT else [
-        theme_property_layer(theme_key)]
+        theme_property_layer(theme_key, catalog)]
     return resolve_theme_properties(*layers)
 
 
@@ -4497,15 +4838,19 @@ def _theme_runtime_parts(option, source):
     return parts
 
 
-def _theme_runtime_selector_ids(selector, source):
+def _theme_runtime_selector_ids(selector, source, catalog=None):
     """Expands one slug, special label, or facet selector."""
     folded = selector.casefold()
     if folded == 'all':
-        return list(THEMES)
+        return list(catalog.themes if catalog is not None else THEMES)
     if folded == 'essential':
-        return list(ESSENTIAL_THEME_IDS)
-    if selector in THEMES:
+        return [catalog.builtin_runtime_id(slug) if catalog is not None
+                else slug for slug in ESSENTIAL_THEME_IDS]
+    if (catalog.has(selector) if catalog is not None else selector in THEMES):
         return [selector]
+    if selector.startswith('builtin:'):
+        raise PropertyError(f'{source} contains unknown built-in theme selector '
+                            f'{selector!r}')
     if ':' not in selector:
         raise PropertyError(f'{source} contains unknown theme selector '
                            f'{selector!r}')
@@ -4521,13 +4866,14 @@ def _theme_runtime_selector_ids(selector, source):
         valid = ', '.join(FACET_VALUES[facet])
         raise PropertyError(f'{source} contains unknown {facet} value '
                            f'{value!r} in {selector!r}; valid values: {valid}')
-    matches = [slug for slug, _theme, _facets in themes_matching({facet: value})]
+    matches = [slug for slug, _theme, _facets in themes_matching(
+        {facet: value}, catalog)]
     if not matches:
         raise PropertyError(f'{source} selector {selector!r} matched no themes')
     return matches
 
 
-def _theme_runtime_ids(option, primary, source='--themes'):
+def _theme_runtime_ids(option, primary, source='--themes', catalog=None):
     """Returns ordered runtime theme ids, primary first.
 
     `option` is either the CLI's comma-separated value or the root
@@ -4538,13 +4884,13 @@ def _theme_runtime_ids(option, primary, source='--themes'):
     primary_id = primary or _THEME_RUNTIME_DEFAULT
     ids = [primary_id]
     for selector in _theme_runtime_parts(option, source):
-        for slug in _theme_runtime_selector_ids(selector, source):
+        for slug in _theme_runtime_selector_ids(selector, source, catalog):
             if slug not in ids:
                 ids.append(slug)
     return ids
 
 
-def build_theme_runtime(option, primary, source='--themes'):
+def build_theme_runtime(option, primary, source='--themes', catalog=None):
     """Builds the compact, page-independent part of the theme switch data.
 
     Variable names are emitted once and each alternative carries only the
@@ -4555,25 +4901,29 @@ def build_theme_runtime(option, primary, source='--themes'):
     """
     if option is None:
         return None
-    ids = _theme_runtime_ids(option, primary, source)
+    ids = _theme_runtime_ids(option, primary, source, catalog)
     variables = [p.var for p in THEME_SHARED_PROPS]
     keys = [p.key for p in THEME_SHARED_PROPS]
     for component in THEME_COMPONENTS:
         for prop in component.props:
             variables.append(prop.var)
             keys.append(prop.key)
-    primary_values = _theme_runtime_resolved(primary or _THEME_RUNTIME_DEFAULT)
+    primary_values = _theme_runtime_resolved(
+        primary or _THEME_RUNTIME_DEFAULT, catalog)
     primary_values = [primary_values[key] for key in keys]
     themes = []
     for theme_id in ids:
-        resolved = _theme_runtime_resolved(theme_id)
+        resolved = _theme_runtime_resolved(theme_id, catalog)
         values = [resolved[key] for key in keys]
         changes = [[i, value] for i, (old, value)
                    in enumerate(zip(primary_values, values)) if old != value]
         if theme_id == _THEME_RUNTIME_DEFAULT:
             label, family = 'Default', 'default'
         else:
-            theme = THEMES[theme_id]
+            if catalog is not None:
+                theme = catalog.entry(theme_id)
+            else:
+                theme = THEMES[theme_id]
             label, family = theme['label'], theme['family']
         themes.append({
             'slug': theme_id, 'label': label, 'family': family,
@@ -4592,8 +4942,11 @@ def build_theme_runtime(option, primary, source='--themes'):
                 'foreground': resolved['cover.fg'],
             },
         })
-    return {'version': 1, 'primary': ids[0], 'vars': variables,
+    data = {'version': 1, 'primary': ids[0], 'vars': variables,
             'themes': themes}
+    if catalog is not None and catalog.digest:
+        data['catalog_digest'] = catalog.digest
+    return data
 
 
 def _theme_runtime_markup(runtime, style_context=None, page_props=None):
@@ -4840,7 +5193,7 @@ CUSTOM_CSS_FILENAME = 'custom.css'
 CUSTOM_CSS_STUB = ''
 
 
-def parse_settings_text(text, source='settings.conf'):
+def parse_settings_text(text, source='settings.conf', catalog=None):
     """(theme_slug_or_None, {property: raw value}) from an author's settings
     file. `key: value` lines, `#` comments, nothing else — a file that looks
     like properties and silently accepted CSS would be the old surface back.
@@ -4859,7 +5212,9 @@ def parse_settings_text(text, source='settings.conf'):
         key, value = line.split(':', 1)
         key, value = key.strip(), value.strip()
         if key == 'theme':
-            if value not in THEMES:
+            known = (catalog.has(value) if catalog is not None
+                     else value in THEMES)
+            if not known:
                 raise PropertyError(
                     f'{source}:{lineno}: unknown theme {value!r}. '
                     f'Run `lightwebpres theme list` for the list.')
@@ -4869,7 +5224,7 @@ def parse_settings_text(text, source='settings.conf'):
     return theme, props
 
 
-def build_settings_scaffold(theme_key=None, pinned=None):
+def build_settings_scaffold(theme_key=None, pinned=None, catalog=None):
     """The complete settings file, every property present and commented out
     at its value under the chosen theme. Complete outside, always: the
     author sees the whole surface with nothing to chase through an include,
@@ -4890,7 +5245,7 @@ def build_settings_scaffold(theme_key=None, pinned=None):
     pinned = pinned or {}
     raw = {k: p.default for k, p in PROPERTY_REGISTRY.items()}
     if theme_key:
-        raw.update(theme_property_layer(theme_key))
+        raw.update(theme_property_layer(theme_key, catalog))
 
     def emit(prop_key):
         if prop_key in pinned:
@@ -4960,7 +5315,7 @@ def pinned_settings(text):
     return pins
 
 
-def series_style_context(templates_dir):
+def series_style_context(templates_dir, catalog=None):
     """(layers, custom_css_text) for one series: the resolved-once part of
     composition, so a page carrying its own style.* properties can be
     recomposed without re-reading anything."""
@@ -4969,8 +5324,11 @@ def series_style_context(templates_dir):
     # verbatim into every page's <style> -- so a symlink here turns a build
     # into a read primitive on anything the build user can open: a CI env
     # file, an ssh key, .git-credentials.
+    if catalog is None:
+        catalog = load_theme_catalog(templates_dir=templates_dir)
     settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
-    theme_key, props = (parse_settings_text(read_text_file(settings_file))
+    theme_key, props = (parse_settings_text(read_text_file(settings_file),
+                                             catalog=catalog)
                         if settings_file is not None and settings_file.exists()
                         else (None, {}))
 
@@ -4980,7 +5338,7 @@ def series_style_context(templates_dir):
               f'is composed from {SETTINGS_FILENAME}. Move your values there '
               f'(audit names the variable renames) and delete it.')
 
-    layers = [theme_property_layer(theme_key)] if theme_key else []
+    layers = [theme_property_layer(theme_key, catalog)] if theme_key else []
     layers.append(props)
 
     custom_file = _resolve_contained(templates_dir, CUSTOM_CSS_FILENAME)
@@ -7459,6 +7817,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   var themeStorageKey = themeData
     ? 'lwp-theme:' + themeData.primary + ':'
+      + (themeData.catalog_digest ? themeData.catalog_digest + ':' : '')
       + themeData.themes.map(function (theme) { return theme.slug; }).join(',')
     : '';
 
@@ -10070,9 +10429,10 @@ build:
 '''
 
 # --- Template: themes-gallery.html (generated by `themes-gallery`, §11.7) ---
-# Built purely from THEMES (§9.5) by cmd_themes_gallery() — HEAD + one CARD
-# per entry + FOOT. The mock-up text (tag, title, summary...) is fixed
-# English and not localized by --lang: it documents THEMES itself, an
+# Built purely from the effective global catalogue (§9.5) by
+# cmd_themes_gallery() — HEAD + one CARD per entry + FOOT. The mock-up text
+# (tag, title, summary...) is fixed English and not localized by --lang: it
+# documents the catalogue itself, an
 # editorial choice for this one reference page, not a limitation of the
 # slide-rendering engine (specifications.md §11.7).
 # Raw, like the skeleton: the CSS below carries \\25CF-style escapes for
@@ -15717,7 +16077,13 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     unchanged, not just that the new rules stay quiet."""
     (sd, sources_dir, templates_dir, lang_dir, interface_dir,
      typography_dir, output_dir, lang, language_file) = resolve_paths(
-         series_dir, args)
+        series_dir, args)
+
+    try:
+        theme_catalog = load_theme_catalog(sd, templates_dir)
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
 
     language_pack = load_language(
         lang_dir, lang, language_file, interface_dir, typography_dir, sd)
@@ -15731,7 +16097,7 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
         typography_dir=typography_dir, series_dir=sd)
 
     try:
-        style_context = series_style_context(templates_dir)
+        style_context = series_style_context(templates_dir, theme_catalog)
         css = compose_with(style_context)
     except PropertyError as exc:
         log('error', f'templates/{SETTINGS_FILENAME}: {exc}')
@@ -15744,7 +16110,7 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
         effective_theme = None
         if settings_file is not None and settings_file.exists():
             effective_theme, _ = parse_settings_text(
-                read_text_file(settings_file))
+                read_text_file(settings_file), catalog=theme_catalog)
         series_json_themes = series_themes_of(series_data)
         runtime_option = args.get('--themes')
         runtime_source = '--themes'
@@ -15764,7 +16130,8 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
             else:
                 runtime_option = 'essential,' + runtime_option
         theme_runtime = build_theme_runtime(
-            runtime_option, effective_theme, runtime_source)
+            runtime_option, effective_theme, runtime_source,
+            catalog=theme_catalog)
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
@@ -15929,9 +16296,10 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
         typo_engine=typo_engine,
         strings=strings, css=css, nav_js=nav_js, series_data=series_data,
         articles=articles, claim_articles=claim_articles,
-        style_context=style_context, args=args,
-        lang_tag_engines=lang_tag_engines, theme_runtime=theme_runtime,
-        language_runtime=language_runtime, scroll_duration=scroll_duration,
+         style_context=style_context, args=args,
+         lang_tag_engines=lang_tag_engines, theme_runtime=theme_runtime,
+         theme_catalog=theme_catalog,
+         language_runtime=language_runtime, scroll_duration=scroll_duration,
     )
 
 
@@ -16266,6 +16634,8 @@ def cmd_completion(args):
     # which it refuses, and never offered `--theme`, which is the whole
     # point of typing it.
     per_command['series theme set'] = offers('set-theme')
+    per_command['series theme migrate'] = offers('theme-migrate')
+    per_command['series theme vendor'] = offers('theme-vendor')
     # And the second one, for the same reason: `series slug` lists what the
     # cards are called and `series slug set` writes into the author's
     # files, and `--format` belongs to the reading command alone. The path
@@ -16353,7 +16723,7 @@ _lightwebpres_completion() {{
     if [ "${{COMP_WORDS[1]}}" = "series" ] \
        && {{ [ "${{COMP_WORDS[2]}}" = "theme" ] || [ "${{COMP_WORDS[2]}}" = "slug" ]; }} \
        && [ "$COMP_CWORD" -eq 3 ] && [[ "$cur" != --* ]]; then
-        COMPREPLY=($(compgen -W "set" -- "$cur"))
+         COMPREPLY=($(compgen -W "set migrate vendor" -- "$cur"))
         return 0
     fi
 
@@ -16366,7 +16736,12 @@ _lightwebpres_completion() {{
                 series|theme|template) path="${{COMP_WORDS[1]}} ${{COMP_WORDS[2]}}" ;;
             esac
         fi
-        if {{ [ "$path" = "series theme" ] || [ "$path" = "series slug" ]; }} \
+        if [ "$path" = "series theme" ] \
+           && {{ [ "${{COMP_WORDS[3]}}" = "set" ] || \
+                [ "${{COMP_WORDS[3]}}" = "migrate" ] || \
+                [ "${{COMP_WORDS[3]}}" = "vendor" ]; }}; then
+            path="$path ${{COMP_WORDS[3]}}"
+        elif [ "$path" = "series slug" ] \
            && [ "${{COMP_WORDS[3]}}" = "set" ]; then
             path="$path set"
         fi
@@ -16614,6 +16989,10 @@ def _watch_paths(series_dir, args):
                  typography_dir):
         if root.is_dir():
             paths.update(root.rglob('*'))
+    for root in _theme_library_roots():
+        if root.is_dir():
+            paths.add(root)
+            paths.update(root.rglob('*'))
     installed = _installed_language_root()
     if installed is not None:
         for root in (installed / 'interface', installed / 'typography'):
@@ -16728,6 +17107,7 @@ def cmd_build(series_dir, args):
         if isinstance(ctx.series_data, dict) else {},
         'themes': ctx.series_data.get('themes')
         if isinstance(ctx.series_data, dict) else None,
+        'theme_runtime': ctx.theme_runtime,
         'css': ctx.css,
         'nav_js': ctx.nav_js,
         'strings': ctx.strings,
@@ -17809,7 +18189,7 @@ def judge_resolved_theme(resolved):
             sorted(worst.items(), key=lambda item: item[1][0])]
 
 
-def audit_resolved_theme(templates_dir, articles, sources_dir):
+def audit_resolved_theme(templates_dir, articles, sources_dir, catalog=None):
     """Judges the sheet the series actually composes, series then article.
 
     The other checks in `audit` read the source; this one reads the RESULT
@@ -17838,10 +18218,10 @@ def audit_resolved_theme(templates_dir, articles, sources_dir):
     try:
         settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
         theme_key, props = (
-            parse_settings_text(read_text_file(settings_file))
+            parse_settings_text(read_text_file(settings_file), catalog=catalog)
             if settings_file is not None and settings_file.exists()
             else (None, {}))
-        layers = [theme_property_layer(theme_key)] if theme_key else []
+        layers = [theme_property_layer(theme_key, catalog)] if theme_key else []
         layers.append(props)
         series_resolved = resolve_theme_properties(*layers)
     except (PropertyError, KeyError, OSError, SystemExit):
@@ -17914,6 +18294,13 @@ def cmd_audit(series_dir, args):
         if args.get('--strict'):
             sys.exit(1)
         return
+    try:
+        theme_catalog = load_theme_catalog(sd, templates_dir)
+    except PropertyError as exc:
+        log('warn', f'theme catalogue: {exc}')
+        theme_catalog = ThemeCatalog()
+        # Keep the rest of audit useful; the build path will still refuse the
+        # malformed external catalogue with the precise error above.
     default_tag_warnings = audit_series_default_tag(series_data)
     meta_errors = []
     series_meta = series_meta_of(series_data, tolerate_invalid=True,
@@ -18073,8 +18460,9 @@ def cmd_audit(series_dir, args):
                   f'have no <meta name="description">')
             warnings += 1
 
-    warnings += audit_presentation(templates_dir)
-    warnings += audit_resolved_theme(templates_dir, articles, sources_dir)
+    warnings += audit_presentation(templates_dir, theme_catalog)
+    warnings += audit_resolved_theme(templates_dir, articles, sources_dir,
+                                     theme_catalog)
 
     # What only a render can say (BACKLOG B19/B24).
     #
@@ -18160,7 +18548,7 @@ RETIRED_VARIABLES = {
 }
 
 
-def audit_presentation(templates_dir):
+def audit_presentation(templates_dir, catalog=None):
     """The presentation-layer part of audit (§11.5): warns, never blocks.
 
     What it looks at, in the order the templates directory gives it. A
@@ -18237,7 +18625,7 @@ def audit_presentation(templates_dir):
         if text is None:
             return warnings + 1
         try:
-            declared, props = parse_settings_text(text)
+            declared, props = parse_settings_text(text, catalog=catalog)
         except PropertyError as exc:
             warnings += 1
             log('warn', f'templates/{SETTINGS_FILENAME}: {exc}')
@@ -18255,7 +18643,7 @@ def audit_presentation(templates_dir):
                       f'realign the commented surface, keeping every line '
                       f'you pinned.')
             try:
-                layers = [theme_property_layer(declared)] if declared else []
+                layers = [theme_property_layer(declared, catalog)] if declared else []
                 layers.append(props)
                 resolve_theme_properties(*layers)
             except PropertyError as exc:
@@ -18280,6 +18668,11 @@ def cmd_install(target_dir, args):
     force = bool(args.get('--force'))
     theme_key = args.get('--theme')
     gitlab_ci = bool(args.get('--gitlab-ci'))
+    try:
+        theme_catalog = load_theme_catalog()
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
 
     if td.exists() and any(td.iterdir()) and not force:
         log('error', f'{td} is not empty. Use an empty or new directory, or pass --force.')
@@ -18290,8 +18683,9 @@ def cmd_install(target_dir, args):
             f'(letters, digits, "-" and "_" only).')
         sys.exit(1)
 
-    if theme_key is not None and theme_key not in THEMES:
-        log('error', f'Unknown theme: {theme_key!r}. Valid themes: {", ".join(sorted(THEMES))}')
+    if theme_key is not None and not theme_catalog.has(theme_key):
+        log('error', f'Unknown theme: {theme_key!r}. Valid themes: '
+            f'{", ".join(sorted(theme_catalog.themes))}')
         sys.exit(1)
 
     # --force may replace existing files, but it must never follow an
@@ -18330,7 +18724,7 @@ def cmd_install(target_dir, args):
     # contains all three. `template show` and `template write` hand them
     # over to whoever actually wants one.
     _write_file(td / 'templates' / SETTINGS_FILENAME,
-                build_settings_scaffold(theme_key))
+                build_settings_scaffold(theme_key, catalog=theme_catalog))
     _write_file(td / 'templates' / CUSTOM_CSS_FILENAME, CUSTOM_CSS_STUB)
 
     # Empty series.json
@@ -18381,7 +18775,7 @@ def cmd_install(target_dir, args):
 
     progress(f'Installed: {td}')
     if theme_key:
-        progress(f'  theme: {THEMES[theme_key]["label"]}')
+        progress(f'  theme: {theme_catalog.entry(theme_key)["label"]}')
     progress(f'  sources/   — your .md files')
     progress(f'  templates/  — {SETTINGS_FILENAME} (uncomment a value to pin it),')
     progress(f'              {CUSTOM_CSS_FILENAME} (your own rules)')
@@ -18587,6 +18981,11 @@ def cmd_refresh_templates(target_dir, args):
     if not templates_dir.is_dir():
         log('error', f'{templates_dir} not found. Run init first.')
         sys.exit(1)
+    try:
+        theme_catalog = load_theme_catalog(_sd, templates_dir)
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
 
     # No `up_to_date` list any more: the only thing that ever went in it
     # was a nav.js identical to the built-in one, and an identical copy
@@ -18602,9 +19001,10 @@ def cmd_refresh_templates(target_dir, args):
                   f'create a fresh one).')
             sys.exit(1)
         old = read_text_file(settings_path)
-        theme_key, _ = parse_settings_text(old)
+        theme_key, _ = parse_settings_text(old, catalog=theme_catalog)
         pins = pinned_settings(old)
-        new = build_settings_scaffold(theme_key, pinned=pins)
+        new = build_settings_scaffold(theme_key, pinned=pins,
+                                      catalog=theme_catalog)
         if new == old:
             progress(f'templates/{SETTINGS_FILENAME} is already current. '
                   f'Nothing written.')
@@ -18636,7 +19036,8 @@ def cmd_refresh_templates(target_dir, args):
         # A series scaffolded before the rewrite: give it the new surface,
         # default theme — writing a file that does not exist breaks no
         # ownership promise.
-        _write_file(settings_path, build_settings_scaffold(None))
+        _write_file(settings_path, build_settings_scaffold(None,
+                                                           catalog=theme_catalog))
         refreshed.append(f'templates/{SETTINGS_FILENAME} (new, default theme)')
     custom_path = templates_dir / CUSTOM_CSS_FILENAME
     if not custom_path.exists():
@@ -18757,15 +19158,235 @@ def _facet_filters(args):
     return filters
 
 
+def _theme_slug_or_die(slug, option='theme'):
+    """Validates a filename-safe external theme slug."""
+    if (not isinstance(slug, str) or not _THEME_SLUG_RE.fullmatch(slug)
+            or slug in _THEME_RESERVED_SLUGS):
+        log('error', f'--{option}: invalid theme slug {slug!r}; use lowercase '
+            f'letters, digits and hyphens, and do not use a reserved name.')
+        sys.exit(1)
+    return slug
+
+
+def _theme_meta_value(name, value):
+    if value is None:
+        return ''
+    if '\n' in value or '\r' in value:
+        log('error', f'--{name}: metadata cannot contain a line break.')
+        sys.exit(1)
+    return value.strip()
+
+
+def _theme_user_write_path(slug, args):
+    value = args.get('--output')
+    if value:
+        path = Path(value).expanduser()
+        if path.exists() and path.is_dir():
+            path = path / f'{slug}.conf'
+        elif path.suffix != '.conf':
+            log('error', f'--output must name a .conf file (got {path}).')
+            sys.exit(1)
+        if path.name != f'{slug}.conf':
+            log('error', f'--output must be named {slug}.conf so the catalogue '
+                f'can address the theme by its slug.')
+            sys.exit(1)
+        return path
+    return Path(_theme_user_roots()[0]).expanduser() / f'{slug}.conf'
+
+
+def cmd_theme_create(positional, args):
+    """Creates a complete editable theme snapshot in the user catalogue."""
+    if not positional:
+        log('error', '`theme create` needs a slug, for example `theme create '
+            f'my-theme`.')
+        sys.exit(1)
+    slug = _theme_slug_or_die(positional[0])
+    try:
+        catalog = load_theme_catalog()
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
+
+    source = args.get('--from')
+    if source is None:
+        resolved = resolve_theme_properties()
+        source_label = 'the built-in defaults'
+    elif source == _THEME_RUNTIME_DEFAULT:
+        resolved = resolve_theme_properties()
+        source_label = 'the built-in defaults'
+    elif not catalog.has(source):
+        log('error', f'--from: unknown theme {source!r}. Run `theme list` '
+            f'to list the catalogue.')
+        sys.exit(1)
+    else:
+        resolved = _theme_runtime_resolved(source, catalog)
+        source_label = source
+
+    family = _theme_meta_value('family', args.get('--family') or 'desk')
+    if family not in THEME_FAMILIES:
+        log('error', f'--family: unknown family {family!r}. Valid values: '
+            f'{", ".join(THEME_FAMILIES)}')
+        sys.exit(1)
+    entry = {
+        'label': _theme_meta_value('label', args.get('--label') or slug),
+        'family': family,
+        'source': _theme_meta_value('source', args.get('--source') or 'local'),
+        'note': _theme_meta_value(
+            'note', args.get('--note') or f'Created from {source_label}.'),
+    }
+    path = _theme_user_write_path(slug, args)
+    _reject_symlink_components(path, 'theme create target')
+    if path.exists() and not args.get('--force'):
+        log('error', f'{path} already exists. Pass --force to replace it.')
+        sys.exit(1)
+    try:
+        _mkdir(path.parent, parents=True, exist_ok=True)
+        _write_file(path, theme_file_text(slug, entry, resolved))
+    except OSError as exc:
+        log('error', f'could not create {path}: {exc}')
+        sys.exit(1)
+    progress(f'{"Would create" if _LOG_STATE["dry_run"] else "Created"} theme: {path}')
+    progress(f'  edit the typed properties, then use `{slug}` in settings.conf')
+
+
+def _minimal_settings_text(theme_key, pins, retired=()):
+    lines = [
+        '# lightwebpres settings — the selected theme and explicit pins.',
+        '# Values here are applied over the theme; CSS rules belong in custom.css.',
+        '',
+    ]
+    lines.append(f'theme: {theme_key}' if theme_key else '# theme: <slug>')
+    if pins:
+        lines += ['', '# explicit property pins']
+        lines.extend(f'{key}: {value}' for key, value in pins.items())
+    if retired:
+        lines += ['', SETTINGS_RETIRED_MARKER]
+        lines.extend(f'# {key}: {value}' for key, value in retired.items())
+    return '\n'.join(lines) + '\n'
+
+
+def cmd_theme_migrate(target_dir, args):
+    """Converts a complete scaffold into the minimal settings surface."""
+    (_sd, _sources, templates_dir, _lang, _interface, _typography,
+     _output, _language, _language_file) = resolve_paths(target_dir, args)
+    settings_path = _resolve_contained(templates_dir, SETTINGS_FILENAME)
+    if settings_path is None or not settings_path.exists():
+        log('error', f'{templates_dir / SETTINGS_FILENAME} not found. Run init '
+            f'first, or migrate a series that already has settings.conf.')
+        sys.exit(1)
+    try:
+        catalog = load_theme_catalog(_sd, templates_dir)
+        old = read_text_file(settings_path)
+        theme_key, _ = parse_settings_text(old, catalog=catalog)
+    except (OSError, PropertyError) as exc:
+        log('error', f'{settings_path}: {exc}')
+        sys.exit(1)
+    all_pins = pinned_settings(old)
+    pins = {key: value for key, value in all_pins.items()
+            if key in PROPERTY_REGISTRY}
+    retired = {key: value for key, value in all_pins.items()
+               if key not in PROPERTY_REGISTRY}
+    new = _minimal_settings_text(theme_key, pins, retired)
+    if new == old:
+        progress(f'{settings_path} is already in the minimal format. Nothing written.')
+        return
+    _reject_symlink_components(settings_path, 'settings migration target')
+    _write_file(settings_path, new)
+    progress(f'{"Would migrate" if _LOG_STATE["dry_run"] else "Migrated"} '
+             f'{settings_path}: {len(pins)} pin(s) kept.')
+    if retired:
+        log('warn', f'{len(retired)} unknown pin(s) were kept commented in the '
+            f'retired section; remove or rename them before using them.')
+
+
+def cmd_theme_vendor(target_dir, args):
+    """Copies selected effective themes into a series' versioned catalogue."""
+    (sd, _sources, templates_dir, _lang, _interface, _typography,
+     _output, _language, _language_file) = resolve_paths(target_dir, args)
+    if not templates_dir.is_dir():
+        log('error', f'{templates_dir} not found. Run init first.')
+        sys.exit(1)
+    try:
+        catalog = load_theme_catalog(sd, templates_dir)
+        settings_path = _resolve_contained(templates_dir, SETTINGS_FILENAME)
+        settings_text = (read_text_file(settings_path)
+                         if settings_path is not None and settings_path.exists()
+                         else '')
+        effective, _ = parse_settings_text(settings_text, catalog=catalog)
+        raw = args.get('--themes') or args.get('--theme')
+        if raw is None:
+            if effective is None:
+                log('error', '`theme vendor` needs --themes SELECTORS when the '
+                    'series has no selected theme.')
+                sys.exit(1)
+            raw = effective
+        ids = []
+        for selector in _theme_runtime_parts(raw, '`theme vendor`'):
+            for theme_id in _theme_runtime_selector_ids(selector,
+                                                         '`theme vendor`',
+                                                         catalog):
+                if theme_id not in ids:
+                    ids.append(theme_id)
+    except (OSError, PropertyError) as exc:
+        log('error', str(exc))
+        sys.exit(1)
+
+    destination = templates_dir / 'themes'
+    _reject_symlink_components(destination, 'series theme catalogue')
+    try:
+        _mkdir(destination, parents=True, exist_ok=True)
+        for theme_id in ids:
+            slug = theme_id[len('builtin:'):] if theme_id.startswith('builtin:') \
+                else theme_id
+            path = destination / f'{slug}.conf'
+            _reject_symlink_components(path, 'vendored theme')
+            if catalog.is_local(theme_id) and slug in catalog.sources:
+                source_path = Path(catalog.sources[slug])
+                if source_path.resolve() == path.resolve():
+                    progress(f'{path} already is the selected series theme.')
+                    continue
+                text = read_text_file(source_path)
+            else:
+                entry = catalog.entry(theme_id)
+                text = theme_file_text(
+                    slug, entry, _theme_runtime_resolved(theme_id, catalog))
+            if path.exists() and not args.get('--force'):
+                if read_text_file(path) == text:
+                    progress(f'{path} already contains this theme.')
+                    continue
+                log('error', f'{path} already exists. Pass --force to replace it.')
+                sys.exit(1)
+            _write_file(path, text)
+            progress(f'{"Would vendor" if _LOG_STATE["dry_run"] else "Vendored"} '
+                     f'{theme_id} -> {path}')
+    except OSError as exc:
+        log('error', f'could not vendor themes: {exc}')
+        sys.exit(1)
+
+
+def cmd_theme_path(args):
+    """Prints the external catalogue roots in precedence order."""
+    installed = _installed_theme_roots()
+    user = _theme_user_roots()
+    for scope, roots in (('installed', installed), ('user', user)):
+        for root in roots:
+            print(f'{scope}: {Path(root).expanduser()}')
+
+
 def cmd_themes(args):
-    """themes command (§11.9) — lists the built-in themes, optionally
+    """theme list (§11.9) — lists the effective user-level catalogue, optionally
     narrowed by facet, so a theme can be chosen from the terminal instead
     of only from the generated gallery page. Prints slugs, because a slug
     is what `init --theme` and `series theme set` take."""
     import textwrap
 
+    try:
+        catalog = load_theme_catalog()
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
     filters = _facet_filters(args)
-    matches = themes_matching(filters)
+    matches = themes_matching(filters, catalog)
     active = ' '.join(f'--{k} {v}' for k, v in filters.items() if v)
 
     if not matches:
@@ -18773,13 +19394,14 @@ def cmd_themes(args):
         # the combination that came up empty rather than printing nothing
         # and letting the reader wonder whether the command ran.
         print(f'No theme matches {active}.')
-        print(f'Drop a filter, or run `lightwebpres theme list` for all {len(THEMES)}.')
+        print(f'Drop a filter, or run `lightwebpres theme list` for all '
+              f'{len(catalog.themes)}.')
         return
 
     if active:
-        print(f'{len(matches)} of {len(THEMES)} themes match {active}:')
+        print(f'{len(matches)} of {len(catalog.themes)} themes match {active}:')
     else:
-        print(f'{len(THEMES)} built-in themes:')
+        print(f'{len(catalog.themes)} themes (built-in themes are included):')
     print()
 
     for slug, theme, facets in matches:
@@ -18836,7 +19458,7 @@ def _ground_label(stack):
     return ' over '.join([*reversed(stack), 'page.bg'])
 
 
-def _theme_info_facets(kind, slug, resolved):
+def _theme_info_facets(kind, slug, resolved, catalog=None):
     """The facets (§9.5.2) of what was asked about.
 
     For a slug this is `theme_facets()` verbatim, so `themes`, the gallery
@@ -18847,18 +19469,21 @@ def _theme_info_facets(kind, slug, resolved):
     not derivable from anything (§9.5.2), so it stays the theme's own
     word, and is null when no theme is named."""
     if kind == 'theme':
-        return theme_facets(THEMES[slug])
+        entry = catalog.entry(slug) if catalog is not None else THEMES[slug]
+        return theme_facets(entry)
     page = composite_over(resolved['page.bg'], CANVAS)
     ink = composite_over(resolved['page.fg'], page)
     return {
         'polarity': ('dark' if relative_luminance(ink) > relative_luminance(page)
                      else 'light'),
         'hue': theme_hue_family({'page': _hex6(page)}),
-        'family': THEMES[slug]['family'] if slug else None,
+        'family': (catalog.entry(slug)['family'] if catalog is not None
+                   and slug else (THEMES[slug]['family'] if slug else None)),
     }
 
 
-def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False):
+def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False,
+                      catalog=None):
     """Everything `theme-info` knows about one theme, as the structure
     `--format json` prints and the text format reads out.
 
@@ -18866,7 +19491,8 @@ def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False
     the registry declares, not from a list written here, so a seventh
     shared value would appear the day it exists."""
     resolved = resolve_theme_properties(*layers)
-    entry = THEMES[slug] if slug else None
+    entry = (catalog.entry(slug) if catalog is not None and slug
+             else (THEMES[slug] if slug else None))
     return {
         'schema': THEME_INFO_SCHEMA,
         'lightwebpres_version': VERSION,
@@ -18880,7 +19506,7 @@ def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False
         'label': entry['label'] if entry else None,
         'note': entry['note'] if entry else None,
         'source': entry.get('source') if entry else None,
-        'facets': _theme_info_facets(kind, slug, resolved),
+        'facets': _theme_info_facets(kind, slug, resolved, catalog),
         'palette': {p.key[len('color.'):]: resolved[p.key]
                     for p in THEME_SHARED_PROPS if p.key.startswith('color.')},
         'fonts': {p.key[len('font.'):]: resolved[p.key]
@@ -18977,12 +19603,12 @@ def print_theme_info_text(report):
 
 
 def cmd_theme_info(positional, args):
-    """theme show <slug> [<slug>…] [--all] — describes one or more built-in
+    """theme show <slug> [<slug>…] [--all] — describes one or more catalogue
     themes without installing anything (§11.9.1).
 
     The directory branch of the old `theme-info` is now `series theme [dir]`
-    (cmd_series_theme). This command handles only built-in slugs: one, many
-    (compared in the order given), or --all (every built-in theme)."""
+    (cmd_series_theme). This command handles global catalogue slugs: one, many
+    (compared in the order given), or --all (every available global theme)."""
     fmt = args.get('--format', 'text')
     if fmt not in ('text', 'json'):
         log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
@@ -18990,8 +19616,13 @@ def cmd_theme_info(positional, args):
 
     # Resolve the slug list: --all, or the positionals, or (legacy alias
     # compat) a single argument that might be a directory.
+    try:
+        catalog = load_theme_catalog()
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
     if args.get('--all'):
-        slugs = list(THEMES.keys())
+        slugs = list(catalog.themes.keys())
     elif positional:
         slugs = positional
     else:
@@ -19003,15 +19634,16 @@ def cmd_theme_info(positional, args):
               'the series, or `series theme <dir>`.')
         sys.exit(1)
 
-    # Validate slugs: every one must be a built-in theme. A directory is no
+    # Validate slugs: every one must be a catalogue theme. A directory is no
     # longer accepted here (that's `series theme`).
-    unknown = [s for s in slugs if s not in THEMES]
+    unknown = [s for s in slugs if not catalog.has(s)]
     if unknown:
         import textwrap
         for s in unknown:
-            log('error', f'{s!r} is not a built-in theme.')
-        log('error', f'The {len(THEMES)} valid slugs are:')
-        for line in textwrap.wrap('  '.join(THEMES), width=_TERM_WIDTH - 4,
+            log('error', f'{s!r} is not a built-in theme or known local '
+                f'catalogue theme.')
+        log('error', f'The {len(catalog.themes)} valid slugs are:')
+        for line in textwrap.wrap('  '.join(catalog.themes), width=_TERM_WIDTH - 4,
                                   break_on_hyphens=False):
             log('error', f'  {line}')
         sys.exit(1)
@@ -19019,7 +19651,8 @@ def cmd_theme_info(positional, args):
     reports = []
     for slug in slugs:
         reports.append(theme_info_report('theme', slug, None,
-                                         [theme_property_layer(slug)]))
+                                         [theme_property_layer(slug, catalog)],
+                                         catalog=catalog))
 
     if fmt == 'json':
         # JSON: a list when more than one, a single object when exactly one
@@ -19254,7 +19887,7 @@ def cmd_series_theme(series_dir, args):
     if not directory.is_dir():
         log('error', f'{series_dir!r} is not a directory. '
               f'`series theme` reads the effective theme of an installed '
-              f'series; to read a built-in theme, use `theme show <slug>`.')
+              f'series; to read a catalogue theme, use `theme show <slug>`.')
         sys.exit(1)
     (directory, _sources_dir, templates_dir, _lang_dir, _interface_dir,
      _typography_dir, _output_dir, _lang, _language_file) = resolve_paths(
@@ -19263,19 +19896,24 @@ def cmd_series_theme(series_dir, args):
         log('error', f'{templates_dir} not found: {directory} is not an '
               f'installed series. Run init first.')
         sys.exit(1)
+    try:
+        theme_catalog = load_theme_catalog(directory, templates_dir)
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
 
     settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
     text = (read_text_file(settings_file)
             if settings_file is not None and settings_file.exists() else '')
     try:
-        slug, props = parse_settings_text(text)
-        layers = ([theme_property_layer(slug)] if slug else []) + [props]
+        slug, props = parse_settings_text(text, catalog=theme_catalog)
+        layers = ([theme_property_layer(slug, theme_catalog)] if slug else []) + [props]
         custom = templates_dir / CUSTOM_CSS_FILENAME
         has_rules = custom.exists() and bool(re.sub(
             r'/\*.*?\*/', '', read_text_file(custom), flags=re.DOTALL).strip())
         report = theme_info_report(
             'series', slug, str(directory), layers, sorted(props),
-            custom_css=has_rules)
+            custom_css=has_rules, catalog=theme_catalog)
     except PropertyError as exc:
         log('error', f'{exc}')
         sys.exit(1)
@@ -19300,14 +19938,20 @@ def cmd_set_theme(target_dir, args):
         log('error', f'series theme set requires --theme <slug>. '
               f'Run `lightwebpres theme list` to list them.')
         sys.exit(1)
-    if new_slug not in THEMES:
-        log('error', f'Unknown theme: {new_slug!r}. '
-              f'Run `lightwebpres theme list` to list the {len(THEMES)} valid slugs.')
-        sys.exit(1)
 
     (td, _sources_dir, templates_dir, _lang_dir, _interface_dir,
      _typography_dir, _output_dir, _lang, _language_file) = resolve_paths(
          target_dir, args)
+    try:
+        theme_catalog = load_theme_catalog(td, templates_dir)
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
+    if not theme_catalog.has(new_slug):
+        log('error', f'Unknown theme: {new_slug!r}. '
+              f'Run `lightwebpres theme list` to list the '
+              f'{len(theme_catalog.themes)} valid slugs.')
+        sys.exit(1)
     settings_path = templates_dir / SETTINGS_FILENAME
 
     if not settings_path.parent.is_dir():
@@ -19318,13 +19962,14 @@ def cmd_set_theme(target_dir, args):
     if not settings_path.exists():
         # Installed before the rewrite: nothing to preserve, write a fresh
         # scaffold for the chosen theme.
-        _write_file(settings_path, build_settings_scaffold(new_slug))
+        _write_file(settings_path, build_settings_scaffold(
+            new_slug, catalog=theme_catalog))
         progress(f'Theme set: {new_slug} (fresh {SETTINGS_FILENAME} written)')
         progress('Run build again to apply the new theme.')
         return
 
     text = read_text_file(settings_path)
-    current, _props = parse_settings_text(text)
+    current, _props = parse_settings_text(text, catalog=theme_catalog)
     if current == new_slug:
         progress(f'Theme unchanged: already {new_slug}. Nothing written.')
         return
@@ -19369,7 +20014,9 @@ def series_theme(templates_dir):
     settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
     if settings_file is None or not settings_file.exists():
         return None
-    return parse_settings_text(read_text_file(settings_file))[0]
+    catalog = load_theme_catalog(templates_dir=templates_dir)
+    return parse_settings_text(read_text_file(settings_file),
+                               catalog=catalog)[0]
 
 
 def _load_series_report_context(series_dir, args):
@@ -19726,7 +20373,8 @@ def classify_resolve_name(name):
     return None
 
 
-def resolve_theme_property(name, templates_dir, article_meta, article_name):
+def resolve_theme_property(name, templates_dir, article_meta, article_name,
+                           catalog=None):
     """A theme property's cascade (§9.3), strongest level first.
 
     The VALUE comes from resolve_theme_properties() — the function the
@@ -19736,8 +20384,8 @@ def resolve_theme_property(name, templates_dir, article_meta, article_name):
     settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
     text = (read_text_file(settings_file)
             if settings_file is not None and settings_file.exists() else '')
-    slug, pinned = parse_settings_text(text)
-    theme_layer = theme_property_layer(slug) if slug else {}
+    slug, pinned = parse_settings_text(text, catalog=catalog)
+    theme_layer = theme_property_layer(slug, catalog) if slug else {}
     article_layer = (page_style_properties(article_meta, article_name)
                      if article_meta is not None else {})
 
@@ -19983,6 +20631,11 @@ def cmd_resolve(series_dir, name, args):
 
     (sd, sources_dir, templates_dir, _legacy, _interface, _typography,
      _, _, _) = resolve_paths(series_dir, args)
+    try:
+        theme_catalog = load_theme_catalog(sd, templates_dir)
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
     series_data = load_series_data(sd)
     series_meta = series_meta_of(series_data)
     articles = (series_data.get('articles', series_data)
@@ -20021,7 +20674,8 @@ def cmd_resolve(series_dir, name, args):
                         'them, commented out at your theme\'s values.')
                 sys.exit(1)
             resolution = resolve_theme_property(
-                name, templates_dir, article_meta, only or name)
+                name, templates_dir, article_meta, only or name,
+                catalog=theme_catalog)
         elif kind == 'slide-field':
             if name not in _SLIDE_FIELD_ATTRS:
                 # `comment` is a slide field and is refused above, so it
@@ -20101,7 +20755,7 @@ THEMES_GALLERY_PANELS = (
 )
 
 
-def build_theme_preview_document(theme_key, panel='card'):
+def build_theme_preview_document(theme_key, panel='card', catalog=None):
     """A complete, standalone card document for `theme_key` — the same
     parser, the same renderer and the same stylesheet a build uses.
 
@@ -20137,7 +20791,7 @@ def build_theme_preview_document(theme_key, panel='card'):
     strings = language_pack.get('strings', {})
     _, slides, _, _ = parse_markdown_extended(TEMPLATE_THEMES_GALLERY_MOCK)
     # absorb-punct applies only when the mark carries a ground.
-    resolved = resolve_theme_properties(theme_property_layer(theme_key))
+    resolved = resolve_theme_properties(theme_property_layer(theme_key, catalog))
     absorb_punct = (resolved.get('fact.strong.absorb-punct') == 'on'
                     and not resolved.get('fact.strong.bg', '').endswith('00'))
 
@@ -20173,7 +20827,7 @@ def build_theme_preview_document(theme_key, panel='card'):
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        f'<style>{compose_stylesheet(resolve_theme_properties(theme_property_layer(theme_key)))}</style>'
+         f'<style>{compose_stylesheet(resolve_theme_properties(theme_property_layer(theme_key, catalog)))}</style>'
         # min-height: 100vh is LEFT ALONE: 100vh resolves to the panel's
         # own height, so the section fills its window and centres in it
         # exactly as it does on a real page. Only two things are
@@ -20192,7 +20846,7 @@ def build_theme_preview_document(theme_key, panel='card'):
 
 def cmd_themes_gallery(positional, args):
     """theme gallery [<slug>… | --all] [--output path] — generates a
-    self-contained HTML page documenting built-in themes (§9.5), built
+    self-contained HTML page documenting themes (§9.5), built
     purely from that data so it can never drift from what `init --theme`
     actually applies.
 
@@ -20202,10 +20856,17 @@ def cmd_themes_gallery(positional, args):
 
     Legacy compat: `themes-gallery [path]` (single positional that is not a
     slug) is treated as the output path, so old scripts keep working."""
-    # Determine the output path first.
+    try:
+        catalog = load_theme_catalog()
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
+
+    # Determine the output path first.  A local slug is a real gallery target;
+    # a non-slug positional retains the old output-path compatibility form.
     if args.get('--output'):
         output_path = args['--output']
-    elif positional and positional[0] not in THEMES:
+    elif positional and not catalog.has(positional[0]):
         # Legacy form: a single positional that is not a slug → output path.
         output_path = positional[0]
         positional = positional[1:]
@@ -20214,30 +20875,30 @@ def cmd_themes_gallery(positional, args):
 
     # Validate any remaining positionals: they must all be slugs.
     if positional:
-        unknown = [p for p in positional if p not in THEMES]
+        unknown = [p for p in positional if not catalog.has(p)]
         if unknown:
             import textwrap
             for s in unknown:
-                log('error', f'{s!r} is not a built-in theme.')
-            log('error', f'The {len(THEMES)} valid slugs are:')
-            for line in textwrap.wrap('  '.join(THEMES), width=_TERM_WIDTH - 4,
+                log('error', f'{s!r} is not a known theme.')
+            log('error', f'The {len(catalog.themes)} valid slugs are:')
+            for line in textwrap.wrap('  '.join(catalog.themes), width=_TERM_WIDTH - 4,
                                       break_on_hyphens=False):
                 log('error', f'  {line}')
             sys.exit(1)
 
     # Select the themes to render.
     if args.get('--all'):
-        selected = list(THEMES.keys())
+        selected = list(catalog.themes.keys())
     elif positional:
         selected = positional
     else:
-        selected = list(THEMES.keys())
+        selected = list(catalog.themes.keys())
 
     out = Path(output_path).resolve()
 
     cards = []
     for slug in selected:
-        theme = THEMES[slug]
+        theme = catalog.entry(slug)
         facets = theme_facets(theme)
         # No variables are injected by hand: the composed sheet carries every
         # property into the preview document's own stylesheet, exactly as it
@@ -20248,7 +20909,7 @@ def cmd_themes_gallery(positional, args):
                 caption=caption,
                 label=html_escape(theme['label'], quote=True),
                 preview_doc=html_escape(
-                    build_theme_preview_document(slug, panel), quote=True))
+                    build_theme_preview_document(slug, panel, catalog), quote=True))
             for panel, caption in THEMES_GALLERY_PANELS
         )
         # Built from PALETTE_ROLES rather than spelled out in the
@@ -20272,8 +20933,8 @@ def cmd_themes_gallery(positional, args):
             polarity=facets['polarity'],
             hue=facets['hue'],
             family=facets['family'],
-            label=theme['label'],
-            source=theme['source'],
+            label=html_escape(theme['label'], quote=True),
+            source=html_escape(theme['source'], quote=True),
             note=note_to_html(theme['note']),
             note_good_class=' theme-note--good' if theme.get('note_good') else '',
             essential_badge='<span class="theme-essential">essential</span>' if slug in ESSENTIAL_THEME_IDS else '',
@@ -20711,7 +21372,7 @@ COMMANDS
     build then uses your copy and stops following the tool's fixes, and
     says so on every run (see §9.4.5)
   lightwebpres theme list [--polarity ...] [--hue ...] [--family ...]
-    Lists the built-in color themes, narrowed by facet (see THEMES below, §11.9)
+    Lists the effective theme catalogue, narrowed by facet (see THEMES below, §11.9)
   lightwebpres theme show [<slug>...] [--all] [--format text|json]
     Describes one or more themes without installing: palette, fonts,
     facets, and the WCAG contrast level it actually reaches, measured
@@ -20746,9 +21407,18 @@ COMMANDS
   lightwebpres series theme set [directory] --theme name
     Changes an existing series' theme (see §11.10)
   lightwebpres theme gallery [path] [--all] [--output path]
-    Generates a self-contained HTML page documenting every built-in
+    Generates a self-contained HTML page documenting every catalogue
     color theme — one row per theme, four panels across: cover, card
     with a note, notes section, full article (default: themes-gallery.html)
+  lightwebpres theme create <slug> [--from name] [--label text] [--family name]
+    [--source text] [--note text] [--output file] [--force]
+    Creates a complete editable typed-theme file in the user catalogue
+  lightwebpres theme migrate [directory]
+    Converts a complete settings scaffold to the minimal selected-theme form
+  lightwebpres theme vendor [directory] [--themes selectors] [--force]
+    Copies selected catalogue themes into templates/themes for a portable series
+  lightwebpres theme path
+    Prints the installed and user catalogue roots
   lightwebpres clean [directory] [--output public/] [--force]
     Purges orphan files from public/ using the build manifest
   lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
@@ -20789,19 +21459,26 @@ OPTIONS
     command rather than modifying one, so it is refused after a command
   --output public/
     demo/build/verify/watch/clean: output directory (default: public/).
+    theme create: destination .conf file (default: the user catalogue).
     A relative path is resolved against the directory you run from,
     not against [directory]. For theme gallery: the output file path.
   --force
     init: proceed even if the target directory is not empty.
     template write: overwrite an existing tool-owned file.
+    theme create/vendor: overwrite an existing theme snapshot.
     clean: actually remove orphan files (dry-run by default).
   --theme name
-    init/series theme set: apply a named palette (see THEMES below);
+    init/series theme set/theme vendor: apply or vendor a named palette
+    from the effective catalogue (see THEMES below);
     unknown name is a fatal error
+  --from name
+    theme create: start the new complete file from a built-in or catalogue theme
+  --label text / --source text / --note text
+    theme create: metadata written into the new theme file
   --themes selectors|all
-    build/verify/watch: include comma-separated slugs, facet selectors
+    build/verify/watch/theme vendor: include comma-separated slugs, facet selectors
     (background|bg, family|fam, background hue|bgh), essential, or every
-    built-in theme. The effective theme in templates/settings.conf is always
+    theme in the effective catalogue. The effective theme in templates/settings.conf is always
     included first, even when omitted here. Without this option, build uses
     the root series.json "themes" list when present. Built pages expose C
     for the picker and M for the global presenter menu.
@@ -20883,10 +21560,11 @@ OPTIONS
   --shell bash|zsh
     completion: which shell to generate the script for
   --all
-    theme show/theme gallery: describe/generate every built-in theme
+    theme show/theme gallery: describe/generate every catalogue theme
 
-THEMES ({theme_count} built in, see specifications.md §9.5)
-  Themes are chosen by slug, and found by facet — family (declared),
+THEMES ({theme_count} built in before local additions, see specifications.md §9.5)
+  The effective catalogue combines the embedded themes with optional complete
+  external snapshots. Themes are chosen by slug, and found by facet — family (declared),
   polarity (light/dark) and hue, both computed from the background:
     lightwebpres theme list                       all {theme_count}, with their facets
     lightwebpres theme list --family terrain      one editorial family
@@ -20906,12 +21584,23 @@ THEMES ({theme_count} built in, see specifications.md §9.5)
   rather than declared by hand:
     lightwebpres theme show evergreen
     lightwebpres series theme my-series      the effective theme, after
-                                              the values that series pins
+                                               the values that series pins
   Read that as a design note about the theme, not as a grade: no theme is
   expected to reach any level, and none is rewritten, refused or hidden for
   what it measures. A theme is a stance. None of it ever reaches a built
   page either: the reader of a presentation is never told the contrast
   level of the theme chosen for them.
+  External theme files are complete typed snapshots, not CSS and not includes.
+  The effective order is installed catalogue, user catalogue, then
+  templates/themes in a series; a local slug replaces the whole lower entry.
+  `builtin:<slug>` selects the embedded entry when a local theme shadows it.
+     lightwebpres theme create custom --from evergreen
+     lightwebpres theme migrate my-series
+     lightwebpres theme vendor my-series --themes custom,evergreen
+    lightwebpres theme path
+  `theme create` writes the user catalogue, `theme migrate` reduces an old
+  complete settings scaffold while preserving pins, and `theme vendor` copies
+  selected complete snapshots into a series.
 
 SETTINGS (templates/settings.conf, see specifications.md §9)
   Every visual decision is a typed property, `component.axis: value`, and
@@ -20953,6 +21642,8 @@ ENVIRONMENT VARIABLES
   LWP_SERIES_DIR      Series directory (default: .) — used when no
                        [directory] argument is given
   LWP_LANGUAGE_DIR    Legacy unified packs (default: $LWP_SERIES_DIR/language)
+  LWP_THEMES_DIR      User theme catalogue override (otherwise the platform
+                      data directory is used)
 
 SERIES DIRECTORY
   Written by `init`:
@@ -21095,6 +21786,7 @@ where this tool is published and can be downloaded.'''
 _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
                             '--theme', '--themes', '--only', '--nav-cache',
                             '--polarity', '--hue', '--family',
+                            '--from', '--label', '--source', '--note',
                             '--format',
                             '--article', '--port', '--shell', '--tag',
                             '--slides-page-numbers', '--scroll-duration'})
@@ -21125,6 +21817,11 @@ _COMMAND_OPTIONS = {
     'assign-slug': set(),
     'series-theme': {'--format'},
     'themes-gallery': {'--all', '--output'},
+    'theme-create': {'--from', '--label', '--family', '--source', '--note',
+                     '--output', '--force'},
+    'theme-migrate': set(),
+    'theme-vendor': {'--theme', '--themes', '--force'},
+    'theme-path': set(),
     # --output because cmd_clean has always read it: a site built with
     # `build --output <dir>` is cleaned with the same word, and without it
     # here the parser refused the only spelling that reaches the build's
@@ -21231,6 +21928,8 @@ _SERIES_VERBS = {
 }
 _THEME_VERBS = {
     'list': 'themes', 'show': 'theme-info', 'gallery': 'themes-gallery',
+    'create': 'theme-create', 'migrate': 'theme-migrate',
+    'vendor': 'theme-vendor', 'path': 'theme-path',
 }
 # `template` is the node for the files the EXECUTABLE owns, which is why
 # `show` and `write` live here rather than under `series`: neither needs a
@@ -21302,6 +22001,8 @@ _MAX_POSITIONAL = {
     'resolve': 2,
     'themes': 0, 'completion': 0,
     'theme-info': None, 'themes-gallery': None,
+    'theme-create': 1, 'theme-migrate': 1, 'theme-vendor': 1,
+    'theme-path': 0,
 }
 
 # Where the count above cannot say the shape. `template show` takes a file
@@ -21312,6 +22013,7 @@ _MAX_POSITIONAL = {
 _POSITIONAL_SHAPE = {
     'template-show': ' <nav.js|fr.json|en.json>',
     'template-write': ' <nav.js|fr.json|en.json> [directory]',
+    'theme-create': ' <slug>',
 }
 
 
@@ -21412,9 +22114,13 @@ def _resolve_command(args):
         if verb in ('--help', '-h'):
             _node_help('series', _SERIES_VERBS)
             sys.exit(0)
-        # `series theme set <dir> --theme X` — two-word series verb.
-        if verb == 'theme' and len(args) >= 3 and args[2] == 'set':
-            return 'set-theme', args[3:]
+        # `series theme set|migrate|vendor <dir> ...` — two-word theme verbs.
+        if verb == 'theme' and len(args) >= 3 and args[2] in (
+                'set', 'migrate', 'vendor'):
+            return {
+                'set': 'set-theme', 'migrate': 'theme-migrate',
+                'vendor': 'theme-vendor',
+            }[args[2]], args[3:]
         # `series slug set [dir]` — the one command that writes into an
         # author's articles, which is why it is a verb of its own and not
         # a flag on the build.
@@ -21717,8 +22423,8 @@ def main():
             positional[1] if len(positional) > 1
             else os.environ.get('LWP_SERIES_DIR', '.'))
     elif command == 'themes':
-        # Not a series-directory command: it reads the built-in table
-        # only, so a stray positional would mean nothing.
+        # Not a series-directory command: it reads the global catalogue,
+        # so a stray positional would mean nothing.
         cmd_themes(opts)
     elif command == 'theme-info':
         # `theme show <slug> [<slug>…] [--all]`: the catalogue reading.
@@ -21795,6 +22501,14 @@ def main():
         # `themes-gallery [path]` form is kept via the alias: a single
         # positional that is not a slug is treated as the output path.
         cmd_themes_gallery(positional, opts)
+    elif command == 'theme-create':
+        cmd_theme_create(positional, opts)
+    elif command == 'theme-migrate':
+        cmd_theme_migrate(target, opts)
+    elif command == 'theme-vendor':
+        cmd_theme_vendor(target, opts)
+    elif command == 'theme-path':
+        cmd_theme_path(opts)
     elif command == 'clean':
         # `clean [dir] [--force]`: purges public/
         # of orphan files using the manifest written by build. Dry-run by

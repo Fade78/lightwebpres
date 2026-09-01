@@ -17,12 +17,14 @@ from pathlib import Path, PurePosixPath
 
 ZIP_WORK_DIR = Path('/lwp_web_work')
 
-# Extraction happens into Pyodide's in-memory filesystem: an unbounded
-# archive would exhaust the tab's memory instead of failing cleanly. The
-# caps are generous for a presentation series (a built site is a few MB)
-# and exist to turn a hostile or oversized zip into an explicit error.
-ZIP_MAX_ENTRIES = 4096
-ZIP_MAX_UNCOMPRESSED_BYTES = 256 * 1024 * 1024
+# index.html injects the page-owned values before loading this glue. These
+# defaults keep the module testable in isolation; the deployment values live
+# in the static page so both browser tabs use the same limits.
+ZIP_MAX_ENTRIES = int(globals().get('ZIP_MAX_ENTRIES', 4096))
+ZIP_MAX_COMPRESSED_BYTES = int(
+    globals().get('ZIP_MAX_COMPRESSED_BYTES', 500 * 1024 * 1024))
+ZIP_MAX_UNCOMPRESSED_BYTES = int(
+    globals().get('ZIP_MAX_UNCOMPRESSED_BYTES', 500 * 1024 * 1024))
 
 
 def _validate_zip_members(zf):
@@ -89,6 +91,17 @@ def build_from_zip_bytes(data, lang='fr'):
     printed, for troubleshooting either way.
     """
     log = io.StringIO()
+
+    # The JavaScript caller checks File.size before creating this object. Keep
+    # the same guard here for direct callers and to avoid a second copy before
+    # the archive reaches zipfile or the virtual filesystem.
+    if len(data) > ZIP_MAX_COMPRESSED_BYTES:
+        return (
+            None,
+            log.getvalue(),
+            'Archive exceeds the %d-byte compressed-size limit - refusing to '
+            'load it.' % ZIP_MAX_COMPRESSED_BYTES,
+        )
 
     if ZIP_WORK_DIR.exists():
         shutil.rmtree(ZIP_WORK_DIR)

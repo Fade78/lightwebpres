@@ -2112,7 +2112,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Keyboard shortcuts</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.49.1</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.50.0</div>
   </div>
 </div>
 
@@ -3007,6 +3007,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   var themeStorageKey = themeData
     ? 'lwp-theme:' + themeData.primary + ':'
+      + (themeData.catalog_digest ? themeData.catalog_digest + ':' : '')
       + themeData.themes.map(function (theme) { return theme.slug; }).join(',')
     : '';
 

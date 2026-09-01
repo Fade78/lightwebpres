@@ -775,7 +775,8 @@ The first four drive the generated index page and `README.md`; `author` and
 `default_tag` selects the initial tag, and `lang_tags` selects typography
 packs per slide. The optional root `themes` list selects extra runtime
 themes for `build`/`verify`/`watch`; it is a list of strings, not an article
-field:
+field. The slugs come from the effective catalogue visible to that series,
+including complete snapshots in `templates/themes/`:
 
 ```json
 {
@@ -792,10 +793,11 @@ field:
 
 Each item is a theme slug, `all`, `essential`, or a facet selector such as
 `background:light`, `fam:terrain`, or `bgh:red`. `essential` means Monochrome,
-Monochrome Night and Print Ink. Several items add their matches; an explicit
-CLI `--themes` value takes precedence over this list. The `essential` bundle
-ships by default on every build — this list only adds to it — and
-`--no-essential-theme` opts out. Theme choice is described
+Monochrome Night and Print Ink; if a local file shadows one of those slugs,
+the embedded version can be named `builtin:<slug>`. Several items add their
+matches; an explicit CLI `--themes` value takes precedence over this list. The
+`essential` bundle ships by default on every build — this list only adds to it
+— and `--no-essential-theme` opts out. Theme choice is described
 here only as `series.json` wiring; palette design and build procedure belong to
 the guide and specification.
 

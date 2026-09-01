@@ -544,7 +544,33 @@ class WebSourceHardening(unittest.TestCase):
             self.assertIn('canonical in seen', source)
             self.assertIn(r"'\x00' in name", source)
             self.assertIn('ZIP_MAX_ENTRIES', source)
+            self.assertIn('ZIP_MAX_COMPRESSED_BYTES', source)
             self.assertIn('ZIP_MAX_UNCOMPRESSED_BYTES', source)
+
+    def test_archive_limits_are_owned_by_the_page_and_injected_before_glues(self):
+        html = (REPO_ROOT / 'web' / 'index.html').read_text(encoding='utf-8')
+        self.assertIn('const ZIP_MAX_ENTRIES = 4096;', html)
+        self.assertIn(
+            'const ZIP_MAX_COMPRESSED_BYTES = 500 * 1024 * 1024;', html)
+        self.assertIn(
+            'const ZIP_MAX_UNCOMPRESSED_BYTES = 500 * 1024 * 1024;', html)
+
+        injection = html.index(
+            "pyodide.globals.set('ZIP_MAX_COMPRESSED_BYTES'")
+        app_load = html.index("const appSource = await fetchText('./app.py');")
+        git_load = html.index(
+            "const gitSyncSource = await fetchText('./git_sync.py');")
+        self.assertLess(injection, app_load)
+        self.assertLess(injection, git_load)
+        self.assertLess(
+            html.index('file.size > ZIP_MAX_COMPRESSED_BYTES'),
+            html.index('file.arrayBuffer()'))
+
+        git_sync = (REPO_ROOT / 'web' / 'git_sync.py').read_text(encoding='utf-8')
+        self.assertIn("resp.headers.get('content-length')", git_sync)
+        self.assertLess(
+            git_sync.index("resp.headers.get('content-length')"),
+            git_sync.index('await resp.bytes()'))
 
 
 class TheZipGuardCapsWhatItExtractsIntoMemory(unittest.TestCase):
@@ -585,6 +611,14 @@ class TheZipGuardCapsWhatItExtractsIntoMemory(unittest.TestCase):
         with self.assertRaises(RuntimeError) as raised:
             guard._validate_zip_members(zf)
         self.assertIn('decompresses to more than', str(raised.exception))
+
+    def test_an_input_beyond_the_compressed_cap_is_refused_before_loading(self):
+        guard = self._load_guard()
+        guard.ZIP_MAX_COMPRESSED_BYTES = 16
+        result = guard.build_from_zip_bytes(b'x' * 17)
+        self.assertIsNone(result[0])
+        self.assertEqual(result[1], '')
+        self.assertIn('compressed-size limit', result[2])
 
     def test_an_archive_beyond_the_entry_cap_is_refused(self):
         guard = self._load_guard()

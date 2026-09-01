@@ -204,10 +204,13 @@ description; the terms are fixed here, in English.
 | **shared value** | A palette colour (`color.*`) or font stack (`font.*`) themes provide and properties reference. Never read by an emitted rule directly. |
 | **reference** | A word used as a value, resolved at merge time and never surviving into the output (§9.2). Bare (`kicker.fg: ink-quiet`) it is looked up in its type's namespace; dotted (`title1.fg: cover.fg`) it names another property. At most 3 hops; cycles are detected and named. |
 | **layer** | One dictionary of properties in the cascade (§9.3): built-in defaults, theme, settings, article, instance — merged in that order before emission. |
-| **theme** | A named layer of properties applied over the built-in defaults. |
+| **theme** | A named layer of properties applied over the built-in defaults. It may be an embedded entry or a complete external snapshot. |
 | **theme facet** | One catalogue axis used to find themes: `family` is declared, `polarity` is derived from the background, and `hue` is computed from it. |
-| **theme selector** | A runtime selection token: a slug, `all`, `essential`, or `X:Y` such as `bg:light`, `fam:terrain` or `bgh:red`; several tokens add their matches. |
-| **settings** | The author's own property layer (`templates/settings.conf`), applied over the theme. Never written by the tool except on explicit request (`series theme set` rewrites only the `theme:` line). |
+| **theme selector** | A runtime selection token from the effective catalogue: a slug, `all`, `essential`, or `X:Y` such as `bg:light`, `fam:terrain` or `bgh:red`; several tokens add their matches. `builtin:<slug>` forces the embedded entry when a local slug shadows it. |
+| **external theme snapshot** | A UTF-8 `.conf` file containing metadata and every property in the registry exactly once. It is complete by design: no CSS and no `extends`/include mechanism. |
+| **effective catalogue** | The themes visible to one operation after merging embedded, installed, user and, for a series operation, `templates/themes/` entries. A higher layer replaces a colliding slug's whole entry. |
+| **catalogue root** | A directory searched for direct `.conf` snapshots: installed resources, the user root (`LWP_THEMES_DIR` or the platform default), or a series' `templates/themes/`. |
+| **settings** | The author's own property layer (`templates/settings.conf`), applied over the theme. Written only on explicit request: `series theme set` changes its `theme:` line, and `theme migrate` reduces an old scaffold while preserving pins. |
 | **scaffold** | The generated form of `settings.conf`: every property present, commented out, at the chosen theme's values (§9.3.1). Generated once from the registry, never rewritten on the tool's initiative; `# scaffold-for:` records the theme it was generated under. |
 | **pin** | Uncommenting a scaffold line (or writing one): the value now overrides every theme and survives theme changes and upgrades (§9.3.1). |
 | **override** | The relation between layers: a value in a later layer covering an earlier one. |

@@ -43,7 +43,7 @@
 
 **§11. Commandes de l'exécutable**
 
-11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --only` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.10 `series theme set` · 11.11 `status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy
+11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --only` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.9.2 Le catalogue externe · 11.10 `series theme set` · 11.11 `status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy
 
 **§12. Algorithme du build**
 
@@ -380,6 +380,8 @@ ma-serie/                          # Le répertoire de la série (l'unité de tr
 ├── templates/                     # La surface de personnalisation de cette série (§9)
 │   ├── settings.conf              # Les propriétés typées (le look) — scaffold complet commenté
 │   ├── custom.css                 # Les règles CSS libres de l'auteur (ajoutées en dernier)
+│   ├── themes/                    # Snapshots de thèmes versionnés dans cette série (optionnel)
+│   │   └── *.conf
 │   └── nav.js                     # ABSENT par défaut — le JS de navigation vient de
 │                                  # l'exécutable ; `template write nav.js` en pose une
 │                                  # copie pour qui veut le modifier (§9.4.5)
@@ -424,6 +426,7 @@ série.
 | `LWP_LANGUAGE_DIR`    | `$LWP_SERIES_DIR/language`  | Anciens packs unifiés (`{lang}.json`), compatibilité |
 | `LWP_OUTPUT_DIR`      | `$LWP_SERIES_DIR/public`    | Le répertoire de sortie du build    |
 | `LWP_LANG`            | `fr`                        | La langue (`fr`, `en`, ou toute autre avec un pack split ou legacy) |
+| `LWP_THEMES_DIR`      | répertoire de données de la plateforme | Le catalogue utilisateur de thèmes externes |
 
 En complément des chemins de série, un exécutable installé sous la forme
 réelle `<préfixe>/bin/lightwebpres` peut lire les ressources partagées
@@ -431,6 +434,17 @@ réelle `<préfixe>/bin/lightwebpres` peut lire les ressources partagées
 `<préfixe>/share/lightwebpres/typography/{lang}.json`. Cette recherche FHS ne
 s'applique ni à une copie autonome posée dans une série, ni au runtime
 Pyodide : dans ces deux cas, les packs intégrés restent la base ultime.
+
+Le catalogue de thèmes externe suit la même idée de ressource installée : un
+exécutable FHS cherche `<préfixe>/share/lightwebpres/themes/`, une copie
+autonome cherche `themes/` à côté de l'exécutable, puis le catalogue utilisateur
+et enfin `templates/themes/` dans la série. L'ordre de priorité est donc
+**intégré < installé < utilisateur < série**. `LWP_THEMES_DIR` remplace le
+seul emplacement utilisateur ; il ne masque ni les thèmes intégrés, ni les
+ressources installées. Sans cette variable, le chemin utilisateur est
+`$XDG_DATA_HOME/lightwebpres/themes/` sous Unix et
+`%APPDATA%/lightwebpres/themes/` sous Windows. Seuls les fichiers `.conf`
+directement placés dans ces répertoires sont lus.
 
 ### 2.4 Options en ligne de commande
 
@@ -504,6 +518,10 @@ lightwebpres theme show [slug… | --all] [--format text|json]   # sans cible : 
 lightwebpres series theme [répertoire] [--format text|json]
 lightwebpres series theme set [répertoire] --theme nom
 lightwebpres theme gallery [slug… | --all] [--output chemin]
+lightwebpres theme create <slug> [--from nom] [--label texte] [--family nom] [--source texte] [--note texte] [--output fichier] [--force]
+lightwebpres theme migrate [répertoire]
+lightwebpres theme vendor [répertoire] [--themes sélecteurs] [--force]
+lightwebpres theme path
 lightwebpres status [répertoire] [--format text|json]
 lightwebpres series tags [répertoire] [--tag nom] [--format text|json]
 lightwebpres resolve [répertoire] <propriété> [--article page] [--format text|json]
@@ -512,29 +530,37 @@ lightwebpres completion --shell bash|zsh
 lightwebpres --help
 ```
 
-- `[répertoire]` : le chemin du répertoire de série (défaut : `.`, ou `$LWP_SERIES_DIR`). `theme show` sans slug lit la série courante de la même façon ; avec un slug, il lit toujours le catalogue intégré.
+- `[répertoire]` : le chemin du répertoire de série (défaut : `.`, ou `$LWP_SERIES_DIR`). `theme show` sans slug lit la série courante de la même façon ; avec un slug, il lit le catalogue global intégré/ installé/ utilisateur.
 - `--lang` : la langue — règles typographiques et chaînes d'interface (défaut : `fr`, ou `$LWP_LANG`)
 - `--output` : `demo` / `build` / `verify` — le répertoire de sortie
-  (défaut : `public/`, ou `$LWP_OUTPUT_DIR`) ; un chemin **relatif** est
-  résolu depuis le répertoire courant, pas depuis `[répertoire]`
+  (défaut : `public/`, ou `$LWP_OUTPUT_DIR`) ; `theme gallery` reçoit le
+  chemin de son HTML et `theme create` celui de son fichier `.conf`. Un chemin
+  **relatif** est résolu depuis le répertoire courant, pas depuis `[répertoire]`
 - `--scaffold` : `template update` seulement — régénère la surface
   commentée de `settings.conf` aux valeurs du thème courant, en
   conservant les lignes épinglées (§9.4.3)
 - `--language-file` : fichier de langue unifié explicite, priorité max sur les sources split et legacy (§19.5)
-- `--force` : `init` seulement — procède même si le répertoire cible n'est pas vide (`series theme set` n'a plus de `--force` : il ne réécrit que la ligne `theme:` de `settings.conf`, il n'y a plus rien à forcer — §11.10)
-- `--theme` : `init`/`series theme set` — applique une palette prédéfinie (§9.5)
+- `--force` : `init`, `theme create` et `theme vendor` — procède même si le répertoire cible n'est pas vide, remplace un snapshot existant demandé, ou remplace une copie vendue (`series theme set` n'a plus de `--force` : il ne réécrit que la ligne `theme:` de `settings.conf`, il n'y a plus rien à forcer — §11.10)
+- `--theme` : `init`/`series theme set`/`theme vendor` — applique ou vend une palette du catalogue effectif (§9.5)
 - `--polarity` / `--hue` / `--family` : `theme list` seulement — restreint la liste par facette (§9.5.2, §11.9)
 - `--gitlab-ci` : `init` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
 - `--no-typography` : `build`/`verify`/`watch` — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
 - `--scroll-duration` : `build`/`verify`/`watch` — durée entière non négative en millisecondes du glissé entre fiches ; `0` le désactive. Sans cette option, `series_meta.scroll_duration` s'applique, puis le défaut de `200` ms (§8.4, §20.5)
 - `--include-drafts` : `build`/`verify` seulement — construit aussi les articles marqués `status: draft` (§20.6), avec bandeau « Brouillon ». Sans effet sur `status: ignored`, qui n'est jamais construit
-- `--themes` : `build`/`verify`/`watch` — embarque des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules; le thème effectif de `settings.conf` reste toujours le premier (§9.3.7)
+- `--themes` : `build`/`verify`/`watch`/`theme vendor` — embarque ou vend des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules; les slugs viennent du catalogue effectif et le thème de `settings.conf` reste toujours le premier pour un build (§9.3.7)
 - `--no-essential-theme` : `build`/`verify`/`watch` seulement — ne pas embarquer le lot `essential` par défaut (§9.3.7); une sélection explicite `--themes` reste appliquée
 - `--only` : `build` seulement — ne reconstruit qu'une page (§11.3.1)
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
 - `--format text|json` : `status`, `series tags`, `resolve`, `theme show`,
   `series theme` — format de sortie, texte par défaut
+- `--from` : `theme create` — thème intégré ou externe dont les valeurs résolues
+  servent de point de départ
+- `--label`, `--family`, `--source`, `--note` : `theme create` — métadonnées
+  du snapshot écrit ; `--family` doit appartenir au vocabulaire fermé des
+  familles (§9.5.2)
+- `--output` et `--force` : `theme create` — destination `.conf` du catalogue
+  utilisateur et remplacement explicite d'un fichier existant
 - `--tag nom` : `series tags` seulement — réduit les lignes de tags au tag
   canonique demandé, sans réduire les totaux de la série
 
@@ -543,9 +569,10 @@ les variables de domaines (`LWP_SOURCES_DIR`, `LWP_TEMPLATES_DIR`,
 `LWP_INTERFACE_DIR`, `LWP_TYPOGRAPHY_DIR`, `LWP_LANGUAGE_DIR`) sont honorées
 par les commandes qui opèrent sur une série. `demo`, `series theme`,
 `series theme set`, `series slug`, `resolve` et `watch` lisent donc les mêmes
-emplacements résolus que `build`. Seules `theme list` et `theme gallery` y
-échappent : la première n'interroge que la table `THEMES` intégrée, la seconde
-ne prend qu'un chemin de sortie.
+emplacements résolus que `build`. Les commandes de catalogue (`theme list`,
+`theme show`, `theme gallery`, `theme create`, `theme path`) lisent le catalogue
+installé/utilisateur ; les commandes qui opèrent sur une série ajoutent
+`templates/themes/` au-dessus de ces couches.
 
 L'aide s'obtient par `help`, `--help` ou `-h` (les trois formes sont
 équivalentes) ; sans argument du tout, l'aide s'affiche aussi. Une
@@ -2843,8 +2870,8 @@ Le thème primaire est toujours le thème effectif lu dans
 `theme:` porte l'identifiant synthétique `default`. La lecture se fait au
 build : une modification utilisateur de `settings.conf` est donc la source
 de vérité et ne doit pas être remplacée par l'option `--themes`. `all` ajoute
-tous les thèmes du catalogue. Une sélection est une liste séparée par des
-virgules sur la CLI, ou une liste JSON de chaînes sous `themes`. Chaque élément
+tous les thèmes du catalogue effectif. Une sélection est une liste séparée par
+des virgules sur la CLI, ou une liste JSON de chaînes sous `themes`. Chaque élément
 peut être un slug, `all`, `essential`, ou un sélecteur `X:Y` :
 
 | Forme | Facette | Valeur exemple |
@@ -2854,8 +2881,10 @@ peut être un slug, `all`, `essential`, ou un sélecteur `X:Y` :
 | `background hue` / `bgh` | `hue` | `red`, `neutral` |
 
 `essential` ajoute, dans cet ordre, `monochrome`, `monochrome-night` et
-`print-ink`. Chaque sélecteur ajoute ses correspondances dans l'ordre du
-catalogue; les doublons sont supprimés et le primaire reste en tête. Un nom de
+`print-ink`. Si un de ces slugs est ombré par un thème local, sa variante
+intégrée reste accessible dans le payload sous la forme `builtin:<slug>`.
+Chaque sélecteur ajoute ses correspondances dans l'ordre du catalogue; les
+doublons sont supprimés et le primaire reste en tête. Un nom de
 facette, une valeur, un slug inconnu, une liste vide ou une configuration JSON
 mal typée est une erreur nommée. La forme longue `background hue:red` doit être
 citée dans un shell.
@@ -2874,7 +2903,9 @@ mais ne remplace jamais une propriété épinglée dans `settings.conf`, une
 propriété `style.*` de la page, ni une variable de registre redéclarée dans
 `custom.css`. Le retour au primaire retire seulement les surcharges runtime.
 Le choix est conservé dans la session du navigateur afin de suivre les
-pages du même deck ; il ne modifie aucun fichier source.
+pages du même deck ; la clé inclut l'identité du catalogue externe chargé,
+de sorte qu'un thème local modifié ou remplacé ne réutilise pas un choix
+provenant d'un payload différent. Le choix ne modifie aucun fichier source.
 
 Sur une page qui contient des alternatives, **C** ouvre un dialogue
 recherchable et **Échap** le ferme ; les flèches, **Début** et **Fin** y
@@ -3131,10 +3162,34 @@ remarque — §9.5.4) qui ne servent qu'à `theme gallery` (§11.7).
 dans chaque entrée, même à la valeur par défaut — un choix délibéré
 consigné, pas un oubli ; les deux clés de soulignement font exception :
 absentes, elles valent « pas de soulignement », le sens de « pas
-d'avis » pour un axe ajouté après coup. `THEMES` est la **seule** source
-de vérité : la couche appliquée par `init --theme`/`series theme set` et les
-aperçus de `theme gallery` viennent de la même donnée et ne peuvent pas
-diverger par construction.
+d'avis » pour un axe ajouté après coup.
+
+Les thèmes externes suivent le même vocabulaire mais sont des snapshots
+complets dans des fichiers `.conf` UTF-8. Le fichier commence par les
+métadonnées `schema: lightwebpres.theme/1`, `label:`, `family:`, `source:` et
+`note:`, puis contient chaque clé de `PROPERTY_REGISTRY` exactement une fois.
+Les métadonnées `label` et `family` sont obligatoires (`family` appartient à
+`THEME_FAMILIES`), les clés inconnues, doublons, propriétés manquantes et
+valeurs mal typées sont des erreurs nommées. `source` et `note` sont du texte
+nu ; le HTML de galerie les échappe au moment où il en a besoin.
+
+Le catalogue global est la fusion **intégré < installé < utilisateur** ; une
+série ajoute ensuite sa couche **série** au-dessus, comme décrit en §2.3. Un
+fichier local qui reprend un slug existant remplace l'entrée entière, sans
+héritage implicite d'un thème inférieur ; `builtin:<slug>` permet de demander
+explicitement l'entrée intégrée. `theme list`, `theme show <slug>` et
+`theme gallery` décrivent le catalogue global. Les builds, `series theme` et
+les commandes qui opèrent sur une série ajoutent `templates/themes/` et voient
+le catalogue effectif complet. `theme create` écrit un snapshot éditable dans
+le catalogue utilisateur, `theme migrate` réduit un ancien scaffold de
+`settings.conf` en conservant ses valeurs épinglées, et `theme vendor` copie
+des snapshots complets dans `templates/themes/` pour rendre une série
+autonome. Il n'existe pas de mécanisme `extends` : la cascade settings/theme
+est le seul héritage prévu.
+
+La table `THEMES` reste la source de vérité des thèmes intégrés ; la couche
+appliquée par `init --theme`/`series theme set` et les aperçus de `theme gallery`
+viennent du catalogue effectif et ne peuvent pas diverger par construction.
 
 Les neuf premières entrées reprennent des palettes d'éditeurs de code
 connues (`nord`, `dracula`, `solarized`, `gruvbox`, `catppuccin`,
@@ -4782,7 +4837,7 @@ lightwebpres theme gallery [slug… | --all] [--output chemin]
 ```
 
 Génère une page HTML autonome (aucune dépendance) documentant chaque
-entrée de `THEMES` (§9.5). **Un thème par ligne, quatre panneaux en
+entrée du catalogue global (§9.5). **Un thème par ligne, quatre panneaux en
 colonnes** — la couverture, une fiche portant une note, la section de
 notes de page, et l'article de fond — plus ses couleurs de rôle
 (chaque pastille donne le rôle, puis le nom de propriété qu'un auteur
@@ -4901,7 +4956,7 @@ pas se retrouver devant une page vide sans comprendre pourquoi.
 répertoire courant — c'est ainsi que le fichier à la racine du dépôt
 lightwebpres lui-même est produit, et il n'a plus vocation à être modifié
 à la main (§9.5) : toute correction sur un thème (couleur, remarque) se
-fait dans `THEMES`, puis `theme gallery` régénère le fichier. Sans
+fait dans la source du thème, puis `theme gallery` régénère le fichier. Sans
 `--output`, `slug…` et `--all` choisissent quels thèmes documenter (tous
 par défaut).
 
@@ -4931,7 +4986,7 @@ sur celle qui répond à « celui-là, il vaut quoi » : `theme show`.
 lightwebpres theme list [--polarity light|dark] [--hue <teinte>] [--family <nom>]
 ```
 
-Liste les thèmes intégrés depuis le terminal, avec pour chacun son slug,
+Liste le catalogue global effectif depuis le terminal, avec pour chaque entrée son slug,
 ses trois facettes (§9.5.2), son étiquette et sa remarque éditoriale.
 Sans option, les liste tous ; chaque option restreint la liste, et les
 options se combinent.
@@ -4946,6 +5001,14 @@ rien garantir ici.
 Le slug est mis en avant dans la sortie parce que c'est ce que
 `init --theme` et `series theme set` attendent : ce qu'on lit est
 directement ce qu'on retape.
+
+Le catalogue comprend les thèmes intégrés et les snapshots externes installés
+ou utilisateur trouvés dans les emplacements de §2.3. Un slug local ombrant un
+thème intégré n'est affiché qu'une fois, comme l'entrée globale effective.
+Lorsqu'une série est construite, ses snapshots de `templates/themes/` sont
+ajoutés au-dessus. Pour demander malgré tout la version intégrée, utiliser
+`builtin:<slug>` avec `theme show`, `init`, `series theme set` ou un sélecteur
+runtime.
 
 Deux cas se distinguent volontairement :
 
@@ -5055,9 +5118,11 @@ avertissent : `build` sort 0, `audit` nu aussi.
 
 #### Deux cibles
 
-- **Un slug** (`theme show nord`) : le thème intégré, tel qu'il est
-  livré. Aucun répertoire de série n'est nécessaire — c'est le cas
-  « avant d'installer », celui qui sert à choisir.
+- **Un slug** (`theme show nord`) : l'entrée du catalogue global, intégrée ou
+  externe, telle qu'elle est livrée à l'outil. Aucun répertoire de série n'est
+  nécessaire — c'est le cas « avant d'installer », celui qui sert à choisir.
+  `builtin:nord` force la version intégrée lorsqu'un fichier local masque
+  `nord`.
 - **Un répertoire de série** (`theme show .`) : le thème **effectif**,
   c'est-à-dire après application des valeurs que la série épingle dans
   `templates/settings.conf`. Les deux réponses peuvent différer, et c'est
@@ -5278,6 +5343,52 @@ c'est que ces nombres soient **mesurés**, pas qu'ils soient recopiés.
 thème dans son sélecteur (sa spec §1.3). C'est un contrat entre les deux
 dépôts au sens de §1.2 : le nom des clés JSON est une surface publique,
 et le renommer casse le GUI sans que rien ne rougisse ici.
+
+### 11.9.2 Le catalogue externe
+
+```bash
+lightwebpres theme create <slug> [--from nom] [--label texte] [--family nom]
+lightwebpres theme create <slug> [--source texte] [--note texte]
+                         [--output fichier] [--force]
+lightwebpres theme migrate [répertoire]
+lightwebpres theme vendor [répertoire] [--themes sélecteurs] [--force]
+lightwebpres theme path
+```
+
+Ces commandes manipulent le catalogue de §9.5.1, pas `settings.conf` et pas
+la feuille CSS. Elles sont séparées de `series theme set`, qui ne change que
+le thème sélectionné dans une série.
+
+**`theme create`** valide le slug, résout `--from` dans le catalogue effectif
+(ou les défauts intégrés si l'option est absente), puis écrit un fichier
+complet dans le catalogue utilisateur. `--from builtin:<slug>` demande
+l'entrée intégrée même si un fichier local ombre son slug. `--label`,
+`--family`, `--source` et `--note` remplissent les métadonnées ; les valeurs
+ne peuvent pas contenir de saut de ligne et `family` doit être une valeur de
+`THEME_FAMILIES`. La destination par défaut est `<catalogue utilisateur>/<slug>.conf`.
+`--output` peut nommer ce fichier directement ou un répertoire ; le nom final
+doit rester exactement `<slug>.conf`. Un fichier existant n'est remplacé
+qu'avec `--force`.
+
+**`theme migrate`** lit le `settings.conf` d'une série et en extrait le thème
+choisi ainsi que les lignes de propriétés épinglées. Il réécrit explicitement
+la surface en forme minimale : la ligne `theme:` et les seules propriétés
+actives. Une clé qui n'appartient plus au registre n'est pas supprimée : elle
+est gardée commentée sous la marque `no longer recognized` et signalée. Les
+commentaires du scaffold ne deviennent jamais des épingles. La commande ne
+modifie pas `custom.css` et ne relance pas le build.
+
+**`theme vendor`** prend des slugs ou sélecteurs runtime (`all`, `essential`,
+facettes) et copie leurs snapshots complets dans `templates/themes/`. Sans
+`--themes`, le thème effectif de `settings.conf` est utilisé. La copie est
+une vraie source de série : elle reste utilisable après disparition du
+catalogue utilisateur. Un fichier déjà présent et différent exige `--force`.
+Les thèmes intégrés peuvent être demandés avec `builtin:<slug>` pour éviter
+toute ambiguïté avec une entrée locale.
+
+**`theme path`** imprime les racines installées puis utilisateur, dans leur
+ordre de priorité. Il n'écrit rien. Les racines de série sont propres à la
+série opérée et ne sont pas ajoutées à cette commande sans cible.
 
 ### 11.10 `series theme set`
 
@@ -7852,6 +7963,17 @@ comparés **par AST, docstrings retirées**. Les docstrings diffèrent
 légitimement — l'une explique la défense, l'autre y renvoie — et comparer
 le texte source échouerait sur un retour à la ligne tout en passant sur
 une constante changée. Ce qui doit coïncider, c'est la règle.
+
+Les archives sont limitées à **500 MiB** dans les deux dimensions : taille
+compressée reçue et somme des tailles décompressées déclarées par les membres.
+Les trois valeurs (`ZIP_MAX_ENTRIES`, `ZIP_MAX_COMPRESSED_BYTES` et
+`ZIP_MAX_UNCOMPRESSED_BYTES`) sont définies en évidence au début de
+`index.html`, puis injectées dans Pyodide avant le chargement de
+`app.py` et `git_sync.py`. L'onglet Upload vérifie `File.size` avant de créer
+son `ArrayBuffer`; `app.py` répète la vérification avant la copie Python et
+`git_sync.py` vérifie `Content-Length` avant `resp.bytes()`, avec une seconde
+vérification si l'en-tête manque. La limite décompressée est contrôlée sur
+les métadonnées ZIP avant toute extraction.
 
 ### 23.2 Confidentialité
 

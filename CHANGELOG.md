@@ -33,6 +33,20 @@ link to the originals. They are at
 
 ---
 
+## v0.50.0
+
+Themes can now be extended outside the executable as complete typed snapshots.
+The effective catalogue resolves embedded, installed, user and series layers;
+`theme create`, `theme migrate`, `theme vendor` and `theme path` make those
+layers editable, portable and inspectable, while `builtin:<slug>` keeps a
+shadowed embedded theme addressable. Runtime theme selection, the gallery and
+the documentation all use the same effective catalogue.
+
+The browser wrapper now keeps its archive limits in one visible place at the
+top of `web/index.html` and passes them to both Pyodide glue scripts. Uploads
+and GitLab pulls refuse archives over 500 MiB compressed or uncompressed before
+extraction, with an additional response-size check for GitLab downloads.
+
 ## v0.49.1
 
 Raw HTML comments and tag attributes in Markdown now pass verbatim through

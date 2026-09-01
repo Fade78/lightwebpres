@@ -99,11 +99,10 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 8 · **à faire** 0 · **en cours** 0 · **terminé** 44 · **abandonné** 1 · **sans objet** 3
+**à étudier** 7 · **à faire** 0 · **en cours** 0 · **terminé** 45 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
-- **B8** — `extends` for external theme files
 - **B10** — Gamut mapping for lightness-shifted inks
 - **B11** — Dichromat separability is not verified
 - **B27** — The default sheet fails the navigation floor its own test enforces
@@ -120,6 +119,7 @@ gets its own entry and its own state**, however small.
 - **B4** — Key-figure alignment, as an option
 - **B6** — The slide-progress dots miss the 3:1 readability floor
 - **B7** — Text alignment axes (center, justify, per-component and per-block)
+- **B8** — `extends` for external theme files
 - **B9** — Typographic revision of the historical catalogue
 - **B12** — Box drop-shadow (elevation) axes
 - **B13** — `--content-max` is the one themeless variable
@@ -648,17 +648,27 @@ per-series via `settings.conf`, per-figure via the instance tag.
 
 ## B8 — `extends` for external theme files
 
-**État :** à étudier
+**État :** terminé · **Depuis :** 2026-09-01
 
-Recorded at the catalogue port (2026-08-04): the scaffold is generated
-complete and no user-facing include mechanism exists — the one legitimate
-include is the cascade itself, a settings file sitting on a theme. An
-`extends` line stays a possibility **for the day external theme files
-exist**, noted and not built. A theme already *being* a property layer,
-nothing structural is missing; the work is a file format, its resolution
-order, and its audit story. Do not build before the external-theme-format
-question (out of scope of the §9 refactor by decision) is opened on its
-own.
+The external-theme question is settled by the catalogue format. A theme file
+is a complete UTF-8 snapshot of the typed property registry, with its own
+metadata; it has no `extends` line and never inherits values from a lower
+precedence slug. The one legitimate include remains the cascade itself: a
+series' `settings.conf` sits on top of its selected theme.
+
+The catalogue is resolved as **integrated < installed < user < series**.
+Collisions replace the whole entry, while `builtin:<slug>` keeps the embedded
+entry addressable. `theme create` and `theme migrate` provide editable user
+files, and `theme vendor` copies complete snapshots into a series so its build
+does not depend on a user's home directory. The browser digest partitions its
+session key when an external snapshot changes.
+
+Measured on the implementation lot: seven regression cases cover collision,
+runtime propagation, session invalidation, essential-theme shadowing,
+migration, vendor independence and rejection of incomplete files. The
+decision is deliberately not to add inheritance later as a convenience: it
+would make a collision's actual values depend on an invisible lower file and
+would turn a portable vendored series back into a chain of lookups.
 
 ## B9 — Typographic revision of the historical catalogue
 

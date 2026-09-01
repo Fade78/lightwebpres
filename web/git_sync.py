@@ -39,12 +39,14 @@ GIT_WORK_DIR = Path('/lwp_git_work')
 
 PUSH_CHUNK_SIZE = 100
 
-# Extraction happens into Pyodide's in-memory filesystem: an unbounded
-# archive would exhaust the tab's memory instead of failing cleanly. The
-# caps are generous for a presentation series (a built site is a few MB)
-# and exist to turn a hostile or oversized zip into an explicit error.
-ZIP_MAX_ENTRIES = 4096
-ZIP_MAX_UNCOMPRESSED_BYTES = 256 * 1024 * 1024
+# index.html injects the page-owned values before loading this glue. These
+# defaults keep the module testable in isolation; the deployment values live
+# in the static page so both browser tabs use the same limits.
+ZIP_MAX_ENTRIES = int(globals().get('ZIP_MAX_ENTRIES', 4096))
+ZIP_MAX_COMPRESSED_BYTES = int(
+    globals().get('ZIP_MAX_COMPRESSED_BYTES', 500 * 1024 * 1024))
+ZIP_MAX_UNCOMPRESSED_BYTES = int(
+    globals().get('ZIP_MAX_UNCOMPRESSED_BYTES', 500 * 1024 * 1024))
 
 
 def _validate_zip_members(zf):
@@ -112,7 +114,28 @@ async def _request(base_url, token, method, path, params=None, body=None, want_j
         raise RuntimeError(f'{method} {path} -> HTTP {resp.status}: {text[:500]}')
     if want_json:
         return await resp.json()
-    return await resp.bytes()
+
+    # Content-Length lets us refuse an archive before pyfetch allocates its
+    # response bytes. The length check after bytes() is the fallback for
+    # servers that omit or hide that header from the browser.
+    content_length = resp.headers.get('content-length')
+    if content_length is not None:
+        try:
+            content_length = int(content_length)
+        except (TypeError, ValueError):
+            raise RuntimeError(
+                f'{method} {path} -> invalid Content-Length header')
+        if content_length > ZIP_MAX_COMPRESSED_BYTES:
+            raise RuntimeError(
+                f'{method} {path} -> archive exceeds the '
+                f'{ZIP_MAX_COMPRESSED_BYTES}-byte compressed-size limit.')
+
+    data = await resp.bytes()
+    if len(data) > ZIP_MAX_COMPRESSED_BYTES:
+        raise RuntimeError(
+            f'{method} {path} -> archive exceeds the '
+            f'{ZIP_MAX_COMPRESSED_BYTES}-byte compressed-size limit.')
+    return data
 
 
 def _find_series_dir_in_archive(root):

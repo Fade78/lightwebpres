@@ -49,7 +49,7 @@ no wheel, no lockfile, no network at build time — any image with
 `python3` in it can run it. And **every path is an environment
 variable** (`LWP_SERIES_DIR`, `LWP_SOURCES_DIR`, `LWP_OUTPUT_DIR`,
 `LWP_TEMPLATES_DIR`, `LWP_INTERFACE_DIR`, `LWP_TYPOGRAPHY_DIR`,
-`LWP_LANGUAGE_DIR`, `LWP_LANG`), so a pipeline can
+`LWP_LANGUAGE_DIR`, `LWP_LANG`, `LWP_THEMES_DIR`), so a pipeline can
 lay the pieces out however it likes without passing a single flag.
 
 **Every page is also a presentation deck.** Open the generated HTML in a
@@ -87,7 +87,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
 
 `init` scaffolds a working project — `sources/` (empty, for your `.md`
 files), `templates/` (your customization surface: `settings.conf` and
-`custom.css`, see section 5), empty `interface/`, `typography/` and legacy
+`custom.css`, plus optional versioned `themes/*.conf`, see section 5), empty `interface/`, `typography/` and legacy
 `language/` directories, an empty `public/`
 for the build to write into, a starter `series.json`, and a copy of the
 `lightwebpres` executable itself with its `COPYING` and
@@ -359,6 +359,13 @@ background is light or dark, and what hue that background carries.
 ./lightwebpres theme gallery                             # every theme, rendered
 ```
 
+The global catalogue combines the embedded themes with complete UTF-8 `.conf`
+snapshots from the installed and user roots; a series can add its own
+`templates/themes/` snapshots on top. `LWP_THEMES_DIR` replaces the user root.
+The order is embedded, installed, user, series, and a collision replaces the
+whole lower entry rather than inheriting it. Use `builtin:<slug>` to select an
+embedded theme hidden by a local file.
+
 Apply one at init time, or change your mind later:
 
 ```bash
@@ -390,6 +397,19 @@ Or keep the selection in the root of `series.json`:
 `background hue`/`bgh`; each selector adds its matching themes and duplicates
 are removed. An explicit CLI `--themes` overrides the JSON list.
 
+Create or make a theme portable explicitly:
+
+```bash
+./lightwebpres theme create my-theme --from evergreen
+./lightwebpres theme migrate my-series
+./lightwebpres theme vendor my-series --themes my-theme,evergreen
+./lightwebpres theme path
+```
+
+`theme create` writes a complete editable snapshot, `theme migrate` keeps only
+the selected theme and explicit pins in an old scaffold, and `theme vendor`
+copies complete snapshots into the series. No theme file uses `extends`.
+
 The effective theme in `templates/settings.conf` is always included first,
 even if it is not in the list. The setting is read at build time, so an
 author's edit remains the source of truth. Values pinned in `settings.conf`,
@@ -397,7 +417,9 @@ author's edit remains the source of truth. Values pinned in `settings.conf`,
 left alone while a reader switches. **C** opens the searchable picker and
 **M** opens the global presenter menu; the same menu is available from the
 bottom-right navigation button. The selection lasts for the other pages of
-the same deck in the current browser session. Each theme choice previews its
+ the same deck in the current browser session. The session key includes the
+ catalogue digest, so changing a local snapshot cannot reuse an old choice.
+ Each theme choice previews its
 resolved background, including its gradient, with matching foreground ink.
 The menu actions carry icons and their keyboard shortcuts, including **I** on
 Scroll. In the theme

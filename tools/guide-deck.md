@@ -116,7 +116,13 @@ fact-label: Why facets rather than a list
 
 A list of names tells you nothing. What the theme is for, light or dark, and what hue the page carries will get you to a shortlist of three.
 
-`theme gallery` renders every one of them against real slide content.
+`theme gallery` renders every one of them against real slide content. The
+global catalogue combines the embedded themes with complete UTF-8 `.conf`
+snapshots from the installed and user roots; a series can add its own
+`templates/themes/` snapshots on top. `LWP_THEMES_DIR` replaces the user root.
+The order is embedded, installed, user, series, and a collision replaces the
+whole lower entry rather than inheriting it. Use `builtin:<slug>` to select an
+embedded theme hidden by a local file.
 
 `build --themes print-ink,print-grey` embeds a searchable picker: **C** opens
 it, and **M** opens the global presenter menu. The same list can be written as
@@ -125,6 +131,18 @@ it, and **M** opens the global presenter menu. The same list can be written as
 The effective theme from `templates/settings.conf` is always the first choice,
 and an explicit CLI value overrides the JSON list. Author pins remain in force
 while the reader switches.
+
+Create or make a theme portable explicitly:
+
+```bash
+./lightwebpres theme create my-theme --from evergreen
+./lightwebpres theme migrate my-series
+./lightwebpres theme vendor my-series --themes my-theme,evergreen
+```
+
+`theme create` writes a complete editable snapshot, `theme migrate` keeps only
+the selected theme and explicit pins in an old scaffold, and `theme vendor`
+copies complete snapshots into the series. No theme file uses `extends`.
 
 Every build embeds that `essential` bundle by default — Monochrome, Monochrome
 Night and Print Ink — so **C** works on any page without the author opting in.

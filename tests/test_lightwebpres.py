@@ -5084,9 +5084,10 @@ class CliVersionAndShortcuts(unittest.TestCase):
         block = re.split(r'\n[A-Z][A-Z /()]+\n', block)[0]
         canonical_names = ({lwp.canonical(v) for v in lwp._SHORTCUTS.values()}
                            | {'series theme set', 'series theme',
-                              'series tags', 'series slug',
-                              'template update', 'theme list', 'theme show',
-                              'theme gallery'})
+                               'series tags', 'series slug',
+                               'template update', 'theme list', 'theme show',
+                               'theme gallery', 'theme create',
+                               'theme migrate', 'theme vendor', 'theme path'})
         checked = 0
         lines = block.splitlines()
         for i, line in enumerate(lines):
@@ -12078,6 +12079,184 @@ class ThemesCommand(unittest.TestCase):
         listed = [s for s in self.lwp.THEMES if s in result.stdout]
         self.assertLessEqual(len(listed), 2, f'help still enumerates themes: {listed}')
         self.assertIn('lightwebpres theme list', result.stdout)
+
+
+class ExternalThemeCatalogue(unittest.TestCase):
+    """The editable catalogue is a real input to every theme surface."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    @staticmethod
+    def _env(root):
+        return {'LWP_THEMES_DIR': str(Path(root) / 'themes')}
+
+    def _create(self, root, slug, source='nord', **metadata):
+        argv = ['theme', 'create', slug, '--from', source]
+        for option, value in metadata.items():
+            argv.extend([f'--{option.replace("_", "-")}', value])
+        result = run(*argv, env=self._env(root))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        path = Path(root) / 'themes' / f'{slug}.conf'
+        self.assertTrue(path.exists(), result.stdout)
+        return path
+
+    @staticmethod
+    def _runtime_data(html):
+        match = re.search(
+            r'<script id="lwp-theme-data" type="application/json">'
+            r'(.*?)</script>', html, re.S)
+        if not match:
+            raise AssertionError('build did not emit the theme runtime payload')
+        return json.loads(match.group(1))
+
+    def test_a_local_collision_replaces_the_builtin_entry_everywhere(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._create(root, 'nord', source='crimson', label='Local Nord')
+            env = self._env(root)
+
+            listing = run('theme', 'list', env=env)
+            self.assertEqual(listing.returncode, 0, listing.stderr)
+            self.assertIn('Local Nord', listing.stdout)
+            self.assertEqual(len(re.findall(r'^  nord  \[', listing.stdout,
+                                             re.MULTILINE)), 1)
+
+            local = run('theme', 'show', 'nord', '--format', 'json', env=env)
+            self.assertEqual(local.returncode, 0, local.stderr)
+            self.assertEqual(json.loads(local.stdout)['label'], 'Local Nord')
+
+            builtin = run('theme', 'show', 'builtin:nord', '--format', 'json',
+                          env=env)
+            self.assertEqual(builtin.returncode, 0, builtin.stderr)
+            self.assertEqual(json.loads(builtin.stdout)['label'],
+                             self.lwp.THEMES['nord']['label'])
+
+            output = root / 'gallery.html'
+            gallery = run('theme', 'gallery', '--all', '--output', str(output),
+                          env=env)
+            self.assertEqual(gallery.returncode, 0, gallery.stderr)
+            html = output.read_text(encoding='utf-8')
+            self.assertIn('Local Nord', html)
+            self.assertEqual(html.count('class="theme-row"'),
+                             len(self.lwp.THEMES))
+
+    def test_a_local_theme_drives_init_build_and_runtime_digest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            theme = self._create(root, 'custom', label='Custom Palette')
+            text = theme.read_text(encoding='utf-8')
+            text = re.sub(r'^color\.page:.*$', 'color.page: #102030FF',
+                          text, count=1, flags=re.MULTILINE)
+            theme.write_text(text, encoding='utf-8')
+            env = self._env(root)
+            series = root / 'series'
+
+            for argv in (('init', str(series), '--theme', 'custom'),
+                         ('demo', str(series)),
+                         ('build', str(series))):
+                result = run(*argv, env=env)
+                self.assertEqual(result.returncode, 0,
+                                 f'`{" ".join(argv)}`: {result.stderr}')
+
+            html = (series / 'public' / 'index.html').read_text(encoding='utf-8')
+            data = self._runtime_data(html)
+            self.assertEqual(data['primary'], 'custom')
+            self.assertTrue(data['catalog_digest'])
+            self.assertEqual(data['themes'][0]['label'], 'Custom Palette')
+            self.assertIn('--color-page: #102030FF;', html)
+
+            first_digest = data['catalog_digest']
+            theme.write_text(text.replace('#102030FF', '#203040FF'),
+                             encoding='utf-8')
+            result = run('build', str(series), env=env)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            rebuilt = (series / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertNotEqual(first_digest,
+                                self._runtime_data(rebuilt)['catalog_digest'])
+            self.assertIn('--color-page: #203040FF;', rebuilt)
+
+    def test_catalog_digest_partitions_the_browser_theme_session_key(self):
+        self.assertIn(
+            "themeData.catalog_digest ? themeData.catalog_digest + ':' : ''",
+            self.lwp.TEMPLATE_NAV_JS)
+
+    def test_essential_keeps_an_explicit_builtin_when_a_local_theme_shadows_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._create(root, 'monochrome', source='crimson', label='Local Mono')
+            with mock.patch.dict(os.environ, self._env(root), clear=False):
+                catalog = self.lwp.load_theme_catalog()
+                runtime = self.lwp.build_theme_runtime(
+                    'essential', None, catalog=catalog)
+            ids = [theme['slug'] for theme in runtime['themes']]
+            self.assertIn('builtin:monochrome', ids)
+            self.assertNotIn('monochrome', ids)
+            self.assertEqual(catalog.entry('monochrome')['label'], 'Local Mono')
+
+    def test_migrate_keeps_pins_and_moves_unknown_values_to_retired_comments(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            env = self._env(Path(tmp))
+            self.assertEqual(run('init', str(root), '--theme', 'nord', env=env).returncode,
+                             0)
+            settings = root / 'templates' / 'settings.conf'
+            settings.write_text(
+                settings.read_text(encoding='utf-8')
+                + 'color.page: #102030\nold.property: keep-me\n',
+                encoding='utf-8')
+
+            result = run('theme', 'migrate', str(root), env=env)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            migrated = settings.read_text(encoding='utf-8')
+            self.assertIn('theme: nord', migrated)
+            self.assertIn('color.page: #102030', migrated)
+            self.assertIn(self.lwp.SETTINGS_RETIRED_MARKER, migrated)
+            self.assertIn('# old.property: keep-me', migrated)
+            self.assertNotIn('\nold.property:', migrated)
+
+    def test_vendor_makes_a_series_independent_of_the_user_catalogue(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env = self._env(root)
+            source = self._create(root, 'portable', source='nord')
+            series = root / 'series'
+            self.assertEqual(run('init', str(series), env=env).returncode, 0)
+
+            result = run('series', 'theme', 'vendor', str(series),
+                         '--themes', 'portable', env=env)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            vendored = series / 'templates' / 'themes' / 'portable.conf'
+            self.assertEqual(vendored.read_text(encoding='utf-8'),
+                             source.read_text(encoding='utf-8'))
+            vendored.write_text(
+                vendored.read_text(encoding='utf-8').replace(
+                    'label: portable', 'label: Series Portable', 1),
+                encoding='utf-8')
+
+            self.assertEqual(run('series', 'theme', 'set', str(series),
+                                 '--theme', 'portable', env=env).returncode, 0)
+            report = run('series', 'theme', str(series), '--format', 'json',
+                         env=env)
+            self.assertEqual(report.returncode, 0, report.stderr)
+            self.assertEqual(json.loads(report.stdout)['label'],
+                             'Series Portable')
+            source.unlink()
+            self.assertEqual(run('build', str(series), env=env).returncode, 0)
+            html = (series / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('--color-mark: #EBCB8BFF;', html)
+
+    def test_an_incomplete_external_theme_is_rejected_before_listing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            theme = self._create(root, 'broken')
+            text = theme.read_text(encoding='utf-8')
+            text = re.sub(r'^font\.text:.*\n', '', text, count=1,
+                          flags=re.MULTILINE)
+            theme.write_text(text, encoding='utf-8')
+            result = run('theme', 'list', env=self._env(root))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('incomplete theme', result.stderr)
 
 
 class SetThemeCommand(unittest.TestCase):

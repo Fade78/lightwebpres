@@ -273,6 +273,13 @@
 
 <script src="./vendor/pyodide/pyodide.js"></script>
 <script>
+  // Archive safety limits. Keep these values near the top of this static
+  // page: they are the browser-side source of truth for both Pyodide glue
+  // scripts and for the upload check below.
+  const ZIP_MAX_ENTRIES = 4096;
+  const ZIP_MAX_COMPRESSED_BYTES = 500 * 1024 * 1024; // 500 MiB
+  const ZIP_MAX_UNCOMPRESSED_BYTES = 500 * 1024 * 1024; // 500 MiB
+
   const statusEl = document.getElementById('status');
   const logEl = document.getElementById('log');
 
@@ -515,6 +522,11 @@
       const pyodide = await loadPyodide({ indexURL: './vendor/pyodide/' });
       const lwpSource = await fetchLightwebpresSource();
       pyodide.runPython(lwpSource);
+      // Pass the page-owned limits into Python before either glue script is
+      // executed. The glues retain matching defaults for isolated tests only.
+      pyodide.globals.set('ZIP_MAX_ENTRIES', ZIP_MAX_ENTRIES);
+      pyodide.globals.set('ZIP_MAX_COMPRESSED_BYTES', ZIP_MAX_COMPRESSED_BYTES);
+      pyodide.globals.set('ZIP_MAX_UNCOMPRESSED_BYTES', ZIP_MAX_UNCOMPRESSED_BYTES);
       // Both tabs' glue scripts are loaded up front, into the same
       // namespace as lightwebpres (which defines cmd_build(), shared by
       // both), so switching tabs never needs a reload. Each script's own
@@ -543,6 +555,15 @@
     const file = zipInput.files[0];
     if (!file) {
       setStatus('Choose a .zip file first.', 'error');
+      return;
+    }
+    if (file.size > ZIP_MAX_COMPRESSED_BYTES) {
+      setStatus(
+        'Build failed: the zip exceeds the '
+        + (ZIP_MAX_COMPRESSED_BYTES / (1024 * 1024))
+        + ' MiB compressed-size limit.',
+        'error',
+      );
       return;
     }
 
