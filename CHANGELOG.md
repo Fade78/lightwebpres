@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.51.0
+## v0.51.0
 
 The theme catalogue help now distinguishes the embedded entries from the
 external layers and no longer presents the embedded count as the total. The
