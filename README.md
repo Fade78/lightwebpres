@@ -411,7 +411,7 @@ the series or within one article.
 | `series slug set [dir]` | Writes a `slug:` into every card that has none, and only those. The one command that edits your articles — a build never rewrites its own inputs. What it writes is random and meant to be renamed to something readable; `--dry-run` says what it would write |
 | `resolve [dir] <name>` | Says what ONE name is worth here and which level decided it, losing levels included. The shape of the name picks the cascade: dotted = theme property, `snake_case` = article/series field, `kebab-case` = slide field. `--article file.md` adds a page's own layer; `--format json` for machines |
 | `series theme set [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf` or `$LWP_TEMPLATES_DIR`; your pinned values stay and apply on top |
-| `theme gallery [path]` | Generates a self-contained HTML page previewing every entry in the effective catalogue — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
+| `theme gallery [path]` | Generates a self-contained HTML page previewing every entry in the global effective catalogue — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
 | `clean [dir]` | Purges orphan files from `public/` using the build manifest (dry-run by default, `--force` to actually remove) |
 | `watch [dir]` | Polls `series.json`, sources, templates, split interface/typography packs and legacy language packs (including their current descendants), rebuilds on change, notices files created after startup, and keeps watching after a failed rebuild; optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
 | `completion --shell bash\|zsh` | Prints a shell completion script — install with `eval "$(lightwebpres completion --shell bash)"` (or `zsh`) to get tab-completion for commands, subcommands, and options |
@@ -653,7 +653,7 @@ Create, migrate, or freeze a theme into a series explicitly:
 selected theme plus the values you actually pinned, retaining retired pins as
 comments. `theme vendor` copies complete snapshots into the series, so a build
 does not depend on a developer's user catalogue. `theme list`, `theme show`
-and `theme gallery` expose the installed/user catalogue; builds and series
+and `theme gallery` expose the global embedded/installed/user catalogue; builds and series
 reports add the series' vendored layer.
 
 The embedded catalogue includes themes that borrow known editor
@@ -842,7 +842,7 @@ Every panel, here and there, is a real rendering at its true size — the
 same parser, the same engine, the same stylesheet, in an iframe at the
 width it claims. Not a mock and not a scaled-down miniature, so a 14px
 note is 14px there too.
-It's generated straight from the tool's effective catalogue with
+It's generated straight from the tool's global effective catalogue with
 `./lightwebpres theme gallery`, so it can never drift from what
 `init --theme` actually applies.
 

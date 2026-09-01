@@ -12079,6 +12079,12 @@ class ThemesCommand(unittest.TestCase):
         listed = [s for s in self.lwp.THEMES if s in result.stdout]
         self.assertLessEqual(len(listed), 2, f'help still enumerates themes: {listed}')
         self.assertIn('lightwebpres theme list', result.stdout)
+        self.assertIn(
+            f'{len(self.lwp.THEMES)} embedded entries before external layers',
+            result.stdout)
+        self.assertIn('all available themes', result.stdout)
+        self.assertNotIn(
+            f'all {len(self.lwp.THEMES)}, with their facets', result.stdout)
 
 
 class ExternalThemeCatalogue(unittest.TestCase):

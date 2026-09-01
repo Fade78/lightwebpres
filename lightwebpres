@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.50.0"
+VERSION = "0.50.1"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -3978,7 +3978,7 @@ def _load_theme_root(catalog, root, scope, label):
 
 
 def load_theme_catalog(series_dir=None, templates_dir=None):
-    """Build the effective catalogue: built-in < user < series."""
+    """Build the effective catalogue: built-in < installed < user < series."""
     catalog = ThemeCatalog()
     installed = {str(Path(root).resolve()) for root in _installed_theme_roots()}
     for root in _theme_library_roots():
@@ -19374,7 +19374,7 @@ def cmd_theme_path(args):
 
 
 def cmd_themes(args):
-    """theme list (§11.9) — lists the effective user-level catalogue, optionally
+    """theme list (§11.9) — lists the effective global catalogue, optionally
     narrowed by facet, so a theme can be chosen from the terminal instead
     of only from the generated gallery page. Prints slugs, because a slug
     is what `init --theme` and `series theme set` take."""
@@ -21372,7 +21372,8 @@ COMMANDS
     build then uses your copy and stops following the tool's fixes, and
     says so on every run (see §9.4.5)
   lightwebpres theme list [--polarity ...] [--hue ...] [--family ...]
-    Lists the effective theme catalogue, narrowed by facet (see THEMES below, §11.9)
+    Lists the effective theme catalogue, narrowed by facet (see the THEMES
+    section below, §11.9)
   lightwebpres theme show [<slug>...] [--all] [--format text|json]
     Describes one or more themes without installing: palette, fonts,
     facets, and the WCAG contrast level it actually reaches, measured
@@ -21469,7 +21470,7 @@ OPTIONS
     clean: actually remove orphan files (dry-run by default).
   --theme name
     init/series theme set/theme vendor: apply or vendor a named palette
-    from the effective catalogue (see THEMES below);
+    from the effective catalogue (see the THEMES section below);
     unknown name is a fatal error
   --from name
     theme create: start the new complete file from a built-in or catalogue theme
@@ -21562,11 +21563,12 @@ OPTIONS
   --all
     theme show/theme gallery: describe/generate every catalogue theme
 
-THEMES ({theme_count} built in before local additions, see specifications.md §9.5)
-  The effective catalogue combines the embedded themes with optional complete
-  external snapshots. Themes are chosen by slug, and found by facet — family (declared),
+THEMES ({theme_count} embedded entries before external layers, see specifications.md §9.5)
+  The global catalogue combines the embedded themes with optional complete
+  external snapshots from installed and user roots. A series operation adds
+  templates/themes on top. Themes are chosen by slug, and found by facet — family (declared),
   polarity (light/dark) and hue, both computed from the background:
-    lightwebpres theme list                       all {theme_count}, with their facets
+    lightwebpres theme list                       all available themes, with their facets
     lightwebpres theme list --family terrain      one editorial family
     lightwebpres theme list --polarity dark --hue green  just the ones you mean
   Then apply one, at scaffold time or afterwards:
@@ -21591,7 +21593,7 @@ THEMES ({theme_count} built in before local additions, see specifications.md §9
   page either: the reader of a presentation is never told the contrast
   level of the theme chosen for them.
   External theme files are complete typed snapshots, not CSS and not includes.
-  The effective order is installed catalogue, user catalogue, then
+  The effective order is embedded, installed, user, then
   templates/themes in a series; a local slug replaces the whole lower entry.
   `builtin:<slug>` selects the embedded entry when a local theme shadows it.
      lightwebpres theme create custom --from evergreen

@@ -33,6 +33,14 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.50.1
+
+The theme catalogue help now distinguishes the embedded entries from the
+external layers and no longer presents the embedded count as the total. The
+catalogue precedence, series-local snapshot wiring and theme command scope
+are now stated consistently across the executable, specification, guide and
+article-writing skill.
+
 ## v0.50.0
 
 Themes can now be extended outside the executable as complete typed snapshots.

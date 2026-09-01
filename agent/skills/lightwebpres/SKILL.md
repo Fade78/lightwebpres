@@ -801,6 +801,9 @@ matches; an explicit CLI `--themes` value takes precedence over this list. The
 here only as `series.json` wiring; palette design and build procedure belong to
 the guide and specification.
 
+A series-local theme snapshot is a complete `templates/themes/<slug>.conf` file;
+`series.json` names it but never contains its typed properties.
+
 `comment` also works as a `series.json` entry key, or in `series_meta`
 for a note about the series as a whole — same rule: recognized, never
 read, never published.

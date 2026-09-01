@@ -37,7 +37,7 @@
 
 **§9. Thèmes et personnalisation : les propriétés typées**
 
-9.1 Le principe et le vocabulaire · 9.2 Les types et les renvois · 9.3 La cascade à cinq couches et les trois fichiers · 9.4 Les commandes · 9.5 Thèmes de couleurs prédéfinis · 9.6 La couche article, et les balises d'instance · 9.7 Effets et dégradés · 9.8 Migration depuis `templates/style.css`
+9.1 Le principe et le vocabulaire · 9.2 Les types et les renvois · 9.3 La cascade à cinq couches et les trois fichiers · 9.4 Les commandes · 9.5 Thèmes de couleurs et catalogue externe · 9.6 La couche article, et les balises d'instance · 9.7 Effets et dégradés · 9.8 Migration depuis `templates/style.css`
 
 **§10. Pipeline GitLab CI**
 
@@ -3146,7 +3146,7 @@ quatre noms split. `settings.conf` et
 sont à l'auteur, et `template update` les crée déjà s'ils manquent.
 Nommer autre chose est une erreur fatale qui énumère l'ensemble.
 
-### 9.5 Thèmes de couleurs prédéfinis
+### 9.5 Thèmes de couleurs et catalogue externe
 
 #### 9.5.1 Le catalogue, et sa conversion en couche de propriétés
 

@@ -658,10 +658,11 @@ series' `settings.conf` sits on top of its selected theme.
 
 The catalogue is resolved as **integrated < installed < user < series**.
 Collisions replace the whole entry, while `builtin:<slug>` keeps the embedded
-entry addressable. `theme create` and `theme migrate` provide editable user
-files, and `theme vendor` copies complete snapshots into a series so its build
-does not depend on a user's home directory. The browser digest partitions its
-session key when an external snapshot changes.
+entry addressable. `theme create` provides an editable user snapshot, while
+`theme migrate` reduces an existing series scaffold; `theme vendor` copies
+complete snapshots into a series so its build does not depend on a user's home
+directory. The browser digest partitions its session key when an external
+snapshot changes.
 
 Measured on the implementation lot: seven regression cases cover collision,
 runtime propagation, session invalidation, essential-theme shadowing,
