@@ -314,16 +314,17 @@ the build.
 | `cover` | `slug`, `kicker`, `tags`, `# Title`, `summary`, `comment`, `note` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
 | standard (default, or explicit `<!-- lwp:slide -->`) | `slug`, `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown text | As many as you want |
 | `series-nav` | `slug`, `tags`, `comment` — navigation generated from `series.json` | 0 or 1 per article |
-| `full-article` | `slug`, `article: filename.md` (required), `tags`, `comment` | Any number — each carries its own file. Under `notes_placement: local` each one numbers its notes from 1, as a card does. |
+| `full-article` | `slug`, `article: filename.md` (required for publication), `tags`, `comment` | Any number — each carries its own file. An explicit empty `article:` is a warned, omitted draft slide. Under `notes_placement: local` each one numbers its notes from 1, as a card does. |
 
 `kicker`, `tags`, `summary`, `fact-label`, `fact-variant`, `source`,
 `highlight`/`highlight-caption`, `comment`, and `note` are all optional — omit
-the line if you don't need it. (`slug` is NOT optional — see below.) An empty value
-behaves like omitting it everywhere **except on a cover slide**, where
-the parser tests whether a field was *set*, not whether it has content:
-a bare `fact-label:` on a cover raises a warning that omitting the line
-would not. `highlight` is a short standalone figure (a number, a stat, a
-quote) with an optional caption underneath; it renders above the free
+the line if you don't need it. (`slug` is NOT optional — see below.) An empty
+scalar value behaves like omitting it; an empty `tags:` receives `default`.
+An empty `#` or `##` is still the slide's own empty title, not free text. The
+one special incomplete value is `article:` on a `full-article`: when the line
+is present but empty, `build` warns and omits that slide; when the line is
+absent, the build fails. `highlight` is a short standalone figure (a number, a
+stat, a quote) with an optional caption underneath; it renders above the free
 text, not instead of it.
 
 **The `slug` field** names the card in a URL, and it is REQUIRED on
@@ -407,7 +408,8 @@ type, always falls through to content (§22.2 in `specifications.md`).
 `series-nav` is **at most one** per article — having two is a fatal build
 error, not "the second one wins." `full-article` has no such limit: a page
 may pull in several long-form files, each `full-article` slide naming its
-own (§22.8). Both also
+own (§22.8). An explicit empty `article:` is the unfinished form of that
+slide and is omitted with a warning; a missing `article:` remains fatal. Both also
 accept `tags:` and `comment:` like every other slide; beyond that, any
 unrecognized non-blank line inside either one is fatal, not ignored: a
 `series-nav` slide takes no free body, and a `full-article` slide takes
@@ -417,6 +419,18 @@ Those four names are the whole list. A marker naming anything else is a
 fatal build error citing the slide's rank, the token you wrote, and the
 four names — `<!-- lwp:slide:covre -->` does not quietly become a
 standard slide.
+
+## The draft contract
+
+`lightwebpres contract [directory]` is the read-only, versioned interface for
+an authoring client. Its JSON response, under
+`lightwebpres.slide-draft/1`, is generated from the same registry as the
+parser and lists the four types, their fields and order, required fields,
+cardinalities, empty-value rules, reserved IDs and one complete source
+skeleton per type. The skeletons already contain non-empty generated slugs.
+Pass `--article file.md` to avoid slugs declared by an existing source; use
+`--format text` for a human-readable view. Do not duplicate this grammar in an
+agent or editor.
 
 ## The full-article file
 
@@ -797,9 +811,11 @@ Monochrome Night and Print Ink; if a local file shadows one of those slugs,
 the embedded version can be named `builtin:<slug>`. Several items add their
 matches; an explicit CLI `--themes` value takes precedence over this list. The
 `essential` bundle ships by default on every build — this list only adds to it
-— and `--no-essential-theme` opts out. Theme choice is described
-here only as `series.json` wiring; palette design and build procedure belong to
-the guide and specification.
+— and `--no-essential-theme` opts out. When `settings.conf` contains property
+pins, the runtime names its first variant `custom(<theme>)` and also includes
+the raw base theme; those settings pins apply only to the custom variant.
+Theme choice is described here only as `series.json` wiring; palette design and
+build procedure belong to the guide and specification.
 
 A series-local theme snapshot is a complete `templates/themes/<slug>.conf` file;
 `series.json` names it but never contains its typed properties.

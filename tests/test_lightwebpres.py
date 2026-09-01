@@ -2162,6 +2162,170 @@ class SlideTypesAreARegistry(unittest.TestCase):
             self.assertIn('comment', slide_type.fields, slide_type.name)
 
 
+class SlideDraftContract(unittest.TestCase):
+    """The authoring contract is generated from the engine's slide registry."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    def test_contract_types_and_sources_round_trip_through_the_parser(self):
+        contract = self.lwp.slide_draft_contract(('taken', 'notes'))
+        self.assertEqual(contract['schema'], 'lightwebpres.slide-draft/1')
+        self.assertEqual(contract['lightwebpres_version'], self.lwp.VERSION)
+        self.assertEqual(
+            contract['canonical_order'],
+            [slide_type.name for slide_type in self.lwp.SLIDE_TYPES],
+        )
+        self.assertTrue(contract['slug']['required'])
+        self.assertIn('notes', contract['slug']['reserved'])
+        self.assertEqual(
+            contract['empty_rules']['full-article.article'],
+            'an empty value warns and omits the slide',
+        )
+
+        generated = []
+        for descriptor, slide_type in zip(
+                contract['types'], self.lwp.SLIDE_TYPES):
+            self.assertEqual(descriptor['name'], slide_type.name)
+            self.assertEqual(descriptor['marker'], self.lwp._slide_marker(slide_type))
+            self.assertEqual(descriptor['title_marker'], slide_type.title_marker)
+            self.assertEqual(descriptor['fields'], list(slide_type.fields))
+            self.assertEqual(descriptor['required_fields'],
+                             list(slide_type.required_fields))
+            self.assertEqual(
+                descriptor['cardinality'],
+                {'min': 0, 'max': slide_type.max_count},
+            )
+
+            slug = descriptor['draft']['slug']
+            generated.append(slug)
+            self.assertRegex(slug, contract['slug']['pattern'])
+            self.assertNotIn(slug, ('taken', 'notes'))
+            source = descriptor['draft']['source']
+            self.assertEqual(source, self.lwp._slide_draft_source(slide_type, slug))
+
+            _meta, slides, _has_meta, _before_meta = (
+                self.lwp.parse_markdown_extended(source))
+            self.assertEqual(len(slides), 1, slide_type.name)
+            slide = slides[0]
+            self.assertEqual(slide.slug, slug)
+            if slide_type.title_marker == '#':
+                self.assertTrue(slide.h1_present)
+                self.assertIsNone(slide.h1)
+            elif slide_type.title_marker == '##':
+                self.assertTrue(slide.h2_present)
+                self.assertIsNone(slide.h2)
+            if slide_type.name == 'full-article':
+                self.assertTrue(slide.article_field_present)
+                self.assertIsNone(slide.article_file)
+
+        self.assertEqual(len(generated), len(set(generated)))
+
+    def test_contract_for_source_and_slug_allocator_avoid_existing_ids(self):
+        source = (
+            '<!-- lwp:slide:cover -->\nslug: existing-cover\n# Title\n\n'
+            '---\n\n'
+            '<!-- lwp:slide -->\nslug: existing-standard\n## Title\n'
+        )
+        contract = self.lwp.slide_draft_contract_for_source(source)
+        generated = {descriptor['draft']['slug']
+                      for descriptor in contract['types']}
+        self.assertTrue(generated.isdisjoint({
+            'existing-cover', 'existing-standard',
+        }))
+
+        allocated = self.lwp.allocate_slide_slug(
+            ('existing-cover', 'existing-standard', 'notes'))
+        self.assertRegex(allocated, contract['slug']['pattern'])
+        self.assertNotIn(allocated, {
+            'existing-cover', 'existing-standard', 'notes',
+            *self.lwp.RESERVED_SLIDE_IDS,
+        })
+
+    def test_contract_command_emits_json_and_text(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: existing\n# Title\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('contract', str(root), '--article', 'a.md',
+                         '--format', 'json')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            contract = json.loads(result.stdout)
+            self.assertEqual(contract['schema'],
+                             'lightwebpres.slide-draft/1')
+            self.assertNotIn('existing', {
+                descriptor['draft']['slug']
+                for descriptor in contract['types']
+            })
+
+            result = run('contract', str(root), '--format', 'text')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('lightwebpres.slide-draft/1', result.stdout)
+            self.assertIn('cover (any)', result.stdout)
+            self.assertIn('series-nav (0 to 1)', result.stdout)
+
+
+class EmptySlideFields(unittest.TestCase):
+    """Empty optional values remain valid, while their source shape is known."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    def _article_with_empty_fields(self):
+        return (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: empty-cover\nkicker:\n#\n'
+            'tags:\nsummary:\ncomment:\nnote:\n\n---\n\n'
+            '<!-- lwp:slide -->\nslug: empty-standard\nkicker:\n##\n'
+            'tags:\nsummary:\nfact-label:\nsource:\nhighlight:\n'
+            'highlight-caption:\ncomment:\nnote:\n\n---\n\n'
+            '<!-- lwp:slide:full-article -->\nslug: unfinished\n'
+            'article:\ntags:\ncomment:\n'
+        )
+
+    def test_empty_values_and_empty_titles_are_distinguished_from_absence(self):
+        _meta, slides, _has_meta, _before_meta = (
+            self.lwp.parse_markdown_extended(self._article_with_empty_fields()))
+        self.assertEqual(len(slides), 3)
+        cover, standard, full_article = slides
+
+        for slide, attributes in (
+                (cover, ('kicker', 'tags', 'summary', 'comment', 'note')),
+                (standard, ('kicker', 'tags', 'summary', 'fact_label',
+                             'source', 'highlight', 'highlight_caption',
+                             'comment', 'note'))):
+            for attribute in attributes:
+                self.assertIsNone(getattr(slide, attribute),
+                                  (slide.slide_type, attribute))
+        self.assertTrue(cover.h1_present)
+        self.assertIsNone(cover.h1)
+        self.assertTrue(standard.h2_present)
+        self.assertIsNone(standard.h2)
+        self.assertTrue(full_article.article_field_present)
+        self.assertIsNone(full_article.article_file)
+        self.assertTrue(self.lwp._is_incomplete_full_article(full_article))
+
+    def test_empty_full_article_is_warned_and_omitted_from_the_page(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._article_with_empty_fields())
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('empty article: field', result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+        self.assertIn('id="empty-cover"', html)
+        self.assertIn('id="empty-standard"', html)
+        self.assertNotIn('id="unfinished"', html)
+        self.assertNotIn('class="slide full-article"', html)
+        self.assertNotIn('{FULL_ARTICLE_PLACEHOLDER', html)
+        self.assertIn('<h1></h1>', html)
+        self.assertNotIn('<h2>', html)
+
+
 class AnAutolinkIsRefusedByName(unittest.TestCase):
     """`<https://x.test>` and `<contact@x.test>` are CommonMark's autolink
     syntax, and this format does not read one: §6.2 gives `<...>` to raw
@@ -9191,6 +9355,23 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             ['print-oldpress-red-ribbon', 'print-grey', 'print-oldpress'])
         self.assertEqual(len(data['vars']), len(self.lwp.PROPERTY_REGISTRY))
 
+    def test_runtime_payload_separates_settings_variant_from_raw_base_theme(self):
+        data = self.lwp.build_theme_runtime(
+            'print-grey,print-oldpress', 'nord',
+            settings_props={'color.ink': '#123456'})
+        self.assertEqual(data['primary'], 'custom(nord)')
+        self.assertEqual(
+            [theme['slug'] for theme in data['themes']],
+            ['custom(nord)', 'nord', 'print-grey', 'print-oldpress'])
+        self.assertEqual(data['themes'][0]['label'], 'Custom (Nord)')
+
+        ink_index = data['vars'].index('--color-ink')
+        custom_values = dict(data['themes'][0]['values'])
+        raw_values = dict(data['themes'][1]['values'])
+        self.assertNotIn(ink_index, custom_values)
+        self.assertEqual(raw_values[ink_index],
+                         self.lwp._theme_runtime_resolved('nord')['color.ink'])
+
     def test_runtime_payload_can_include_every_theme(self):
         data = self.lwp.build_theme_runtime('all', 'print-oldpress')
         self.assertEqual(data['primary'], 'print-oldpress')
@@ -9423,7 +9604,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             verify = run('verify', str(root), '--themes', 'print-grey')
             self.assertEqual(verify.returncode, 0, verify.stderr)
 
-    def test_settings_and_custom_css_variables_are_pinned_in_the_payload(self):
+    def test_settings_variant_and_custom_css_variables_have_separate_runtime_roles(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('init', str(root)).returncode, 0)
@@ -9439,8 +9620,15 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             data = self._data(
                 (root / 'public' / 'index.html').read_text(encoding='utf-8'))
             pinned = {data['vars'][index] for index in data['pinned']}
-            self.assertIn('--color-ink', pinned)
+            self.assertEqual(data['primary'], 'custom(default)')
+            self.assertEqual(
+                [theme['slug'] for theme in data['themes'][:2]],
+                ['custom(default)', 'default'])
+            self.assertNotIn('--color-ink', pinned)
             self.assertIn('--color-mark', pinned)
+            ink_index = data['vars'].index('--color-ink')
+            self.assertEqual(
+                dict(data['themes'][1]['values'])[ink_index], '#1A1A2EFF')
 
     def test_help_names_runtime_theme_switching_and_carries_the_version_stamp(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -12409,7 +12597,8 @@ class SetThemeCommand(unittest.TestCase):
             self.assertEqual(run('build', tmp).returncode, 0)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('--color-mark: #D79921FF;', html)
-            self.assertNotIn('#EBCB8B', html)
+            static_css = re.search(r'<style>\n(.*?)\n</style>', html, re.S).group(1)
+            self.assertNotIn('#EBCB8B', static_css)
 
     def test_uncommented_values_survive_a_theme_change_and_still_win(self):
         """The CDC's dracula->nord scenario, correct by construction now:
@@ -12427,7 +12616,8 @@ class SetThemeCommand(unittest.TestCase):
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('--color-mark: #F1FA8CFF;', html,
                           'the pinned value must beat the new theme')
-            self.assertNotIn('#EBCB8B', html)
+            static_css = re.search(r'<style>\n(.*?)\n</style>', html, re.S).group(1)
+            self.assertNotIn('#EBCB8B', static_css)
 
     def test_the_change_message_says_commented_values_show_the_old_theme(self):
         """The scaffold's comments age when the theme changes, and the
@@ -13282,7 +13472,7 @@ class HelpListsEveryAcceptedOption(unittest.TestCase):
                 'lightwebpres clean [directory] [--output public/] [--force]',
                 'template write:',
                 'overwrite an existing tool-owned file',
-                'series tags/series slug/resolve: output',
+                 'series tags/series slug/resolve/contract:',
                  'build/verify: use this unified language pack'):
             self.assertIn(needle, result.stdout, needle)
         self.assertIn('## Title', result.stdout)

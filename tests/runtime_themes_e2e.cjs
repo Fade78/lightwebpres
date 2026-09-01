@@ -120,7 +120,7 @@ async function main() {
     primary: JSON.parse(document.getElementById('lwp-theme-data').textContent).primary,
     ink: getComputedStyle(document.documentElement).getPropertyValue('--color-ink').trim(),
   }));
-  if (!initial.payload || initial.primary !== 'print-oldpress') {
+  if (!initial.payload || initial.primary !== 'custom(print-oldpress)') {
     fail('the index did not load the effective primary theme: ' + JSON.stringify(initial));
   }
 
@@ -138,7 +138,7 @@ async function main() {
       };
     }),
   }));
-  if (!picker.open || picker.focused !== 'themeFilter' || picker.options !== 2) {
+  if (!picker.open || picker.focused !== 'themeFilter' || picker.options !== 3) {
     fail('C did not open the theme picker correctly: ' + JSON.stringify(picker));
   }
   if (picker.previews.some((preview) =>
@@ -167,12 +167,12 @@ async function main() {
   await page.keyboard.press('ArrowLeft');
   const themeLeftFocus = await page.evaluate(() =>
     document.activeElement && document.activeElement.getAttribute('data-theme'));
-  if (themeDownFocus !== 'print-oldpress'
+  if (themeDownFocus !== 'custom(print-oldpress)'
       || themeUpFocus !== 'print-ink'
       || themeEndFocus !== 'print-ink'
-      || themeHomeFocus !== 'print-oldpress'
-      || themeRightFocus !== 'print-ink'
-      || themeLeftFocus !== 'print-oldpress') {
+      || themeHomeFocus !== 'custom(print-oldpress)'
+      || themeRightFocus !== 'print-oldpress'
+      || themeLeftFocus !== 'custom(print-oldpress)') {
     fail('theme picker arrow/home/end navigation is wrong: '
       + JSON.stringify({ themeDownFocus, themeUpFocus, themeEndFocus,
         themeHomeFocus, themeRightFocus, themeLeftFocus }));
@@ -188,7 +188,9 @@ async function main() {
       + JSON.stringify(reopenedPicker));
   }
 
-  // The filter is focused first; two Tab presses reach the alternate theme.
+  // The filter is focused first; three Tab presses reach Print Ink after the
+  // custom primary and its raw base snapshot.
+  await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');
   await page.keyboard.press('Enter');
@@ -199,9 +201,9 @@ async function main() {
     stored: sessionStorage.length,
   }));
   if (switched.open || switched.stored !== 1
-      || switched.ink.toLowerCase().indexOf('#123456') !== 0) {
-    fail('the alternate theme did not apply while keeping the pinned ink: '
-      + JSON.stringify(switched));
+      || switched.ink.toLowerCase().indexOf('#000000') !== 0) {
+    fail('the raw alternate theme did not replace the settings-only ink: '
+       + JSON.stringify(switched));
   }
   if (switched.font.indexOf('Charter') === -1) {
     fail('the alternate theme did not change the runtime font: ' + JSON.stringify(switched));
@@ -214,7 +216,7 @@ async function main() {
     ink: getComputedStyle(document.documentElement).getPropertyValue('--color-ink').trim(),
   }));
   if (carried.font.indexOf('Charter') === -1
-      || carried.ink.toLowerCase().indexOf('#123456') !== 0) {
+      || carried.ink.toLowerCase().indexOf('#000000') !== 0) {
     fail('the theme choice did not persist to the article page: ' + JSON.stringify(carried));
   }
 

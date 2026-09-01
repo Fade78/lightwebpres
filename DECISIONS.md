@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 7 · **à faire** 0 · **en cours** 0 · **terminé** 45 · **abandonné** 1 · **sans objet** 3
+**à étudier** 7 · **à faire** 0 · **en cours** 1 · **terminé** 46 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -110,6 +110,10 @@ gets its own entry and its own state**, however small.
 - **B35** — Reaching a verdict class without writing HTML
 - **B36** — The engine can halo 32 components; the catalogue haloes three
 - **B50** — Soft animation of cover colours
+
+### en cours
+
+- **B53** — Les pins de série forment une variante runtime distincte
 
 ### terminé
 
@@ -158,6 +162,7 @@ gets its own entry and its own state**, however small.
 - **B49** — La locale du navigateur choisit seulement l’interface
 - **B51** — L’inventaire rendu décide quelles images sont publiées
 - **B52** — Le défilement instantané a sa propre touche
+- **B54** — Un contrat unique pour les brouillons de slides
 
 ### abandonné
 
@@ -2348,8 +2353,8 @@ typewriter body with modern interface furniture.
 **État :** terminé · **Depuis :** 2026-08-23 · **Version :** 0.45.4
 
 **Historical record — the opt-in/no-payload behavior below was superseded by
-B47.** This entry preserves the decision and measurements from before the
-essential bundle became the default.
+B47, and its global settings-pin behavior by B53.** This entry preserves the
+decision and measurements from before those changes.
 
 At the time of this decision, the ordinary build remained a static themed
 page. A build that opted into `--themes` carries an inline, indexed delta
@@ -2381,6 +2386,10 @@ and decision index regenerate cleanly.
 ## B45 — Series JSON can choose a runtime theme catalogue
 
 **État :** terminé · **Depuis :** 2026-08-23 · **Version :** 0.45.4
+
+**Historical runtime-theme note — B53 superseded the old primary ordering when
+`settings.conf` contains property pins: the dynamic custom variant now comes
+before the raw base snapshot.**
 
 The runtime selection is also a property of a series, not only of one build
 invocation. The object form of `series.json` may carry a root `themes` list;
@@ -2427,6 +2436,10 @@ the bold product name, the version shape and the visible `C` instruction.
 ## B47 — Essential themes ship by default
 
 **État :** terminé · **Depuis :** 2026-08-23 · **Version :** 0.45.4
+
+**Historical runtime-theme note — B53 superseded the statement below that the
+effective settings theme is always the first payload entry when it carries
+property pins.**
 
 Every build now embeds the essential bundle — Monochrome, Monochrome Night
 and Print Ink — as runtime alternatives, so **C** is functional on any page
@@ -2574,3 +2587,54 @@ assistive donnent la même réponse.
 **Ce qui est vérifié.** Les tests unitaires et le probe navigateur vérifient
 la présence de la ligne d’aide, la sémantique du bouton et les deux états de
 l’action, avec le menu ouvert ou fermé.
+
+## B53 — Les pins de série forment une variante runtime distincte
+
+**État :** en cours · **Depuis :** 2026-09-01
+
+`templates/settings.conf` names two different things for the runtime picker:
+the base catalogue theme and the properties the series deliberately pins over
+it. When at least one property is pinned, the first runtime entry is therefore
+the dynamic `custom(<theme>)` variant, while the unmodified base snapshot keeps
+its own `<theme>` entry immediately after it. The settings pins belong only to
+the custom variant; choosing the raw base or another runtime theme is allowed
+to replace them. Page `style.*` properties and registry variables declared by
+`custom.css` remain protected on every runtime choice, because they are
+page-owned rather than the series' optional base variant.
+
+The static sheet is composed from the same custom variant. Returning to it
+removes only inline runtime differences, and the browser session key continues
+to distinguish the resulting ordered catalogue. A series with no property pin
+keeps the existing base theme id; a series without `theme:` uses
+`custom(default)` when it has pins.
+
+**Ce qui reste à vérifier.** Unit, build/verify and real-browser coverage must
+prove the custom/raw ordering, replacement of a settings pin by a raw theme,
+restoration of the custom sheet, and persistence across article pages.
+
+## B54 — Un contrat unique pour les brouillons de slides
+
+**État :** terminé · **Depuis :** 2026-09-01 · **Version :** 0.51.0
+**Voir :** specifications.md §4.7, §11.17 ; `lightwebpres` et
+`tests/test_lightwebpres.py`
+
+La grammaire des quatre types de slides reste écrite une seule fois dans
+`SLIDE_TYPES`. Elle est exposée aux éditeurs par le contrat versionné
+`lightwebpres.slide-draft/1`, plutôt que par une seconde table maintenue dans
+le GUI ou dans un agent : champs acceptés et obligatoires, ordre canonique,
+cardinalités, texte libre, règles de valeurs vides, IDs réservés et
+squelettes de source sont produits depuis le registre.
+
+Les squelettes reçoivent des slugs aléatoires non vides, distincts entre eux
+et protégés contre les slugs de l'article lu par `--article` ainsi que les IDs
+du moteur. Le contrat et `allocate_slide_slug()` ne modifient aucune source.
+Les valeurs scalaires vides sont absentes, `tags:` vide devient `default`, un
+`#`/`##` vide reste un titre valide, et `article:` vide distingue un
+`full-article` en cours de rédaction d'une directive absente : avertissement
+et omission dans le premier cas, erreur fatale dans le second.
+
+**Ce qui est vérifié.** Les tests de round-trip des quatre squelettes, de
+l'allocation et des collisions, de la commande JSON/texte, des champs vides,
+des titres vides, de la préservation des espaces insécables et du rendu sans
+placeholder sont verts. La batterie complète passe avec **1143 tests dans 202
+classes**, `python3 tests/run_tests.py --workers 4`.

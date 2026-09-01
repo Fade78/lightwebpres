@@ -17,7 +17,7 @@
 
 **§4. Format Markdown étendu**
 
-4.1 Syntaxe générale · 4.2 Exemple complet · 4.3 Champs d'une fiche standard · 4.4 Types de slides · 4.5 Désactiver la typographie automatique pour un article · 4.6 Notes de relecture (`comment`)
+4.1 Syntaxe générale · 4.2 Exemple complet · 4.3 Champs d'une fiche standard · 4.4 Types de slides · 4.5 Désactiver la typographie automatique pour un article · 4.6 Notes de relecture (`comment`) · 4.7 Contrat machine de brouillon
 
 **§5. Inclusions**
 
@@ -43,7 +43,7 @@
 
 **§11. Commandes de l'exécutable**
 
-11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --only` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.9.2 Le catalogue externe · 11.10 `series theme set` · 11.11 `status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy
+11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --only` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.9.2 Le catalogue externe · 11.10 `series theme set` · 11.11 `status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy · 11.17 `contract`
 
 **§12. Algorithme du build**
 
@@ -81,7 +81,7 @@
 
 **§22. Cas limites du parseur**
 
-22.1 Séparateur `---` dans le corps d'une fact-box · 22.2 `kicker:` dans le texte d'une fact-box · 22.3 Slide sans `kicker:` · 22.4 Slide `cover` sans `summary:` · 22.5 Fichier `.md` sans `<!-- lwp:slide:full-article -->` · 22.6 Fichier `.md` avec `<!-- lwp:slide:full-article -->` mais sans `article:` · 22.7 Contenu avant `<!-- lwp:meta -->` (y compris un `---`) · 22.8 Plusieurs `<!-- lwp:slide:full-article -->` dans le même fichier · 22.9 Plusieurs `<!-- lwp:slide:series-nav -->` dans le même fichier · 22.9.1 Contenu non reconnu dans une fiche `series-nav` ou `full-article` · 22.9.2 Type inconnu dans un marqueur `<!-- lwp:slide:TYPE -->` · 22.10 Fichier `.md` vide (aucune slide) · 22.11 Retour à la ligne sans ligne vide à l'intérieur d'un paragraphe · 22.12 Contenu inattendu après les champs reconnus d'une fiche `cover` · 22.13 Nombre et position des fiches `cover` · 22.14 Bloc HTML brut multi-lignes ouvert par une balise inline · 22.15 Bloc de code ouvert sans être refermé · 22.16 `>` qui n'est pas en tout début de ligne · 22.17 Backtick isolé (sans backtick fermant sur la même ligne)
+22.1 Séparateur `---` dans le corps d'une fact-box · 22.2 `kicker:` dans le texte d'une fact-box · 22.3 Slide sans `kicker:` · 22.4 Slide `cover` sans `summary:` · 22.5 Fichier `.md` sans `<!-- lwp:slide:full-article -->` · 22.6 Fichier `.md` avec `<!-- lwp:slide:full-article -->` mais sans `article:` · 22.7 Contenu avant `<!-- lwp:meta -->` (y compris un `---`) · 22.8 Plusieurs `<!-- lwp:slide:full-article -->` dans le même fichier · 22.9 Plusieurs `<!-- lwp:slide:series-nav -->` dans le même fichier · 22.9.1 Contenu non reconnu dans une fiche `series-nav` ou `full-article` · 22.9.2 Type inconnu dans un marqueur `<!-- lwp:slide:TYPE -->` · 22.10 Fichier `.md` vide (aucune slide) · 22.11 Retour à la ligne sans ligne vide à l'intérieur d'un paragraphe · 22.12 Contenu inattendu après les champs reconnus d'une fiche `cover` · 22.13 Nombre et position des fiches `cover` · 22.14 Bloc HTML brut multi-lignes ouvert par une balise inline · 22.15 Bloc de code ouvert sans être refermé · 22.16 `>` qui n'est pas en tout début de ligne · 22.17 Backtick isolé (sans backtick fermant sur la même ligne) · 22.18 Valeurs vides et titres de brouillon
 
 **§23. Version navigateur (`web/`)**
 
@@ -525,6 +525,7 @@ lightwebpres theme path
 lightwebpres status [répertoire] [--format text|json]
 lightwebpres series tags [répertoire] [--tag nom] [--format text|json]
 lightwebpres resolve [répertoire] <propriété> [--article page] [--format text|json]
+lightwebpres contract [répertoire] [--article fichier.md] [--format text|json]
 lightwebpres clean [répertoire] [--output public/] [--force]
 lightwebpres completion --shell bash|zsh
 lightwebpres --help
@@ -547,13 +548,16 @@ lightwebpres --help
 - `--no-typography` : `build`/`verify`/`watch` — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
 - `--scroll-duration` : `build`/`verify`/`watch` — durée entière non négative en millisecondes du glissé entre fiches ; `0` le désactive. Sans cette option, `series_meta.scroll_duration` s'applique, puis le défaut de `200` ms (§8.4, §20.5)
 - `--include-drafts` : `build`/`verify` seulement — construit aussi les articles marqués `status: draft` (§20.6), avec bandeau « Brouillon ». Sans effet sur `status: ignored`, qui n'est jamais construit
-- `--themes` : `build`/`verify`/`watch`/`theme vendor` — embarque ou vend des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules; les slugs viennent du catalogue effectif et le thème de `settings.conf` reste toujours le premier pour un build (§9.3.7)
+- `--themes` : `build`/`verify`/`watch`/`theme vendor` — embarque ou vend des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules ; les slugs viennent du catalogue effectif et le thème de base de `settings.conf` reste toujours le premier pour un build, précédé de `custom(<thème>)` si le fichier porte des pins (§9.3.7)
 - `--no-essential-theme` : `build`/`verify`/`watch` seulement — ne pas embarquer le lot `essential` par défaut (§9.3.7); une sélection explicite `--themes` reste appliquée
 - `--only` : `build` seulement — ne reconstruit qu'une page (§11.3.1)
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
 - `--format text|json` : `status`, `series tags`, `resolve`, `theme show`,
-  `series theme` — format de sortie, texte par défaut
+  `series theme`, `contract` — format de sortie ; texte par défaut, sauf
+  `contract` qui produit du JSON par défaut
+- `--article` : `resolve` — ajoute la couche propre à un article ; `contract` —
+  lit ce fichier de `sources/` pour éviter ses slugs déjà déclarés
 - `--from` : `theme create` — thème intégré ou externe dont les valeurs résolues
   servent de point de départ
 - `--label`, `--family`, `--source`, `--note` : `theme create` — métadonnées
@@ -1005,12 +1009,12 @@ par le moteur.
 **La liste est fermée.** Ces quatre types sont écrits une seule fois, dans
 le registre `SLIDE_TYPES` de l'exécutable, qui porte pour chacun son
 marqueur de titre (`#`, `##`, ou aucun), les champs qu'il accepte, ce que
-devient le texte libre, et une ligne de description. La validation (§22.9.2)
-et `--help` lisent ce registre, et un consommateur extérieur peut le lire
-aussi — c'est de là que `lightwebpres-gui` tire son bandeau d'assistance,
-plutôt que d'écrire une seconde fois une grammaire qui dériverait de
-celle-ci. Un jeton hors de cette liste est une erreur fatale, pas une fiche
-standard silencieuse.
+devient le texte libre, les champs obligatoires, la cardinalité et une ligne
+de description. La validation (§22.9.2), `--help` et le contrat machine (§4.7)
+lisent ce registre. Un consommateur extérieur peut demander ce contrat —
+c'est de là que `lightwebpres-gui` tire son bandeau d'assistance, plutôt que
+d'écrire une seconde fois une grammaire qui dériverait de celle-ci. Un jeton
+hors de cette liste est une erreur fatale, pas une fiche standard silencieuse.
 
 ### 4.5 Désactiver la typographie automatique pour un article
 
@@ -1058,6 +1062,35 @@ quel par le passthrough HTML brut (§6.2) et reste donc présent — invisible
 n'a aucune contrainte de contenu et aucun effet sur le build ; il sert
 uniquement à laisser une note de relecture (à vérifier, TODO, remarque
 éditoriale) directement dans la source, sans qu'elle soit jamais publiée.
+
+### 4.7 Contrat machine de brouillon
+
+Le registre `SLIDE_TYPES` est exposé aux outils d'édition par le contrat
+versionné `lightwebpres.slide-draft/1`, obtenu avec `lightwebpres contract`
+(§11.17). La sortie JSON contient :
+
+- `canonical_order` : les quatre types dans l'ordre canonique du registre ;
+- `empty_rules` : les règles communes pour une valeur vide ;
+- `slug` : le pattern accepté, les IDs réservés au moteur et le fait qu'un
+  brouillon reçoit toujours une valeur générée ;
+- `types` : pour chaque type, son marqueur, son marqueur de titre, ses champs
+  (sans le titre Markdown), son `field_order` canonique (avec `title`), ses
+  `required_fields`, sa `cardinality`, son texte libre, son résumé et un
+  `draft` complet (`slug` et `source`).
+
+La source de `draft` est un squelette directement parseable : elle contient le
+marqueur de fiche, un slug aléatoire de huit caractères hexadécimaux et chaque
+champ à sa place, avec une valeur vide. Les quatre slugs produits dans une
+réponse sont distincts et évitent les slugs déjà déclarés par l'article ainsi
+que les IDs réservés du squelette (`notes` compris). `allocate_slide_slug()`
+applique la même règle pour une intégration qui ne demande qu'un slug.
+
+Les champs scalaires vides se comportent comme absents ; `tags:` vide reçoit le
+tag `default`. Un marqueur `#` ou `##` sans texte reste un titre de fiche
+reconnu mais vide. Une directive `article:` explicitement vide est une étape de
+brouillon : le build avertit et omet la fiche, ses ancres, ses numéros et son
+placeholder ; une fiche `full-article` sans directive `article:` reste une
+erreur fatale (§22.6).
 
 ---
 
@@ -2861,18 +2894,22 @@ s'ajoute au lot `essential`; avec cette option, elle constitue le catalogue
 demandé. Sans sélection explicite et avec `--no-essential-theme`, aucune
 donnée de sélection n'est publiée dans la page. Le payload est inline, sans
 dépendance réseau : il émet l'ordre des variables une fois et, pour chaque
-thème demandé, les seules valeurs qui diffèrent du thème primaire, ainsi
+thème demandé, les seules valeurs qui diffèrent de la variante primaire, ainsi
 qu'un aperçu résolu pour le sélecteur : fond de page, dégradé de couverture
 (angle et deux arrêts) et couleur d'écriture de couverture.
 
-Le thème primaire est toujours le thème effectif lu dans
-`templates/settings.conf`, même si la liste l'omet. Une série sans ligne
-`theme:` porte l'identifiant synthétique `default`. La lecture se fait au
-build : une modification utilisateur de `settings.conf` est donc la source
-de vérité et ne doit pas être remplacée par l'option `--themes`. `all` ajoute
-tous les thèmes du catalogue effectif. Une sélection est une liste séparée par
-des virgules sur la CLI, ou une liste JSON de chaînes sous `themes`. Chaque élément
-peut être un slug, `all`, `essential`, ou un sélecteur `X:Y` :
+Le thème de base primaire est toujours le thème effectif lu dans
+`templates/settings.conf`, même si la liste l'omet. Lorsqu'au moins une
+propriété y est épinglée, le payload expose d'abord une variante dynamique
+`custom(<thème>)`, composée du thème de base et de ces propriétés ; le thème de
+base brut reste ensuite présent sous son propre identifiant. Une série sans
+ligne `theme:` porte l'identifiant synthétique `default` (et, si elle a des
+propriétés épinglées, `custom(default)`). La lecture se fait au build : une
+modification utilisateur de `settings.conf` est donc la source de vérité et ne
+doit pas être remplacée par l'option `--themes`. `all` ajoute tous les thèmes
+du catalogue effectif. Une sélection est une liste séparée par des virgules sur
+la CLI, ou une liste JSON de chaînes sous `themes`. Chaque élément peut être un
+slug, `all`, `essential`, ou un sélecteur `X:Y` :
 
 | Forme | Facette | Valeur exemple |
 |---|---|---|
@@ -2897,15 +2934,18 @@ le papier. `--no-essential-theme` supprime cet embarquement par défaut; la page
 ne porte alors un sélecteur que si `--themes` ou la clé racine `themes` de
 `series.json` en fournit une.
 
-La feuille CSS statique reste celle du thème primaire. Le sélecteur peut
-remplacer les variables de palette et de typographie des thèmes alternatifs,
-mais ne remplace jamais une propriété épinglée dans `settings.conf`, une
-propriété `style.*` de la page, ni une variable de registre redéclarée dans
+La feuille CSS statique reste celle de la variante primaire : le thème de base
+seul, ou `custom(<thème>)` lorsque `settings.conf` porte des propriétés
+épinglées. Le sélecteur peut remplacer les variables de palette et de
+typographie des thèmes alternatifs, y compris celles épinglées dans
+`settings.conf` lorsqu'on choisit le snapshot brut ; ces propriétés restent
+cependant dans la variante `custom(<thème>)`. Il ne remplace jamais une
+propriété `style.*` de la page ni une variable de registre redéclarée dans
 `custom.css`. Le retour au primaire retire seulement les surcharges runtime.
-Le choix est conservé dans la session du navigateur afin de suivre les
-pages du même deck ; la clé inclut l'identité du catalogue externe chargé,
-de sorte qu'un thème local modifié ou remplacé ne réutilise pas un choix
-provenant d'un payload différent. Le choix ne modifie aucun fichier source.
+Le choix est conservé dans la session du navigateur afin de suivre les pages
+du même deck ; la clé inclut l'identité du catalogue externe chargé, de sorte
+qu'un thème local modifié ou remplacé ne réutilise pas un choix provenant d'un
+payload différent. Le choix ne modifie aucun fichier source.
 
 Sur une page qui contient des alternatives, **C** ouvre un dialogue
 recherchable et **Échap** le ferme ; les flèches, **Début** et **Fin** y
@@ -4245,7 +4285,9 @@ chaque page le payload décrit en §9.3.7. Sans l'option, la liste racine
 `series.json.themes` est utilisée si elle existe. Sur la CLI, les sélecteurs
 sont séparés par des virgules; dans JSON, `themes` est une liste de chaînes.
 Le thème effectif de `templates/settings.conf` est ajouté en première position
-dans tous les cas. La sélection n'écrit pas dans les sources. Sans option ni clé
+dans tous les cas ; si `settings.conf` porte des propriétés, sa variante
+`custom(<thème>)` le précède et le snapshot brut est conservé. La sélection
+n'écrit pas dans les sources. Sans option ni clé
 JSON, le build embarque néanmoins le lot `essential` par défaut (§9.3.7);
 `--no-essential-theme` le désactive.
 
@@ -5983,6 +6025,24 @@ Un test parcourt la table : chaque orthographe doit être refusée, ne rien
 écrire, et nommer un remplaçant que l'outil accepte réellement — vérifié
 en le lançant, ce qu'aucune orthographe retirée ne survit.
 
+### 11.17 `contract`
+
+```
+lightwebpres contract [répertoire] [--article fichier.md] [--format text|json]
+```
+
+Commande en lecture seule pour les éditeurs et autres consommateurs de la
+syntaxe LWP. Sans `--article`, elle produit les quatre sources de brouillon
+avec des slugs frais. Avec `--article`, elle lit le fichier indiqué dans
+`sources/` et génère des slugs qui n'entrent pas en collision avec les slugs
+qu'il déclare. Le nom doit être un simple fichier `.md` dans ce répertoire :
+les séparateurs, `..`, les chemins absolus et les symlinks sortants sont
+refusés comme pour les autres inclusions (§13.7).
+
+Le format par défaut est JSON, sous le schéma `lightwebpres.slide-draft/1`.
+`--format text` imprime une vue humaine des cardinalités, des champs et des
+squelettes ; aucune forme ne modifie la série, ses sources ou sa sortie.
+
 ---
 
 ## 12. Algorithme du build
@@ -6008,13 +6068,16 @@ build(répertoire):
      c. html_slides = []
      d. slide_num = 0
      e. total_slides = count_slides(slides)
-     e2. show_slide_num = resolve_slide_page_numbers(meta, args, series_meta)  # §3.3.5
-         # show_slide_num est transmis à chaque renderer (cover/standard/full-article)
+         e2. show_slide_num = resolve_slide_page_numbers(meta, args, series_meta)  # §3.3.5
+             # show_slide_num est transmis à chaque renderer (cover/standard/full-article)
 
-     f. FOR each slide IN slides:
-        IF "excluded" IN slide.tags:      # §4.3.1 — ni rendue ni numérotée
-          continue
-        slide_num += 1
+      f. FOR each slide IN slides:
+         IF "excluded" IN slide.tags:      # §4.3.1 — ni rendue ni numérotée
+           continue
+         IF slide.type == "full-article" AND article_directive_is_present
+            AND slide.article is empty:      # §22.6 — brouillon omis avec avertissement
+           continue
+         slide_num += 1
         IF slide.type == "cover":
           html = render_cover(slide, meta, slide_num, total_slides, show_slide_num)
         ELIF slide.type == "series-nav":
@@ -7758,10 +7821,14 @@ Autorisé. La page ne contient que des fiches, sans article de fond.
 
 ### 22.6 Fichier `.md` avec `<!-- lwp:slide:full-article -->` mais sans `article:`
 
-Erreur fatale. Le build s'arrête avec un message indiquant le fichier et le
-numéro de slide. Même chose si `article:` est présent mais n'est pas un
-simple nom de fichier (séparateur de chemin ou `..` détecté) — même risque
-de lecture de fichier arbitraire que pour `page_dest`/`page_source` dans
+L'absence de la directive est une erreur fatale. Le build s'arrête avec un
+message indiquant le fichier et le numéro de slide. En revanche, une ligne
+`article:` explicitement présente mais vide est acceptée comme fiche en cours
+de rédaction : un avertissement est émis et la fiche est omise de la page
+publiée jusqu'à ce qu'elle nomme une cible. Elle ne produit ni section, ni
+ancre, ni numéro, ni placeholder. Même lorsqu'elle est non vide, la valeur doit
+être un simple nom de fichier (séparateur de chemin ou `..` interdit) — même
+risque de lecture de fichier arbitraire que pour `page_dest`/`page_source` dans
 `series.json` (§20.3).
 
 ### 22.7 Contenu avant `<!-- lwp:meta -->` (y compris un `---`)
@@ -7914,6 +7981,21 @@ backtick qui *formerait* effectivement une paire, mais qu'on veut
 littéral, a besoin d'un `` \` ``.
 
 ---
+
+### 22.18 Valeurs vides et titres de brouillon
+
+Une valeur vide sur un champ scalaire (`kicker:`, `summary:`, `source:`,
+`comment:`, `note:` et les champs de fiche équivalents) est traitée comme une
+valeur absente : aucun élément qui dépend de ce champ n'est rendu. Une ligne
+`tags:` vide reçoit `default`. La ligne `slug:` reste une déclaration
+incomplète et ne constitue pas une identité valide pour le build ;
+`series slug set` ne remplace pas une ligne `slug:` explicitement présente,
+même vide (§12.1.2).
+
+Sur `cover`, un `#` sans texte est reconnu comme le titre propre de la fiche
+et produit un `<h1>` vide. Sur une fiche non-cover, `##` sans texte est reconnu
+de la même manière mais le renderer omet le `<h2>` vide. Dans les deux cas le
+marqueur n'est pas du texte libre et la fiche reste valide.
 
 ## 23. Version navigateur (`web/`)
 

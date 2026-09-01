@@ -2112,7 +2112,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Keyboard shortcuts</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.50.1</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.51.0</div>
   </div>
 </div>
 
@@ -2986,10 +2986,10 @@ document.addEventListener('DOMContentLoaded', function() {
   var dots = [];
 
   // Runtime themes are enabled by default at build time. The page's CSS already carries
-  // the effective primary theme; this payload contains only differences from
-  // it, plus the variable order. Pinned series/article/custom variables are
-  // skipped when a choice is applied, so the presenter changes the palette
-  // without erasing the author's settings.
+  // the effective primary variant; this payload contains only differences from
+  // it, plus the variable order. Article and custom.css variables are skipped
+  // when a choice is applied. settings.conf pins belong only to the custom
+  // primary variant, so the raw base snapshot can replace them too.
   var themeData = null;
   var themeDataNode = document.getElementById('lwp-theme-data');
   if (themeDataNode) {

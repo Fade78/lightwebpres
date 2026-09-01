@@ -410,11 +410,13 @@ Create or make a theme portable explicitly:
 the selected theme and explicit pins in an old scaffold, and `theme vendor`
 copies complete snapshots into the series. No theme file uses `extends`.
 
-The effective theme in `templates/settings.conf` is always included first,
-even if it is not in the list. The setting is read at build time, so an
-author's edit remains the source of truth. Values pinned in `settings.conf`,
-`style.*` page properties and theme variables declared in `custom.css` are
-left alone while a reader switches. **C** opens the searchable picker and
+The effective theme in `templates/settings.conf` is always included as the
+first base choice, even if it is not in the list. When that file has property
+pins, the first runtime choice is named `custom(<theme>)` and the raw base
+theme is also present; those settings pins apply only to the custom choice.
+The setting is read at build time, so an author's edit remains the source of
+truth. `style.*` page properties and theme variables declared in `custom.css`
+are left alone while a reader switches. **C** opens the searchable picker and
 **M** opens the global presenter menu; the same menu is available from the
 bottom-right navigation button. The selection lasts for the other pages of
  the same deck in the current browser session. The session key includes the

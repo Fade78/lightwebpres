@@ -2113,7 +2113,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Keyboard shortcuts</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.50.1</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.51.0</div>
   </div>
 </div>
 
@@ -2273,6 +2273,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
   <div class="fact-box">
     <div class="fact-label">What is in a standard slide</div>
     <div class="fact-content">  <p>A fact box, a key figure, a source line, a comparison table, a figure. Each is reached by a named field or by ordinary Markdown; none of them needs CSS.</p>
+  <p>An editor that needs the grammar can call <code>lightwebpres contract</code>: the versioned response lists the four types, their fields, cardinalities, empty value rules and a complete source skeleton for each one. It is read-only; pass <code>--article file.md</code> when the generated slugs must avoid cards already in a source file.</p>
   <p>The switch from fields to free text is <strong>one-way within a slide:</strong> once a line is not a <code>field:</code> line, everything after it is prose.</p>
   <p>A note<sup class="note-call"><a id="noteref-anatomie-1" href="#note-anatomie-1" role="doc-noteref">1</a></sup> is reached the standard way, and its number is a position rather than the label you wrote. Notes are not a full-article feature: this is a standard card, and the note below is on it.</p>
   <div class="notes-local">
@@ -2312,7 +2313,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
     <div class="fact-label">Why facets rather than a list</div>
     <div class="fact-content">  <p>A list of names tells you nothing. What the theme is for, light or dark, and what hue the page carries will get you to a shortlist of three.</p>
   <p><code>theme gallery</code> renders every one of them against real slide content. The global catalogue combines the embedded themes with complete UTF-8 <code>.conf</code> snapshots from the installed and user roots; a series can add its own <code>templates/themes/</code> snapshots on top. <code>LWP_THEMES_DIR</code> replaces the user root. The order is embedded, installed, user, series, and a collision replaces the whole lower entry rather than inheriting it. Use <code>builtin:&lt;slug&gt;</code> to select an embedded theme hidden by a local file.</p>
-  <p><code>build --themes print-ink,print-grey</code> embeds a searchable picker: <strong>C</strong> opens it, and <strong>M</strong> opens the global presenter menu. The same list can be written as <code>"themes": ["essential", "family:terrain", "bgh:red"]</code> at the root of <code>series.json</code>; <code>essential</code> means Monochrome, Monochrome Night and Print Ink. The effective theme from <code>templates/settings.conf</code> is always the first choice, and an explicit CLI value overrides the JSON list. Author pins remain in force while the reader switches.</p>
+  <p><code>build --themes print-ink,print-grey</code> embeds a searchable picker: <strong>C</strong> opens it, and <strong>M</strong> opens the global presenter menu. The same list can be written as <code>"themes": ["essential", "family:terrain", "bgh:red"]</code> at the root of <code>series.json</code>; <code>essential</code> means Monochrome, Monochrome Night and Print Ink. The effective theme from <code>templates/settings.conf</code> is always the first base choice. When the file has property pins, the first runtime choice is named <code>custom(&lt;theme&gt;)</code> and the raw base theme is also present; those pins apply only to the custom choice. An explicit CLI value overrides the JSON list, while page styles and declared custom CSS variables remain in force as the reader switches.</p>
   <p>Create or make a theme portable explicitly:</p>
   <pre><code class="language-bash">
 ./lightwebpres theme create my-theme --from evergreen
@@ -2571,7 +2572,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
 ./lightwebpres theme path
   </code></pre>
   <p><code>theme create</code> writes a complete editable snapshot, <code>theme migrate</code> keeps only the selected theme and explicit pins in an old scaffold, and <code>theme vendor</code> copies complete snapshots into the series. No theme file uses <code>extends</code>.</p>
-  <p>The effective theme in <code>templates/settings.conf</code> is always included first, even if it is not in the list. The setting is read at build time, so an author's edit remains the source of truth. Values pinned in <code>settings.conf</code>, <code>style.*</code> page properties and theme variables declared in <code>custom.css</code> are left alone while a reader switches. <strong>C</strong> opens the searchable picker and <strong>M</strong> opens the global presenter menu; the same menu is available from the bottom-right navigation button. The selection lasts for the other pages of  the same deck in the current browser session. The session key includes the  catalogue digest, so changing a local snapshot cannot reuse an old choice.  Each theme choice previews its resolved background, including its gradient, with matching foreground ink. The menu actions carry icons and their keyboard shortcuts, including <strong>I</strong> on Scroll. In the theme picker and that presenter menu, focus starts at the first useful control. In the presenter menu, left/right stay on the current row while up/down move to the nearest control on the adjacent rendered row. <code>Tab</code>, <code>Home</code> and <code>End</code> still move through the controls, and <code>Enter</code>/<code>Space</code> activate the focused one.</p>
+  <p>The effective theme in <code>templates/settings.conf</code> is always included as the first base choice, even if it is not in the list. When that file has property pins, the first runtime choice is named <code>custom(&lt;theme&gt;)</code> and the raw base theme is also present; those settings pins apply only to the custom choice. The setting is read at build time, so an author's edit remains the source of truth. <code>style.*</code> page properties and theme variables declared in <code>custom.css</code> are left alone while a reader switches. <strong>C</strong> opens the searchable picker and <strong>M</strong> opens the global presenter menu; the same menu is available from the bottom-right navigation button. The selection lasts for the other pages of  the same deck in the current browser session. The session key includes the  catalogue digest, so changing a local snapshot cannot reuse an old choice.  Each theme choice previews its resolved background, including its gradient, with matching foreground ink. The menu actions carry icons and their keyboard shortcuts, including <strong>I</strong> on Scroll. In the theme picker and that presenter menu, focus starts at the first useful control. In the presenter menu, left/right stay on the current row while up/down move to the nearest control on the adjacent rendered row. <code>Tab</code>, <code>Home</code> and <code>End</code> still move through the controls, and <code>Enter</code>/<code>Space</code> activate the focused one.</p>
   <p>These commands inspect and select existing theme values. They do not design, retune or repair a palette. Use <code>theme show</code> to read the measured contrast of the shipped theme, or of the effective theme after the series' pins. <code>audit</code> reads the same resolved sheet without being asked, and speaks only when something has stopped working — a navigation control you cannot see, text the colour of its own ground, a size under the readability floor. It warns; it never refuses, and no shipped theme trips it.</p>
   <h3>Why essential themes ship by default</h3>
   <p>Every build embeds the <code>essential</code> bundle on its own — Monochrome, Monochrome Night and Print Ink — so the picker is functional on any page without the author opting in. Three reasons, in order:</p>
@@ -3650,10 +3651,10 @@ document.addEventListener('DOMContentLoaded', function() {
   var dots = [];
 
   // Runtime themes are enabled by default at build time. The page's CSS already carries
-  // the effective primary theme; this payload contains only differences from
-  // it, plus the variable order. Pinned series/article/custom variables are
-  // skipped when a choice is applied, so the presenter changes the palette
-  // without erasing the author's settings.
+  // the effective primary variant; this payload contains only differences from
+  // it, plus the variable order. Article and custom.css variables are skipped
+  // when a choice is applied. settings.conf pins belong only to the custom
+  // primary variant, so the raw base snapshot can replace them too.
   var themeData = null;
   var themeDataNode = document.getElementById('lwp-theme-data');
   if (themeDataNode) {

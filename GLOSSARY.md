@@ -43,6 +43,16 @@ which belongs to all of them and is why `resolve` refuses it: it is
 parsed everywhere and read nowhere, so it has no resolved value to
 report (below).
 
+## Machine-readable draft contract
+
+`lightwebpres contract` exposes the slide grammar as the versioned
+`lightwebpres.slide-draft/1` contract. It is generated from the same
+`SLIDE_TYPES` registry as the parser and reports the canonical type order,
+accepted and required fields, cardinalities, empty-value rules, reserved IDs
+and a complete source skeleton for each type. JSON is the default output;
+`--format text` is the human view. `--article file.md` makes generated slugs
+avoid the slugs already declared in that source. The command is read-only.
+
 ## `comment` — review notes
 
 `comment` is recognized at every level below — a `series.json` entry, the
@@ -144,7 +154,7 @@ after these fields is a fatal error (§22.12).
 | `kicker` | `''` — omitted from the render if absent | Small editorial label above the slide's own heading |
 | `tags` | `default` when absent or empty | Space-separated slide tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
 | `note` | `''` — nothing shown | Speaker note, multi-line; never rendered, surfaced by the presenter panel |
-| `slide_title` — written `# Heading`, no literal field form | None. Only the first `#` before any content sets it (§22.2) | The slide's own heading, rendered `<h1>` |
+| `slide_title` — written `# Heading`, no literal field form | None. Only the first `#` before any content sets it; a bare `#` is an accepted empty title (§22.2) | The slide's own heading, rendered `<h1>` |
 | `summary` | `''` — omitted from the render if absent | One-line summary paragraph under the heading |
 
 ## Standard slide fields
@@ -157,7 +167,7 @@ A standard slide's own header (default, or explicit `<!-- lwp:slide -->`).
 | `kicker` | `''` — omitted from the render if absent | Small editorial label above the slide's own heading |
 | `tags` | `default` when absent or empty | Space-separated slide tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
 | `note` | `''` — nothing shown | Speaker note, multi-line; never rendered, surfaced by the presenter panel |
-| `slide_title` — written `## Heading`, no literal field form | None. Only the first `##` before any content sets it (§22.2) | The slide's own heading, rendered `<h2>` |
+| `slide_title` — written `## Heading`, no literal field form | None. Only the first `##` before any content sets it; a bare `##` is an accepted empty title (§22.2) | The slide's own heading, rendered `<h2>` when non-empty |
 | `summary` | `''` — omitted from the render if absent | One-line summary paragraph under the heading |
 | `highlight` | None — the whole highlight block is omitted if absent | Large standalone figure (a number, a stat, a quote) |
 | `highlight-caption` | `''` | Caption under the `highlight` figure |
@@ -173,7 +183,7 @@ A `<!-- lwp:slide:full-article -->` slide's own header.
 |---|---|---|
 | `slug` | None — required on every slide; a slide without one is a fatal build error naming `series slug set` | The slide's own name in a URL, and its whole identity (§12.1.1): never its rank, never its title, so it does not move when the deck is reordered or the heading rewritten. A build error if it is not `[A-Za-z0-9][A-Za-z0-9._-]*`, since it becomes an `id`, a URL fragment and the tail of a shared QR code, and a build error if two slides on a page take the same one |
 | `tags` | `default` when absent or empty | Optional slide tags; `excluded` removes the generated slide before rendering |
-| `article` | None — required on this slide type | External `.md` file included as the article's long-form body |
+| `article` | None — required for publication; an explicit empty value warns and omits the draft slide | External `.md` file included as the article's long-form body |
 
 ## Series-navigation slide fields
 
@@ -205,14 +215,15 @@ description; the terms are fixed here, in English.
 | **reference** | A word used as a value, resolved at merge time and never surviving into the output (§9.2). Bare (`kicker.fg: ink-quiet`) it is looked up in its type's namespace; dotted (`title1.fg: cover.fg`) it names another property. At most 3 hops; cycles are detected and named. |
 | **layer** | One dictionary of properties in the cascade (§9.3): built-in defaults, theme, settings, article, instance — merged in that order before emission. |
 | **theme** | A named layer of properties applied over the built-in defaults. It may be an embedded entry or a complete external snapshot. |
+| **runtime custom variant** | The dynamic `custom(<theme>)` entry made from a base theme and the property pins in `settings.conf`; it is the primary runtime choice when those pins exist. The raw base theme remains separately selectable. |
 | **theme facet** | One catalogue axis used to find themes: `family` is declared, `polarity` is derived from the background, and `hue` is computed from it. |
 | **theme selector** | A runtime selection token from the effective catalogue: a slug, `all`, `essential`, or `X:Y` such as `bg:light`, `fam:terrain` or `bgh:red`; several tokens add their matches. `builtin:<slug>` forces the embedded entry when a local slug shadows it. |
 | **external theme snapshot** | A UTF-8 `.conf` file containing metadata and every property in the registry exactly once. It is complete by design: no CSS and no `extends`/include mechanism. |
 | **effective catalogue** | The themes visible to one operation after merging embedded, installed, user and, for a series operation, `templates/themes/` entries. A higher layer replaces a colliding slug's whole entry. |
 | **catalogue root** | A directory searched for direct `.conf` snapshots: installed resources, the user root (`LWP_THEMES_DIR` or the platform default), or a series' `templates/themes/`. |
-| **settings** | The author's own property layer (`templates/settings.conf`), applied over the theme. Written only on explicit request: `series theme set` changes its `theme:` line, and `theme migrate` reduces an old scaffold while preserving pins. |
+| **settings** | The author's own property layer (`templates/settings.conf`), applied over the theme for the static sheet and the runtime `custom(<theme>)` variant. Written only on explicit request: `series theme set` changes its `theme:` line, and `theme migrate` reduces an old scaffold while preserving pins. |
 | **scaffold** | The generated form of `settings.conf`: every property present, commented out, at the chosen theme's values (§9.3.1). Generated once from the registry, never rewritten on the tool's initiative; `# scaffold-for:` records the theme it was generated under. |
-| **pin** | Uncommenting a scaffold line (or writing one): the value now overrides every theme and survives theme changes and upgrades (§9.3.1). |
+| **pin** | Uncommenting a scaffold line (or writing one): the value overrides the selected theme in the static build and is carried by the runtime `custom(<theme>)` variant; raw runtime themes may replace it. It survives theme changes and upgrades (§9.3.1). |
 | **override** | The relation between layers: a value in a later layer covering an earlier one. |
 | **customization** | The author's act of overriding — via settings, per-article properties, instance tags, or `custom.css`. |
 | **theme construction** | The editorial and artistic choice of palette values, fonts, shadows, and their relationships. It is catalogue work outside the renderer. |

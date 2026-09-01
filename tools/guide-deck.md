@@ -55,6 +55,12 @@ fact-label: What is in a standard slide
 
 A fact box, a key figure, a source line, a comparison table, a figure. Each is reached by a named field or by ordinary Markdown; none of them needs CSS.
 
+An editor that needs the grammar can call `lightwebpres contract`: the
+versioned response lists the four types, their fields, cardinalities, empty
+value rules and a complete source skeleton for each one. It is read-only; pass
+`--article file.md` when the generated slugs must avoid cards already in a
+source file.
+
 The switch from fields to free text is **one-way within a slide**: once a line is not a `field:` line, everything after it is prose.
 
 A note[^note] is reached the standard way, and its number is a position rather than the label you wrote. Notes are not a full-article feature: this is a standard card, and the note below is on it.
@@ -128,9 +134,12 @@ embedded theme hidden by a local file.
 it, and **M** opens the global presenter menu. The same list can be written as
 `"themes": ["essential", "family:terrain", "bgh:red"]` at the root of
 `series.json`; `essential` means Monochrome, Monochrome Night and Print Ink.
-The effective theme from `templates/settings.conf` is always the first choice,
-and an explicit CLI value overrides the JSON list. Author pins remain in force
-while the reader switches.
+The effective theme from `templates/settings.conf` is always the first base
+choice. When the file has property pins, the first runtime choice is named
+`custom(<theme>)` and the raw base theme is also present; those pins apply only
+to the custom choice. An explicit CLI value overrides the JSON list, while
+page styles and declared custom CSS variables remain in force as the reader
+switches.
 
 Create or make a theme portable explicitly:
 

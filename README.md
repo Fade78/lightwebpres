@@ -410,6 +410,7 @@ the series or within one article.
 | `series slug [dir]` | Lists every card of the series and the effective name it is published under, including `slug_prefix` — the anchor a shared link and a printed QR code point at. `status` answers by article; this answers by card. `--format json` for machines |
 | `series slug set [dir]` | Writes a `slug:` into every card that has none, and only those. The one command that edits your articles — a build never rewrites its own inputs. What it writes is random and meant to be renamed to something readable; `--dry-run` says what it would write |
 | `resolve [dir] <name>` | Says what ONE name is worth here and which level decided it, losing levels included. The shape of the name picks the cascade: dotted = theme property, `snake_case` = article/series field, `kebab-case` = slide field. `--article file.md` adds a page's own layer; `--format json` for machines |
+| `contract [dir]` | Prints the versioned machine-readable slide-draft contract and engine-generated source skeletons. `--article file.md` avoids slugs already declared by that source; JSON is the default, `--format text` is the human view |
 | `series theme set [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf` or `$LWP_TEMPLATES_DIR`; your pinned values stay and apply on top |
 | `theme gallery [path]` | Generates a self-contained HTML page previewing every entry in the global effective catalogue — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
 | `clean [dir]` | Purges orphan files from `public/` using the build manifest (dry-run by default, `--force` to actually remove) |
@@ -445,10 +446,10 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--nav-cache path` | `build` | reads and writes the fingerprint used to decide whether `--only` is safe |
 | `--build-stamp` | `build` | adds a version-and-time freshness marker to generated pages |
 | `--build-stamp-minimal` | `build` | adds the freshness marker without version or time; wins over `--build-stamp` |
-| `--themes selectors\|all` | `build`, `verify`, `watch`, `theme vendor` | embeds or vendors slugs, `essential` or `X:Y` facet selectors from the effective catalogue; the effective theme in `templates/settings.conf` is always included first for a build, and `C` opens the picker |
+| `--themes selectors\|all` | `build`, `verify`, `watch`, `theme vendor` | embeds or vendors slugs, `essential` or `X:Y` facet selectors from the effective catalogue; the base theme in `templates/settings.conf` is first for a build, with `custom(<theme>)` before it when settings has pins, and `C` opens the picker |
 | `--no-essential-theme` | `build`, `verify`, `watch` | do not embed the default `essential` bundle (Monochrome, Monochrome Night, Print Ink); an explicit `--themes` on the same command still applies |
 | `--gitlab-ci` | `init` | emits a `.gitlab-ci.yml` |
-| `--format json` | `resolve`, `status`, `series tags`, `series slug`, `theme show`, `series theme` | machine-readable output |
+| `--format text\|json` | `resolve`, `status`, `series tags`, `series slug`, `theme show`, `series theme`, `contract` | machine-readable output for `json`; `contract` defaults to JSON, other commands to text |
 | `--tag name` | `series tags` | restricts the inventory to one canonical tag |
 | `--from name` | `theme create` | starts a new complete snapshot from an embedded or external catalogue entry; `builtin:<slug>` forces the embedded entry |
 | `--label text`, `--family name`, `--source text`, `--note text` | `theme create` | writes the snapshot metadata; `--family` uses the closed family vocabulary |
@@ -491,6 +492,14 @@ These four are the whole list, and `build` says so: a marker naming
 anything else — `<!-- lwp:slide:covre -->` — stops the build with the
 slide's rank, the token you wrote, and the four names, rather than
 publishing a slide of the wrong kind.
+
+`lightwebpres contract` exposes these same four types as
+`lightwebpres.slide-draft/1`. It returns their accepted fields, required
+fields, cardinalities, canonical source order, empty-value rules, reserved
+IDs, and a complete parseable skeleton for each type. The command is
+read-only. An explicitly empty `article:` is treated as an unfinished
+`full-article`: `build` warns and omits that slide until it names a `.md`
+file; omitting the directive entirely remains a fatal error.
 
  Every slide (and `series.json`/the article's own meta block) also
  accepts `comment:` — a review note, recognized but never rendered, never
@@ -776,14 +785,17 @@ provides one. Pass `verify` the same decision the build was made with, or
 the payloads differ and drift is reported.
 
 The effective `theme:` in `templates/settings.conf` is always the first
-choice, even when it is omitted from the list. The file is read at build time,
-so an author's edit is respected; settings, `style.*` properties and declared
-theme variables in `custom.css` remain pinned while the reader switches. The
-runtime theme payload is inline and delta-encoded, so the runtime remains
-standalone even when the page also uses relative image files. If an external
-file shadows an essential slug, the embedded version remains available as
-`builtin:<slug>`. The browser session key includes the loaded catalogue's
-digest, so changing a local file cannot reuse a choice from an older payload.
+base choice, even when it is omitted from the list. When that file has property
+pins, the first runtime choice is named `custom(<theme>)` and the raw base
+theme is also present; the pins apply only to the custom choice. The file is
+read at build time, so an author's edit is respected; `style.*` properties and
+declared theme variables in `custom.css` remain pinned while the reader
+switches. The runtime theme payload is inline and delta-encoded, so the runtime
+remains standalone even when the page also uses relative image files. If an
+external file shadows an essential slug, the embedded version remains
+available as `builtin:<slug>`. The browser session key includes the loaded
+catalogue's digest, so changing a local file cannot reuse a choice from an
+older payload.
 On a page carrying runtime alternatives, **C** opens the searchable theme
 picker. Each theme choice previews its resolved page/cover background,
 including its gradient, with the matching foreground ink. **M** opens one menu for

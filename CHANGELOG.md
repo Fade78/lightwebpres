@@ -33,13 +33,27 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.50.1
+## Unreleased — 0.51.0
 
 The theme catalogue help now distinguishes the embedded entries from the
 external layers and no longer presents the embedded count as the total. The
 catalogue precedence, series-local snapshot wiring and theme command scope
 are now stated consistently across the executable, specification, guide and
 article-writing skill.
+
+Runtime theme selection now treats `settings.conf` property pins as a named
+`custom(<theme>)` primary variant. The raw base theme remains available in the
+picker, and the settings pins no longer leak into the other runtime themes;
+page-level styles and declared `custom.css` variables remain protected.
+
+The executable now exposes the slide grammar through the read-only,
+versioned `lightwebpres.slide-draft/1` contract (`lightwebpres contract`). It
+is generated from the same registry as the parser and provides required
+fields, cardinalities, canonical source order, reserved-safe generated slugs
+and complete draft sources for all four slide types. Empty scalar fields are
+handled as absent, empty tags use `default`, empty slide titles remain valid,
+and an explicitly empty `full-article` `article:` is warned and omitted until
+it names a source file.
 
 ## v0.50.0
 

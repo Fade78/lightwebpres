@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.50.1"
+VERSION = "0.51.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -4805,17 +4805,20 @@ _THEME_RUNTIME_DEFAULT = 'default'
 _THEME_RUNTIME_CUSTOM_VAR = re.compile(r'(?<![\w-])(--[\w-]+)\s*:')
 
 
-def _theme_runtime_resolved(theme_key, catalog=None):
+def _theme_runtime_resolved(theme_key, catalog=None, overrides=None):
     """The catalogue layer a browser must apply for one runtime theme.
 
     `default` is the empty layer: it is the sheet the engine ships before a
     named palette is selected. Runtime values are resolved here, not in the
     browser, so the executable remains the single implementation of the
     typed property cascade. The page's series and article layers stay out of
-    this result and are marked separately by `_theme_runtime_markup`.
+    this result and are marked separately by `_theme_runtime_markup`. An
+    optional final layer is used for the build's `custom(<theme>)` variant.
     """
     layers = [] if theme_key == _THEME_RUNTIME_DEFAULT else [
         theme_property_layer(theme_key, catalog)]
+    if overrides:
+        layers.append(overrides)
     return resolve_theme_properties(*layers)
 
 
@@ -4877,9 +4880,10 @@ def _theme_runtime_ids(option, primary, source='--themes', catalog=None):
     """Returns ordered runtime theme ids, primary first.
 
     `option` is either the CLI's comma-separated value or the root
-    `series.json["themes"]` list. The effective `theme:` from settings is
-    always first, even when every selector omits it; a series without that
-    line uses the synthetic `default` id.
+    `series.json["themes"]` list. The raw base id for the effective `theme:`
+    from settings is always first, even when every selector omits it; a series
+    without that line uses the synthetic `default` id. `build_theme_runtime`
+    may prepend a `custom(<theme>)` variant when property pins exist.
     """
     primary_id = primary or _THEME_RUNTIME_DEFAULT
     ids = [primary_id]
@@ -4890,18 +4894,28 @@ def _theme_runtime_ids(option, primary, source='--themes', catalog=None):
     return ids
 
 
-def build_theme_runtime(option, primary, source='--themes', catalog=None):
+def build_theme_runtime(option, primary, source='--themes', catalog=None,
+                        settings_props=None):
     """Builds the compact, page-independent part of the theme switch data.
 
     Variable names are emitted once and each alternative carries only the
-    indexed values that differ from the effective primary theme. The static
-    page already contains the primary theme's fully composed sheet, so the
-    browser can remove the previous inline overrides and restore that sheet
-    before applying another alternative.
+    indexed values that differ from the effective primary theme. When
+    `settings.conf` has property pins, the effective primary is a dynamic
+    `custom(<theme>)` variant and the raw theme is added immediately after it.
+    This makes the series pins belong to that variant instead of silently
+    applying them to every runtime choice. The static page already contains
+    the primary variant's fully composed sheet, so the browser can remove the
+    previous inline overrides and restore that sheet before applying another
+    alternative.
     """
     if option is None:
         return None
-    ids = _theme_runtime_ids(option, primary, source, catalog)
+    base_id = primary or _THEME_RUNTIME_DEFAULT
+    settings_props = dict(settings_props or {})
+    ids = _theme_runtime_ids(option, base_id, source, catalog)
+    custom_id = f'custom({base_id})' if settings_props else None
+    if custom_id:
+        ids.insert(0, custom_id)
     variables = [p.var for p in THEME_SHARED_PROPS]
     keys = [p.key for p in THEME_SHARED_PROPS]
     for component in THEME_COMPONENTS:
@@ -4909,21 +4923,37 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None):
             variables.append(prop.var)
             keys.append(prop.key)
     primary_values = _theme_runtime_resolved(
-        primary or _THEME_RUNTIME_DEFAULT, catalog)
+        base_id, catalog, settings_props if custom_id else None)
     primary_values = [primary_values[key] for key in keys]
     themes = []
     for theme_id in ids:
-        resolved = _theme_runtime_resolved(theme_id, catalog)
+        if theme_id == custom_id:
+            resolved = _theme_runtime_resolved(base_id, catalog,
+                                                settings_props)
+            metadata_id = base_id
+        else:
+            resolved = _theme_runtime_resolved(theme_id, catalog)
+            metadata_id = theme_id
         values = [resolved[key] for key in keys]
         changes = [[i, value] for i, (old, value)
                    in enumerate(zip(primary_values, values)) if old != value]
         if theme_id == _THEME_RUNTIME_DEFAULT:
             label, family = 'Default', 'default'
+        elif theme_id == custom_id:
+            if metadata_id == _THEME_RUNTIME_DEFAULT:
+                base_label, family = 'Default', 'default'
+            else:
+                if catalog is not None:
+                    base_theme = catalog.entry(metadata_id)
+                else:
+                    base_theme = THEMES[metadata_id]
+                base_label, family = base_theme['label'], base_theme['family']
+            label = f'Custom ({base_label})'
         else:
             if catalog is not None:
-                theme = catalog.entry(theme_id)
+                theme = catalog.entry(metadata_id)
             else:
-                theme = THEMES[theme_id]
+                theme = THEMES[metadata_id]
             label, family = theme['label'], theme['family']
         themes.append({
             'slug': theme_id, 'label': label, 'family': family,
@@ -4953,19 +4983,18 @@ def _theme_runtime_markup(runtime, style_context=None, page_props=None):
     """Adds page-owned variable indices to the runtime payload.
 
     The generated sheet contains the effective primary theme plus series and
-    article pins. Runtime theme values must not replace those pins. Variables
-    declared by custom.css are treated as pins too: arbitrary CSS stays the
-    author's last word even when it uses a registry variable through a
+    article pins. `settings.conf` pins are encoded in the primary
+    `custom(<theme>)` variant instead of being protected globally, so the raw
+    base theme can restore those values. Runtime theme values must not replace
+    page properties or variables declared by custom.css: arbitrary CSS stays
+    the author's last word even when it uses a registry variable through a
     custom declaration.
     """
     if runtime is None:
         return ''
     pinned = set()
     if style_context is not None:
-        layers, custom_css = style_context
-        if layers:
-            # series_style_context appends settings.conf's properties last.
-            pinned.update(layers[-1])
+        _layers, custom_css = style_context
         for var in _THEME_RUNTIME_CUSTOM_VAR.findall(custom_css):
             key = VAR_TO_KEY.get(var)
             if key:
@@ -5228,7 +5257,8 @@ def build_settings_scaffold(theme_key=None, pinned=None, catalog=None):
     """The complete settings file, every property present and commented out
     at its value under the chosen theme. Complete outside, always: the
     author sees the whole surface with nothing to chase through an include,
-    and uncommenting a line pins it across every future theme change.
+    and uncommenting a line pins it in the static sheet and the runtime
+    `custom(<theme>)` variant; raw runtime themes may replace it.
 
     Generated from the registry — the same structure that emits the CSS — so
     it cannot drift from what the engine accepts. Values are shown RAW
@@ -7796,10 +7826,10 @@ document.addEventListener('DOMContentLoaded', function() {
   var dots = [];
 
   // Runtime themes are enabled by default at build time. The page's CSS already carries
-  // the effective primary theme; this payload contains only differences from
-  // it, plus the variable order. Pinned series/article/custom variables are
-  // skipped when a choice is applied, so the presenter changes the palette
-  // without erasing the author's settings.
+  // the effective primary variant; this payload contains only differences from
+  // it, plus the variable order. Article and custom.css variables are skipped
+  // when a choice is applied. settings.conf pins belong only to the custom
+  // primary variant, so the raw base snapshot can replace them too.
   var themeData = null;
   var themeDataNode = document.getElementById('lwp-theme-data');
   if (themeDataNode) {
@@ -12743,16 +12773,21 @@ SLIDE_FIELD_NAMES = (
 
 class SlideType:
     """One slide type: what it is called, how it carries its own title,
-    which fields it accepts, and what free text becomes on it."""
+    which fields it accepts, what free text becomes on it, and what a
+    complete slide requires."""
 
-    __slots__ = ('name', 'title_marker', 'fields', 'free_text', 'summary')
+    __slots__ = ('name', 'title_marker', 'fields', 'free_text', 'summary',
+                 'required_fields', 'max_count')
 
-    def __init__(self, name, title_marker, fields, free_text, summary):
+    def __init__(self, name, title_marker, fields, free_text, summary,
+                 required_fields=('slug',), max_count=None):
         self.name = name
         self.title_marker = title_marker  # '#', '##', or None (no title)
         self.fields = fields              # accepted `key:` lines
         self.free_text = free_text        # what text below the fields becomes
         self.summary = summary            # one line, for --help and callers
+        self.required_fields = required_fields
+        self.max_count = max_count
 
 
 # The four slide types, and the only place that list is written. Both the
@@ -12773,12 +12808,12 @@ SLIDE_TYPES = (
         'series-nav', None, ('slug', 'tags', 'comment'), None,
         'The list of the other articles in the series, generated from '
         'series.json — you place the marker, the build writes the list. '
-        'At most one per article.'),
+        'At most one per article.', max_count=1),
     SlideType(
         'full-article', None, ('slug', 'article', 'tags', 'comment'), None,
         'Pulls in a long-form .md file named by its `article:` field, '
-        'which is required. A page may carry several, each with its own '
-        'file (§22.8).'),
+        'which is required for publication. A page may carry several, each '
+        'with its own file (§22.8).', required_fields=('slug', 'article')),
 )
 
 SLIDE_TYPES_BY_NAME = {t.name: t for t in SLIDE_TYPES}
@@ -12789,6 +12824,18 @@ SLIDE_TYPES_BY_NAME = {t.name: t for t in SLIDE_TYPES}
 # asking where it is set does not care which branch read it.
 _SLIDE_FIELD_ATTRS = {name: name.replace('-', '_') for name in SLIDE_FIELD_NAMES}
 _SLIDE_FIELD_ATTRS['article'] = 'article_file'
+
+
+# The versioned machine contract consumed by authoring clients. This is kept
+# beside the parser registry so a new type cannot be added to the grammar
+# without appearing in the contract as well.
+SLIDE_DRAFT_SCHEMA = 'lightwebpres.slide-draft/1'
+SLIDE_DRAFT_EMPTY_RULES = {
+    'ordinary': 'an empty value is the same as an absent field',
+    'tags': 'an empty value resolves to the default tag',
+    'slug': 'the engine generates a non-empty value',
+    'full-article.article': 'an empty value warns and omits the slide',
+}
 
 
 
@@ -12867,6 +12914,98 @@ def assigned_slug(taken):
         if candidate not in taken:
             taken.add(candidate)
             return candidate
+
+
+def allocate_slide_slug(existing_slugs=()):
+    """Return a fresh raw slide slug for one target document.
+
+    The caller supplies the slugs already present in that document. The
+    renderer's own ids are always included too, so a draft cannot mint the
+    ``notes`` anchor (or any future reserved id) by accident.
+    """
+    taken = set(RESERVED_SLIDE_IDS)
+    taken.update(str(slug).strip() for slug in (existing_slugs or ())
+                 if str(slug).strip())
+    return assigned_slug(taken)
+
+
+def _slide_marker(slide_type):
+    """The source marker an author types for a registry entry."""
+    return ('<!-- lwp:slide -->' if slide_type.name == 'standard' else
+            f'<!-- lwp:slide:{slide_type.name} -->')
+
+
+def _slide_draft_field_order(slide_type):
+    """Fields in the canonical source order, including the title position."""
+    fields = list(slide_type.fields)
+    if not slide_type.title_marker:
+        return fields
+    position = min(2, len(fields))
+    return fields[:position] + ['title'] + fields[position:]
+
+
+def _slide_draft_source(slide_type, slug):
+    """The complete authoring skeleton for one type."""
+    lines = [_slide_marker(slide_type)]
+    for field in _slide_draft_field_order(slide_type):
+        if field == 'slug':
+            lines.append(f'slug: {slug}')
+        elif field == 'title':
+            lines.append(f'{slide_type.title_marker} ')
+        else:
+            lines.append(f'{field}: ')
+    return '\n'.join(lines) + '\n'
+
+
+def slide_draft_contract(existing_slugs=()):
+    """Return the versioned draft contract for all four slide types.
+
+    ``existing_slugs`` belongs to the target article. Four values are minted
+    in one pass so every returned draft remains safe if a caller keeps more
+    than one of them while composing a document.
+    """
+    taken = set(RESERVED_SLIDE_IDS)
+    taken.update(str(slug).strip() for slug in (existing_slugs or ())
+                 if str(slug).strip())
+    types = []
+    for slide_type in SLIDE_TYPES:
+        slug = assigned_slug(taken)
+        field_order = _slide_draft_field_order(slide_type)
+        types.append({
+            'name': slide_type.name,
+            'marker': _slide_marker(slide_type),
+            'title_marker': slide_type.title_marker,
+            'fields': list(slide_type.fields),
+            'field_order': field_order,
+            'required_fields': list(slide_type.required_fields),
+            'cardinality': {'min': 0, 'max': slide_type.max_count},
+            'free_text': slide_type.free_text,
+            'summary': slide_type.summary,
+            'draft': {
+                'slug': slug,
+                'source': _slide_draft_source(slide_type, slug),
+            },
+        })
+    return {
+        'schema': SLIDE_DRAFT_SCHEMA,
+        'lightwebpres_version': VERSION,
+        'canonical_order': [slide_type.name for slide_type in SLIDE_TYPES],
+        'empty_rules': dict(SLIDE_DRAFT_EMPTY_RULES),
+        'slug': {
+            'generated': True,
+            'required': True,
+            'pattern': r'^[A-Za-z0-9][A-Za-z0-9._-]*$',
+            'reserved': sorted(RESERVED_SLIDE_IDS),
+        },
+        'types': types,
+    }
+
+
+def slide_draft_contract_for_source(source_text):
+    """Return a draft contract whose slugs avoid cards in ``source_text``."""
+    _meta, slides, _has_meta, _before_meta = parse_markdown_extended(source_text)
+    return slide_draft_contract(
+        slide.slug for slide in slides if getattr(slide, 'slug', None))
 
 
 def resolve_slide_slug(slide, ordinal, prefix, taken, where):
@@ -12968,7 +13107,9 @@ class Slide:
         self.kicker = None
         self.tags = None
         self.h2 = None
+        self.h2_present = False
         self.h1 = None
+        self.h1_present = False
         self.summary = None
         self.fact_label = None
         self.fact_content = None
@@ -12980,6 +13121,7 @@ class Slide:
         self.note = None  # Speaker note — parsed, not rendered; shown only in the presenter panel (key N)
         self.extra_content = None  # series-nav/full-article only: unrecognized lines (fatal)
         self.article_file = None  # For full-article
+        self.article_field_present = False
         self.raw_meta = {}  # Raw metadata
 
 
@@ -13084,21 +13226,22 @@ def parse_markdown_extended(md_text):
                     continue
                 comment_match = re.match(r'^comment:[ \t]*(.*)', stripped)
                 if comment_match:
-                    slide.comment = comment_match.group(1)
+                    slide.comment = strip_ws(comment_match.group(1)) or None
                     ml_field = 'comment'
                     continue
                 tags_match = re.match(r'^tags:[ \t]*(.*)', stripped)
                 if tags_match:
-                    slide.tags = tags_match.group(1)
+                    slide.tags = strip_ws(tags_match.group(1)) or None
                     continue
                 slug_match = re.match(r'^slug:[ \t]*(.*)', stripped)
                 if slug_match:
-                    slide.slug = slug_match.group(1)
+                    slide.slug = strip_ws(slug_match.group(1)) or None
                     continue
                 if slide.slide_type == 'full-article':
-                    article_match = re.match(r'^article:\s*(.+)$', stripped)
+                    article_match = re.match(r'^article:[ \t]*(.*)$', stripped)
                     if article_match:
-                        slide.article_file = article_match.group(1).strip()
+                        slide.article_field_present = True
+                        slide.article_file = strip_ws(article_match.group(1)) or None
                         continue
                 extra_lines.append(stripped)
             if extra_lines:
@@ -13143,7 +13286,7 @@ def parse_markdown_extended(md_text):
                 r'^(' + '|'.join(SLIDE_FIELD_NAMES) + r'):[ \t]*(.*)', stripped)
             if field_match and not in_content:
                 key = field_match.group(1)
-                value = field_match.group(2)
+                value = strip_ws(field_match.group(2)) or None
                 if key == 'slug':
                     slide.slug = value
                 elif key == 'kicker':
@@ -13179,12 +13322,17 @@ def parse_markdown_extended(md_text):
             # nothing ever reads. Parsing stays permissive about the type
             # token; validate_slides() is what refuses one that is not in
             # SLIDE_TYPES, so the message can name the slide's rank.
-            elif (slide.slide_type == 'cover' and stripped.startswith('# ')
-                  and not stripped.startswith('## ') and not in_content and slide.h1 is None):
-                slide.h1 = strip_ws(stripped[2:])
-            elif (slide.slide_type != 'cover' and stripped.startswith('## ')
-                  and not in_content and slide.h2 is None):
-                slide.h2 = strip_ws(stripped[3:])
+            elif (slide.slide_type == 'cover'
+                  and (stripped == '#' or stripped.startswith('# '))
+                  and not stripped.startswith('## ') and not in_content
+                  and not slide.h1_present):
+                slide.h1 = strip_ws(stripped[1:]) or None
+                slide.h1_present = True
+            elif (slide.slide_type != 'cover'
+                  and (stripped == '##' or stripped.startswith('## '))
+                  and not in_content and not slide.h2_present):
+                slide.h2 = strip_ws(stripped[2:]) or None
+                slide.h2_present = True
             else:
                 # This is content (the fact-box)
                 if stripped:
@@ -13200,6 +13348,13 @@ def parse_markdown_extended(md_text):
         slides.append(slide)
 
     return meta, slides, has_meta_block, content_before_meta
+
+
+def _is_incomplete_full_article(slide):
+    """True for an explicit, intentionally unfinished ``article:`` line."""
+    return (slide.slide_type == 'full-article'
+            and slide.article_field_present
+            and not slide.article_file)
 
 
 def _is_safe_relative_filename(value):
@@ -13341,6 +13496,8 @@ def _collect_article_slide_details(slides, filename, strict=True):
     seen = set()
     details = []
     for number, slide in enumerate(slides, 1):
+        if _is_incomplete_full_article(slide):
+            continue
         slide_tags = _canonical_tag_tokens(
             slide.tags, f'{filename}: slide {number}', field='tags',
             strict=strict)
@@ -13399,8 +13556,8 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
     - the file has no slides at all (§22.10)
     - a cover slide with content after its fields (it has no fact-box to
       put that content in, so it would otherwise vanish silently, §22.12)
-    - a full-article slide missing its required article: field (otherwise
-      the raw {FULL_ARTICLE_PLACEHOLDER:sN} leaks into the published HTML)
+    - a full-article slide missing its article: directive (otherwise the
+      source is incomplete and cannot be diagnosed as such)
     - more than one series-nav slide (§22.9)
 
     Several full-article slides are NOT refused. They used to be, and the
@@ -13496,6 +13653,11 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
 
         if slide.slide_type == 'full-article':
             if not slide.article_file:
+                if slide.article_field_present:
+                    log('warn', f'{filename}: slide {i} (full-article) has an '
+                        'empty article: field; the slide is omitted until it '
+                        'names a target .md file.')
+                    continue
                 log('error', f'{filename}: slide {i} is a full-article slide '
                       f'without an article: field.')
                 sys.exit(1)
@@ -13598,7 +13760,8 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
     view (the theme gallery's panels) names its own; a build passes what
     resolve_page_slide_ids worked out, because uniqueness is a property of
     the page and cannot be decided here."""
-    if 'excluded' in _slide_tag_set(slide):
+    if ('excluded' in _slide_tag_set(slide)
+            or _is_incomplete_full_article(slide)):
         return ''
     tags = slide.tags if isinstance(slide.tags, (list, tuple)) else sorted(_slide_tag_set(slide))
     data_tags = html_escape(' '.join(tags), quote=True)
@@ -14729,7 +14892,11 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # anchor, note scope, or slide number is created for it. Validate and
     # reserve every source card's slug first, because excluded cards still
     # obey the author's declared-identity contract.
-    visible_slides = [slide for slide in slides if 'excluded' not in slide.tags]
+    visible_slides = [
+        slide for slide in slides
+        if 'excluded' not in slide.tags
+        and not _is_incomplete_full_article(slide)
+    ]
     own_entry = next((entry for entry in _series_entries(series_data)
                       if entry.get('page_dest') == current_file), None)
     if not visible_slides and (own_entry is None
@@ -14752,7 +14919,8 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
         log('error', f'{source_path.name}: {exc}')
         sys.exit(1)
     identities = [identity for slide, identity in zip(slides, all_identities)
-                  if 'excluded' not in slide.tags]
+                  if ('excluded' not in slide.tags
+                      and not _is_incomplete_full_article(slide))]
 
     slide_htmls = []
 
@@ -16131,7 +16299,9 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
                 runtime_option = 'essential,' + runtime_option
         theme_runtime = build_theme_runtime(
             runtime_option, effective_theme, runtime_source,
-            catalog=theme_catalog)
+            catalog=theme_catalog,
+            settings_props=(style_context[0][-1] if style_context[0]
+                            else {}))
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
@@ -21259,6 +21429,52 @@ This is the full article for the third demo article [^1].
 
 
 # ============================================================================
+# SLIDE DRAFT CONTRACT
+# ============================================================================
+
+def cmd_slide_contract(series_dir, args):
+    """Print the versioned slide-draft contract for authoring clients."""
+    fmt = args.get('--format', 'json')
+    if fmt not in ('text', 'json'):
+        log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
+        sys.exit(1)
+
+    source_name = args.get('--article')
+    if source_name:
+        if not _is_safe_relative_filename(source_name):
+            log('error', f'--article: unsafe source filename {source_name!r}.')
+            sys.exit(1)
+        series_root = Path(series_dir).resolve()
+        sources_dir = Path(os.environ.get(
+            'LWP_SOURCES_DIR', str(series_root / 'sources')))
+        source_path = _resolve_contained(sources_dir, source_name)
+        if source_path is None or not source_path.is_file():
+            log('error', f'--article {source_name!r}: source file not found.')
+            sys.exit(1)
+        contract = slide_draft_contract_for_source(
+            read_text_file(source_path))
+    else:
+        contract = slide_draft_contract()
+
+    if fmt == 'json':
+        print(json.dumps(contract, indent=2, ensure_ascii=False))
+        return
+
+    print(f"{contract['schema']} (lightwebpres v{contract['lightwebpres_version']})")
+    print('Canonical order: ' + ', '.join(contract['canonical_order']))
+    print('Slug pattern: ' + contract['slug']['pattern'])
+    for slide_type in contract['types']:
+        maximum = slide_type['cardinality']['max']
+        count = 'any' if maximum is None else f'0 to {maximum}'
+        print(f"\n{slide_type['name']} ({count})")
+        print('  ' + slide_type['marker'])
+        print('  fields: ' + ', '.join(slide_type['field_order']))
+        print('  draft:')
+        print('\n'.join('    ' + line
+                        for line in slide_type['draft']['source'].rstrip('\n').split('\n')))
+
+
+# ============================================================================
 # CLI
 # ============================================================================
 
@@ -21405,6 +21621,9 @@ COMMANDS
     levels included. The shape of the name picks the cascade: dotted =
     theme property, snake_case = article field, kebab-case = slide
     field (see §11.12)
+  lightwebpres contract [directory] [--article file.md] [--format text|json]
+    Prints the versioned slide-draft contract and four engine-generated
+    draft sources (see §11.17)
   lightwebpres series theme set [directory] --theme name
     Changes an existing series' theme (see §11.10)
   lightwebpres theme gallery [path] [--all] [--output path]
@@ -21479,8 +21698,9 @@ OPTIONS
   --themes selectors|all
     build/verify/watch/theme vendor: include comma-separated slugs, facet selectors
     (background|bg, family|fam, background hue|bgh), essential, or every
-    theme in the effective catalogue. The effective theme in templates/settings.conf is always
-    included first, even when omitted here. Without this option, build uses
+    theme in the effective catalogue. The base theme in templates/settings.conf
+    is always included first; when settings has property pins, custom(<theme>)
+    is included before that raw base. Without this option, build uses
     the root series.json "themes" list when present. Built pages expose C
     for the picker and M for the global presenter menu.
   --no-essential-theme
@@ -21497,10 +21717,12 @@ OPTIONS
     a theme declares rather than the palette betraying it
   --article file.md
     resolve: the article whose levels to include — required for a
-    per-article field, additive for a theme property
+    per-article field, additive for a theme property; contract: scan this
+    source so generated draft slugs avoid its declared slugs
   --format text|json
-    theme show/series theme/status/series tags/series slug/resolve: output format (default:
-    text). JSON, not YAML: this tool is standard-library only
+    theme show/series theme/status/series tags/series slug/resolve/contract:
+    output format (default: text except contract, which defaults to json).
+    JSON, not YAML: this tool is standard-library only
   --tag name
     series tags: restrict the inventory to one canonical tag
   --gitlab-ci
@@ -21814,6 +22036,7 @@ _COMMAND_OPTIONS = {
     'series-info': {'--format'},
     'series-tags': {'--format', '--tag'},
     'resolve': {'--format', '--article'},
+    'slide-contract': {'--format', '--article'},
     'set-theme': {'--theme'},
     'series-slug': {'--format'},
     'assign-slug': set(),
@@ -21877,6 +22100,7 @@ _SHORTCUTS = {
     'resolve': 'resolve',
     'watch': 'watch',
     'completion': 'completion',
+    'contract': 'slide-contract',
 }
 # Two-word shortcuts: `template update` → refresh-templates. Parsed by
 # _resolve_command when the first token is `template` and the second is
@@ -21966,6 +22190,7 @@ _CANONICAL_NAME.update({
     'template-show': 'template show',
     'template-write': 'template write',
     'series-theme': 'series theme',
+    'slide-contract': 'contract',
     'completion': 'completion',
 })
 
@@ -21994,6 +22219,7 @@ _MAX_POSITIONAL = {
     'install': 1, 'demo': 1, 'build': 1, 'check': 1, 'audit': 1,
     'clean': 1, 'watch': 1, 'series-info': 1, 'series-theme': 1,
     'series-tags': 1,
+    'slide-contract': 1,
     'set-theme': 1, 'refresh-templates': 1,
     'series-slug': 1, 'assign-slug': 1,
     # `template show <file>` takes the file and nothing else -- it
@@ -22484,6 +22710,8 @@ def main():
         else:
             cmd_resolve(os.environ.get('LWP_SERIES_DIR', '.'),
                         positional[0], opts)
+    elif command == 'slide-contract':
+        cmd_slide_contract(target, opts)
     elif command == 'set-theme':
         cmd_set_theme(target, opts)
     elif command == 'series-slug':
