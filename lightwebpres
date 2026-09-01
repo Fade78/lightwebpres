@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.51.0"
+VERSION = "0.51.1"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -5226,8 +5226,9 @@ def parse_settings_text(text, source='settings.conf', catalog=None):
     """(theme_slug_or_None, {property: raw value}) from an author's settings
     file. `key: value` lines, `#` comments, nothing else — a file that looks
     like properties and silently accepted CSS would be the old surface back.
-    Errors name their line: the silent no-op is the failure mode this whole
-    format exists to kill."""
+    Empty values remove a known property pin; unknown keys remain in the layer
+    so resolution can report them. Errors name their line: the silent no-op is
+    the failure mode this whole format exists to kill."""
     theme = None
     props = {}
     for lineno, raw in enumerate(text.splitlines(), 1):
@@ -5248,6 +5249,10 @@ def parse_settings_text(text, source='settings.conf', catalog=None):
                     f'{source}:{lineno}: unknown theme {value!r}. '
                     f'Run `lightwebpres theme list` for the list.')
             theme = value
+        elif not value and key in PROPERTY_REGISTRY:
+            # An empty known property is an explicit unpin, not a malformed
+            # value. Keep unknown empty keys for the resolver's named error.
+            props.pop(key, None)
         else:
             props[key] = value
     return theme, props
@@ -5339,9 +5344,13 @@ def pinned_settings(text):
         if not source or (not in_retired and line.startswith('#')) or ':' not in source:
             continue
         key, value = source.split(':', 1)
-        key = key.strip()
+        key, value = key.strip(), value.strip()
         if key != 'theme':
-            pins[key] = value.strip()
+            if not value and key in PROPERTY_REGISTRY:
+                # Match parse_settings_text(): a blank known pin is absent.
+                pins.pop(key, None)
+                continue
+            pins[key] = value
     return pins
 
 

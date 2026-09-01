@@ -2651,6 +2651,11 @@ clé inconnue, une valeur mal typée, un renvoi cassé sont des erreurs de
 `build` qui nomment la clé (§9.2). Un `theme:` inconnu nomme la ligne et
 renvoie vers `lightwebpres theme list`.
 
+Une propriété connue suivie d'une valeur vide (`page.bg:`) est absente de
+la couche : elle annule un éventuel pin antérieur et laisse la valeur du
+thème s'appliquer. Une clé inconnue, même vide, reste une erreur nommée ;
+`theme:` doit toujours nommer un thème connu.
+
 **Le scaffold.** Le fichier est généré **une fois** (à l'init, §9.4.1)
 avec **toutes** les propriétés présentes, en commentaire, à la valeur du
 thème choisi — les renvois montrés comme des mots

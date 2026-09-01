@@ -2113,7 +2113,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Keyboard shortcuts</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.51.0</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.51.1</div>
   </div>
 </div>
 
@@ -2621,7 +2621,7 @@ style.page.content-max: 60ch
 # kicker.fg: ink-quiet      ← the scaffold, showing the theme's value
 kicker.fg: call             ← uncommented: yours, and it stays
   </code></pre>
-  <p>A bare word like <code>call</code> is looked up among the theme's shared values (<code>color.call</code>, since <code>fg</code> is a colour axis); a literal like <code>#8A4B00</code> works anywhere a colour does. A mistyped key or value is a named build error pointing at the file and key.</p>
+  <p>A bare word like <code>call</code> is looked up among the theme's shared values (<code>color.call</code>, since <code>fg</code> is a colour axis); a literal like <code>#8A4B00</code> works anywhere a colour does. A mistyped key or value is a named build error pointing at the file and key. An empty value on a known property, such as <code>page.bg:</code>, removes that pin and lets the selected theme provide the value; an unknown key is still an error.</p>
   <p>Three properties people look for by name: <strong><code>page.content-max</code></strong> is the text column width, <code>84vw</code> by default — proportional to the window, with no ceiling, so a deck shown full screen uses the screen. Every type size is proportional too — the kicker, the fact label, the key figure's caption and the slide number as much as the title — which is what keeps the line length steady and the proportions between them fixed as the screen grows. Each size has a floor in pixels, and the floor is what governs a phone. <strong><code>page.block-max</code></strong> is the width of the things that are not running text — a table, a code block, a figure — sized by what they hold rather than by a count of characters; it carries a floor as well as a ceiling — <code>min(84vw, max(1100px, 102vmin))</code> — so a table grows with the text inside it and still stops before the window edge. <strong><code>page.hyphens</code></strong> (<code>manual | auto</code>) controls whether words break at end of line; it is <code>manual</code>, and nothing turns it on for you.</p>
   <p>After a <code>series theme set</code>, <code>audit</code> will note that the scaffold's <em>comments</em> show the old theme's values; <code>template update --scaffold</code> realigns them while keeping every pinned line.</p>
   <h3>Rules rather than values (<code>templates/custom.css</code>)</h3>

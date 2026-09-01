@@ -8574,6 +8574,48 @@ class TemplateOverride(unittest.TestCase):
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('--color-mark: #123456FF;', html)
 
+    def test_an_empty_settings_pin_falls_back_to_the_theme(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: k153\nkicker: T\n'
+            '# Title\nsummary: Summary.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('init', str(root), '--theme', 'nord').returncode, 0)
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps({'articles': [
+                {'page_dest': 'a.html', 'page_source': 'a.md',
+                 'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
+            settings = root / 'templates' / 'settings.conf'
+            settings.write_text(settings.read_text(encoding='utf-8')
+                                + '\npage.bg:\n', encoding='utf-8')
+
+            result = run('build', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            lwp = load_lightwebpres_module()
+            expected = lwp.resolve_theme_properties(
+                lwp.theme_property_layer('nord'))['page.bg']
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn(f'--page-bg: {expected};', html)
+
+            audit = run('audit', str(root))
+            self.assertEqual(audit.returncode, 0, audit.stderr)
+            self.assertNotIn('page.bg:', audit.stdout + audit.stderr)
+
+    def test_empty_settings_pins_are_absent_but_unknown_empty_keys_still_fail(self):
+        lwp = load_lightwebpres_module()
+        theme, props = lwp.parse_settings_text(
+            'theme: nord\npage.bg: #123456\npage.bg:\n')
+        self.assertEqual(theme, 'nord')
+        self.assertNotIn('page.bg', props)
+
+        with self.assertRaises(lwp.PropertyError) as raised:
+            unknown = lwp.parse_settings_text('not.a.property:\n')[1]
+            lwp.resolve_theme_properties(unknown)
+        self.assertIn('not.a.property', str(raised.exception))
+
     def test_custom_nav_js_is_used(self):
         """templates/nav.js REPLACES the built-in engine, it does not join it.
 
@@ -8795,6 +8837,20 @@ class ScaffoldRegeneration(unittest.TestCase):
             self.assertEqual(run('build', tmp).returncode, 0)
             page = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('--kicker-fg: #B00020FF;', page)   # crimson's call
+
+    def test_an_empty_known_pin_is_not_kept_by_scaffold_regeneration(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run('init', tmp, '--theme', 'nord', '--force')
+            root = Path(tmp)
+            conf = root / 'templates' / 'settings.conf'
+            conf.write_text(conf.read_text(encoding='utf-8')
+                            + '\npage.bg:\n', encoding='utf-8')
+
+            result = run('template', 'update', tmp, '--scaffold')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            after = self._settings(root)
+            self.assertNotIn('\npage.bg: \n', after)
+            self.assertIn('\n# page.bg: ', after)
 
     def test_a_retired_pin_survives_repeated_regenerations(self):
         # The quiet-data-loss case: a pinned property a future version
@@ -12397,7 +12453,7 @@ class ExternalThemeCatalogue(unittest.TestCase):
             settings = root / 'templates' / 'settings.conf'
             settings.write_text(
                 settings.read_text(encoding='utf-8')
-                + 'color.page: #102030\nold.property: keep-me\n',
+                + 'color.page: #102030\npage.bg:\nold.property: keep-me\n',
                 encoding='utf-8')
 
             result = run('theme', 'migrate', str(root), env=env)
@@ -12407,6 +12463,7 @@ class ExternalThemeCatalogue(unittest.TestCase):
             self.assertIn('color.page: #102030', migrated)
             self.assertIn(self.lwp.SETTINGS_RETIRED_MARKER, migrated)
             self.assertIn('# old.property: keep-me', migrated)
+            self.assertNotIn('\npage.bg:', migrated)
             self.assertNotIn('\nold.property:', migrated)
 
     def test_vendor_makes_a_series_independent_of_the_user_catalogue(self):

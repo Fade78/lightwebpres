@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 7 · **à faire** 0 · **en cours** 1 · **terminé** 46 · **abandonné** 1 · **sans objet** 3
+**à étudier** 7 · **à faire** 0 · **en cours** 0 · **terminé** 47 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -110,10 +110,6 @@ gets its own entry and its own state**, however small.
 - **B35** — Reaching a verdict class without writing HTML
 - **B36** — The engine can halo 32 components; the catalogue haloes three
 - **B50** — Soft animation of cover colours
-
-### en cours
-
-- **B53** — Les pins de série forment une variante runtime distincte
 
 ### terminé
 
@@ -162,6 +158,7 @@ gets its own entry and its own state**, however small.
 - **B49** — La locale du navigateur choisit seulement l’interface
 - **B51** — L’inventaire rendu décide quelles images sont publiées
 - **B52** — Le défilement instantané a sa propre touche
+- **B53** — Les pins de série forment une variante runtime distincte
 - **B54** — Un contrat unique pour les brouillons de slides
 
 ### abandonné
@@ -2590,7 +2587,10 @@ l’action, avec le menu ouvert ou fermé.
 
 ## B53 — Les pins de série forment une variante runtime distincte
 
-**État :** en cours · **Depuis :** 2026-09-01
+**État :** terminé · **Depuis :** 2026-09-02 · **Version :** 0.51.0
+**Voir :** specifications.md §9.3.7 ; `lightwebpres` ;
+`tests/test_lightwebpres.py`, `tests/test_runtime_themes.py` et
+`tests/runtime_themes_e2e.cjs`
 
 `templates/settings.conf` names two different things for the runtime picker:
 the base catalogue theme and the properties the series deliberately pins over
@@ -2608,9 +2608,9 @@ to distinguish the resulting ordered catalogue. A series with no property pin
 keeps the existing base theme id; a series without `theme:` uses
 `custom(default)` when it has pins.
 
-**Ce qui reste à vérifier.** Unit, build/verify and real-browser coverage must
-prove the custom/raw ordering, replacement of a settings pin by a raw theme,
-restoration of the custom sheet, and persistence across article pages.
+**Ce qui est vérifié.** Unit, build/verify and real-browser coverage prove the
+custom/raw ordering, replacement of a settings pin by a raw theme, restoration
+of the custom sheet, and persistence across article pages.
 
 ## B54 — Un contrat unique pour les brouillons de slides
 

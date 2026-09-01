@@ -33,6 +33,12 @@ link to the originals. They are at
 
 ---
 
+## v0.51.1
+
+Empty values on recognized `settings.conf` properties now remove the pin and
+fall back to the selected theme. Unknown empty keys remain named errors, and
+scaffold regeneration no longer carries cleared pins forward.
+
 ## v0.51.0
 
 The theme catalogue help now distinguishes the embedded entries from the

@@ -534,7 +534,9 @@ kicker.fg: call             ← uncommented: yours, and it stays
 A bare word like `call` is looked up among the theme's shared values
 (`color.call`, since `fg` is a colour axis); a literal like `#8A4B00`
 works anywhere a colour does. A mistyped key or value is a named build
-error pointing at the file and key.
+error pointing at the file and key. An empty value on a known property,
+such as `page.bg:`, removes that pin and lets the selected theme provide
+the value; an unknown key is still an error.
 
 Three properties people look for by name: **`page.content-max`** is the
 text column width, `84vw` by default — proportional to the window, with
