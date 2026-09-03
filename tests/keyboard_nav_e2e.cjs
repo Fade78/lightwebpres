@@ -2,10 +2,11 @@
 // TEMPLATE_NAV_JS): the natural keyboard journey is slide-to-slide, then
 // — on the series-nav slide — card-to-card with Enter jumping to the
 // linked article, then, for a slide taller than the viewport (typically
-// a long full-article), scrolling it down in increments before moving
-// on, with a final overflowing slide staying at its bottom when there is
-// no next slide. Invoked by tests/test_keyboard_nav.py — not a standalone
-// entry point.
+// a long full-article), scrolling it down in bounded increments before
+// moving on, with a final overflowing slide staying at its bottom when
+// there is no next slide. A partially visible adjacent slide is aligned
+// before the next transition, in both directions. Invoked by
+// tests/test_keyboard_nav.py — not a standalone entry point.
 //
 // argv: <tallArticleUrl> <lastArticleUrl> <navArticleUrl> <heldArticleUrl>
 
@@ -41,6 +42,20 @@ async function activeElementInfo(page) {
 async function press(page, key) {
   await page.keyboard.press(key);
   await page.waitForTimeout(200);
+}
+
+async function exposeFollowingSlide(page) {
+  return page.evaluate(() => {
+    const slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    const following = slides[2];
+    const followingTop = following.getBoundingClientRect().top + window.scrollY;
+    // Put the following slide's top above the viewport midpoint, but leave
+    // it visibly below the viewport top. This is the exact state in which
+    // midpoint-based current-slide detection used to count it as complete.
+    const targetY = Math.max(0, followingTop - window.innerHeight * 0.4);
+    window.scrollTo({ top: targetY, behavior: 'instant' });
+    return { followingTop, targetY };
+  });
 }
 
 async function main() {
@@ -100,6 +115,176 @@ async function main() {
     }
     if (!reachedSlide2) fail('never advanced to slide 2 after repeatedly pressing ArrowDown through the tall slide');
     else console.log('tall-slide eventually advances to the next slide OK');
+
+    // A following slide can become the midpoint-visible slide before its
+    // top reaches the viewport top. Advancing from that partial view must
+    // first align it, not skip to slide 3. Exercise keyboard, content click,
+    // and the visible next button because all are forward-entry points.
+    await page.goto(tallArticleUrl);
+    await page.waitForSelector('.nav-dots a');
+    await press(page, 'ArrowDown');
+    await page.waitForTimeout(600);
+    let partial = await exposeFollowingSlide(page);
+    await page.waitForTimeout(200);
+    let partialState = await page.evaluate(() => {
+      const following = document.querySelectorAll('.slide')[2].getBoundingClientRect();
+      return {
+        active: Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'))
+          .findIndex((d) => d.classList.contains('active')),
+        top: following.top,
+      };
+    });
+    if (partialState.top <= 1 || partialState.top >= 800) {
+      fail('partial-slide setup did not leave the following slide visible below the top (top ' + partialState.top + ')');
+    }
+    await press(page, 'ArrowDown');
+    await page.waitForTimeout(600);
+    idx = await activeDotIndex(page);
+    let alignedY = await page.evaluate(() => window.scrollY);
+    if (idx !== 2) fail('ArrowDown on a partially visible slide skipped to slide ' + idx + ' instead of aligning slide 2');
+    if (Math.abs(alignedY - partial.followingTop) > 2) {
+      fail('ArrowDown on a partially visible slide did not align its top (expected ' + partial.followingTop + ', got ' + alignedY + ')');
+    }
+
+    await page.goto(tallArticleUrl);
+    await page.waitForSelector('.nav-dots a');
+    await press(page, 'ArrowDown');
+    await page.waitForTimeout(600);
+    partial = await exposeFollowingSlide(page);
+    await page.waitForTimeout(200);
+    await page.mouse.click(500, 100);
+    await page.waitForTimeout(600);
+    idx = await activeDotIndex(page);
+    alignedY = await page.evaluate(() => window.scrollY);
+    if (idx !== 2) fail('left click on a partially visible slide skipped to slide ' + idx + ' instead of aligning slide 2');
+    if (Math.abs(alignedY - partial.followingTop) > 2) {
+      fail('left click on a partially visible slide did not align its top (expected ' + partial.followingTop + ', got ' + alignedY + ')');
+    }
+
+    await page.goto(tallArticleUrl);
+    await page.waitForSelector('.nav-dots a');
+    await press(page, 'ArrowDown');
+    await page.waitForTimeout(600);
+    partial = await exposeFollowingSlide(page);
+    await page.waitForTimeout(200);
+    await page.locator('#navNext').click();
+    await page.waitForTimeout(600);
+    idx = await activeDotIndex(page);
+    alignedY = await page.evaluate(() => window.scrollY);
+    if (idx !== 2) fail('next button on a partially visible slide skipped to slide ' + idx + ' instead of aligning slide 2');
+    if (Math.abs(alignedY - partial.followingTop) > 2) {
+      fail('next button on a partially visible slide did not align its top (expected ' + partial.followingTop + ', got ' + alignedY + ')');
+    }
+    console.log('partially visible following slide aligns before advancing OK');
+
+    // The same boundary must hold in the other direction: the last upward
+    // movement inside the tall slide must stop at its top, without exposing
+    // the previous slide. Only the following ArrowUp may leave the slide.
+    await page.goto(tallArticleUrl);
+    await page.waitForSelector('.nav-dots a');
+    await press(page, 'ArrowDown');
+    await page.waitForTimeout(600);
+    const tallBounds = await page.evaluate(() => {
+      const tall = document.querySelectorAll('.slide')[1];
+      const scrollY = window.scrollY;
+      const rect = tall.getBoundingClientRect();
+      const top = rect.top + scrollY;
+      const bottom = rect.bottom + scrollY;
+      window.scrollTo({ top: bottom - window.innerHeight, behavior: 'instant' });
+      return { top, bottom };
+    });
+    await page.waitForTimeout(200);
+    let reachedTallTop = false;
+    for (let i = 0; i < 10; i++) {
+      await press(page, 'ArrowUp');
+      await page.waitForTimeout(300);
+      const upwardState = await page.evaluate(() => {
+        const slides = document.querySelectorAll('.slide');
+        const previous = slides[0].getBoundingClientRect();
+        const tall = slides[1].getBoundingClientRect();
+        return {
+          active: Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'))
+            .findIndex((d) => d.classList.contains('active')),
+          previousBottom: previous.bottom,
+          tallTop: tall.top,
+        };
+      });
+      if (upwardState.active !== 1) {
+        fail('ArrowUp left the tall slide before its top was aligned (active slide ' + upwardState.active + ')');
+        break;
+      }
+      if (upwardState.previousBottom > 1) {
+        fail('ArrowUp exposed the previous slide before the tall slide reached its top (previous bottom ' + upwardState.previousBottom + ')');
+        break;
+      }
+      if (upwardState.tallTop >= -1) {
+        reachedTallTop = true;
+        break;
+      }
+    }
+    if (!reachedTallTop) {
+      fail('ArrowUp never reached the top of the tall slide without exposing the previous slide');
+    } else {
+      await press(page, 'ArrowUp');
+      await page.waitForTimeout(600);
+      idx = await activeDotIndex(page);
+      if (idx !== 0) fail('ArrowUp after the tall slide reached its top should move to the previous slide, got ' + idx);
+      else console.log('tall-slide upward boundary stays inside before moving back OK');
+    }
+
+    await page.keyboard.press('End');
+    await page.waitForTimeout(300);
+    idx = await activeDotIndex(page);
+    if (idx !== 3) fail('End should jump to the last slide, got ' + idx);
+    await page.keyboard.press('Control+Home');
+    await page.waitForTimeout(300);
+    idx = await activeDotIndex(page);
+    if (idx !== 0) fail('Control+Home should jump to the first slide, got ' + idx);
+    await page.keyboard.press('Control+End');
+    await page.waitForTimeout(300);
+    idx = await activeDotIndex(page);
+    if (idx !== 3) fail('Control+End should jump to the last slide, got ' + idx);
+    console.log('keyboard edge shortcuts OK: End / Control+Home / Control+End');
+
+    await page.keyboard.press('Shift+=');
+    await page.waitForTimeout(100);
+    let pageZoom = await page.evaluate(() => document.documentElement.style.zoom);
+    if (pageZoom !== '1.1') fail('plus should increase page zoom to 1.1, got ' + pageZoom);
+    await page.keyboard.press('-');
+    await page.waitForTimeout(100);
+    pageZoom = await page.evaluate(() => document.documentElement.style.zoom);
+    if (pageZoom !== '1') fail('minus should reduce page zoom to 1, got ' + pageZoom);
+    await page.keyboard.press('Shift+=');
+    await page.keyboard.press('=');
+    await page.waitForTimeout(100);
+    pageZoom = await page.evaluate(() => document.documentElement.style.zoom);
+    if (pageZoom !== '1') fail('equals should reset page zoom to 1, got ' + pageZoom);
+    console.log('page zoom shortcuts OK: + / - / =');
+    await page.close();
+
+    // The index uses the same edge shortcuts, with article cards as its
+    // journey rather than slides.
+    page = await context.newPage();
+    collectConsoleErrors(page, consoleErrors);
+    page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
+    await page.goto(new URL('index.html', navArticleUrl).href);
+    await page.waitForSelector('.article-card');
+    await press(page, 'End');
+    let indexEdge = await page.evaluate(() => ({
+      href: document.activeElement.getAttribute('href'),
+      scrollY: window.scrollY,
+    }));
+    if (!indexEdge.href || indexEdge.href === 'index.html') {
+      fail('End on the index should focus the last article card, got ' + JSON.stringify(indexEdge));
+    }
+    await press(page, 'Control+Home');
+    indexEdge = await page.evaluate(() => ({
+      tag: document.activeElement.tagName,
+      scrollY: window.scrollY,
+    }));
+    if (indexEdge.scrollY > 2) fail('Control+Home on the index should return to the top, got scrollY ' + indexEdge.scrollY);
+    if (indexEdge.tag === 'A') fail('Control+Home on the index should clear the card focus');
+    console.log('index edge shortcuts OK: End focuses the last card, Control+Home returns to top');
     await page.close();
 
     // --- 2. A tall full-article that is the LAST slide stays at its

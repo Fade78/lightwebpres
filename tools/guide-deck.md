@@ -53,7 +53,7 @@ highlight-caption: slide types — cover, standard, series-nav, full-article
 
 fact-label: What is in a standard slide
 
-A fact box, a key figure, a source line, a comparison table, a figure. Each is reached by a named field or by ordinary Markdown; none of them needs CSS.
+A fact box, a key figure, a source line, a comparison table, a figure. Each is reached by a named field or by ordinary Markdown; none of them needs CSS. A figure can use `{50%}` for general image zoom or `{width=50% align=right}` for the extended display format.
 
 An editor that needs the grammar can call `lightwebpres contract`: the
 versioned response lists the four types, their fields, cardinalities, empty

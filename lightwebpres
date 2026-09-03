@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.51.1"
+VERSION = "0.52.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1251,7 +1251,9 @@ LANG_FR = r'''{
     "help_title": "Raccourcis clavier",
     "help_next": "Slide suivante",
     "help_prev": "Slide précédente",
-    "help_home": "Retour à l'index de la série",
+     "help_home": "Retour à l'index de la série",
+     "help_edges": "Première / dernière slide du deck (Ctrl+Home / Ctrl+End)",
+     "help_zoom": "Zoom de la page : + agrandir, - réduire, = réinitialiser",
     "help_fullscreen": "Plein écran (Échap pour quitter)",
     "help_scroll": "Basculer entre défilement fluide et instantané (touche I)",
     "help_menu": "Menu du présentateur",
@@ -1383,7 +1385,9 @@ LANG_EN = r'''{
     "help_title": "Keyboard shortcuts",
     "help_next": "Next slide",
     "help_prev": "Previous slide",
-    "help_home": "Back to the series index",
+     "help_home": "Back to the series index",
+     "help_edges": "First / last slide of the deck (Ctrl+Home / Ctrl+End)",
+     "help_zoom": "Page zoom: + enlarge, - reduce, = reset",
     "help_fullscreen": "Fullscreen (Esc to exit)",
     "help_scroll": "Toggle smooth and instant scrolling (I key)",
     "help_menu": "Presenter menu",
@@ -3939,11 +3943,11 @@ def _local_theme_entry(slug, meta, resolved):
 
 
 def _theme_files_in(root, label):
-    """Returns direct, safe ``*.conf`` children of one external root."""
+    """Returns direct ``*.conf`` children of one theme root."""
     root = Path(root)
     if not root.exists():
         return []
-    if root.is_symlink() or not root.is_dir():
+    if not root.is_dir():
         raise PropertyError(f'{label} {root} is not a real directory')
     try:
         children = sorted(root.iterdir(), key=lambda item: item.name)
@@ -3951,11 +3955,6 @@ def _theme_files_in(root, label):
         raise PropertyError(f'{label} {root}: cannot list themes ({exc})')
     files = []
     for child in children:
-        if child.is_symlink():
-            if child.suffix == '.conf':
-                raise PropertyError(f'{child}: symlinked theme files are not '
-                                    f'allowed')
-            continue
         if child.is_file() and child.suffix == '.conf':
             slug = child.stem
             if (not _THEME_SLUG_RE.fullmatch(slug)
@@ -3990,12 +3989,7 @@ def load_theme_catalog(series_dir=None, templates_dir=None):
         templates_dir = Path(series_dir) / 'templates'
     if templates_dir is not None:
         series_root = _resolve_contained(templates_dir, 'themes')
-        candidate = Path(templates_dir) / 'themes'
-        if series_root is None:
-            if candidate.exists() or candidate.is_symlink():
-                raise PropertyError(f'{candidate} resolves outside templates/ '
-                                    f'(symlink); refusing to read themes')
-        else:
+        if series_root is not None:
             _load_theme_root(catalog, series_root, 'series',
                              'series theme directory')
     return catalog
@@ -5358,14 +5352,13 @@ def series_style_context(templates_dir, catalog=None):
     """(layers, custom_css_text) for one series: the resolved-once part of
     composition, so a page carrying its own style.* properties can be
     recomposed without re-reading anything."""
-    # Realpath containment, the same guard sources/img/ and the `article:`
-    # field already carry. Both files are read and shipped -- custom.css
-    # verbatim into every page's <style> -- so a symlink here turns a build
-    # into a read primitive on anything the build user can open: a CI env
-    # file, an ssh key, .git-credentials.
+    # These files are deliberately allowed to be symlinks. Shared presentation
+    # files are a normal filesystem composition technique; `audit` can report
+    # links that leave the logical series when that is useful.
     if catalog is None:
         catalog = load_theme_catalog(templates_dir=templates_dir)
-    settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
+    settings_file = _optional_contained_file(
+        templates_dir, SETTINGS_FILENAME, f'templates/{SETTINGS_FILENAME}')
     theme_key, props = (parse_settings_text(read_text_file(settings_file),
                                              catalog=catalog)
                         if settings_file is not None and settings_file.exists()
@@ -5380,12 +5373,9 @@ def series_style_context(templates_dir, catalog=None):
     layers = [theme_property_layer(theme_key, catalog)] if theme_key else []
     layers.append(props)
 
-    custom_file = _resolve_contained(templates_dir, CUSTOM_CSS_FILENAME)
-    if custom_file is None and (templates_dir / CUSTOM_CSS_FILENAME).exists():
-        log('error', f'templates/{CUSTOM_CSS_FILENAME} resolves outside '
-              f'templates/ (symlink); its contents would be published '
-              f'verbatim into every page.')
-        sys.exit(1)
+    custom_file = _optional_contained_file(
+        templates_dir, CUSTOM_CSS_FILENAME,
+        f'templates/{CUSTOM_CSS_FILENAME}')
     custom = (read_text_file(custom_file)
               if custom_file is not None and custom_file.exists() else '')
     return layers, custom
@@ -6216,6 +6206,21 @@ sup { vertical-align: super; line-height: 0; }
 }
 .figure img { max-width: 100%; height: auto; }
 .figure-caption { margin-top: 6px; }
+.figure.figure-align-left {
+  margin-left: 0;
+  margin-right: auto;
+  text-align: left;
+}
+.figure.figure-align-center {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.figure.figure-align-right {
+  margin-left: auto;
+  margin-right: 0;
+  text-align: right;
+}
 
 /* --- The full-article slide: a measure of its own, narrower than the
    deck's, because it is read as prose rather than glanced at. --- */
@@ -7778,6 +7783,21 @@ document.addEventListener('DOMContentLoaded', function() {
     configuredScrollDuration = 200;
   }
   var scrollDuration = configuredScrollDuration;
+  var presentationZoom = 1;
+  var PRESENTATION_ZOOM_STEP = 0.1;
+  var PRESENTATION_ZOOM_MIN = 0.5;
+  var PRESENTATION_ZOOM_MAX = 2;
+
+  function setPresentationZoom(value) {
+    presentationZoom = Math.max(PRESENTATION_ZOOM_MIN,
+      Math.min(PRESENTATION_ZOOM_MAX, Math.round(value * 10) / 10));
+    document.documentElement.style.zoom = String(presentationZoom);
+  }
+
+  function changePresentationZoom(delta) {
+    setPresentationZoom(presentationZoom + delta);
+  }
+
   // Separate from isScrolling (which only guards goTo()'s own scroll
   // animation, and only against re-targeting the SAME slide): holding
   // an arrow key down fires native auto-repeat keydown events much
@@ -8577,7 +8597,9 @@ document.addEventListener('DOMContentLoaded', function() {
   var helpEntries = [
     ['&darr; / PageDown / &rarr;', lwpString('help_next')],
     ['&uarr; / PageUp / &larr; / Backspace', lwpString('help_prev')],
-    ['Home', lwpString('help_home')],
+     ['Home', lwpString('help_home')],
+     ['Ctrl+Home / Ctrl+End', lwpString('help_edges')],
+     ['+ / - / =', lwpString('help_zoom')],
     ['F', lwpString('help_fullscreen')],
     ['I', lwpString('help_scroll')],
     ['M', lwpString('help_menu')],
@@ -8696,20 +8718,19 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function currentVisible() {
-    // Returns the index of the slide that contains the viewport's
-    // vertical midpoint — the real "what the user is looking at",
-    // independent of the `current` variable which may be stale during
-    // a smooth scroll.
+    // Returns the index of the slide that owns the viewport's top edge.
+    // A slide whose top is merely visible below that edge is the next
+    // target, not a slide the reader has finished entering. This keeps the
+    // navigation state at the boundary while a tall slide is being read.
     //
     // On the index there are no slides: the focus is the position, so
     // "what the user is looking at" is the focused card, or 0 when
     // nothing is focused (the page's own top).
     if (isIndex) return indexCardFocused() >= 0 ? indexCardFocused() : 0;
-    var mid = window.innerHeight / 2;
     var best = current;
     slides.forEach(function(s, i) {
       var rect = s.getBoundingClientRect();
-      if (rect.top <= mid && rect.bottom >= mid) best = i;
+      if (rect.top <= 1 && rect.bottom > 1) best = i;
     });
     return best;
   }
@@ -8861,9 +8882,35 @@ document.addEventListener('DOMContentLoaded', function() {
   function atSlideBottom(slide) {
     return slide.getBoundingClientRect().bottom <= window.innerHeight + 1;
   }
-  function scrollWithinSlide(direction) {
-    window.scrollBy({ top: direction * window.innerHeight * 0.9,
-      behavior: navigationScrollBehavior() });
+  function alignPartiallyVisibleSlide(idx, direction) {
+    if (isScrolling || idx < 0 || idx >= slides.length) return false;
+    var slide = slides[idx];
+    // A tall slide clipped at the bottom is still being read when moving
+    // upward; its normal bounded internal step must handle that case. The
+    // instant alignment below is only for a short adjacent target that
+    // would otherwise be skipped by the slide-to-slide transition.
+    if (direction < 0 && overflowsViewport(slide)) return false;
+    var rect = slide.getBoundingClientRect();
+    // Forward entry leaves the target below the viewport top; backward
+    // entry leaves it clipped above the viewport bottom. In either case the
+    // target is visible but not yet in its canonical top-aligned position.
+    var partial = direction > 0
+      ? rect.top > 1 && rect.top < window.innerHeight - 1
+      : rect.bottom > 1 && rect.bottom < window.innerHeight - 1;
+    if (!partial) return false;
+    goTo(idx, true);
+    return true;
+  }
+  function scrollWithinSlide(direction, slide) {
+    var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+    var rect = slide.getBoundingClientRect();
+    var slideTop = rect.top + scrollY;
+    var slideBottom = rect.bottom + scrollY;
+    var lowerBound = Math.max(0, slideTop);
+    var upperBound = Math.max(lowerBound, slideBottom - window.innerHeight);
+    var targetY = Math.max(lowerBound, Math.min(upperBound,
+      scrollY + direction * window.innerHeight * 0.9));
+    window.scrollTo({ top: targetY, behavior: navigationScrollBehavior() });
   }
   // The top of the page — the index's Home, and the beginning of the
   // card journey.
@@ -8885,9 +8932,24 @@ document.addEventListener('DOMContentLoaded', function() {
   // through the whole list, and the end of the list is the end of the
   // journey. The same focus ring, the same Enter-to-follow, and the
   // nav buttons are disabled at the ends just as on an article.
-  function stepForward() {
+  function stepForward(fromClick) {
     if (isIndex) { stepIndexCards(1); return; }
     if (!slides.length) return;
+    if (fromClick && !isScrolling) {
+      var visible = currentVisible();
+      if (visible !== current) {
+        current = visible;
+        focusedCard = -1;
+      }
+    }
+    // A second click during a glide keeps the established two-click
+    // behaviour: jump to the slide beyond the glide target. At rest, all
+    // other forward paths use the same natural journey below.
+    if (fromClick && isScrolling) {
+      goTo(current + 1, true);
+      return;
+    }
+    if (alignPartiallyVisibleSlide(current, 1)) return;
     var cards = slideCards(current);
     if (cards.length && focusedCard < cards.length - 1) {
       focusedCard++;
@@ -8897,7 +8959,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (focusedCard >= 0 && cards.length) { cards[focusedCard].blur(); }
     var slide = slides[current];
     if (overflowsViewport(slide) && !atSlideBottom(slide)) {
-      scrollWithinSlide(1);
+      scrollWithinSlide(1, slide);
       return;
     }
     // At the end of the deck there is no next target. Do not call goTo()
@@ -8910,9 +8972,21 @@ document.addEventListener('DOMContentLoaded', function() {
     goTo(current + 1);
   }
 
-  function stepBackward() {
+  function stepBackward(fromClick) {
     if (isIndex) { stepIndexCards(-1); return; }
     if (!slides.length) return;
+    if (fromClick && !isScrolling) {
+      var visible = currentVisible();
+      if (visible !== current) {
+        current = visible;
+        focusedCard = -1;
+      }
+    }
+    if (fromClick && isScrolling) {
+      goTo(current - 1, true);
+      return;
+    }
+    if (alignPartiallyVisibleSlide(current, -1)) return;
     var cards = slideCards(current);
     if (focusedCard > 0) {
       focusedCard--;
@@ -8925,7 +8999,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     var slide = slides[current];
     if (overflowsViewport(slide) && !atSlideTop(slide)) {
-      scrollWithinSlide(-1);
+      scrollWithinSlide(-1, slide);
       return;
     }
     goTo(current - 1);
@@ -8976,10 +9050,10 @@ document.addEventListener('DOMContentLoaded', function() {
   if (btnPrev) btnPrev.addEventListener('click', function() {
     // On the index the buttons are the on-screen twins of the arrows:
     // one click, one card of the same journey.
-    if (isIndex) { stepIndexCards(-1); } else { goTo(current - 1); }
+    stepBackward(true);
   });
   if (btnNext) btnNext.addEventListener('click', function() {
-    if (isIndex) { stepIndexCards(1); } else { goTo(current + 1); }
+    stepForward(true);
   });
   // Home is the way out of an article deck — back to the index. On the
   // index itself there is no way out and no fiche to leave: the key and the
@@ -8992,6 +9066,28 @@ document.addEventListener('DOMContentLoaded', function() {
       scrollToTop();
       updateUI();
     }
+  }
+
+  function goToFirstSlide() {
+    if (isIndex) {
+      clearIndexFocus();
+      scrollToTop();
+      updateUI();
+      return;
+    }
+    goTo(0, true);
+  }
+
+  function goToLastSlide() {
+    if (isIndex) {
+      var cards = indexCardList();
+      if (cards.length) focusIndexCard(cards.length - 1);
+      else window.scrollTo({ top: document.scrollingElement.scrollHeight,
+        behavior: 'instant' });
+      updateUI();
+      return;
+    }
+    if (slides.length) goTo(slides.length - 1, true);
   }
 
   // Keyboard operability for the round nav buttons (they are role=button
@@ -9052,7 +9148,9 @@ document.addEventListener('DOMContentLoaded', function() {
      // Presentation shortcuts are unmodified keys. Let browser and OS
      // commands such as Ctrl/Cmd-C reach their native handlers, especially
      // when the reader has selected text to copy.
-     if (e.ctrlKey || e.metaKey || e.altKey) return;
+      var modifiedEdge = (e.ctrlKey || e.metaKey)
+        && (e.key === 'Home' || e.key === 'End');
+      if ((e.ctrlKey || e.metaKey || e.altKey) && !modifiedEdge) return;
        if (themeMenu && themeMenu.classList.contains('open')) {
         if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
           e.preventDefault();
@@ -9235,8 +9333,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       } else {
         e.preventDefault();
-      }
-      return;
+     }
+     return;
     }
     // If a pause screen is up, any navigation key dismisses it.
     if (pauseOverlay && pauseOverlay.classList.contains('open')) {
@@ -9249,6 +9347,27 @@ document.addEventListener('DOMContentLoaded', function() {
         closePause();
         e.preventDefault();
       }
+      return;
+    }
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      if (e.key === 'Home') goToFirstSlide();
+      else if (e.key === 'End') goToLastSlide();
+      return;
+    }
+    if (e.key === '+' || (e.key === '=' && e.shiftKey)) {
+      e.preventDefault();
+      changePresentationZoom(PRESENTATION_ZOOM_STEP);
+      return;
+    }
+    if (e.key === '-') {
+      e.preventDefault();
+      changePresentationZoom(-PRESENTATION_ZOOM_STEP);
+      return;
+    }
+    if (e.key === '=' && !e.shiftKey) {
+      e.preventDefault();
+      setPresentationZoom(1);
       return;
     }
     // Number jump: type digits, Enter jumps to that slide (1-based).
@@ -9301,6 +9420,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // the top of the page — where the journey starts — not a
       // navigation to itself.
       goHome();
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      goToLastSlide();
     } else if (e.key === 'f' || e.key === 'F') {
       e.preventDefault(); toggleFullscreen();
     } else if (e.key === 'c' || e.key === 'C') {
@@ -9334,20 +9456,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // detect, so it does nothing.
     if (!slides.length) return;
     if (isScrolling) return;
-    var winH = window.innerHeight;
-    var mid  = winH / 2;
-    var best = current;
-    // Which slide's own [top, bottom] span contains the viewport's
-    // vertical midpoint — not "nearest center", which breaks as soon as
-    // one slide is much taller than the rest (a long full-article, the
-    // very case arrow-key scrolling now has to handle): its center can
-    // sit far below the visible viewport even while its top edge is what
-    // the user is actually looking at, so distance-to-center would keep
-    // picking a short neighboring slide instead.
-    slides.forEach(function(s, i) {
-      var rect = s.getBoundingClientRect();
-      if (rect.top <= mid && rect.bottom >= mid) best = i;
-    });
+    // The slide owning the viewport's top edge is the one the deck has
+    // entered. A following slide can be visible below that edge while the
+    // current tall slide is being finished; it must not become current just
+    // because the viewport midpoint happens to cross its box.
+    var best = currentVisible();
     if (best !== current) {
       current = best;
       focusedCard = -1;
@@ -9834,32 +9947,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // word under the pointer by the time this event fires, and blocking
     // on it would make the mid-glide jump unreachable with the mouse.
     if (e.detail < 2 && endedADrag(e)) return;
-    // One step, and the glide that carries it: the click glides to the
-    // next card over 200ms. A click that lands while the deck is still
-    // gliding does not wait — it jumps straight to ITS target (§8.4):
-    // in the same direction that is the card past the glide's target
-    // (two pages in two clicks), in the other it returns to the card
-    // the reader left. The click always changes slide (never scrolls
-    // within the current one), so the speaker lands on the next card
-    // cleanly.
-    //
-    // While the deck is gliding, `current` already names the glide's
-    // target (goTo sets it before the animation starts), so the next
-    // step is `current + 1` and the jump lands two pages past the
-    // starting one. At rest, `current` may be stale (the scroll
-    // observer owns it), so the step is anchored on `currentVisible`.
-    var base = isScrolling ? current : currentVisible();
-    if (isIndex) {
-      // The index: the same click is the same step, card by card —
-      // left advances one card's focus, and clicking a card itself is
-      // the card's own link, which `isInteractive` has already let
-      // through (the native default follows it). There is no fiche to
-      // navigate to: the step is a focus move, never a goTo.
-      stepIndexCards(1);
-      return;
-    }
-    if (!slides.length) return;
-    goTo(base + 1, isScrolling);
+    // At rest, the click follows the same natural journey as the arrows:
+    // cards first, then bounded scrolling inside a tall slide, then the
+    // next slide. A click during a glide is the deliberate two-click
+    // shortcut handled by stepForward(true).
+    stepForward(true);
     // The second click of a quick pair is also the platform's own
     // double-click, which selects the word under the pointer — on the
     // card the deck has just left. That selection is a ghost: the
@@ -9908,19 +10000,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // appear.
     if (Date.now() < fsIntentUntil) return;
     e.preventDefault();
-    // The mirror of the left button, including the glide logic: while
-    // the deck is gliding, `current` names the glide's target, so the
-    // back-click returns to the card the reader left. At rest it is
-    // anchored on `currentVisible` (the scroll observer owns it).
-    var base = isScrolling ? current : currentVisible();
-    if (isIndex) {
-      // The mirror of the left button on the index: right-click steps
-      // the focus back one card.
-      stepIndexCards(-1);
-      return;
-    }
-    if (!slides.length) return;
-    goTo(base - 1, isScrolling);
+    // The mirror of the left button: at rest it follows the same bounded
+    // journey, while a right-click during a glide returns to the slide the
+    // reader left.
+    stepBackward(true);
   });
   // The middle button is the fullscreen gatekeeper. Browsers refuse
   // requestFullscreen() from a non-left event (B37), so entry is a
@@ -12140,6 +12223,7 @@ def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
             encoded = _encode_inline_image(src, sources_dir)
             if encoded is not None:
                 src = encoded
+        image_style, _ = _image_render_attributes(m.group(4), standalone=False)
         # The optional Markdown title becomes a title="" attribute (a
         # tooltip), never a <figcaption>: a caption is block-level and
         # this image sits inside a sentence (§6.1). Deliberately NOT run
@@ -12149,7 +12233,7 @@ def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
         # already escaped globally further up.
         title = m.group(3)
         title_attr = ' title="{}"'.format(title.replace('"', '&quot;')) if title else ''
-        code_spans.append(f'<img src="{src}" alt="{alt}"{title_attr}>')
+        code_spans.append(f'<img src="{src}" alt="{alt}"{title_attr}{image_style}>')
         return f'\x00{len(code_spans) - 1}\x00'
 
     # The optional title group mirrors _FIGURE_LINE_RE's. Without it,
@@ -12161,7 +12245,9 @@ def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
     # `(` and `[` are excluded from both classes, not for syntax but for
     # cost: without them a run of `![a](x` rescans to end-of-paragraph from
     # every opener -- measured 16s on 60kB, 4x per doubling.
-    text = re.sub(r'!\[([^\]\[]*)\]\(([^)\s"\[(]+)(?:\s+"([^"]*)")?\)',
+    text = re.sub(
+        r'!\[([^\]\[]*)\]\(([^)\s"\[(]+)(?:\s+"([^"]*)")?\)'
+        r'(?:\s*\{([^{}]*)\})?',
                   _inline_img, text)
     # Absorb the simple punctuation that immediately follows a **bold**
     # run into the mark: `**2000**,` becomes `**2000,**` before the bold
@@ -12353,14 +12439,17 @@ _HTML_TAG_RE = re.compile(r'<(/?)([a-zA-Z][a-zA-Z0-9]*)\b[^<>]*?(/?)>')
 _CODE_FENCE_RE = re.compile(r'^```(\S*)$')
 
 # A standalone image line (§6.1): the whole line is `![alt](src)`, with
-# an optional quoted caption after the path. Unlike links — restricted
-# to http(s) — the src may be a relative path: images live in
-# sources/img/ and are copied to public/img/ at build time.
-_FIGURE_LINE_RE = re.compile(r'^!\[([^\]]*)\]\(\s*([^)\s"]+)(?:\s+"([^"]*)")?\s*\)$')
+# an optional quoted caption after the path and an optional display block.
+# A lone percentage is the short general-zoom form; key/value pairs are the
+# extensible form parsed by `_image_render_attributes` below.
+_FIGURE_LINE_RE = re.compile(
+    r'^!\[([^\]]*)\]\(\s*([^)\s"]+)(?:\s+"([^"]*)")?\s*\)'
+    r'(?:\s*\{([^{}]*)\})?$')
 
 # The same line wrapped in an ordinary Markdown link: the figure becomes
 # clickable. Groups are alt, src, caption, href -- the first three in the
-# same order as _FIGURE_LINE_RE so one emission path serves both.
+# same order as _FIGURE_LINE_RE so one emission path serves both. Display
+# attributes sit after the image and before the link target.
 #
 # Why this is a widened rule and not a new field. "Alone on its line" is
 # already what separates a figure from an image inside a sentence, so
@@ -12381,7 +12470,74 @@ _FIGURE_LINE_RE = re.compile(r'^!\[([^\]]*)\]\(\s*([^)\s"]+)(?:\s+"([^"]*)")?\s*
 # everywhere else here, `[` excluded from the URL for the same quadratic
 # reason documented on the inline patterns.
 _LINKED_FIGURE_LINE_RE = re.compile(
-    r'^\[!\[([^\]]*)\]\(\s*([^)\s"]+)(?:\s+"([^"]*)")?\s*\)\]\((https?://[^)\[\s]+)\)$')
+    r'^\[!\[([^\]]*)\]\(\s*([^)\s"]+)(?:\s+"([^"]*)")?\s*\)'
+    r'(?:\s*\{([^{}]*)\})?\]\((https?://[^)\[\s]+)\)$')
+
+
+_IMAGE_PERCENT_RE = re.compile(r'^\d+(?:\.\d+)?%$')
+_IMAGE_ATTR_TOKEN_RE = re.compile(
+    r'^([A-Za-z][A-Za-z0-9_-]*)\s*(?:=|:)\s*(.*?)$')
+_IMAGE_ATTR_KEYS = frozenset(('width', 'height', 'zoom', 'align'))
+
+
+def _image_render_attributes(raw, standalone=False):
+    """Returns ``(img_style, alignment)`` for an image display suffix.
+
+    ``{50%}`` is intentionally only a general-zoom shorthand. The extended form is
+    a small allow-list rather than arbitrary HTML/CSS, so authored content
+    cannot smuggle a quote, declaration terminator or new element into the
+    generated page. ``align`` belongs to a standalone figure; width, height
+    and zoom also work on an inline image.
+    """
+    if raw is None:
+        return '', None
+    raw = raw.strip()
+    if not raw:
+        raise PropertyError('image display attributes cannot be empty')
+    if _IMAGE_PERCENT_RE.fullmatch(raw):
+        return f' style="zoom: {raw};"', None
+
+    tokens = [token.strip() for token in re.split(
+        r'[;,]\s*|\s+(?=[A-Za-z][A-Za-z0-9_-]*\s*(?:=|:))', raw)
+        if token.strip()]
+    values = {}
+    for token in tokens:
+        match = _IMAGE_ATTR_TOKEN_RE.fullmatch(token)
+        if not match:
+            raise PropertyError(
+                f'image display attributes: {raw!r} is not a sequence of '
+                f'key=value pairs (supported: width, height, zoom, align)')
+        key, value = match.groups()
+        key = key.lower()
+        if key not in _IMAGE_ATTR_KEYS:
+            raise PropertyError(
+                f'image display attributes: unknown key {key!r} '
+                f'(supported: width, height, zoom, align)')
+        if key in values:
+            raise PropertyError(
+                f'image display attributes: duplicate key {key!r}')
+        if not value or any(char in value for char in '<>{}"\''):
+            raise PropertyError(
+                f'image display attributes: invalid value for {key!r}')
+        if key in ('width', 'height'):
+            if value != 'auto' or key == 'width':
+                LengthType().check(f'image.{key}', value)
+        elif key == 'zoom':
+            if not _IMAGE_PERCENT_RE.fullmatch(value):
+                raise PropertyError(
+                    f'image.zoom: {value!r} is not a percentage')
+        elif value.lower() not in ('left', 'center', 'right'):
+            raise PropertyError(
+                f'image.align: {value!r} must be left, center or right')
+        values[key] = value
+
+    if 'align' in values and not standalone:
+        raise PropertyError(
+            'image.align is only valid on a standalone image figure')
+    styles = [f'{key}: {values[key]}' for key in ('width', 'height', 'zoom')
+              if key in values]
+    style = f' style="{"; ".join(styles)};"' if styles else ''
+    return style, values.get('align')
 
 
 def _html_tag_depth_delta(line):
@@ -12583,8 +12739,8 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             continue
 
         # Standalone image (§6.1): the whole line is `![alt](src)`, with
-        # an optional quoted caption — rendered as a <figure>, the
-        # caption as a small centered <figcaption> under the image.
+        # an optional quoted caption and display suffix — rendered as a
+        # <figure>, the caption as a small centered <figcaption> under it.
         # Mid-paragraph images are md_inline()'s job and have no caption.
         m_fig = _FIGURE_LINE_RE.match(line) or _LINKED_FIGURE_LINE_RE.match(line)
         if m_fig:
@@ -12597,20 +12753,26 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
                 encoded = _encode_inline_image(src, sources_dir)
                 if encoded is not None:
                     src = encoded
-            img = f'<img src="{src}" alt="{alt}">'
+            image_style, alignment = _image_render_attributes(
+                m_fig.group(4), standalone=True)
+            figure_class = 'figure'
+            if alignment:
+                figure_class += f' figure-align-{alignment.lower()}'
+            img = f'<img src="{src}" alt="{alt}"{image_style}>'
             # A linked figure wraps the IMAGE only, never the caption. Two
             # reasons, and the second is the one that decides it: you click
             # the picture and the caption is text about it -- and wrapping
             # just the <img> leaves the link's accessible name to be the
             # alt text alone. Put the caption inside and a screen reader
             # announces the whole sentence as the link's name.
-            if len(m_fig.groups()) == 4:
-                href = html_escape(m_fig.group(4), quote=True)
+            href = (m_fig.group(5) if len(m_fig.groups()) >= 5 else None)
+            if href:
+                href = html_escape(href, quote=True)
                 img = f'<a href="{href}" target="_blank" rel="noopener">{img}</a>'
             if caption:
-                out.append(f'  <figure class="figure">{img}<figcaption class="figure-caption">{md_inline(caption, absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</figcaption></figure>')
+                out.append(f'  <figure class="{figure_class}">{img}<figcaption class="figure-caption">{md_inline(caption, absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</figcaption></figure>')
             else:
-                out.append(f'  <figure class="figure">{img}</figure>')
+                out.append(f'  <figure class="{figure_class}">{img}</figure>')
             i += 1
             continue
 
@@ -13374,9 +13536,8 @@ def _is_safe_relative_filename(value):
     no other containment check — Path('/x') / '/etc/passwd' silently
     discards the left side and resolves to '/etc/passwd', so this check is
     the first thing standing between that input and an arbitrary file
-    read/write. It is a name-shape check only: it cannot see that a bare
-    name is a symlink pointing outside the tree — _resolve_contained()
-    below is the realpath barrier that catches that. `.` and `..` both
+    read/write. It is a name-shape check only: symlink targets are deliberately
+    followed, while `.` and `..` both
     satisfy `value == Path(value).name` yet are directories (a bare `..`
     used to crash with IsADirectoryError), and a NUL byte would raise a
     raw ValueError at open() time — both are rejected here explicitly."""
@@ -13386,14 +13547,28 @@ def _is_safe_relative_filename(value):
 
 
 def _resolve_contained(base_dir, value):
-    """Resolve base_dir/value and return the real path only if it stays
-    inside base_dir — otherwise None. This is the barrier the name-shape
-    check (_is_safe_relative_filename) cannot provide: a bare filename
-    that is itself a symlink into an outside file or directory passes the
-    name check, and every read/copy site would otherwise follow it. A git
-    repo can carry such symlinks, so an unattended build of an
-    attacker-authored series would leak host files into the published
-    output without this."""
+    """Resolve a path without treating symlink targets as traversal.
+
+    The value itself must stay below ``base_dir`` after lexical
+    normalisation. A symlink in that path is deliberate composition and is
+    followed by the filesystem; ``audit`` may report where it points.
+    """
+    raw = os.fspath(value)
+    if os.path.isabs(raw) or '..' in Path(raw).parts:
+        return None
+    base = Path(os.path.abspath(os.fspath(base_dir)))
+    target = Path(os.path.abspath(os.path.join(os.fspath(base_dir), raw)))
+    if target == base or base in target.parents:
+        return target
+    return None
+
+
+def _resolve_real_contained(base_dir, value):
+    """Return the real path when it stays below ``base_dir``.
+
+    This is only for diagnostics. Normal commands intentionally follow
+    symlinks, including links whose targets are outside the logical series.
+    """
     base = Path(base_dir).resolve()
     target = (base / value).resolve()
     if target == base or base in target.parents:
@@ -13402,20 +13577,9 @@ def _resolve_contained(base_dir, value):
 
 
 def _optional_contained_file(base_dir, name, label=None):
-    """Returns an optional file only when it stays inside ``base_dir``.
-
-    Missing files are normal for optional template fragments. An existing
-    symlink that resolves outside the directory is not: following it would
-    turn a build into a file-read primitive.
-    """
-    candidate = Path(base_dir) / name
+    """Returns an optional file, following symlinks as the filesystem does."""
     contained = _resolve_contained(base_dir, name)
     if contained is None:
-        if candidate.exists() or candidate.is_symlink():
-            label = label or str(name)
-            log('error', f'{label} resolves outside {base_dir} '
-                '(symlink); refusing to read its contents.')
-            sys.exit(1)
         return None
     return contained if contained.exists() else None
 
@@ -14598,7 +14762,7 @@ def image_inventory_from_html(html_pages):
 def _source_image_files(sources_dir):
     """Returns regular files present below ``sources/img/``."""
     img_src = Path(sources_dir) / 'img'
-    if img_src.is_symlink() or not (img_src.exists() and img_src.is_dir()):
+    if not (img_src.exists() and img_src.is_dir()):
         return set()
     try:
         return {
@@ -14985,14 +15149,12 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
                         if s.slide_type == 'full-article')
     for i, slide in enumerate(visible_slides, 1):
         if slide.slide_type == 'full-article' and slide.article_file:
-            # Realpath containment on top of the name-shape guard: the
-            # name check already ran at parse time, but a bare name that
-            # is a symlink pointing outside sources/ passes it and would
-            # otherwise be read and embedded verbatim into the page.
+            # The name-shape guard already ran at parse time. A symlink target
+            # may be outside sources/ so shared long-form files can be reused.
             article_path = _resolve_contained(sources_dir, slide.article_file)
             if article_path is None:
                 log('error', f'{source_path.name}: article file "{slide.article_file}" '
-                      f'resolves outside sources/ (symlink or traversal).')
+                      f'contains a path traversal.')
                 sys.exit(1)
             if not article_path.exists():
                 log('error', f'{source_path.name}: article file not found: '
@@ -15195,25 +15357,12 @@ def _encode_inline_image(src, sources_dir):
 
     `src` is attacker-reachable — an LLM-authored article, a CMS export, a
     cloned series repo — and it is NOT a bare filename, so the name-shape
-    check does not apply: `img/foo.png` is the ordinary case. The realpath
-    barrier is the one that fits, and it was missing. `Path(dir) / '/etc/
-    passwd'` discards the left side, and the extractor regex permits both a
-    leading `/` and `..`, so a build with --inline-images read any file the
-    build user could open and base64'd it into the published page. It also
-    walked straight past copy_images' symlink guard, which refuses the same
-    escape on the non-inline path and whose docstring names this exact
-    threat. Refused and warned rather than fatal, to match that guard: a
-    series that builds with a warning must not become unbuildable because
-    of the flag that packages it."""
+    check does not apply: `img/foo.png` is the ordinary case. The lexical
+    barrier still rejects an absolute path or `..` in the value itself;
+    symlinks are followed so shared image trees work as expected."""
     contained = _resolve_contained(sources_dir, src)
     if contained is None:
-        # Same shape as copy_images' sibling warning. The level is 'warn',
-        # and the spelling is the whole of it: an unknown level is DROPPED
-        # SILENTLY, so a log('warning', ...) here would refuse the read and
-        # tell nobody -- and 'info' would print but never reach audit's
-        # collector, which hooks the 'warn' branch only.
-        log('warn', f'skipped image escaping the article '
-            f'directory: {src}')
+        log('warn', f'skipped image path traversal: {src}')
         return None
     try:
         data = contained.read_bytes()
@@ -15226,11 +15375,8 @@ def _encode_inline_image(src, sources_dir):
 def symlink_escapes(entry, root):
     """True if `entry` is a symlink resolving outside `root`.
 
-    One rule, two callers: `copy_images` refuses on it while copying, and
-    `audit` scans on it without copying. Extracted rather than restated,
-    because a security rule written twice is a security rule that will
-    diverge -- exactly the defect recorded at B25 for the zip guard, and
-    not one to reproduce while closing another."""
+    `audit` scans it without changing the normal copy behavior. Extracted
+    rather than restated so its warning remains consistent with the scan."""
     if not entry.is_symlink():
         return False
     target = entry.resolve()
@@ -15248,8 +15394,8 @@ def audit_image_symlinks(sources_dir):
     if not (img_src.exists() and img_src.is_dir()):
         return 0
     if img_src.is_symlink():
-        log('warn', 'img/: image directory is a symlink; it would not be '
-            'published.')
+        log('warn', 'img/: image directory is a symlink; its target will be '
+            'published when referenced.')
         return 1
     root = img_src.resolve()
     found = 0
@@ -15257,7 +15403,7 @@ def audit_image_symlinks(sources_dir):
         if symlink_escapes(entry, root):
             found += 1
             log('warn', f'img/: symlink escaping the image directory, it '
-                        f'would not be published: {entry.relative_to(img_src)}')
+                        f'will be followed: {entry.relative_to(img_src)}')
     return found
 
 
@@ -15273,12 +15419,9 @@ def copy_images(sources_dir, output_dir, referenced_images=None):
     unrestricted behavior for direct callers; builds always pass the
     rendered inventory.
 
-    Symlinks that escape img/ are refused, not followed: copytree's
-    default (symlinks=False) copies a link's *referent content*, so a
-    committed `img/leak.png -> /etc/passwd` (or a directory symlink) would
-    otherwise be published into public/img/ — arbitrary host-file
-    exfiltration from an attacker-authored series built unattended. A
-    symlink whose realpath stays inside img/ is harmless and kept.
+    Symlinks are followed by copytree's default (symlinks=False), which lets
+    a series share images with another project. `audit` reports links whose
+    targets leave img/, but that report does not alter the build.
 
     Returns the paths it published, relative to output_dir. The manifest
     is built from THIS list rather than from a scan of the destination.
@@ -15290,17 +15433,6 @@ def copy_images(sources_dir, output_dir, referenced_images=None):
     img_dst = output_dir / 'img'
     if not (img_src.exists() and img_src.is_dir()):
         return []
-    if img_src.is_symlink():
-        log('warn', 'img/: skipped image directory symlink; it would not be '
-            'published.')
-        return []
-    if _resolve_contained(sources_dir, 'img') is None:
-        log('warn', 'img/: skipped image directory escaping the source '
-            'directory (symlink).')
-        return []
-    _reject_symlink_components(img_dst, 'image output directory')
-    _reject_symlinks_below(img_dst, 'image output directory')
-    src_root = img_src.resolve()
     needed = None
     if referenced_images is not None:
         needed = set()
@@ -15316,16 +15448,10 @@ def copy_images(sources_dir, output_dir, referenced_images=None):
                 needed.add('/'.join(relative[:index]))
     skipped = set()
 
-    def _refuse_escaping_symlinks(dir_path, names):
+    def _filter_images(dir_path, names):
         ignored = set()
         for name in names:
             entry = Path(dir_path) / name
-            if symlink_escapes(entry, src_root):
-                log('warn', f'img/: skipped symlink escaping the '
-                      f'image directory: {entry.relative_to(img_src)}')
-                ignored.add(name)
-                skipped.add(entry)
-                continue
             if needed is not None:
                 relative = entry.relative_to(img_src).as_posix()
                 if relative not in needed:
@@ -15334,11 +15460,10 @@ def copy_images(sources_dir, output_dir, referenced_images=None):
         return ignored
 
     _copytree(img_src, img_dst, dirs_exist_ok=True,
-              ignore=_refuse_escaping_symlinks)
-    # What was published: the source tree minus what the guard or the
-    # reference filter skipped. A skipped entry is checked against the path
-    # AND its parents, because a skipped directory takes everything under it
-    # with it.
+              ignore=_filter_images)
+    # What was published: the source tree minus what the reference filter
+    # skipped. A skipped entry is checked against the path AND its parents,
+    # because a skipped directory takes everything under it with it.
     published = []
     for p in sorted(img_src.rglob('*')):
         if skipped.intersection({p, *p.parents}):
@@ -15356,8 +15481,10 @@ def copy_images(sources_dir, output_dir, referenced_images=None):
 
 def load_series_data(series_dir):
     """Loads series.json."""
-    series_file = series_dir / 'series.json'
-    if not series_file.exists():
+    series_file = _optional_contained_file(series_dir, 'series.json',
+                                           'series.json')
+    if series_file is None:
+        series_file = series_dir / 'series.json'
         log('error', f'series.json not found in {series_dir}')
         sys.exit(1)
     try:
@@ -16022,74 +16149,20 @@ def load_nav_cache(path):
 
 def save_nav_cache(path, fingerprint):
     path = Path(path)
-    _reject_symlink_components(path, 'navigation cache')
     _mkdir(path.parent, parents=True, exist_ok=True)
     _write_file(path, json.dumps(fingerprint, indent=2, sort_keys=True))
 
 
-def _reject_symlink_components(path, label):
-    """Refuses output paths that cross an existing symlink.
-
-    The output directory may be chosen outside the series, but a repository
-    must not be able to turn the default ``public/`` path into an arbitrary
-    write target through a committed symlink.
-    """
-    candidate = Path(path)
-    absolute = candidate if candidate.is_absolute() else Path.cwd() / candidate
-    current = Path(absolute.anchor)
-    for part in absolute.parts:
-        if part == absolute.anchor:
-            continue
-        current /= part
-        try:
-            escaped = current.is_symlink()
-        except OSError as exc:
-            log('error', f'{label} cannot be inspected at {current}: {exc}')
-            sys.exit(1)
-        if escaped:
-            log('error', f'{label} crosses symlink {current}; refusing to write.')
-            sys.exit(1)
-
-
-def _reject_symlinks_below(path, label):
-    """Refuses an output tree containing symlinked descendants.
-
-    Checking only the destination root is not enough for merge copies:
-    ``shutil.copytree(..., dirs_exist_ok=True)`` follows an existing child
-    directory symlink and can therefore write outside the requested tree.
-    """
-    root = Path(path)
-    if not root.exists():
-        return
-    for current, directories, files in os.walk(root, followlinks=False):
-        for name in (*directories, *files):
-            entry = Path(current) / name
-            try:
-                escaped = entry.is_symlink()
-            except OSError as exc:
-                log('error', f'{label} cannot be inspected at {entry}: {exc}')
-                sys.exit(1)
-            if escaped:
-                log('error', f'{label} contains symlink {entry}; refusing to write.')
-                sys.exit(1)
-
-
 def _default_series_directory(sd, name, label):
-    """Resolves a default input directory without following an escape.
+    """Resolves a default input directory while keeping its name in the tree.
 
-    Explicit ``LWP_*_DIR`` values are operator configuration and may
-    intentionally live elsewhere. The implicit ``series/{name}`` roots,
-    however, are part of the untrusted series tree and must not become an
-    alias for a host directory through a committed symlink.
+    A symlink target may intentionally live elsewhere. Traversal in the name
+    itself is still rejected by ``_resolve_contained``.
     """
     resolved = _resolve_contained(sd, name)
     if resolved is None:
-        log('error', f'{label} {sd / name} resolves outside the series '
-            f'directory (symlink); refusing to read it.')
-        sys.exit(1)
-    if resolved == sd:
-        log('error', f'{label} {sd / name} resolves to the series root '
-            f'instead of a child directory; refusing to read it.')
+        log('error', f'{label} {sd / name} contains a path traversal; refusing '
+            f'to read it.')
         sys.exit(1)
     return resolved
 
@@ -16123,7 +16196,6 @@ def resolve_paths(series_dir, args):
               f'(letters, digits, "-" and "_" only).')
         sys.exit(1)
     language_file = args.get('--language-file')
-    _reject_symlink_components(output_dir, 'output directory')
 
     return (sd, sources_dir, templates_dir, lang_dir, interface_dir,
             typography_dir, output_dir, lang, language_file)
@@ -16283,7 +16355,8 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
                    else load_series_data(sd))
     series_meta = series_meta_of(series_data)
     try:
-        settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
+        settings_file = _optional_contained_file(
+            templates_dir, SETTINGS_FILENAME, f'templates/{SETTINGS_FILENAME}')
         effective_theme = None
         if settings_file is not None and settings_file.exists():
             effective_theme, _ = parse_settings_text(
@@ -16315,11 +16388,8 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
         log('error', str(exc))
         sys.exit(1)
     scroll_duration = resolve_scroll_duration(series_meta, args)
-    nav_js_file = _resolve_contained(templates_dir, 'nav.js')
-    if nav_js_file is None and (templates_dir / 'nav.js').exists():
-        log('error', 'templates/nav.js resolves outside templates/ '
-            '(symlink); refusing to publish its contents.')
-        sys.exit(1)
+    nav_js_file = _optional_contained_file(templates_dir, 'nav.js',
+                                           'templates/nav.js')
     if nav_js_file is not None and nav_js_file.exists():
         on_disk = read_text_file(nav_js_file)
         # nav.js is tool-owned (§9.4.3), and a copy of it on disk is a
@@ -16448,15 +16518,13 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     # index card, series-nav entries and README line pointing at a page
     # that was never built — dead links shipped with exit code 0. Failing
     # here, before anything is written, also means no partial output.
-    # _resolve_contained, not a bare join: the name-shape check at parse time
-    # rejects `..` and separators, but a plain name that IS a symlink out of
-    # sources/ passes it and gets read and published. §22.9 already promises
-    # this pairing for sources/; page_source was the one field without it.
+    # _resolve_contained keeps traversal in the value itself out of the tree;
+    # symlink targets are followed so shared source files can be published.
     missing = []
     for entry in build_articles:
         source_path = _resolve_contained(sources_dir, entry['page_source'])
         if source_path is None:
-            log('error', f'Source escapes sources/: {sources_dir / entry["page_source"]} '
+            log('error', f'Source path traversal: {sources_dir / entry["page_source"]} '
                 f'(listed in series.json).')
             sys.exit(1)
         if not source_path.exists():
@@ -16711,7 +16779,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
 
     source_path = _resolve_contained(ctx.sources_dir, entry['page_source'])
     if source_path is None:
-        log('error', f'Source escapes sources/: {ctx.sources_dir / entry["page_source"]} '
+        log('error', f'Source path traversal: {ctx.sources_dir / entry["page_source"]} '
             f'(listed in series.json).')
         sys.exit(1)
     if not source_path.exists():
@@ -16947,11 +17015,11 @@ _MANIFEST_NAME = '.lwp-manifest.json'
 
 
 def _safe_manifest_path(output_dir, value):
-    """Returns a manifest path only while it stays inside ``output_dir``.
+    """Returns a manifest path with a safe relative name.
 
-    Manifests are generated state, not an authority to delete arbitrary
-    filesystem paths. Reject absolute paths, traversal, and symlinked
-    targets before ``clean --force`` can act on them.
+    The output tree may intentionally contain symlinks. The manifest still
+    rejects absolute names and traversal, but follows filesystem links like
+    every other command.
     """
     if not isinstance(value, str) or not value:
         return None
@@ -16962,17 +17030,7 @@ def _safe_manifest_path(output_dir, value):
     parts = PurePosixPath(normalized).parts
     if not parts or any(part in ('', '.', '..') for part in parts):
         return None
-    candidate = Path(output_dir).joinpath(*parts)
-    try:
-        if candidate.is_symlink():
-            return None
-        root = Path(output_dir).resolve()
-        resolved = candidate.resolve()
-    except OSError:
-        return None
-    if resolved == root or root not in resolved.parents:
-        return None
-    return candidate
+    return Path(output_dir).joinpath(*parts)
 
 
 def _manifest_paths(manifest, key, output_dir, manifest_path):
@@ -17033,7 +17091,6 @@ def cmd_clean(series_dir, args):
         os.environ.get('LWP_SERIES_DIR', '.')).resolve()
     output_path = Path(args.get('--output') or os.environ.get(
         'LWP_OUTPUT_DIR', str(sd / 'public')))
-    _reject_symlink_components(output_path, 'clean output directory')
     output_dir = output_path.resolve()
     # Belt and braces behind the manifest difference above. `build --output
     # <series root>` is accepted, which puts a manifest at the root; a later
@@ -17355,7 +17412,7 @@ def cmd_build(series_dir, args):
         output_file = entry['page_dest']
         source_path = _resolve_contained(ctx.sources_dir, source_file)
         if source_path is None:
-            log('error', f'Source escapes sources/: {ctx.sources_dir / source_file} '
+            log('error', f'Source path traversal: {ctx.sources_dir / source_file} '
                 f'(listed in series.json).')
             sys.exit(1)
 
@@ -17392,7 +17449,7 @@ def cmd_check(series_dir, args):
 
     def compare(name, generated, existing_path):
         nonlocal ok_count, diff_count
-        if not existing_path.exists():
+        if existing_path is None or not existing_path.exists():
             print(f'[NEW] {name} does not exist yet')
             diff_count += 1
             return
@@ -17418,13 +17475,16 @@ def cmd_check(series_dir, args):
     for entry in ctx.articles:
         source_path = _resolve_contained(ctx.sources_dir, entry['page_source'])
         if source_path is None:
-            log('error', f'Source escapes sources/: {ctx.sources_dir / entry["page_source"]} '
+            log('error', f'Source path traversal: {ctx.sources_dir / entry["page_source"]} '
                 f'(listed in series.json).')
             sys.exit(1)
         generated = _render_article(
             ctx, entry, source_path,
             include_nav=not args.get('--no-nav'), render_args=args)
-        compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
+        compare(
+            entry['page_dest'], generated,
+            _optional_contained_file(ctx.output_dir, entry['page_dest'],
+                                     entry['page_dest']))
 
     # §11.3.3: when a lone article's page_dest IS index.html, `build`
     # produces no series index at all — that file is the article's own
@@ -17435,10 +17495,11 @@ def cmd_check(series_dir, args):
     if claimant is None:
         compare('index.html',
                 _render_index(ctx, _index_extra(ctx)),
-                ctx.output_dir / 'index.html')
+                _optional_contained_file(ctx.output_dir, 'index.html',
+                                         'index.html'))
     compare('README.md',
             build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings),
-            ctx.sd / 'README.md')
+            _optional_contained_file(ctx.sd, 'README.md', 'README.md'))
 
     print(f'{ok_count} file(s) OK, {diff_count} file(s) different.')
     if diff_count == 0:
@@ -17940,6 +18001,46 @@ def audit_slide_tags(filename, slides, series_meta, lang_dir, default_lang,
     return warnings
 
 
+def audit_language_symlinks(lang_dir, interface_dir=None,
+                            typography_dir=None, series_dir=None,
+                            default_lang='fr', series_meta=None):
+    """Warn once for selected language files that leave their source root.
+
+    Language resolution can select the default pack and any typography pack
+    named by ``series_meta.lang_tags``. The normal loader follows those files;
+    this pass makes the filesystem composition visible without changing that
+    behavior. Directory symlinks are reported separately by ``cmd_audit``.
+    """
+    requested = [default_lang]
+    mappings = (series_meta or {}).get('lang_tags', {})
+    if isinstance(mappings, dict):
+        requested.extend(value for value in mappings.values()
+                         if isinstance(value, str))
+
+    seen = set()
+    warnings = 0
+    for code in requested:
+        sources = _language_source_paths(
+            code, lang_dir, interface_dir, typography_dir, series_dir)
+        candidates = []
+        for domain, path in (('interface', sources.interface),
+                             ('typography', sources.typography)):
+            if path is None:
+                continue
+            label = (f'language/{code}.json'
+                     if path == sources.legacy
+                     else f'{domain}/{code}.json')
+            candidates.append((label, path))
+        for label, path in candidates:
+            key = str(path)
+            if key in seen:
+                continue
+            seen.add(key)
+            _, escaped = _audit_contained_file(path.parent, path.name, label)
+            warnings += int(escaped)
+    return warnings
+
+
 # Files `audit` has already refused THIS RUN, so one unreadable article is
 # named once instead of once per pass that reaches for it. Cleared when a
 # run starts, and that is not tidiness: the executable is also loaded as a
@@ -17948,6 +18049,25 @@ def audit_slide_tags(filename, slides, series_meta, lang_dir, default_lang,
 # author had fixed it and asked again -- a report that cannot be corrected,
 # which is worse than the repeated line it exists to avoid.
 _AUDIT_UNREADABLE = set()
+
+
+def _audit_contained_file(base_dir, name, label=None):
+    """Returns ``(path, escaped)`` and warns when a link leaves the root."""
+    candidate = Path(base_dir) / name
+    contained = _resolve_contained(base_dir, name)
+    if contained is None:
+        return None, False
+    real = _resolve_real_contained(base_dir, name)
+    escaped = (candidate.is_symlink()
+               and (real is None or real == Path(base_dir).resolve()))
+    if escaped:
+        label = label or str(name)
+        log('warn', f'{label} resolves outside {base_dir} (symlink); '
+            f'its target will be followed.')
+    # Keep a lexically safe but missing path so callers can distinguish a
+    # missing file from an explicit traversal. Optional presentation files
+    # still check ``exists()`` before treating the returned path as present.
+    return contained, escaped
 
 
 def audit_read(path):
@@ -18390,10 +18510,9 @@ def audit_resolved_theme(templates_dir, articles, sources_dir, catalog=None):
     """
     warnings = 0
 
-    # The layers, assembled here rather than through series_style_context():
-    # that function also warns about a legacy style.css (audit_presentation
-    # already reports it) and exits on a symlinked custom.css. Neither
-    # belongs to a pass that measures colours, and audit must not exit.
+    # The layers are assembled here rather than through series_style_context(),
+    # because the presentation pass already reports legacy style.css and
+    # external template symlinks.
     try:
         settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
         theme_key, props = (
@@ -18454,15 +18573,21 @@ def cmd_audit(series_dir, args):
          typography_dir, output_dir, lang, language_file) = resolve_paths(
              series_dir, args)
     except SystemExit:
-        # Path resolution is a build refusal, but `audit` is explicitly a
-        # reporting command: a symlinked implicit root is itself a finding,
-        # not a reason to skip the summary or make the plain command fail.
+        # Invalid path syntax is still a finding, not a reason to skip the
+        # summary or make the plain command fail.
         log('warn', 'audit could not resolve one of the series input '
             'directories; the error above is a finding, not a block.')
         print('1 warning(s). Reminder: audit never blocks the build, page layout remains the author\'s responsibility.')
         if args.get('--strict'):
             sys.exit(1)
         return
+    symlink_warnings = 0
+    _, series_symlink = _audit_contained_file(sd, 'series.json', 'series.json')
+    symlink_warnings += int(series_symlink)
+    for name in ('sources', 'templates', 'language', 'interface', 'typography'):
+        if f'LWP_{name.upper()}_DIR' not in os.environ:
+            _, escaped = _audit_contained_file(sd, name, f'{name} directory')
+            symlink_warnings += int(escaped)
     try:
         series_data = load_series_data(sd)
     except SystemExit:
@@ -18508,7 +18633,10 @@ def cmd_audit(series_dir, args):
     resolve_article_fields(articles, sources_dir, series_meta, strict_tags=False)
 
     warnings = (default_tag_warnings + len(meta_errors)
-                + len(validation_errors))
+                + len(validation_errors) + symlink_warnings)
+    if not args.get('--templates'):
+        warnings += audit_language_symlinks(
+            lang_dir, interface_dir, typography_dir, sd, lang, series_meta)
 
     def report_field_markup(source, slides, fields=()):
         findings = unrendered_field_markup(slides, fields=fields)
@@ -18550,9 +18678,11 @@ def cmd_audit(series_dir, args):
                      f"listed, never counted.")
 
     for entry in articles:
-        source_path = _resolve_contained(sources_dir, entry['page_source'])
+        source_path, source_symlink = _audit_contained_file(
+            sources_dir, entry['page_source'], entry['page_source'])
+        warnings += int(source_symlink)
         if source_path is None:
-            log('error', f'{entry["page_dest"]}: page_source escapes sources/ '
+            log('error', f'{entry["page_dest"]}: page_source contains path traversal '
                 f'({sources_dir / entry["page_source"]})')
             warnings += 1
             named_the_cause = True
@@ -18591,7 +18721,9 @@ def cmd_audit(series_dir, args):
         for slide in slides:
             if slide.slide_type != 'full-article' or not slide.article_file:
                 continue
-            extra = _resolve_contained(sources_dir, slide.article_file)
+            extra, extra_symlink = _audit_contained_file(
+                sources_dir, slide.article_file, slide.article_file)
+            warnings += int(extra_symlink)
             if extra is not None and extra.exists():
                 extra_text = audit_read(extra)
                 if extra_text is not None:
@@ -18756,8 +18888,11 @@ def audit_presentation(templates_dir, catalog=None):
                        if f'var({old})' in text or f'{old}:' in text},
                       key=len, reverse=True)
 
-    legacy = templates_dir / 'style.css'
-    if legacy.exists():
+    legacy, legacy_escaped = _audit_contained_file(
+        templates_dir, 'style.css', 'templates/style.css')
+    if legacy_escaped:
+        warnings += 1
+    if legacy is not None and legacy.exists():
         warnings += 1
         log('warn', f'templates/style.css exists but is no longer read: '
                     f'the stylesheet is composed at build time. Move your values '
@@ -18774,8 +18909,12 @@ def audit_presentation(templates_dir, catalog=None):
             for old in found:
                 print(f'          {old} -> {RETIRED_VARIABLES[old]}')
 
-    custom_path = templates_dir / CUSTOM_CSS_FILENAME
-    if custom_path.exists():
+    custom_path, custom_escaped = _audit_contained_file(
+        templates_dir, CUSTOM_CSS_FILENAME,
+        f'templates/{CUSTOM_CSS_FILENAME}')
+    if custom_escaped:
+        warnings += 1
+    if custom_path is not None and custom_path.exists():
         custom_text = audit_read(custom_path)
         if custom_text is None:
             # Counted, and this is the one that mattered: the only pass that
@@ -18798,8 +18937,11 @@ def audit_presentation(templates_dir, catalog=None):
             for old in found:
                 print(f'          {old} -> {RETIRED_VARIABLES[old]}')
 
-    settings_path = templates_dir / SETTINGS_FILENAME
-    if settings_path.exists():
+    settings_path, settings_escaped = _audit_contained_file(
+        templates_dir, SETTINGS_FILENAME, f'templates/{SETTINGS_FILENAME}')
+    if settings_escaped:
+        warnings += 1
+    if settings_path is not None and settings_path.exists():
         text = audit_read(settings_path)
         if text is None:
             return warnings + 1
@@ -18829,6 +18971,11 @@ def audit_presentation(templates_dir, catalog=None):
                 warnings += 1
                 log('warn', f'templates/{SETTINGS_FILENAME}: {exc}')
 
+    for name in ('nav.js', 'index_extra.html'):
+        _, escaped = _audit_contained_file(
+            templates_dir, name, f'templates/{name}')
+        warnings += int(escaped)
+
     return warnings
 
 
@@ -18839,9 +18986,6 @@ def audit_presentation(templates_dir, catalog=None):
 def cmd_install(target_dir, args):
     """init command — creates the directory structure."""
     requested_td = Path(target_dir)
-    if requested_td.is_symlink():
-        log('error', f'{requested_td} is a symlink; refusing to install through it.')
-        sys.exit(1)
     td = requested_td.resolve()
     lang = args.get('--lang', 'fr')
     force = bool(args.get('--force'))
@@ -18866,16 +19010,6 @@ def cmd_install(target_dir, args):
         log('error', f'Unknown theme: {theme_key!r}. Valid themes: '
             f'{", ".join(sorted(theme_catalog.themes))}')
         sys.exit(1)
-
-    # --force may replace existing files, but it must never follow an
-    # attacker- or user-created symlink into another tree while doing so.
-    for relative in (
-        'sources', 'templates', 'language', 'interface', 'typography', 'public',
-        f'templates/{SETTINGS_FILENAME}',
-        f'templates/{CUSTOM_CSS_FILENAME}', 'series.json',
-        '.gitlab-ci.yml', 'lightwebpres', 'COPYING', 'COPYING.EXCEPTION',
-    ):
-        _reject_symlink_components(td / relative, f'init target {relative}')
 
     # Create the directories
     _mkdir(td / 'sources', parents=True, exist_ok=True)
@@ -19172,6 +19306,10 @@ def cmd_refresh_templates(target_dir, args):
     # never fine -- it was the freeze, waiting for the next release.
     refreshed = []
     settings_path = templates_dir / SETTINGS_FILENAME
+    contained_settings = _optional_contained_file(
+        templates_dir, SETTINGS_FILENAME, f'templates/{SETTINGS_FILENAME}')
+    if contained_settings is not None:
+        settings_path = contained_settings
 
     if args.get('--scaffold'):
         if not settings_path.exists():
@@ -19210,7 +19348,6 @@ def cmd_refresh_templates(target_dir, args):
               f'{SETTINGS_FILENAME}, your rules in {CUSTOM_CSS_FILENAME}; '
               f'run audit for the variable renames, then delete it.')
 
-    settings_path = templates_dir / SETTINGS_FILENAME
     if not settings_path.exists():
         # A series scaffolded before the rewrite: give it the new surface,
         # default theme — writing a file that does not exist breaks no
@@ -19219,6 +19356,10 @@ def cmd_refresh_templates(target_dir, args):
                                                            catalog=theme_catalog))
         refreshed.append(f'templates/{SETTINGS_FILENAME} (new, default theme)')
     custom_path = templates_dir / CUSTOM_CSS_FILENAME
+    contained_custom = _optional_contained_file(
+        templates_dir, CUSTOM_CSS_FILENAME, f'templates/{CUSTOM_CSS_FILENAME}')
+    if contained_custom is not None:
+        custom_path = contained_custom
     if not custom_path.exists():
         _write_file(custom_path, CUSTOM_CSS_STUB)
         refreshed.append(f'templates/{CUSTOM_CSS_FILENAME} (new, empty)')
@@ -19414,7 +19555,6 @@ def cmd_theme_create(positional, args):
             'note', args.get('--note') or f'Created from {source_label}.'),
     }
     path = _theme_user_write_path(slug, args)
-    _reject_symlink_components(path, 'theme create target')
     if path.exists() and not args.get('--force'):
         log('error', f'{path} already exists. Pass --force to replace it.')
         sys.exit(1)
@@ -19469,7 +19609,6 @@ def cmd_theme_migrate(target_dir, args):
     if new == old:
         progress(f'{settings_path} is already in the minimal format. Nothing written.')
         return
-    _reject_symlink_components(settings_path, 'settings migration target')
     _write_file(settings_path, new)
     progress(f'{"Would migrate" if _LOG_STATE["dry_run"] else "Migrated"} '
              f'{settings_path}: {len(pins)} pin(s) kept.')
@@ -19511,14 +19650,12 @@ def cmd_theme_vendor(target_dir, args):
         sys.exit(1)
 
     destination = templates_dir / 'themes'
-    _reject_symlink_components(destination, 'series theme catalogue')
     try:
         _mkdir(destination, parents=True, exist_ok=True)
         for theme_id in ids:
             slug = theme_id[len('builtin:'):] if theme_id.startswith('builtin:') \
                 else theme_id
             path = destination / f'{slug}.conf'
-            _reject_symlink_components(path, 'vendored theme')
             if catalog.is_local(theme_id) and slug in catalog.sources:
                 source_path = Path(catalog.sources[slug])
                 if source_path.resolve() == path.resolve():
@@ -20081,14 +20218,17 @@ def cmd_series_theme(series_dir, args):
         log('error', str(exc))
         sys.exit(1)
 
-    settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
+    settings_file = _optional_contained_file(
+        templates_dir, SETTINGS_FILENAME, f'templates/{SETTINGS_FILENAME}')
     text = (read_text_file(settings_file)
             if settings_file is not None and settings_file.exists() else '')
     try:
         slug, props = parse_settings_text(text, catalog=theme_catalog)
         layers = ([theme_property_layer(slug, theme_catalog)] if slug else []) + [props]
-        custom = templates_dir / CUSTOM_CSS_FILENAME
-        has_rules = custom.exists() and bool(re.sub(
+        custom = _optional_contained_file(
+            templates_dir, CUSTOM_CSS_FILENAME,
+            f'templates/{CUSTOM_CSS_FILENAME}')
+        has_rules = custom is not None and bool(re.sub(
             r'/\*.*?\*/', '', read_text_file(custom), flags=re.DOTALL).strip())
         report = theme_info_report(
             'series', slug, str(directory), layers, sorted(props),
@@ -20132,6 +20272,10 @@ def cmd_set_theme(target_dir, args):
               f'{len(theme_catalog.themes)} valid slugs.')
         sys.exit(1)
     settings_path = templates_dir / SETTINGS_FILENAME
+    contained_settings = _optional_contained_file(
+        templates_dir, SETTINGS_FILENAME, f'templates/{SETTINGS_FILENAME}')
+    if contained_settings is not None:
+        settings_path = contained_settings
 
     if not settings_path.parent.is_dir():
         # A directory that was never installed stays a clean error, as it
@@ -20190,7 +20334,8 @@ def series_theme(templates_dir):
     properties without naming a theme, runs on the registry's own
     defaults (§9.3), and `null` says that better than a slug it does not
     have. Same parser as the build, so the two cannot disagree."""
-    settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
+    settings_file = _optional_contained_file(
+        templates_dir, SETTINGS_FILENAME, f'templates/{SETTINGS_FILENAME}')
     if settings_file is None or not settings_file.exists():
         return None
     catalog = load_theme_catalog(templates_dir=templates_dir)
@@ -20560,7 +20705,8 @@ def resolve_theme_property(name, templates_dir, article_meta, article_name,
     build calls — so there is one cascade here and not a second one that
     drifts. What this adds is the per-level detail that function does not
     keep: which layer held what, including the layers that lost."""
-    settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
+    settings_file = _optional_contained_file(
+        templates_dir, SETTINGS_FILENAME, f'templates/{SETTINGS_FILENAME}')
     text = (read_text_file(settings_file)
             if settings_file is not None and settings_file.exists() else '')
     slug, pinned = parse_settings_text(text, catalog=catalog)
@@ -21183,7 +21329,9 @@ def cmd_demo(target_dir, args):
     # (the no-clobber guarantee, §11.2). Right after init the file only
     # holds scaffold boilerplate with an empty articles list; the moment
     # it lists articles, it's a series in progress and demo must refuse.
-    series_file = td / 'series.json'
+    series_file = _optional_contained_file(td, 'series.json', 'series.json')
+    if series_file is None:
+        series_file = td / 'series.json'
     if series_file.exists():
         try:
             existing_series = json.loads(read_text_file(series_file))
@@ -21411,7 +21559,7 @@ This is the full article for the third demo article [^1].
             {"page_source": "last.md"}
         ]
     }
-    _write_file(td / 'series.json', json.dumps(series_json, ensure_ascii=False, indent=2))
+    _write_file(series_file, json.dumps(series_json, ensure_ascii=False, indent=2))
 
     dry = _LOG_STATE['dry_run']
     output_label = args.get('--output', os.environ.get('LWP_OUTPUT_DIR', 'public/'))

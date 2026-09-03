@@ -2011,6 +2011,52 @@ class CheckCoversIndexAndReadme(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('[DRIFT] README.md', result.stdout)
 
+    def test_verify_follows_an_external_output_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            root.mkdir()
+            scaffold(root, _MINIMAL_MD)
+            self.assertEqual(
+                run('build', str(root), '--output', str(root / 'public')).returncode,
+                0)
+            outside = Path(tmp) / 'outside.html'
+            outside.write_text('OUTSIDE-VERIFY-SECRET', encoding='utf-8')
+            output = root / 'public' / 'a.html'
+            try:
+                output.unlink()
+                output.symlink_to(outside)
+            except OSError:
+                self.skipTest('symlinks unavailable on this filesystem')
+
+            result = run('verify', str(root), '--output', str(root / 'public'))
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('[DRIFT] a.html', result.stdout)
+        self.assertIn('OUTSIDE-VERIFY-SECRET', result.stdout)
+
+    def test_verify_follows_an_external_readme_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            root.mkdir()
+            scaffold(root, _MINIMAL_MD)
+            self.assertEqual(
+                run('build', str(root), '--output', str(root / 'public')).returncode,
+                0)
+            outside = Path(tmp) / 'outside-readme.md'
+            outside.write_text('OUTSIDE-README-VERIFY-SECRET', encoding='utf-8')
+            readme = root / 'README.md'
+            try:
+                readme.unlink()
+                readme.symlink_to(outside)
+            except OSError:
+                self.skipTest('symlinks unavailable on this filesystem')
+
+            result = run('verify', str(root), '--output', str(root / 'public'))
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('[DRIFT] README.md', result.stdout)
+        self.assertIn('OUTSIDE-README-VERIFY-SECRET', result.stdout)
+
 
 class ShareSlideScopeByType(unittest.TestCase):
     """§9.3.4: the share matrix's slide scope is disabled by slide TYPE
@@ -4175,19 +4221,9 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertTrue((root / 'public' / 'img' / 'raw-single.png').exists())
             self.assertTrue((root / 'public' / 'img' / 'raw-bare.png').exists())
 
-    def test_inline_images_never_reads_outside_the_article_dir(self):
-        """--inline-images read ANY file the build user could open and
-        base64'd it into the published page. `src` is attacker-reachable
-        (an LLM-authored article, a CMS export, a cloned series repo), the
-        extractor permits a leading `/` and `..`, and `Path(dir) / '/etc/
-        passwd'` discards the left side — so `![](../../secret/id_rsa)`
-        published the key. It also walked past copy_images' symlink guard:
-        the same series warned and skipped on a plain build, and inlined
-        the secret with the flag.
-
-        Three vectors, one barrier. The legitimate image must still be
-        inlined in the same build, or the fix is just a break."""
-        secret = None
+    def test_inline_images_reject_explicit_path_traversal(self):
+        """The image value itself cannot escape with `..` or an absolute path.
+        A symlink target is a separate, supported composition mechanism."""
         md = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
             'nav_title: A\nnav_desc: A\n---\n\n'
@@ -4195,13 +4231,9 @@ class CliVersionAndShortcuts(unittest.TestCase):
             '<!-- lwp:slide -->\nslug: k85\nkicker: F\n## Fiche\nfact-label: L\n\n'
             '![up](../../secret/id_rsa)\n\n'
             '![abs](/etc/hostname)\n\n'
-            '![sym](img/leak.png)\n\n'
             '![ok](img/red.png)\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
-            secret = Path(tmp) / 'secret'
-            secret.mkdir()
-            (secret / 'id_rsa').write_bytes(b'ROOT-SECRET-PRIVATE-KEY-MATERIAL')
             root = scaffold(str(Path(tmp) / 'series'), md)
             (root / 'sources' / 'img').mkdir()
             (root / 'sources' / 'img' / 'red.png').write_bytes(
@@ -4209,33 +4241,39 @@ class CliVersionAndShortcuts(unittest.TestCase):
                 b'\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00'
                 b'\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x00\x03\x00\x01'
                 b'\x8d\xa5K>\x00\x00\x00\x00IEND\xaeB`\x82')
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--inline-images')
+            self.assertEqual(result.stderr.count('path traversal'), 2,
+                             result.stderr)
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertFalse((root / 'public' / 'a.html').exists(),
+                             'the page was written despite the traversal')
+
+    def test_inline_images_follow_an_external_symlink(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: k88\nkicker: T\n# Title\nsummary: S.\n\n---\n\n'
+            '<!-- lwp:slide -->\nslug: k89\nkicker: F\n## Fiche\nfact-label: L\n\n'
+            '![shared](img/shared.png)\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            shared = Path(tmp) / 'shared.png'
+            shared.write_bytes(b'SHARED-IMAGE-CONTENTS')
+            root = scaffold(str(Path(tmp) / 'series'), md)
+            (root / 'sources' / 'img').mkdir()
             try:
-                (root / 'sources' / 'img' / 'leak.png').symlink_to(
-                    secret / 'id_rsa')
+                (root / 'sources' / 'img' / 'shared.png').symlink_to(shared)
             except (OSError, NotImplementedError):
                 self.skipTest('symlinks unavailable on this filesystem')
             result = run('build', str(root), '--output', str(root / 'public'),
                          '--inline-images')
-            # Each refusal is reported, not silent -- that is this test's
-            # subject and it is unchanged.
-            self.assertEqual(result.stderr.count('escaping the article'), 3,
-                             result.stderr)
-            # Since v0.38.0 the build then fails rather than shipping a page
-            # whose three refused images are still relative `src` while
-            # `public/img/` is deliberately absent (BACKLOG B23). Exiting 0
-            # there meant publishing a page with three dangling references
-            # under the one option whose contract is that the file travels
-            # alone. Nothing is written, so nothing can leak.
-            self.assertEqual(result.returncode, 1, result.stderr)
-            self.assertFalse((root / 'public' / 'a.html').exists(),
-                             'the page was written despite the refusal')
-            # Belt and braces: if a future change does write it, the secret
-            # must still be in none of its data URIs.
-            if (root / 'public' / 'a.html').exists():
-                html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
-                for m in re.finditer(r'data:[^;]+;base64,([A-Za-z0-9+/=]+)', html):
-                    self.assertNotIn(b'SECRET', base64.b64decode(m.group(1)),
-                                     'a file outside sources/ was published')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn(
+                'data:image/png;base64,'
+                + base64.b64encode(b'SHARED-IMAGE-CONTENTS').decode('ascii'),
+                html)
 
     def test_inline_images_still_inlines_the_legitimate_image(self):
         """The other half of the guard above, on its own fixture: barring
@@ -5660,6 +5698,36 @@ class ImageFiguresAndCaptions(unittest.TestCase):
         html = self._build_article_html('![p](img/p.png "Cap")\n')
         self.assertIn('.figure-caption', html)
         self.assertIn('color: var(--caption-fg)', html)
+
+    def test_a_lone_percentage_sets_the_image_zoom(self):
+        html = self._build_article_html('![p](img/p.png){50%}\n')
+        self.assertIn(
+            '<figure class="figure"><img src="img/p.png" alt="p" '
+            'style="zoom: 50%;"></figure>',
+            html)
+
+    def test_extended_image_format_sets_size_and_alignment(self):
+        html = self._build_article_html(
+            '![p](img/p.png "Cap"){width=50% align=right}\n')
+        self.assertIn(
+            '<figure class="figure figure-align-right"><img src="img/p.png" '
+            'alt="p" style="width: 50%;">'
+            '<figcaption class="figure-caption">Cap</figcaption></figure>',
+            html)
+        self.assertIn('.figure.figure-align-right', html)
+
+    def test_image_format_also_applies_to_inline_images(self):
+        html = self._build_article_html(
+            'Before ![icon](img/i.png){width=2rem zoom=80%} after.\n')
+        self.assertIn(
+            '<img src="img/i.png" alt="icon" '
+            'style="width: 2rem; zoom: 80%;">',
+            html)
+
+    def test_invalid_extended_image_format_is_rejected(self):
+        lwp = load_lightwebpres_module()
+        with self.assertRaises(lwp.PropertyError):
+            lwp.convert_markdown('![p](img/p.png){onclick=alert(1)}')
 
     def test_linked_figure_is_a_figure_and_wraps_only_the_image(self):
         # §6.1: `[![alt](src "Cap")](url)` alone on its line. Before this,
@@ -12551,6 +12619,28 @@ class SetThemeCommand(unittest.TestCase):
             changed = [(a, b) for a, b in zip(before, after) if a != b]
             self.assertEqual(changed, [('theme: nord', 'theme: evergreen')])
 
+    def test_set_theme_allows_an_external_settings_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('init', tmp, '--theme', 'nord').returncode, 0)
+            settings = Path(tmp) / 'templates' / 'settings.conf'
+            outside = Path(tmp) / 'outside-settings.conf'
+            outside.write_text(
+                'theme: nord\n# OUTSIDE-SETTINGS-SECRET\n', encoding='utf-8')
+            try:
+                settings.unlink()
+                settings.symlink_to(outside)
+            except OSError:
+                self.skipTest('symlinks unavailable on this filesystem')
+
+            result = run('series', 'theme', 'set', tmp, '--theme', 'evergreen')
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(settings.is_symlink())
+            self.assertIn('theme: evergreen', settings.read_text(encoding='utf-8'))
+            self.assertEqual(
+                outside.read_text(encoding='utf-8'),
+                'theme: nord\n# OUTSIDE-SETTINGS-SECRET\n')
+
     def test_setting_the_theme_already_in_place_writes_nothing(self):
         """Idempotence is a promise about the disk, not the message, so
         both are pinned: bytes and mtime untouched."""
@@ -13763,20 +13853,14 @@ class PathTraversalSafety(unittest.TestCase):
             self.assertNotIn('Traceback', result.stderr)
 
 
-class SymlinkContainment(unittest.TestCase):
-    """Security: the name-shape guard cannot see that a bare filename is a
-    symlink into an outside file/dir. A git repo can carry such symlinks,
-    so an unattended build of an attacker-authored series would otherwise
-    exfiltrate host files. Realpath containment refuses them."""
+class SymlinkComposition(unittest.TestCase):
+    """Symlinks are valid composition; only traversal in the value is fatal."""
 
-    def _secret(self, tmp):
-        secret = Path(tmp) / 'SECRET.txt'
-        secret.write_text('TOP-SECRET-CONTENTS', encoding='utf-8')
-        return secret
-
-    def test_full_article_symlink_escaping_is_refused(self):
+    def test_full_article_symlink_is_followed(self):
         with tempfile.TemporaryDirectory() as tmp:
-            secret = self._secret(tmp)
+            secret = Path(tmp) / 'shared-article.md'
+            secret.write_text('# Shared article\n\nTOP-SECRET-CONTENTS\n',
+                              encoding='utf-8')
             root = Path(tmp) / 'proj'
             (root / 'sources').mkdir(parents=True)
             (root / 'sources' / 'a.md').write_text(
@@ -13787,15 +13871,18 @@ class SymlinkContainment(unittest.TestCase):
             (root / 'series.json').write_text(json.dumps(
                 {'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn('resolves outside', result.stderr)
-            if (root / 'public' / 'a.html').exists():
-                self.assertNotIn('TOP-SECRET-CONTENTS',
-                                 (root / 'public' / 'a.html').read_text(encoding='utf-8'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(
+                'TOP-SECRET-CONTENTS',
+                (root / 'public' / 'a.html').read_text(encoding='utf-8'))
 
-    def test_page_source_symlink_is_refused_before_reading(self):
+    def test_page_source_symlink_is_followed(self):
         with tempfile.TemporaryDirectory() as tmp:
-            secret = self._secret(tmp)
+            secret = Path(tmp) / 'shared-source.md'
+            secret.write_text(
+                _MINIMAL_MD.replace('summary: Summary.',
+                                    'summary: Summary. SHARED-SOURCE-CONTENTS'),
+                encoding='utf-8')
             root = Path(tmp) / 'proj'
             (root / 'sources').mkdir(parents=True)
             (root / 'sources' / 'a.md').symlink_to(secret)
@@ -13804,13 +13891,41 @@ class SymlinkContainment(unittest.TestCase):
 
             result = run('build', str(root), '--output', str(root / 'public'))
 
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn('Source escapes sources', result.stderr)
-            self.assertFalse((root / 'public').exists())
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(
+                'SHARED-SOURCE-CONTENTS',
+                (root / 'public' / 'a.html').read_text(encoding='utf-8'))
 
-    def test_audit_does_not_read_page_source_symlink_outside_sources(self):
+    def test_series_json_symlink_is_followed(self):
         with tempfile.TemporaryDirectory() as tmp:
-            secret = self._secret(tmp)
+            root = Path(tmp) / 'series'
+            root.mkdir()
+            scaffold(root, _MINIMAL_MD)
+            secret = Path(tmp) / 'outside-series.json'
+            secret.write_text(json.dumps({
+                'series_meta': {'title': 'OUTSIDE-SERIES-SECRET'},
+                'articles': [{'page_source': 'a.md'}],
+            }), encoding='utf-8')
+            try:
+                (root / 'series.json').unlink()
+                (root / 'series.json').symlink_to(secret)
+            except OSError:
+                self.skipTest('symlinks unavailable on this filesystem')
+
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / 'public').is_dir())
+            self.assertIn(
+                'OUTSIDE-SERIES-SECRET',
+                (root / 'public' / 'index.html').read_text(encoding='utf-8'))
+
+    def test_audit_warns_about_page_source_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            secret = Path(tmp) / 'shared-source.md'
+            secret.write_text(
+                _MINIMAL_MD.replace('summary: Summary.',
+                                    'summary: Summary. SHARED-SOURCE-CONTENTS'),
+                encoding='utf-8')
             root = scaffold(tmp, _MINIMAL_MD)
             (root / 'sources' / 'a.md').unlink()
             (root / 'sources' / 'a.md').symlink_to(secret)
@@ -13818,11 +13933,9 @@ class SymlinkContainment(unittest.TestCase):
             result = run('audit', str(root))
 
             self.assertEqual(result.returncode, 0)
-            self.assertIn('escapes sources', result.stderr)
-            self.assertNotIn('TOP-SECRET-CONTENTS',
-                             result.stdout + result.stderr)
+            self.assertIn('resolves outside', result.stderr)
 
-    def test_output_symlink_is_refused_before_writing(self):
+    def test_output_symlink_is_followed(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'proj'
             root.mkdir()
@@ -13836,11 +13949,10 @@ class SymlinkContainment(unittest.TestCase):
 
             result = run('build', str(root))
 
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn('output directory', result.stderr)
-            self.assertFalse((outside / 'a.html').exists())
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((outside / 'a.html').exists())
 
-    def test_nav_symlink_is_refused_before_publishing(self):
+    def test_nav_symlink_is_followed(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, _MINIMAL_MD)
             secret = Path(tmp) / 'nav-secret.js'
@@ -13850,28 +13962,29 @@ class SymlinkContainment(unittest.TestCase):
 
             result = run('build', str(root), '--output', str(root / 'public'))
 
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn('nav.js resolves outside', result.stderr)
-            self.assertFalse((root / 'public').exists())
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / 'public' / 'a.html').exists())
 
-    def test_img_symlink_escaping_is_not_published(self):
+    def test_img_symlink_escaping_is_published(self):
         with tempfile.TemporaryDirectory() as tmp:
-            secret = self._secret(tmp)
+            secret = Path(tmp) / 'shared-image.png'
+            secret.write_text('SHARED-IMAGE-CONTENTS', encoding='utf-8')
             root = Path(tmp) / 'proj'
             (root / 'sources' / 'img').mkdir(parents=True)
             (root / 'sources' / 'a.md').write_text(
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
                 'nav_title: A\nnav_desc: A\n---\n\n'
-                '<!-- lwp:slide:cover -->\nslug: k181\nkicker: T\n# Title\n', encoding='utf-8')
+                '<!-- lwp:slide:cover -->\nslug: k181\nkicker: T\n# Title\n\n'
+                '---\n\n<!-- lwp:slide -->\nslug: k185\n\n'
+                '![shared](img/leak.png)\n', encoding='utf-8')
             (root / 'sources' / 'img' / 'leak.png').symlink_to(secret)
             (root / 'series.json').write_text(json.dumps(
                 {'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             leaked = root / 'public' / 'img' / 'leak.png'
-            if leaked.exists():
-                self.assertNotIn('TOP-SECRET-CONTENTS', leaked.read_text(encoding='utf-8'))
-            self.assertIn('skipped symlink', result.stderr)
+            self.assertEqual(leaked.read_text(encoding='utf-8'),
+                             'SHARED-IMAGE-CONTENTS')
 
     def test_internal_img_symlink_is_kept(self):
         # A symlink pointing WITHIN img/ is harmless and must still copy.
@@ -13895,7 +14008,7 @@ class SymlinkContainment(unittest.TestCase):
                 (root / 'public' / 'img' / 'alias.png').read_text(encoding='utf-8'),
                 'PNGDATA')
 
-    def test_image_root_symlink_is_not_used_as_the_image_tree(self):
+    def test_image_root_symlink_is_followed_and_audited(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'proj'
             (root / 'sources' / 'other').mkdir(parents=True)
@@ -13916,9 +14029,11 @@ class SymlinkContainment(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse((root / 'public' / 'img' / 'not-an-image.md').exists())
-            self.assertIn('image directory symlink', result.stderr)
+            audit = run('audit', str(root))
+            self.assertEqual(audit.returncode, 0, audit.stderr)
+            self.assertIn('image directory is a symlink', audit.stderr)
 
-    def test_existing_destination_image_symlink_is_refused(self):
+    def test_existing_destination_image_symlink_is_tolerated(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'proj'
             (root / 'sources' / 'img').mkdir(parents=True)
@@ -13936,11 +14051,10 @@ class SymlinkContainment(unittest.TestCase):
             except OSError:
                 self.skipTest('symlinks unavailable on this filesystem')
             result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn('image output directory', result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse((outside / 'real.png').exists())
 
-    def test_default_root_symlink_to_series_root_is_refused(self):
+    def test_default_root_symlink_to_series_root_is_followed(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'proj'
             self.assertEqual(run('init', str(root)).returncode, 0)
@@ -13950,10 +14064,9 @@ class SymlinkContainment(unittest.TestCase):
             except OSError:
                 self.skipTest('symlinks unavailable on this filesystem')
             result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn('series root', result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_navigation_cache_parent_symlink_is_refused(self):
+    def test_navigation_cache_parent_symlink_is_followed(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, _MINIMAL_MD)
             outside = Path(tmp) / 'outside-cache'
@@ -13964,11 +14077,10 @@ class SymlinkContainment(unittest.TestCase):
             except OSError:
                 self.skipTest('symlinks unavailable on this filesystem')
             result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn('navigation cache', result.stderr)
-            self.assertFalse((outside / 'nav.json').exists())
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((outside / 'nav.json').exists())
 
-    def test_init_force_does_not_follow_existing_template_symlink(self):
+    def test_init_force_follows_existing_template_symlink(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'proj'
             self.assertEqual(run('init', str(root)).returncode, 0)
@@ -13983,8 +14095,9 @@ class SymlinkContainment(unittest.TestCase):
             except OSError:
                 self.skipTest('symlinks unavailable on this filesystem')
             result = run('init', str(root), '--force')
-            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(marker.read_text(encoding='utf-8'), 'untouched')
+            self.assertTrue((outside / 'settings.conf').exists())
 
 
 class LinkHrefEscaping(unittest.TestCase):
@@ -16530,40 +16643,61 @@ class QuadraticInputIsNotAcceptedAsSlow(unittest.TestCase):
 
 
 class TemplatesAndSourcesStayInsideTheSeries(unittest.TestCase):
-    """A symlink is not a path traversal, and the name-shape check does not
-    see it. custom.css is published verbatim into every page, so a link
-    there turns a build into a read primitive on anything the build user can
-    open — a CI env file, an ssh key, .git-credentials."""
+    """Symlinked sources and presentation files are supported by design."""
 
     @classmethod
     def setUpClass(cls):
         cls.lwp = load_lightwebpres_module()
 
-    def test_a_symlinked_custom_css_is_refused(self):
+    def test_a_symlinked_custom_css_is_followed(self):
         with tempfile.TemporaryDirectory() as tmp:
             secret = Path(tmp) / 'hostsecret.txt'
             secret.write_text('HOSTSECRET=hunter2', encoding='utf-8')
             run('init', tmp, '--force')
             root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
-                                 '# Cover\n\nsummary: s\n')
+                                 '<!-- lwp:slide:cover -->\nslug: shared\n'
+                                 '# Cover\nsummary: s\n')
             custom = root / 'templates' / 'custom.css'
             custom.unlink(missing_ok=True)
             custom.symlink_to(secret)
             result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertEqual(result.returncode, 1)
-            self.assertIn('custom.css', result.stderr)
-            self.assertFalse((root / 'public' / 'a.html').exists())
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(
+                'HOSTSECRET',
+                (root / 'public' / 'a.html').read_text(encoding='utf-8'))
 
-    def test_a_symlinked_page_source_is_refused(self):
+    def test_audit_warns_about_external_template_symlinks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            secret = Path(tmp) / 'hostsecret.txt'
+            secret.write_text('HOSTSECRET=hunter2', encoding='utf-8')
+            for name in ('settings.conf', 'custom.css', 'nav.js',
+                         'index_extra.html'):
+                path = root / 'templates' / name
+                try:
+                    path.unlink(missing_ok=True)
+                    path.symlink_to(secret)
+                except OSError:
+                    self.skipTest('symlinks unavailable on this filesystem')
+
+            result = run('audit', str(root))
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('resolves outside', result.stderr)
+
+    def test_a_symlinked_page_source_is_followed(self):
         with tempfile.TemporaryDirectory() as tmp:
             outside = Path(tmp) / 'outside'
             outside.mkdir()
             (outside / 'secret.md').write_text(
-                '<!-- lwp:meta -->\npage_title: S\n---\n\n'
-                '# Cover\n\nsummary: sk-live-LEAKED\n', encoding='utf-8')
+                _MINIMAL_MD.replace('page_title: Test', 'page_title: S')
+                .replace('summary: Summary.', 'summary: Summary. sk-live-LEAKED'),
+                encoding='utf-8')
             run('init', tmp, '--force')
             root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
-                                 '# Cover\n\nsummary: s\n')
+                                 '<!-- lwp:slide:cover -->\nslug: local\n'
+                                 '# Cover\nsummary: s\n')
             (root / 'sources' / 'leak.md').symlink_to(outside / 'secret.md')
             data = json.loads((root / 'series.json').read_text())
             data['articles'].append({'page_dest': 'leak.html',
@@ -16571,10 +16705,12 @@ class TemplatesAndSourcesStayInsideTheSeries(unittest.TestCase):
                                      'nav_title': 'L', 'nav_desc': 'L'})
             (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertEqual(result.returncode, 1)
-            self.assertFalse((root / 'public' / 'leak.html').exists())
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(
+                'sk-live-LEAKED',
+                (root / 'public' / 'leak.html').read_text(encoding='utf-8'))
 
-    def test_a_symlinked_index_extra_is_refused(self):
+    def test_a_symlinked_index_extra_is_followed(self):
         with tempfile.TemporaryDirectory() as tmp:
             secret = Path(tmp) / 'hostsecret.html'
             secret.write_text('HOSTSECRET=hunter2', encoding='utf-8')
@@ -16582,23 +16718,38 @@ class TemplatesAndSourcesStayInsideTheSeries(unittest.TestCase):
             root = scaffold(tmp, _MINIMAL_MD)
             (root / 'templates' / 'index_extra.html').symlink_to(secret)
             result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertEqual(result.returncode, 1)
-            self.assertIn('index_extra.html', result.stderr)
-            for page in (root / 'public').glob('*.html'):
-                self.assertNotIn('HOSTSECRET', page.read_text(encoding='utf-8'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(
+                'HOSTSECRET',
+                (root / 'public' / 'index.html').read_text(encoding='utf-8'))
 
-    def test_a_symlinked_language_pack_is_refused(self):
+    def test_a_symlinked_language_pack_is_followed(self):
         with tempfile.TemporaryDirectory() as tmp:
-            secret = Path(tmp) / 'hostsecret.json'
-            secret.write_text(json.dumps({'strings': {
-                'series_read': 'HOSTSECRET',
-            }}), encoding='utf-8')
             run('init', tmp, '--force')
             root = scaffold(tmp, _MINIMAL_MD)
+            secret = Path(tmp) / 'shared-fr.json'
+            secret.write_text(
+                self.lwp.LANG_FR,
+                encoding='utf-8')
             (root / 'language' / 'fr.json').symlink_to(secret)
             result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertEqual(result.returncode, 1)
-            self.assertIn('language/fr.json', result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_audit_warns_about_external_language_pack_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run('init', tmp, '--force')
+            root = scaffold(tmp, _MINIMAL_MD)
+            secret = Path(tmp) / 'shared-fr.json'
+            secret.write_text(self.lwp.LANG_FR, encoding='utf-8')
+            try:
+                (root / 'language' / 'fr.json').symlink_to(secret)
+            except OSError:
+                self.skipTest('symlinks unavailable on this filesystem')
+
+            result = run('audit', str(root))
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('language/fr.json resolves outside', result.stderr)
 
     def test_default_input_directories_cannot_escape_the_series(self):
         for name in ('sources', 'templates', 'language'):
@@ -16610,14 +16761,15 @@ class TemplatesAndSourcesStayInsideTheSeries(unittest.TestCase):
                 outside.mkdir()
                 original = root / name
                 if original.is_dir() and not original.is_symlink():
+                    if name == 'sources':
+                        shutil.copy2(original / 'a.md', outside / 'a.md')
                     shutil.rmtree(original)
                 else:
                     original.unlink()
                 original.symlink_to(outside, target_is_directory=True)
                 result = run('build', str(root), '--output',
                              str(root / 'public'))
-                self.assertEqual(result.returncode, 1)
-                self.assertIn(name, result.stderr)
+                self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_audit_reports_an_escaped_implicit_root_without_blocking(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -16635,7 +16787,7 @@ class TemplatesAndSourcesStayInsideTheSeries(unittest.TestCase):
             strict = run('audit', str(root), '--strict')
             self.assertEqual(plain.returncode, 0, plain.stderr)
             self.assertEqual(strict.returncode, 1)
-            self.assertIn('sources directory', plain.stderr)
+            self.assertIn('sources directory resolves outside', plain.stderr)
 
 
 class ANotePropertyMustReachTheNotesItNames(unittest.TestCase):
@@ -19363,7 +19515,7 @@ class RegressionFixes(unittest.TestCase):
             end = html.find('\n  });', i)
             self.assertNotEqual(end, -1, 'the contextmenu handler has no end')
             handler = html[i:end]
-            self.assertIn('goTo(base - 1, isScrolling)', handler)
+            self.assertIn('stepBackward(true)', handler)
             self.assertNotIn('clearTimeout', handler)
 
     # --- B9: audit must not false-positive a retired name as a prefix ---

@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 7 · **à faire** 0 · **en cours** 0 · **terminé** 47 · **abandonné** 1 · **sans objet** 3
+**à étudier** 7 · **à faire** 0 · **en cours** 0 · **terminé** 50 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -160,6 +160,9 @@ gets its own entry and its own state**, however small.
 - **B52** — Le défilement instantané a sa propre touche
 - **B53** — Les pins de série forment une variante runtime distincte
 - **B54** — Un contrat unique pour les brouillons de slides
+- **B55** — Les symlinks composent ; le traversal reste refusé
+- **B56** — Images dimensionnables et zoom de présentation
+- **B57** — Une fiche adjacente partielle doit être alignée avant la suivante
 
 ### abandonné
 
@@ -2638,3 +2641,63 @@ l'allocation et des collisions, de la commande JSON/texte, des champs vides,
 des titres vides, de la préservation des espaces insécables et du rendu sans
 placeholder sont verts. La batterie complète passe avec **1143 tests dans 202
 classes**, `python3 tests/run_tests.py --workers 4`.
+
+## B55 — Les symlinks composent ; le traversal reste refusé
+
+**État :** terminé · **Depuis :** 2026-09-03
+
+Un dépôt de série peut partager ses sources, ses images, ses templates, sa
+sortie et son cache par symlink. Le système de fichiers suit déjà ces liens
+nativement ; les refuser dans les commandes ordinaires rendait la composition
+partagée impossible et confondait une cible externe avec un traversal écrit
+dans la valeur elle-même.
+
+La règle retenue est donc lexicale : les chemins absolus et les segments `..`
+restent refusés, tandis qu'un symlink est suivi, y compris hors de la racine
+logique. `audit` avertit des liens sortants dans les racines, les sources
+référencées, les fichiers de présentation et les packs de langue ; l'audit
+simple reste non bloquant et `--strict` transforme ses avertissements en
+échec. Les tests de composition et de suivi des liens sont verts, la
+documentation est alignée et la batterie complète confirme le contrat.
+
+## B56 — Images dimensionnables et zoom de présentation
+
+**État :** terminé · **Depuis :** 2026-09-03
+
+Le Markdown reste lisible sans extension : une image peut porter le raccourci
+`{50%}`, qui applique un zoom général à l'image. Quand il faut plus, le suffixe étendu
+utilise des paires contrôlées comme `{width=50% height=auto align=right}` ; la
+validation n'autorise que `width`, `height`, `zoom` et `align`, et refuse le CSS
+arbitraire. `align` ne s'applique qu'aux figures autonomes, afin qu'une image
+au fil du texte ne change pas le flux du paragraphe.
+
+Le zoom de la page est une aide de présentation distincte du zoom navigateur :
+`+` agrandit, `-` réduit et `=` réinitialise, dans une plage bornée. Il n'est
+pas persisté et les raccourcis `Ctrl/Cmd +/-` restent au navigateur. Les
+raccourcis de bord (`End`, `Ctrl/Cmd+Home`, `Ctrl/Cmd+End`) complètent le
+parcours sans modifier les sources.
+
+**Ce qui est vérifié.** Les tests unitaires couvrent les deux formes d'image,
+les valeurs étendues valides et le refus d'une clé inconnue. Le probe
+Playwright couvre les trois touches de zoom et les bords de l'index et d'un
+article ; les artefacts ont été régénérés et la batterie complète est verte.
+
+## B57 — Une fiche adjacente partielle doit être alignée avant la suivante
+
+**État :** terminé · **Depuis :** 2026-09-03 · **Version :** 0.52.0
+
+Une fiche plus haute que l'écran se parcourt par incréments, mais un incrément
+ne doit pas empiéter sur la fiche voisine. Vers le bas, il s'arrête au bas de
+la fiche courante ; vers le haut, il s'arrête à son haut. La fiche adjacente
+n'est atteinte qu'au mouvement suivant, alignée au haut de la fenêtre.
+
+Un défilement manuel peut néanmoins laisser une fiche adjacente partiellement
+visible. Elle n'est alors pas consommée : le prochain mouvement dans sa
+direction l'aligne d'abord et ne saute pas la fiche. Cette règle s'applique
+aux flèches, aux boutons, aux clics et aux balayages tactiles ; les nav-dots
+et la détection de fiche suivent le même état logique.
+
+**Ce qui est vérifié.** Le probe Playwright couvre le saut observé vers le bas,
+les limites d'un incrément vers le haut et les trois entrées de progression
+vers une fiche partiellement visible. La batterie complète est verte : 1159
+tests dans 204 classes.

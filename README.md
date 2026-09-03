@@ -26,8 +26,9 @@ are not published, while existing output assets are left in place.
 travel as one file. The output opens straight from disk or any static host.
 
 **Every page is a presentation deck.** Open it in a browser and you have
-a presenter experience with fullscreen available: keyboard (↑/↓, Home, F for
-fullscreen, I for smooth or instant scrolling, B/W/T for pause screens, C for
+a presenter experience with fullscreen available: keyboard (↑/↓, Home,
+Ctrl/Cmd+Home, End and +/-/= for deck edges and page zoom, F for fullscreen,
+I for smooth or instant scrolling, B/W/T for pause screens, C for
 compiled themes, H for keyboard help, S for sharing, M for the presenter
 menu), mouse (click to advance,
 right-click to go back, middle button to leave fullscreen), and touch
@@ -122,7 +123,7 @@ renders of that mode in the `lava`, `terminal` and `pop-lemon` themes.
    local browser addresses are called out instead of producing a misleading
    link.
 - **Built-in presentation mode.** Every generated page can become a full-screen
-  presenter deck: keyboard (↑/↓, Home, F fullscreen, B/W/T pause
+   presenter deck: keyboard (↑/↓, Home, Ctrl/Cmd+Home, End, +/-/= page zoom, F fullscreen, B/W/T pause
    screens, C compiled themes, H keyboard help, S sharing, M presenter menu), mouse (click advance,
   right-click back, middle button
   leaves fullscreen; entering is a two-step gesture — middle button,
@@ -478,7 +479,9 @@ new one.
   converted with full support for headings (levels 1–6: `####` renders as
   a bold-font paragraph, `#####`/`######` as plain text), bold/italic,
   links, notes (see below), lists, tables, blockquotes, images with
-  captions (`![alt](src "Caption")` — small, centered, themed; wrap it in
+  captions (`![alt](src "Caption")` — small, centered, themed; add `{50%}`
+  for general image zoom or `{width=50% align=right}` for the extended
+  format; wrap it in
   a link, `[![alt](src "Caption")](url)`, and the picture becomes
   clickable while
   the caption stays outside the link, as text about it; mid-sentence the

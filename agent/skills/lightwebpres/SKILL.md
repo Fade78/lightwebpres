@@ -445,6 +445,12 @@ renders as a small centered caption under the image; wrap that whole line
 in a Markdown link, `[![alt](src "Caption")](https://…)`, and the picture
 becomes clickable while the caption stays outside the link — so the link's
 accessible name is the alt text alone, not alt plus caption;
+append `{50%}` for general image zoom, or an extended suffix such as
+`{width=50% height=auto align=right}`. The extended keys are `width`,
+`height`, `zoom` and (for standalone figures only) `align`; `width` and
+`height` use safe CSS lengths while `zoom` uses a percentage. Values are
+validated before they become CSS. Mid-paragraph images accept the size keys,
+but not `align`;
 mid-paragraph it's a plain inline `<img>`, no caption; the path is
 relative — images live in `sources/img/`, and only images referenced by
 rendered pages are copied to `public/img/` at build), inline code
@@ -775,8 +781,8 @@ file done:
   bare filename.
 - two entries must not resolve to the same `page_dest` (case-insensitive).
 - a `full-article` slide's `article:` target must be a bare filename too,
-  must resolve inside `sources/`, and must exist. A symlink pointing out
-  of that directory is refused.
+  must resolve from `sources/`, and must exist. A symlink pointing out
+  of that directory is followed by the tool and reported by `audit`.
 
 Any non-string value for one of these fields is fatal as well.
 

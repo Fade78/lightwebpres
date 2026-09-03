@@ -33,6 +33,29 @@ link to the originals. They are at
 
 ---
 
+## v0.52.0
+
+Symlinks can now compose a series' sources, templates, output and language
+packs, including targets outside the logical root. Explicit traversal remains
+rejected; `audit` reports external links and `audit --strict` turns those
+warnings into failures.
+
+Markdown images now support captioned linked figures and validated display
+suffixes: `{50%}` applies a general image zoom, while the extended form
+accepts controlled `width`, `height`, `zoom` and standalone-figure `align`
+values. Image attributes are also available on inline images where applicable.
+
+Presenter navigation now handles oversized slides as bounded internal steps.
+Arrow keys, page keys, buttons, clicks and touch gestures stop at a slide's
+own edge before exposing its neighbour; a partially visible adjacent slide is
+aligned before the next transition, in either direction. `End`,
+`Ctrl/Cmd+Home`, `Ctrl/Cmd+End` and the page-only `+`/`-`/`=` zoom controls are
+available on the shared article and index navigation.
+
+The web interface now remains usable when browser storage is unavailable and
+prevents overlapping Git operations. The corresponding browser and
+concurrency regressions are covered by the test suite.
+
 ## v0.51.1
 
 Empty values on recognized `settings.conf` properties now remove the pin and

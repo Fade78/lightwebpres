@@ -7,10 +7,14 @@ slide-to-slide arrow navigation:
     scrolled down in increments before an arrow key advances past it.
   - A final overflowing slide stays at its bottom when ArrowDown has no
     next slide to enter.
-  - On the series-nav slide, arrow keys step through its cards one by
-    one (instead of skipping straight past the whole slide), and Enter
-    on a focused card jumps to that article — like Tab, but confined to
-    the natural slide/card/scroll journey instead of leaving the page.
+  - A partially visible adjacent slide is aligned before navigation can
+    advance beyond it; bounded internal movement does not expose its
+    neighbour, in either direction.
+   - On the series-nav slide, arrow keys step through its cards one by
+     one (instead of skipping straight past the whole slide), and Enter
+     on a focused card jumps to that article — like Tab, but confined to
+     the natural slide/card/scroll journey instead of leaving the page.
+   - End and Ctrl/Cmd+Home/Ctrl/Cmd+End jump to the deck edges.
 
 Independent series (built separately, served side by side) keep the
 fixtures' navigation states separate: 'tall' is a single-article series
@@ -86,7 +90,7 @@ class KeyboardNav(unittest.TestCase):
         served.mkdir()
 
         # --- 'tall' series: a single article, cover + an overloaded
-        # full-article slide + a trailing standard slide only reachable
+        # full-article slide + trailing standard slides only reachable
         # once the overflowing slide has been scrolled through. ---------
         tall_root = parent / 'tall_series'
         (tall_root / 'sources').mkdir(parents=True)
@@ -109,7 +113,9 @@ class KeyboardNav(unittest.TestCase):
             'summary: Cover slide.\n\n---\n\n'
             '<!-- lwp:slide:full-article -->\nslug: c2\narticle: tall_article.md\n\n---\n\n'
             '<!-- lwp:slide -->\nslug: c3\nkicker: T2\n## Trailing slide\n'
-            'summary: Reachable only once the overflowing slide before it has been scrolled through.\n',
+            'summary: Reachable only once the overflowing slide before it has been scrolled through.\n\n---\n\n'
+            '<!-- lwp:slide -->\nslug: c4\nkicker: T3\n## Slide after trailing\n'
+            'summary: Only reached after the trailing slide is positioned.\n',
             encoding='utf-8',
         )
         _build(tall_root, served / 'tall')

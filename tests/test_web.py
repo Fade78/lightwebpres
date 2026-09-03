@@ -24,6 +24,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WEB_E2E_SCRIPT = Path(__file__).resolve().parent / 'web_e2e.cjs'
 FILE_PROTOCOL_GUARD_SCRIPT = Path(__file__).resolve().parent / 'file_protocol_guard_e2e.cjs'
+STORAGE_UNAVAILABLE_SCRIPT = Path(__file__).resolve().parent / 'storage_unavailable_e2e.cjs'
 LWP_LOOKUP_SCRIPT = Path(__file__).resolve().parent / 'lightwebpres_lookup_e2e.cjs'
 GALLERY_FACETS_SCRIPT = Path(__file__).resolve().parent / 'themes_gallery_facets_e2e.cjs'
 GALLERY_PANELS_SCRIPT = Path(__file__).resolve().parent / 'gallery_panels_e2e.cjs'
@@ -130,6 +131,41 @@ class WebBuild(unittest.TestCase):
         html = self._build('en')
         self.assertIn('Built entirely in the browser.', html)
         self.assertIn('Previous slide', html)
+
+
+@unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
+class WebStorageResilience(unittest.TestCase):
+    """Storage policy failures must not prevent the page from booting."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.httpd = HTTPServer(
+            ('127.0.0.1', 0),
+            lambda *a: _QuietHandler(*a, directory=str(REPO_ROOT)),
+        )
+        cls.port = cls.httpd.server_address[1]
+        cls.thread = threading.Thread(target=cls.httpd.serve_forever, daemon=True)
+        cls.thread.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.httpd.shutdown()
+        cls.thread.join(timeout=5)
+
+    def test_page_boots_when_storage_access_throws(self):
+        result = subprocess.run(
+            ['node', str(STORAGE_UNAVAILABLE_SCRIPT),
+             'http://127.0.0.1:%d' % self.port],
+            capture_output=True, text=True,
+            env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
+            timeout=120,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(report['status'], 'Connection data cleared.')
+        self.assertFalse(report['zipDisabled'])
+        self.assertFalse(report['pullDisabled'])
+        self.assertEqual(report['errors'], [])
 
 
 @unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)

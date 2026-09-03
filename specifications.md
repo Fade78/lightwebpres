@@ -1267,6 +1267,18 @@ techniquement, n'envelopper que l'`<img>` laisse le **nom accessible** du
 lien être le seul texte alternatif. Légende comprise, un lecteur d'écran
 annoncerait la phrase entière comme intitulé du lien.
 
+**Taille et présentation.** Un suffixe immédiatement après l'image règle sa
+présentation. La forme courte `![alt](src){50%}` applique un zoom général de
+50 % à l'image. La forme étendue accepte des paires séparées par des espaces,
+des virgules ou des points-virgules : `{width=50% height=auto align=right}`.
+`width` et `height` prennent des longueurs CSS sûres (dont `%`, `px`, `rem`
+et les fonctions de longueur) ; `zoom` prend un pourcentage ; `align` vaut
+`left`, `center` ou `right` et ne concerne qu'une figure autonome.
+Les valeurs sont validées avant d'entrer dans l'attribut `style`, jamais
+copiées comme du CSS arbitraire. Le suffixe fonctionne aussi sur une image
+inline, sauf `align`. Une largeur non indiquée conserve la limite de 100 % de
+la figure, et la légende reste centrée par défaut.
+
 C'est un élargissement de la règle « seule sur sa ligne », pas un
 mécanisme de plus : cette règle distingue déjà la figure de l'image au
 fil de la phrase. Un champ dédié aurait introduit une couche de
@@ -2074,7 +2086,8 @@ appartient au lecteur.
 
 **Clavier** : ↓/PageDown/→ = slide suivant, ↑/PageUp/←/Backspace =
 slide précédent, Home = retour à l'index (sur l'index lui-même : haut de
-page, où commence le parcours des cartes), F = plein écran, B = écran
+page, où commence le parcours des cartes), Ctrl/Cmd+Home = première slide,
+End ou Ctrl/Cmd+End = dernière slide (sur l'index : dernière carte), F = plein écran, B = écran
 noir, W = écran blanc, T = écran de la couleur de fond du thème. Les
 écrans de pause (B/W/T) cachent la fiche pour ramener l'attention sur
 l'orateur ; appuyer de nouveau sur la même touche ou n'importe quelle
@@ -2091,6 +2104,11 @@ présentateur. Le vocabulaire de ces touches vit dans le pack de langue
 (`help_*`, `presenter_*`, `tags_*`, §7.3). Sur l'index, sans fiches, le
 saut par numéro n'a rien à viser : les chiffres y gardent leur sens
 ordinaire.
+
+**Zoom de présentation** : `+` agrandit toute la page par pas de 10 %, `-`
+la réduit, et `=` revient à 100 %. La valeur est bornée entre 50 % et 200 %,
+reste en mémoire seulement pour la page courante et ne remplace pas le zoom
+du navigateur déclenché par Ctrl/Cmd+`+` ou Ctrl/Cmd+`-`.
 
 Lorsqu'une surface de lecture au premier plan est focalisée et défilable,
 les touches de défilement lui appartiennent avant la navigation de la fiche :
@@ -2312,8 +2330,8 @@ un répertoire absent, exit 0.
 `--inline-images` qui porte encore un `src` relatif est une **erreur
 fatale** nommant le fichier et les chemins fautifs. Deux cas la
 déclenchent : un `<img>` écrit en HTML brut (§6.2), que le convertisseur ne
-touche pas par conception et n'inline donc jamais ; et une image refusée
-par la garde de confinement (§13.7), déjà signalée mais dont le `src`
+touche pas par conception et n'inline donc jamais ; et une référence d'image
+refusée par la garde lexicale (§13.7), déjà signalée mais dont le `src`
 survit. Dans les deux cas la page partirait avec une référence pendante, ce
 que cette option existe précisément pour exclure. Sans l'option, ces mêmes
 séries se construisent normalement : `img/` est copié, et rien ne manque.
@@ -2724,10 +2742,12 @@ Le JavaScript de navigation gère :
 - La détection de la slide courante au scroll
 - Le bouton de partage et sa matrice (§9.3.4)
 - Le parcours clavier complet (flèches Haut/Bas) : fiche par fiche, puis
-  carte par carte sur la fiche series-nav, puis défilement par
-  incréments sur une fiche plus grande que l'écran (§9.3.5) — et, sur
-  l'index, carte par carte à travers toute la liste (même JS, même
-  parcours)
+   carte par carte sur la fiche series-nav, puis défilement par
+   incréments sur une fiche plus grande que l'écran (§9.3.5) — et, sur
+   l'index, carte par carte à travers toute la liste (même JS, même
+   parcours)
+- Les raccourcis de bord de document : Ctrl/Cmd+Home vers la première
+  slide et End/Ctrl/Cmd+End vers la dernière
 - **Tout le pack présentateur** (§8.4), arrivé après cette liste et qui en
   double le volume : plein écran, écrans de pause B/W/T, panneau
   présentateur et notes, overlay d'aide, saut par numéro de fiche, menu
@@ -2828,18 +2848,26 @@ un seul niveau (cartes d'articles, §8.4) :
 Ordre exact d'un appui sur Bas : s'il reste une carte non visitée sur la
 fiche courante, focus sur la carte suivante ; sinon, si la fiche dépasse
 l'écran et n'est pas encore défilée jusqu'en bas, défiler d'un incrément
-(90 % de la hauteur de fenêtre) ; sinon, passer à la fiche suivante. Bas
-est le miroir exact de Haut ; s'il n'existe pas de fiche suivante, rester à la
-position courante, notamment au bas d'une fiche longue en fin de parcours. Ce
-même mécanisme sert aussi de garde-fou
-pour la détection de fiche courante au scroll (`detectCurrent`, utilisée
-pour les nav-dots au scroll à la molette) : elle ne peut plus se fier à
-« quelle fiche a son centre le plus proche du centre de l'écran » dès
-qu'une fiche est nettement plus grande que les autres (son centre reste
-alors loin de l'écran même quand on est en train de la lire) — elle
-retient plutôt la fiche dont l'intervalle `[haut, bas]` contient le
-milieu vertical de la fenêtre, correct quelle que soit la hauteur d'une
-fiche.
+(90 % de la hauteur de fenêtre) ; sinon, passer à la fiche suivante. Le
+défilement interne est borné par les deux bords de la fiche : le dernier
+incrément vers le bas finit avec le bas de la fiche au bas de la fenêtre, et
+le dernier incrément vers le haut avec son haut au haut de la fenêtre. Aucun
+de ces mouvements ne commence donc à afficher la fiche adjacente ; elle ne
+devient visible qu'au coup suivant, quand elle est positionnée à son tour.
+Bas est le miroir exact de Haut ; s'il n'existe pas de fiche suivante, rester
+à la position courante, notamment au bas d'une fiche longue en fin de
+parcours.
+
+Si un défilement manuel a malgré tout laissé la fiche adjacente partiellement
+visible, le prochain coup dans sa direction l'aligne d'abord sur le haut de
+la page et reste sur elle ; il ne saute jamais directement à la fiche encore
+suivante. Cette règle vaut pour les flèches, PageUp/PageDown, les boutons,
+les clics gauche/droit et les balayages tactiles. Une fiche partiellement
+visible n'est pas considérée comme atteinte par `detectCurrent` : la détection
+de fiche courante (80 ms après le dernier événement de scroll) retient la
+fiche qui possède le bord haut de la fenêtre, pas celle dont le milieu est
+simplement traversé par le viewport. Les nav-dots restent ainsi sur la fiche
+en cours jusqu'à ce que la suivante soit réellement positionnée.
 
 **Cooldown de 150 ms entre deux pas (`STEP_COOLDOWN_MS`)** — bug réel
 trouvé après coup (retour utilisateur : « ça continue d'aller vers le
@@ -4733,8 +4761,9 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
     feuille ne résout pas du tout, cette passe se **tait** : l'erreur fatale
     nomme déjà la ligne à corriger, et rien ne doit lui disputer la place
 12. Avertit sur chaque **lien symbolique** de `sources/img/` qui sort du
-    répertoire d'images : il ne serait pas publié (§13.7). C'est un contrôle
-    des *sources* commises, pas de la copie — la règle est celle que
+    répertoire d'images : il sera suivi et publié, mais sa composition sort
+    de la racine logique (§13.7). C'est un contrôle des *sources* commises,
+    pas une interdiction de la copie — la règle de suivi est celle que
     `copy_images` applique, partagée et non réécrite
 13. **Dresse l'inventaire des images** après le rendu : pour chaque fichier
     régulier présent sous `sources/img/`, indique les références locales
@@ -5914,10 +5943,11 @@ l'auteur vient de supprimer ou du fichier jamais utilisé.
 contient `series.json`, `sources/` ou `templates/` : c'est un répertoire
 de série, pas une sortie de build.
 
-Les chemins du manifeste doivent être relatifs à cette sortie, sans `..`,
-chemin absolu ni symlink qui en sorte. Un manifeste invalide est une erreur,
-y compris avec `--force` : une déclaration de build ne constitue jamais une
-autorisation de supprimer hors de la sortie.
+Les noms du manifeste doivent être relatifs à cette sortie, sans `..` ni
+chemin absolu. Un symlink présent dans la sortie est suivi comme par les
+autres commandes ; le manifeste n'autorise toutefois jamais un `..` ou un
+chemin absolu à devenir un nom à supprimer. Un manifeste invalide est une
+erreur, y compris avec `--force`.
 
 Dry-run par défaut : la commande liste les orphelins sans les supprimer.
 `--force` les supprime pour de vrai, et `--dry-run --force` n'en supprime
@@ -6041,8 +6071,9 @@ syntaxe LWP. Sans `--article`, elle produit les quatre sources de brouillon
 avec des slugs frais. Avec `--article`, elle lit le fichier indiqué dans
 `sources/` et génère des slugs qui n'entrent pas en collision avec les slugs
 qu'il déclare. Le nom doit être un simple fichier `.md` dans ce répertoire :
-les séparateurs, `..`, les chemins absolus et les symlinks sortants sont
-refusés comme pour les autres inclusions (§13.7).
+les séparateurs, `..` et les chemins absolus sont refusés comme pour les
+autres inclusions (§13.7), tandis qu'un symlink sortant est suivi et signalé
+par `audit`.
 
 Le format par défaut est JSON, sous le schéma `lightwebpres.slide-draft/1`.
 `--format text` imprime une vue humaine des cardinalités, des champs et des
@@ -6360,14 +6391,14 @@ régression :
 
 - **Contenance du système de fichiers.** Toute valeur qui devient un
   chemin réel — `page_source`, `page_dest`, le champ `article:` d'une
-  fiche full-article, et le contenu de `sources/img/` — est confinée à
-  son répertoire. Le contrôle de forme du nom (nom nu, ni `/` ni `..` ni
-  `.` ni octet NUL) est doublé d'un contrôle **realpath** : un nom nu qui
-  est en réalité un lien symbolique pointant hors de `sources/`
-  (respectivement `sources/img/`) est **refusé**, jamais suivi — sinon
-  un lien commité dans un dépôt exfiltrerait un fichier de l'hôte dans le
-  site publié. Un lien symbolique interne (cible restant dans le
-  répertoire) reste autorisé.
+  fiche full-article, et le contenu de `sources/img/` — est confinée par la
+  forme de son nom : pas de chemin absolu, de séparateur, de `..`, de `.` ou
+  d'octet NUL là où le format exige un nom nu. Un symlink est une composition
+  de fichiers valide, y compris quand sa cible est hors du répertoire
+  logique, et les commandes normales le suivent. `audit` signale les liens
+  qui sortent de leur racine logique ; il n'en change pas le rendu et ne
+  bloque jamais l'audit simple. Ce qui reste refusé est le traversal explicite
+  dans la valeur elle-même.
 - **Contextes HTML échappés vs bruts.** Les valeurs qui atterrissent dans
   un **attribut** (`<meta name="author">`/`<meta name="description">`
   depuis `author`/`page_desc`, le `href` d'un lien Markdown, `src`/`alt`
@@ -6684,18 +6715,15 @@ Demandées le 2026-07-31 :
     donc automatiquement chaque thème. Les légendes
     de **tableaux** restent non planifiées.
 22. **Agrandissement d'image (lightbox)** — pas de comportement par défaut
-    (ouvrir l'image en taille réelle par-dessus la page) ; à ajouter dans
-    `nav.js` le jour où le besoin se présente. À ne pas confondre avec une
-    figure cliquable, qui elle est une ligne-image enveloppée d'un lien
-    Markdown (§6.1) et n'a rien à voir avec du JavaScript.
-23. **Taille et justification des images réglables** — pas de mécanisme
-    dédié aujourd'hui (le style par défaut `.figure` centre l'image et la
-    limite à la largeur du contenu ; au-delà, l'auteur passe par le CSS ou
-    du HTML brut) ; à concevoir (classes CSS prédéfinies ? syntaxe
-    d'attribut sur `![alt](src)` ?).
-
-Les points 22 et 23 demandent des choix de syntaxe qui n'ont pas encore été
-tranchés — à spécifier avant implémentation.
+    (ouvrir l'image en taille réelle par-dessus la page) ; une figure
+    cliquable reste une ligne-image enveloppée d'un lien Markdown (§6.1) et
+    n'a rien à voir avec du JavaScript.
+23. **Taille et justification des images réglables** — IMPLÉMENTÉ (voir
+    §6.1) : `{50%}` est le raccourci du zoom général de l'image ; le format étendu
+    `{width=... height=... zoom=... align=...}` valide une petite liste de
+    propriétés et de valeurs sûres. L'image reste plafonnée à la largeur de
+    sa figure par défaut, et `align` déplace la figure sans modifier la
+    légende par défaut.
 
 ---
 

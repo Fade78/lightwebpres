@@ -54,7 +54,7 @@ lay the pieces out however it likes without passing a single flag.
 
 **Every page is also a presentation deck.** Open the generated HTML in a
 browser and you have a full-screen presenter experience: keyboard (↑/↓,
-Home, F for fullscreen, I for smooth or instant scrolling, B/W/T for pause
+Home, +/−/= for page zoom, F for fullscreen, I for smooth or instant scrolling, B/W/T for pause
 screens, C for compiled themes, S for sharing, M for the presenter menu), mouse (click to
 advance, right-click to go back, middle button to leave fullscreen), and
 touch (swipe) all work out of the box — the index included, whose step
@@ -186,7 +186,7 @@ names are. You will not find out from the page.
 | **key figure** | one number that carries the slide | `highlight:` (+ optional `highlight-caption:`) |
 | **source** | where the claim comes from | `source:` |
 | **comparison table** | a grid of verdicts read at a glance | a Markdown table; cells take `yes` / `no` / `partial` classes via inline HTML |
-| **figure** | a captioned image | `![alt](img/x.png "Caption")` alone on its line |
+| **figure** | a captioned image | `![alt](img/x.png "Caption")` alone on its line; add `{50%}` for general image zoom or `{width=50% align=right}` for the extended format |
 | **headings** | structure within the fact-box body | `#` `##` `###` `####` `#####` `######` — up to level 6; `#`–`###` are true headings, `####` renders as a bold-font paragraph (not `<strong>` emphasis), `#####`/`######` as plain paragraphs |
 | **quote, code, list** | ordinary prose furniture | ordinary Markdown |
 | **note** | a reference the reader can reach | `[^label]` in the text, `[^label]: body` on its own line |
@@ -194,6 +194,12 @@ names are. You will not find out from the page.
 
 Two things are worth knowing before you write, because they surprise
 people:
+
+- **Images have a short and an extended display suffix.** Put `{50%}` after
+  the image for general image zoom, or use validated pairs such as
+  `{width=50% height=auto align=right}`. `width` and `height` accept safe CSS
+  lengths; `zoom` accepts a percentage; `align` is for standalone figures. An
+  inline image can use the size values but not `align`.
 
 - **The switch from fields to free text is one-way, within a slide.**
   Once a line is not a `field:` line, everything after it is prose — so a
@@ -590,8 +596,8 @@ Two different checks, for two different moments:
 writing nothing — and reports three different kinds of thing. What the
 **sources** say: no cover slide, the instance tags in each article, a
 scaffold whose comments predate your current theme, a retired CSS
-variable still referenced in `custom.css`, an image symlink that would
-not be published. It also prints an image inventory: each local file under
+variable still referenced in `custom.css`, and symlinks that leave their
+logical roots even though the build follows them. It also prints an image inventory: each local file under
 `sources/img/` is marked with its inline/figure reference counts, or warned
 about when it is unused; a rendered reference whose source file is absent is
 warned about too. What the **resolved stylesheet** says once the theme,
@@ -797,6 +803,9 @@ speaker drive the deck without looking at the screen.
 | ↓ / PageDown / → | Next slide — on the index, next article card |
 | ↑ / PageUp / ← / Backspace | Previous slide — on the index, previous article card |
 | Home | On an article: back to the index. On the index: top of the page |
+| Ctrl/Cmd+Home | First slide. On the index: top of the page |
+| End or Ctrl/Cmd+End | Last slide. On the index: last article card |
+| + / - / = | Enlarge / reduce / reset the page zoom (the page only; Ctrl/Cmd +/- remains the browser zoom) |
 | F | Fullscreen (Esc to exit) |
 | I | Toggle between the configured smooth slide glide and an instant jump |
 | B | Black pause screen (press again to dismiss) |

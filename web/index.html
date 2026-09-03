@@ -348,20 +348,56 @@
   const FIELDS = ['baseUrl', 'projectId', 'branch', 'token'];
   const STORE_KEY = 'lwp_git_sync_connection';
 
+  function storageArea(name) {
+    try {
+      return window[name] || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function storageGet(name, key) {
+    const area = storageArea(name);
+    if (!area) return null;
+    try {
+      return area.getItem(key);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function storageSet(name, key, value) {
+    const area = storageArea(name);
+    if (!area) return;
+    try {
+      area.setItem(key, value);
+    } catch (e) { /* storage is optional in restricted browser contexts */ }
+  }
+
+  function storageRemove(name, key) {
+    const area = storageArea(name);
+    if (!area) return;
+    try {
+      area.removeItem(key);
+    } catch (e) { /* storage is optional in restricted browser contexts */ }
+  }
+
   function setRememberWarning(visible) {
     rememberWarning.style.display = visible ? 'block' : 'none';
     rememberWarning.setAttribute('aria-hidden', String(!visible));
   }
 
   function loadConnection() {
-    const raw = sessionStorage.getItem(STORE_KEY) || localStorage.getItem(STORE_KEY);
+    const session = storageGet('sessionStorage', STORE_KEY);
+    const local = storageGet('localStorage', STORE_KEY);
+    const raw = session || local;
     if (!raw) return;
     try {
       const data = JSON.parse(raw);
       for (const f of FIELDS) {
         if (data[f] !== undefined) document.getElementById(f).value = data[f];
       }
-      if (localStorage.getItem(STORE_KEY)) {
+      if (local) {
         rememberEl.checked = true;
         setRememberWarning(true);
       }
@@ -372,17 +408,17 @@
     const data = {};
     for (const f of FIELDS) data[f] = document.getElementById(f).value;
     const json = JSON.stringify(data);
-    sessionStorage.setItem(STORE_KEY, json);
+    storageSet('sessionStorage', STORE_KEY, json);
     if (rememberEl.checked) {
-      localStorage.setItem(STORE_KEY, json);
+      storageSet('localStorage', STORE_KEY, json);
     } else {
-      localStorage.removeItem(STORE_KEY);
+      storageRemove('localStorage', STORE_KEY);
     }
   }
 
   function clearConnection() {
-    sessionStorage.removeItem(STORE_KEY);
-    localStorage.removeItem(STORE_KEY);
+    storageRemove('sessionStorage', STORE_KEY);
+    storageRemove('localStorage', STORE_KEY);
     FIELDS.forEach((f) => { document.getElementById(f).value = ''; });
     rememberEl.checked = false;
     setRememberWarning(false);
@@ -508,6 +544,15 @@
 
   let pyodideReady = null;
   let seriesDir = null;
+  let gitOperation = null;
+  let gitBuilt = false;
+
+  function updateGitButtons() {
+    const busy = !pyodideReady || gitOperation !== null;
+    pullBtn.disabled = busy;
+    gitBuildBtn.disabled = busy || !seriesDir;
+    pushBtn.disabled = busy || !seriesDir || !gitBuilt;
+  }
 
   function destroyPyProxy(proxy) {
     if (proxy && typeof proxy.destroy === 'function') proxy.destroy();
@@ -541,7 +586,7 @@
       setStatus('Ready.', 'ok');
       zipBuildBtn.disabled = false;
       zipBuildBtn.textContent = 'Build';
-      pullBtn.disabled = false;
+      updateGitButtons();
       pullBtn.textContent = 'Pull';
     } catch (err) {
       setStatus('Failed to load Pyodide: ' + err, 'error');
@@ -646,14 +691,14 @@
   }
 
   pullBtn.addEventListener('click', async () => {
-    if (!pyodideReady) return;
+    if (!pyodideReady || gitOperation !== null) return;
     const c = requireConnection();
     if (!c) return;
 
-    pullBtn.disabled = true;
-    gitBuildBtn.disabled = true;
-    pushBtn.disabled = true;
+    gitOperation = 'pull';
     seriesDir = null;
+    gitBuilt = false;
+    updateGitButtons();
     setStatus('Pulling ' + c.branch + ' from ' + c.baseUrl + '…');
     showLog('');
 
@@ -676,21 +721,22 @@
         window.__lwp_series_dir = seriesDir;
       }
       setStatus('Pulled. Ready to build.', 'ok');
-      gitBuildBtn.disabled = false;
     } catch (err) {
       setStatus('Pull failed: ' + err, 'error');
     } finally {
       destroyPyProxy(resultProxy);
       destroyPyProxy(pullFn);
-      pullBtn.disabled = false;
+      gitOperation = null;
+      updateGitButtons();
     }
   });
 
   gitBuildBtn.addEventListener('click', async () => {
-    if (!pyodideReady || !seriesDir) return;
+    if (!pyodideReady || !seriesDir || gitOperation !== null) return;
 
-    gitBuildBtn.disabled = true;
-    pushBtn.disabled = true;
+    gitOperation = 'build';
+    gitBuilt = false;
+    updateGitButtons();
     setStatus('Building…');
     showLog('');
 
@@ -706,23 +752,25 @@
         setStatus('Build failed: ' + errorText, 'error');
         return;
       }
+      gitBuilt = true;
       setStatus('Build complete. Ready to push.', 'ok');
-      pushBtn.disabled = false;
     } catch (err) {
       setStatus('Build failed: ' + err, 'error');
     } finally {
       destroyPyProxy(resultProxy);
       destroyPyProxy(buildFn);
-      gitBuildBtn.disabled = false;
+      gitOperation = null;
+      updateGitButtons();
     }
   });
 
   pushBtn.addEventListener('click', async () => {
-    if (!pyodideReady || !seriesDir) return;
+    if (!pyodideReady || !seriesDir || !gitBuilt || gitOperation !== null) return;
     const c = requireConnection();
     if (!c) return;
 
-    pushBtn.disabled = true;
+    gitOperation = 'push';
+    updateGitButtons();
     setStatus('Pushing to ' + c.branch + '…');
 
     let pushFn = null;
@@ -740,7 +788,8 @@
     } finally {
       destroyPyProxy(resultProxy);
       destroyPyProxy(pushFn);
-      pushBtn.disabled = false;
+      gitOperation = null;
+      updateGitButtons();
     }
   });
 
