@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 7 · **à faire** 0 · **en cours** 0 · **terminé** 50 · **abandonné** 1 · **sans objet** 3
+**à étudier** 7 · **à faire** 0 · **en cours** 0 · **terminé** 51 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -163,6 +163,7 @@ gets its own entry and its own state**, however small.
 - **B55** — Les symlinks composent ; le traversal reste refusé
 - **B56** — Images dimensionnables et zoom de présentation
 - **B57** — Une fiche adjacente partielle doit être alignée avant la suivante
+- **B58** — Les préréglages de présentation restent des enveloppes confinées
 
 ### abandonné
 
@@ -2701,3 +2702,50 @@ et la détection de fiche suivent le même état logique.
 les limites d'un incrément vers le haut et les trois entrées de progression
 vers une fiche partiellement visible. La batterie complète est verte : 1159
 tests dans 204 classes.
+
+## B58 — Les préréglages de présentation restent des enveloppes confinées
+
+**État :** terminé · **Depuis :** 2026-09-03
+**Voir :** specifications.md §9.9, §13.7, §20.5.3 et §11.18 ; `lightwebpres` ;
+`tests/test_lightwebpres.py` (`PresentationPackages`)
+
+Un paquet de présentation versionné possède la structure, les layouts, le
+chrome, les assets et le CSS structurel contraint de ses fiches, mais il ne peut
+pas devenir un second moteur de page. LWP conserve le shell HTML, la navigation,
+le JavaScript et la `<section>` de chaque fiche; les fragments ne reçoivent que
+le contenu et les slots de chrome nécessaires.
+
+Un préréglage est la seule sélection auteur :
+`series_meta.presentation_preset`, de forme exacte
+`id@MAJOR.MINOR.PATCH/preset`. Il vaut pour toute la série et son index, sans
+sélecteur par article ni meta. Le rendu intégré virtuel `default` s'exprime par
+l'omission du champ; le sélecteur CLI littéral `default` fait cette omission.
+Les anciens champs auteur `presentation_template`, `slide_layouts` et
+`slide_chrome` sont rejetés, non ignorés. Les deux derniers restent toutefois
+des clés internes de manifeste, pour les défauts du préréglage.
+
+Les champs Markdown `slide-layout`, `slide-header` et `slide-footer` restent
+des overrides par fiche des défauts possédés par ce préréglage, et non une
+cascade JSON auteur. Son thème est la base typée, suivie des pins de
+`settings.conf`, de `style.*` dans l'article, puis des styles d'instance;
+`custom.css` reste le CSS final avancé. Les assets publiés vont sous
+`public/assets/presentations/<id>/<version>/...`.
+
+Le manifeste, les chemins et l'arbre de liens symboliques sont validés avant le
+rendu. Les fragments ne peuvent pas prendre le contrôle du shell ni charger un
+script; les assets déclarés sont les seules ressources que le chrome peut
+publier ou inline. `init --preset` valide et vendorise sous
+`templates/layouts/<id>/<version>/`, écrit le sélecteur et applique le starter
+déclaré sauf `--no-starter`. `series preset set` vendorise et sélectionne sans
+starter, en préservant pins et `custom.css`; un `theme:` explicite exige
+`--keep-theme` ou `--use-preset-theme`, qui retire cette ligne.
+
+Le namespace reste `layouts/<id>/<version>/` dans un catalogue et
+`templates/layouts/<id>/<version>/` une fois vendorisé; une collision
+id/version remplace toujours le paquet entier.
+
+**Ce qui est vérifié.** Les tests couvrent le sélecteur de série, le défaut
+virtuel, le rejet des anciens champs auteur, les fragments, le chrome, le thème,
+les assets inlinés ou publiés, l'index, le vendor, les starters et les décisions
+de thème. La documentation permanente décrit désormais la même frontière, les
+mêmes priorités et les mêmes commandes.

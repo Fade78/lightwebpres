@@ -8,6 +8,7 @@ nav_desc: Setup, anatomy of a page, series, look, shipping
 <!-- lwp:slide:cover -->
 slug: lightwebpres
 kicker: Guide
+slide-layout: hero
 # LightWebPres
 summary: Markdown in, self-contained HTML out. This deck is the short version; the article below it is the guide itself, and both were built by the tool they describe.
 
@@ -94,6 +95,19 @@ for a consumer that already asks what the series resolves to.
 Declare `series_meta.lang_tags: {"fr": "fr", "en": "en"}` when typography
 must follow the selected language. The first mapped tag on a slide wins; the
 build's `--lang` remains the fallback.
+
+---
+
+<!-- lwp:slide -->
+slug: paquets-presentation
+kicker: Structure
+## Paquets de présentation, pas des pages
+
+fact-label: Ce qui change, ce qui reste à LWP
+
+`series_meta.presentation_preset: id@MAJOR.MINOR.PATCH/preset` est le seul choix persisté : il vaut pour toute la série et son index. Sans ce champ, le rendu intégré virtuel est `default`; le sélecteur CLI `default` demande cette omission. Le paquet possède seulement la structure, les layouts, le chrome, les assets et son CSS structurel contraint, jamais le `<head>`, le `<body>`, la navigation ou le script.
+
+Les champs auteur `presentation_template`, `slide_layouts` et `slide_chrome` sont rejetés; les deux derniers restent internes au manifeste pour les défauts d'un préréglage. Les quatre types de fiche acceptent `slide-layout`, `slide-header` et `slide-footer` comme overrides de ces défauts, sans cascade JSON auteur. `preset list/show`, `series preset` et `series preset set` lisent ou sélectionnent un préréglage; `init --preset ...` le vendorise et applique son starter déclaré, sauf `--no-starter`.
 
 ---
 

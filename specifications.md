@@ -37,13 +37,13 @@
 
 **§9. Thèmes et personnalisation : les propriétés typées**
 
-9.1 Le principe et le vocabulaire · 9.2 Les types et les renvois · 9.3 La cascade à cinq couches et les trois fichiers · 9.4 Les commandes · 9.5 Thèmes de couleurs et catalogue externe · 9.6 La couche article, et les balises d'instance · 9.7 Effets et dégradés · 9.8 Migration depuis `templates/style.css`
+9.1 Le principe et le vocabulaire · 9.2 Les types et les renvois · 9.3 La cascade à cinq couches et les trois fichiers · 9.4 Les commandes · 9.5 Thèmes de couleurs et catalogue externe · 9.6 La couche article, et les balises d'instance · 9.7 Effets et dégradés · 9.8 Migration depuis `templates/style.css` · 9.9 Paquets et presets de présentation
 
 **§10. Pipeline GitLab CI**
 
 **§11. Commandes de l'exécutable**
 
-11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --only` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.9.2 Le catalogue externe · 11.10 `series theme set` · 11.11 `status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy · 11.17 `contract`
+11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --only` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.9.2 Le catalogue externe · 11.10 `series theme set` · 11.11 `status` et `series status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy · 11.17 `contract` · 11.18 `preset` et `series preset`
 
 **§12. Algorithme du build**
 
@@ -67,7 +67,7 @@
 
 **§18. Placeholders de templates**
 
-18.1 Template `page.html` · 18.2 Template `index.html` · 18.3 Fragments de la slide series-nav · 18.4 Règles de remplacement
+18.1 Template `page.html` · 18.2 Template `index.html` · 18.3 Fragments de la slide series-nav · 18.4 Règles de remplacement · 18.5 Fragments de paquet de présentation
 
 **§19. Schémas des packs de langue**
 
@@ -75,7 +75,7 @@
 
 **§20. Schéma formel de `series.json`**
 
-20.0 Nomenclature : la forme d'un nom dit son niveau · 20.1 Structure · 20.2 Champs des articles · 20.3 Règles de validation · 20.4 Métadonnées de la série (`series_meta`) · 20.5 Champs de `series_meta` · 20.5.1 Typographie par tag de langue · 20.5.2 Tag initial et persistance · 20.6 Statut d'un article (`status`)
+20.0 Nomenclature : la forme d'un nom dit son niveau · 20.1 Structure · 20.2 Champs des articles · 20.3 Règles de validation · 20.4 Métadonnées de la série (`series_meta`) · 20.5 Champs de `series_meta` · 20.5.1 Typographie par tag de langue · 20.5.2 Tag initial et persistance · 20.5.3 Sélection de preset de présentation · 20.6 Statut d'un article (`status`)
 
 **§21. Cas de validation informel (contenu privé, hors dépôt)**
 
@@ -184,18 +184,24 @@ contrat, et se répartissent dans les familles suivantes :
   notices de ce qui y est vendorisé (§13.8) : elles appartiennent au
   tiers, pas au projet, et se remplacent avec lui.
 
+- **exemples de build** — `examples/layouts/` contient les paquets de
+  présentation de démonstration suivis avec le code. Ils sont des sources
+  d'outillage, pas une seconde famille de documents : le guide officiel en
+  vendorise un pour vérifier le chemin réel paquet → build → sortie.
+
 **`generated/` n'est pas une famille de documents**, et figure ici parce
 que c'est le seul répertoire du dépôt dont le contenu n'est écrit par
 personne : de la sortie de build committée — la galerie des thèmes, sa
 planche-contact, le guide bâti avec l'outil qu'il décrit. Le dépôt les
 garde parce qu'on les consulte sans les construire, mais aucune main ne
 les modifie : la correction se fait à la source, puis on régénère. Les
-deux artefacts HTML ont chacun leur garde, qui compare octet pour octet
-la copie committée à une construction neuve — parce que la seule chose
-qui distingue ce répertoire d'un répertoire ordinaire est une discipline,
-et qu'une discipline sans instrument se perd. La planche-contact PNG n'en
-a pas : c'est une capture d'écran, elle exige un navigateur et son rendu
-n'est pas reproductible à l'octet. Elle se refait à la main quand la
+sorties HTML reproductibles ont chacune leur garde, qui compare octet pour
+octet la copie committée à une construction neuve ; pour le guide, cette
+comparaison couvre aussi les assets publiés dans son sous-arbre. La seule
+chose qui distingue ce répertoire d'un répertoire ordinaire est une
+discipline, et une discipline sans instrument se perd. La planche-contact
+PNG n'en a pas : c'est une capture d'écran, elle exige un navigateur et son
+rendu n'est pas reproductible à l'octet. Elle se refait à la main quand la
 galerie change, et c'est le point faible connu de ce répertoire.
 
 `delete-before-1.0/` est un miroir de la racine : ce qui y entre reste
@@ -265,7 +271,7 @@ est la source de vérité) :
   l'exécutable, `_find_series_dir_in_archive()` dans `git_sync.py` (§23.1).
   Il dépend aussi de la **forme** du pack de langue — le dictionnaire
   `strings`, qui est une donnée et non un symbole — et du schéma JSON
-  `lightwebpres.theme-info/4` (§11.9.1), versionné justement pour ça.
+   `lightwebpres.theme-info/5` (§11.9.1), versionné justement pour ça.
   La dépendance existe, écrite ou non ;
   l'écrire évite qu'un renommage la casse en silence, puisque la suite de
   tests d'ici ne la voit pas. Les renommer est un changement cassant pour
@@ -382,6 +388,9 @@ ma-serie/                          # Le répertoire de la série (l'unité de tr
 │   ├── custom.css                 # Les règles CSS libres de l'auteur (ajoutées en dernier)
 │   ├── themes/                    # Snapshots de thèmes versionnés dans cette série (optionnel)
 │   │   └── *.conf
+│   ├── layouts/                   # Paquets de présentation versionnés (optionnel, §9.9)
+│   │   └── <id>/<version>/
+│   │       └── manifest.json
 │   └── nav.js                     # ABSENT par défaut — le JS de navigation vient de
 │                                  # l'exécutable ; `template write nav.js` en pose une
 │                                  # copie pour qui veut le modifier (§9.4.5)
@@ -401,6 +410,8 @@ ma-serie/                          # Le répertoire de la série (l'unité de tr
 │   ├── snapchat.html
 │   ├── img/                       # Images référencées, copiées depuis sources/img/
 │   │   └── ...
+│   ├── assets/presentations/      # Assets déclarés par les paquets de présentation
+│   │   └── <id>/<version>/...     # absents avec --inline-images
 │   └── .lwp-manifest.json         # Ce que ce build a écrit — base de clean (§11.13)
 ├── README.md                      # Généré par build depuis series.json (§8.3)
 ├── lightwebpres                   # Copie de l'exécutable (installée par init, §11.1)
@@ -427,6 +438,7 @@ série.
 | `LWP_OUTPUT_DIR`      | `$LWP_SERIES_DIR/public`    | Le répertoire de sortie du build    |
 | `LWP_LANG`            | `fr`                        | La langue (`fr`, `en`, ou toute autre avec un pack split ou legacy) |
 | `LWP_THEMES_DIR`      | répertoire de données de la plateforme | Le catalogue utilisateur de thèmes externes |
+| `LWP_PRESENTATION_PACKAGES_DIR` | répertoire de données de la plateforme | Le catalogue utilisateur de paquets de présentation |
 
 En complément des chemins de série, un exécutable installé sous la forme
 réelle `<préfixe>/bin/lightwebpres` peut lire les ressources partagées
@@ -445,6 +457,16 @@ ressources installées. Sans cette variable, le chemin utilisateur est
 `$XDG_DATA_HOME/lightwebpres/themes/` sous Unix et
 `%APPDATA%/lightwebpres/themes/` sous Windows. Seuls les fichiers `.conf`
 directement placés dans ces répertoires sont lus.
+
+Les **paquets de présentation** suivent la même hiérarchie, mais sont des
+arbres versionnés sous `layouts/<id>/<version>/` : le paquet virtuel `default`
+(sans fichier) < les paquets installés < le catalogue utilisateur <
+`templates/layouts/` de la série. `LWP_PRESENTATION_PACKAGES_DIR` remplace le
+seul emplacement utilisateur ; sans lui, celui-ci vaut
+`$XDG_DATA_HOME/lightwebpres/presentations/` sous Unix et
+`%APPDATA%/lightwebpres/presentations/` sous Windows. Un paquet local de même
+`id@version` remplace le paquet externe entier, jamais fichier par fichier
+(§9.9).
 
 ### 2.4 Options en ligne de commande
 
@@ -504,7 +526,7 @@ d'une commande vont sur **stdout**. C'est ce qui permet à
 #### 2.4.2 Synopsis
 
 ```bash
-lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci]
+lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--preset id@version/preset|default] [--no-starter] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
 lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
 lightwebpres watch [répertoire] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--serve] [--port N] [--themes selectors|all] [--no-essential-theme]
@@ -515,6 +537,8 @@ lightwebpres template show <nav.js|fr.json|en.json|interface/...|typography/...>
 lightwebpres template write <nav.js|fr.json|en.json|interface/...|typography/...> [répertoire] [--force]
 lightwebpres theme list [--polarity light|dark] [--hue teinte] [--family nom]
 lightwebpres theme show [slug… | --all] [--format text|json]   # sans cible : la série courante
+lightwebpres preset list [--format text|json]
+lightwebpres preset show <id@version/preset|default> [--format text|json]
 lightwebpres series theme [répertoire] [--format text|json]
 lightwebpres series theme set [répertoire] --theme nom
 lightwebpres theme gallery [slug… | --all] [--output chemin]
@@ -522,7 +546,10 @@ lightwebpres theme create <slug> [--from nom] [--label texte] [--family nom] [--
 lightwebpres theme migrate [répertoire]
 lightwebpres theme vendor [répertoire] [--themes sélecteurs] [--force]
 lightwebpres theme path
+lightwebpres series preset [répertoire] [--format text|json]
+lightwebpres series preset set [répertoire] --preset <id@version/preset|default> [--keep-theme|--use-preset-theme]
 lightwebpres status [répertoire] [--format text|json]
+lightwebpres series status [répertoire] [--format text|json]
 lightwebpres series tags [répertoire] [--tag nom] [--format text|json]
 lightwebpres resolve [répertoire] <propriété> [--article page] [--format text|json]
 lightwebpres contract [répertoire] [--article fichier.md] [--format text|json]
@@ -538,24 +565,31 @@ lightwebpres --help
   chemin de son HTML et `theme create` celui de son fichier `.conf`. Un chemin
   **relatif** est résolu depuis le répertoire courant, pas depuis `[répertoire]`
 - `--scaffold` : `template update` seulement — régénère la surface
-  commentée de `settings.conf` aux valeurs du thème courant, en
+  commentée de `settings.conf` aux valeurs du thème de base résolu, en
   conservant les lignes épinglées (§9.4.3)
 - `--language-file` : fichier de langue unifié explicite, priorité max sur les sources split et legacy (§19.5)
 - `--force` : `init`, `theme create` et `theme vendor` — procède même si le répertoire cible n'est pas vide, remplace un snapshot existant demandé, ou remplace une copie vendue (`series theme set` n'a plus de `--force` : il ne réécrit que la ligne `theme:` de `settings.conf`, il n'y a plus rien à forcer — §11.10)
 - `--theme` : `init`/`series theme set`/`theme vendor` — applique ou vend une palette du catalogue effectif (§9.5)
+- `--preset` : `init`/`series preset set` — sélectionne un preset de
+  présentation du catalogue effectif (§9.9)
+- `--no-starter` : `init --preset` seulement — n'applique pas le starter
+  optionnel déclaré par ce preset (§9.9.4)
+- `--keep-theme` / `--use-preset-theme` : `series preset set` seulement —
+  choisit explicitement le sort d'un `theme:` actif (§11.18)
 - `--polarity` / `--hue` / `--family` : `theme list` seulement — restreint la liste par facette (§9.5.2, §11.9)
 - `--gitlab-ci` : `init` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
 - `--no-typography` : `build`/`verify`/`watch` — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
 - `--scroll-duration` : `build`/`verify`/`watch` — durée entière non négative en millisecondes du glissé entre fiches ; `0` le désactive. Sans cette option, `series_meta.scroll_duration` s'applique, puis le défaut de `200` ms (§8.4, §20.5)
 - `--include-drafts` : `build`/`verify` seulement — construit aussi les articles marqués `status: draft` (§20.6), avec bandeau « Brouillon ». Sans effet sur `status: ignored`, qui n'est jamais construit
-- `--themes` : `build`/`verify`/`watch`/`theme vendor` — embarque ou vend des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules ; les slugs viennent du catalogue effectif et le thème de base de `settings.conf` reste toujours le premier pour un build, précédé de `custom(<thème>)` si le fichier porte des pins (§9.3.7)
+- `--themes` : `build`/`verify`/`watch`/`theme vendor` — embarque ou vend des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules ; les slugs viennent du catalogue effectif et le thème de base effectif (celui de `settings.conf`, ou celui du preset) reste toujours le premier pour un build, précédé de `custom(<thème>)` si le fichier porte des pins (§9.3.7)
 - `--no-essential-theme` : `build`/`verify`/`watch` seulement — ne pas embarquer le lot `essential` par défaut (§9.3.7); une sélection explicite `--themes` reste appliquée
 - `--only` : `build` seulement — ne reconstruit qu'une page (§11.3.1)
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
-- `--format text|json` : `status`, `series tags`, `resolve`, `theme show`,
-  `series theme`, `contract` — format de sortie ; texte par défaut, sauf
-  `contract` qui produit du JSON par défaut
+- `--format text|json` : `status`, `series status`, `series tags`, `resolve`,
+  `theme show`, `preset list`, `preset show`, `series theme`, `series preset`, `contract` —
+  format de sortie ; texte par défaut, sauf `contract` qui produit du JSON par
+  défaut
 - `--article` : `resolve` — ajoute la couche propre à un article ; `contract` —
   lit ce fichier de `sources/` pour éviter ses slugs déjà déclarés
 - `--from` : `theme create` — thème intégré ou externe dont les valeurs résolues
@@ -571,12 +605,13 @@ lightwebpres --help
 Les variables d'environnement `LWP_SERIES_DIR`/`LWP_LANG`/`LWP_OUTPUT_DIR` et
 les variables de domaines (`LWP_SOURCES_DIR`, `LWP_TEMPLATES_DIR`,
 `LWP_INTERFACE_DIR`, `LWP_TYPOGRAPHY_DIR`, `LWP_LANGUAGE_DIR`) sont honorées
-par les commandes qui opèrent sur une série. `demo`, `series theme`,
-`series theme set`, `series slug`, `resolve` et `watch` lisent donc les mêmes
-emplacements résolus que `build`. Les commandes de catalogue (`theme list`,
-`theme show`, `theme gallery`, `theme create`, `theme path`) lisent le catalogue
-installé/utilisateur ; les commandes qui opèrent sur une série ajoutent
-`templates/themes/` au-dessus de ces couches.
+par les commandes qui opèrent sur une série. `demo`, `series theme`, `series
+preset`, leurs commandes `set`, `series slug`, `resolve` et `watch` lisent donc
+les mêmes emplacements résolus que `build`. Les commandes de catalogue (`theme
+list`, `theme show`, `theme gallery`, `theme create`, `theme path`, `preset
+list`, `preset show`) lisent le catalogue installé/utilisateur ; les commandes
+qui opèrent sur une série ajoutent `templates/themes/` et `templates/layouts/`
+au-dessus de ces couches selon leur domaine.
 
 L'aide s'obtient par `help`, `--help` ou `-h` (les trois formes sont
 équivalentes) ; sans argument du tout, l'aide s'affiche aussi. Une
@@ -604,9 +639,9 @@ Le système gère trois niveaux d'objets :
 
 ### 3.1 Niveau série (le site)
 
-La série est l'ensemble des articles. Elle est décrite par `series.json` qui
-contient, pour chaque article, deux catégories de champs bien distinctes
-(détail complet en §20) :
+La série est l'ensemble des articles. Elle est décrite par `series.json` :
+chaque entrée d'article porte deux catégories de champs, et `series_meta`
+porte les réglages de série (détail complet en §20) :
 
 - **Structurel — toujours dans `series.json`**, aucune autre source
   possible : `page_source` (nom du fichier Markdown source, ex.
@@ -620,8 +655,12 @@ contient, pour chaque article, deux catégories de champs bien distinctes
   (description de la page, `<meta name="description">`), `card_title`/
   `card_desc`/`card_label` (carte de la page d'index), `nav_title`/
   `nav_desc` (carte de navigation affichée dans la page d'un *autre*
-  article), `author`/`license`/`date` (champs éditoriaux affichés,
-  §20.3.1), `status` (§20.6).
+   article), `author`/`license`/`date` (champs éditoriaux affichés,
+   §20.3.1), `status` (§20.6).
+- **De présentation — réglage de série, hors des entrées d'article** :
+  `series_meta.presentation_preset` choisit un preset par
+  `id@MAJOR.MINOR.PATCH/preset`. Cette sélection unique fixe les défauts de
+  toute la série ; son absence désigne le preset virtuel `default` (§9.9).
 
 Le contenu d'une fiche `cover` (kicker, titre, summary) vient exclusivement des
 champs de la fiche elle-même dans le `.md` (§3.3.1) — `series.json` ne porte
@@ -642,7 +681,9 @@ Ce fichier contient :
 
 1. **Un bloc de métadonnées** en haut (`<!-- lwp:meta -->` ... `---`) qui porte
    les valeurs d'affichage par défaut de cet article — `series.json` ne les
-   répète que pour en surcharger une (§20.3.1).
+   répète que pour en surcharger une (§20.3.1). Il ne choisit pas de preset de
+   présentation : cette sélection est propre à `series_meta` et vaut pour toute
+   la série (§9.9).
 2. **Une suite de fiches** (slides) séparées par `---`.
 3. **Une fiche spéciale `series-nav`** qui déclenche la génération de la
    navigation inter-articles (calculée depuis le fichier de série).
@@ -660,6 +701,12 @@ La page HTML générée contient :
 
 Chaque fiche est une `<section class="slide">` dans le HTML final. Les types de
 fiches sont :
+
+Un paquet de présentation sélectionné ne remplace pas cette section : il
+enveloppe seulement son contenu LWP déjà rendu. Le `<head>`, le `<body>`, la
+navigation, le script et l'identité de la fiche restent ceux de l'outil. Les
+trois champs `slide-layout`, `slide-header` et `slide-footer` sont acceptés sur
+les quatre types de fiche (§9.9.3).
 
 #### 3.3.1 Fiche de couverture (`cover`)
 
@@ -871,6 +918,12 @@ temps de cuisson varie... ») : c'est le cas normal d'usage, et les deux
 doivent être rendus comme deux `<p>` distincts à l'intérieur du même
 `<div class="fact-content">` (§6.1).
 
+Le bloc `lwp:meta` ne peut pas modifier la présentation de cette page :
+`presentation_preset` n'est accepté que dans `series_meta`. Les champs retirés
+`presentation_template`, `slide_layouts` et `slide_chrome` y sont également
+rejetés ; les champs Markdown `slide-layout`, `slide-header` et `slide-footer`
+restent les seuls overrides par fiche (§4.3, §9.9.3).
+
 ### 4.3 Champs d'une fiche standard
 
 | Champ           | HTML généré                              | Obligatoire |
@@ -884,12 +937,22 @@ doivent être rendus comme deux `<p>` distincts à l'intérieur du même
 | `highlight-caption` | `<span class="highlight-caption">VALEUR</span>` | Non  |
 | `tags`           | `data-tags` sur la `<section>` (§4.3.1)   | Non         |
 | `fact-variant`   | `fact--VALEUR` sur l'encadré (§9.6.2)     | Non         |
+| `slide-layout`   | Choisit une variante du paquet de présentation (§9.9.3) | Non |
+| `slide-header`   | Chrome d'en-tête du paquet ; `""` le supprime | Non |
+| `slide-footer`   | Chrome de pied du paquet ; `""` le supprime | Non |
 | `note`           | `<div class="speaker-note" hidden>` — panneau présentateur seulement (§8.4) | Non |
 | `comment`        | Aucun — jamais rendu (§4.6)               | Non         |
 
 Le jeu de champs fait foi dans le code (`SLIDE_FIELD_NAMES`), d'où `--help`
 le dérive. Rien ne verrouille ce tableau-ci contre lui : il se relit à la
 main, et c'est pour l'avoir oublié qu'il a manqué trois champs.
+
+`slide-layout`, `slide-header` et `slide-footer` ne sont pas propres à la
+fiche standard : les quatre types les acceptent. Une variante autre que
+`default`, ou tout chrome, demande un paquet autre que le défaut virtuel ;
+`slide-layout: default` seul conserve le rendu historique. Une valeur vide est
+invalide, sauf la chaîne exacte `""` pour `slide-header` ou `slide-footer`, qui
+supprime explicitement le chrome hérité (§9.9.3).
 
 Le texte libre après les champs est placé dans un `<div class="fact-content">`
 si un `fact-label` est présent, sinon dans un `<div class="slide-body">`.
@@ -1005,6 +1068,11 @@ En pratique, le corpus existant place toujours `cover` en première fiche,
 puis les fiches `standard`, puis `series-nav`, puis `full-article` en
 dernier — c'est une convention d'usage recommandée, pas une règle imposée
 par le moteur.
+
+Les trois champs de présentation `slide-layout`, `slide-header` et
+`slide-footer` sont communs aux quatre lignes du tableau. Ils ne changent ni
+le type, ni les règles de contenu libre : ils demandent au paquet sélectionné
+d'envelopper le contenu généré (§9.9.3).
 
 **La liste est fermée.** Ces quatre types sont écrits une seule fois, dans
 le registre `SLIDE_TYPES` de l'exécutable, qui porte pour chacun son
@@ -1585,7 +1653,7 @@ thème serait physiquement incapable de l'honorer.
 | | ce qui est décidé | cascade |
 |---|---|---|
 | **structure** | `notes_placement`, `notes_tooltip` | défaut → `series_meta` → bloc meta de l'article |
-| **apparence** | corps du texte, filet, couleur, numéro | le registre de propriétés (§9) : défauts → thème → `settings.conf` → `style.*` → balise d'instance |
+| **apparence** | corps du texte, filet, couleur, numéro | le registre de propriétés (§9) : défauts → thème du preset (ou `theme:` explicite) → `settings.conf` → `style.*` → balise d'instance |
 
 La cascade de structure reprend la forme qu'`author` / `license` / `date`
 ont déjà : déclarée pour la série dans `series_meta`, redéfinie par
@@ -2416,7 +2484,7 @@ avec le projet GUI :
 | **composant** | Une chose que le format nomme et que la page rend — `kicker`, `summary`, `verdict.partial`. Les propriétés appartiennent aux composants. |
 | **axe** | Le dernier segment d'une clé : ce qu'elle règle (`fg`, `size`, `weight`, `shadow.blur`). L'axe fixe le type, le type fixe l'espace de recherche des renvois (§9.2). |
 | **valeur partagée** | Une couleur (`color.*`) ou une pile de polices (`font.*`) fournie par le thème et référencée par les propriétés. Jamais lue directement par une règle émise. |
-| **couche** | Un dictionnaire de propriétés dans la cascade (§9.3) : défauts, thème, settings, article, instance. |
+| **couche** | Un dictionnaire de propriétés dans la cascade (§9.3) : défauts, thème de base du preset (ou thème explicite), settings, article, instance. |
 | **mobilier** | Famille descriptive, pas un mécanisme : les propriétés qui peignent l'appareil de la page plutôt que son contenu — filets, voiles de surface, fonds en creux, pastilles de contrôle, voile de modale. Des propriétés ordinaires ; le mot permet seulement d'en parler collectivement. |
 | **squelette** | Le CSS statique de mise en page qu'aucune propriété ne pilote : flex, grid, espacements, media queries. Pas une surface éditable. |
 
@@ -2587,53 +2655,43 @@ historique `monospace, monospace` devient inutile.
 ### 9.3 La cascade à cinq couches et les trois fichiers
 
 ```
-   défauts intégrés  →  thème  →  templates/settings.conf  →  propriétés d'article
-        └────────── fusion, résolution des renvois, typage ──────────┘
-                                   ↓
-                        CSS composé en mémoire, par page
-                                   ↓
-              inliné dans la page ({{css}})   +   templates/custom.css
-                                   ↓
-                      balises d'instance (§9.6)  →  cascade
+  défauts du registre  →  thème de base du preset*  →  settings.conf  →  style.* de page  →  styles d'instance
+          └──────────────── fusion, renvois et typage par page ────────────────┘                  (§9.6)
+                                             ↓
+                                  CSS composé en mémoire
+                                             ↓
+                                custom.css (dernier)
+
+  * une ligne theme: active dans settings.conf remplace ce thème de base.
 ```
 
 **La chaîne n'est pas homogène, et la couture doit être vue.** Les quatre
-premières couches se résolvent **avant l'émission** : le moteur fusionne
-des dictionnaires — rien à arbitrer, pas d'ordre de règles, pas de
-spécificité. Le CSS est composé **par page** (il est inliné dans chaque
-page via `{{css}}`, §18.1), donc la personnalisation par article (§9.6)
-ne coûte qu'un jeu de propriétés différent pour cette page. La cinquième
-couche — les balises d'instance — ne **peut pas** fonctionner ainsi :
-elle vise une instance, pas une page (deux passages balisés dans le même
-article doivent pouvoir différer) ; elle passe donc par des styles en
-ligne, donc par la cascade. La couture est là, entre « par page » et
-« par instance ».
+couches typées se résolvent **avant l'émission** : le moteur fusionne des
+dictionnaires — rien à arbitrer, pas d'ordre de règles, pas de spécificité.
+Le CSS est composé **par page** (il est inliné dans chaque page via `{{css}}`,
+§18.1), donc une propriété `style.*` de page ne coûte qu'un jeu de propriétés
+différent pour cette page. Les styles d'instance ne peuvent pas fonctionner
+ainsi : ils visent une occurrence, pas une page ; ils passent donc par la
+cascade CSS. La couture est là, entre « par page » et « par instance ».
 
-**La feuille composée** est faite de trois parts, dans cet ordre :
+Le thème de base vient du preset sélectionné, sauf lorsqu'une ligne `theme:`
+active de `templates/settings.conf` le remplace. Sans sélection persistée, le
+preset virtuel `default` apporte le comportement historique. Les pins de
+`settings.conf` passent ensuite devant cette base, puis les propriétés
+`style.*` de la page ; elles ne sont jamais remplacées par un changement de
+preset.
 
-1. le bloc `:root` — une variable CSS par propriété
-   (`kicker.fg` → `--kicker-fg`), toutes valeurs résolues ;
-2. les règles pilotées, dérivées du registre — chaque règle ne lit que
-   des variables de composant, jamais une valeur partagée directement
-   (un seul saut jusqu'à une valeur, le CSS reste lisible tel quel) ;
-3. le **squelette** statique — la mise en page seule : tout ce qu'aucune
-   propriété ne pilote. C'est un **littéral** (`TEMPLATE_SKELETON`), et
-   non plus une extraction faite au vol sur l'ancienne feuille : ce qu'on
-   y lit est exactement ce qu'une page reçoit, éditer une ligne n'y est
-   jamais un no-op silencieux. Ses `@media` passent **après** les règles
-   du moteur : à spécificité égale, l'ordre les fait gagner, ce qui est
-   exactement leur raison d'être. Deux invariants, tenus par des tests
-   plutôt que par un garde-fou d'extraction : aucune déclaration n'est
-   pilotée des deux côtés à la fois (le littéral périmé gagnerait
-   silencieusement, venant après), et aucune ne référence de variable
-   hors `--page-content-max` et `--page-block-max`, les deux que le
-   registre émet — un autre reste serait une décision visuelle que le
-   registre n'expose pas, donc une décision confisquée (§9.1).
-
-`templates/custom.css` (§9.3.2) est ajouté **en dernier**, après la
-feuille composée. Rien de tout cela n'atteint le disque : la feuille
-peut n'exister qu'en mémoire et reste intégralement consultable — elle
-est inlinée dans chaque page, il suffit d'en afficher la source.
+**La feuille composée** conserve le squelette statique (`TEMPLATE_SKELETON`) :
+la mise en page que les propriétés typées ne pilotent pas. Pour un paquet qui
+déclare `structure_css`, le build compose ensuite ce CSS structurel, puis la
+sortie typée : le CSS structurel passe donc **après** le squelette et **avant**
+les variables `:root` et les règles dérivées du registre. Il est ainsi possible
+d'ajouter une structure déclarée sans lui donner préséance sur les valeurs
+typées. Le preset virtuel `default` conserve le rendu historique sans couche
+structurelle. `templates/custom.css` (§9.3.2) est ajouté **en dernier**, après
+toute feuille composée : c'est la surface avancée de l'auteur. Rien de tout
+cela n'atteint le disque ; la feuille reste consultable dans la source de la
+page où elle est inlinée.
 
 **Les fichiers, un propriétaire chacun :**
 
@@ -2654,12 +2712,13 @@ quelqu'un n'est pas de le détecter, c'est de ne pas écrire là où il est.
 
 #### 9.3.1 `templates/settings.conf` : les valeurs, et le scaffold
 
-Le format est celui du bloc meta d'un article : des lignes
-`clé: valeur`, des commentaires `#`, rien d'autre. Deux clés spéciales :
-`theme: <slug>` choisit le thème de la série (absente, la série est sur
-les défauts intégrés), et `# scaffold-for: <slug>` — un commentaire —
-enregistre le thème sous lequel le fichier a été généré, ce qui permet à
-`audit` de signaler un scaffold désaccordé (§9.4.4).
+Le format est celui du bloc meta d'un article : des lignes `clé: valeur`, des
+commentaires `#`, rien d'autre. Deux clés spéciales : `theme: <slug>` choisit
+explicitement le thème de la série et masque alors le thème de base du preset ;
+absente, le preset fournit ce thème de base. `# scaffold-for: <sélecteur>` —
+un commentaire — enregistre le thème explicite ou le sélecteur de preset sous
+lequel le fichier a été généré, ce qui permet à `audit` de signaler un scaffold
+désaccordé (§9.4.4).
 
 **Les erreurs sont nommées.** Une ligne qui n'est pas `clé: valeur` est
 une erreur qui donne le fichier et la ligne, et rappelle que les règles
@@ -2674,9 +2733,9 @@ la couche : elle annule un éventuel pin antérieur et laisse la valeur du
 thème s'appliquer. Une clé inconnue, même vide, reste une erreur nommée ;
 `theme:` doit toujours nommer un thème connu.
 
-**Le scaffold.** Le fichier est généré **une fois** (à l'init, §9.4.1)
-avec **toutes** les propriétés présentes, en commentaire, à la valeur du
-thème choisi — les renvois montrés comme des mots
+**Le scaffold.** Le fichier est généré **une fois** (à l'init, §9.4.1) avec
+**toutes** les propriétés présentes, en commentaire, à la valeur du thème de
+base résolu — les renvois montrés comme des mots
 (`# kicker.fg: ink-quiet`), parce que c'est le vocabulaire que l'auteur
 écrit. Décommenter une ligne l'**épingle** : elle survit à tout
 changement de thème et à toute montée de version. Le scaffold règle
@@ -2685,7 +2744,7 @@ sous les yeux, sans documentation (il remplace ainsi le bloc de
 « recettes prêtes à coller » de l'ancienne feuille, qui ne couvrait
 qu'un seul objet et dont le compte annoncé avait dérivé) ; la mise à
 jour — `template update --scaffold` (§9.4.3) régénère à la demande la
-surface commentée pour le thème courant, en gardant les lignes
+surface commentée pour le thème de base courant, en gardant les lignes
 épinglées : les propriétés apparues et disparues se lisent comme un diff
 ; et la dérive de la documentation, puisque le
 fichier est **généré depuis le registre**, la structure même qui émet le
@@ -2693,8 +2752,8 @@ CSS, jamais tenu à la main — sinon il deviendrait une seconde source de
 vérité.
 
 **Il n'est jamais réécrit d'initiative.** Ses commentaires vieillissent
-quand le thème change ; le remède est de le **signaler** (`audit`
-compare `scaffold-for` au `theme:` déclaré, §9.4.4), pas de l'écraser —
+quand le thème de base change ; le remède est de le **signaler** (`audit`
+compare `scaffold-for` au thème de base résolu, §9.4.4), pas de l'écraser —
 le fichier appartient à l'auteur. Les valeurs épinglées, elles, restent
 volontairement en place à travers un changement de thème : le système
 sait quelles clés sont épinglées et depuis quel thème ; il ne les touche
@@ -2931,18 +2990,18 @@ thème demandé, les seules valeurs qui diffèrent de la variante primaire, ains
 qu'un aperçu résolu pour le sélecteur : fond de page, dégradé de couverture
 (angle et deux arrêts) et couleur d'écriture de couverture.
 
-Le thème de base primaire est toujours le thème effectif lu dans
-`templates/settings.conf`, même si la liste l'omet. Lorsqu'au moins une
-propriété y est épinglée, le payload expose d'abord une variante dynamique
-`custom(<thème>)`, composée du thème de base et de ces propriétés ; le thème de
-base brut reste ensuite présent sous son propre identifiant. Une série sans
-ligne `theme:` porte l'identifiant synthétique `default` (et, si elle a des
-propriétés épinglées, `custom(default)`). La lecture se fait au build : une
-modification utilisateur de `settings.conf` est donc la source de vérité et ne
-doit pas être remplacée par l'option `--themes`. `all` ajoute tous les thèmes
-du catalogue effectif. Une sélection est une liste séparée par des virgules sur
-la CLI, ou une liste JSON de chaînes sous `themes`. Chaque élément peut être un
-slug, `all`, `essential`, ou un sélecteur `X:Y` :
+Le thème de base primaire est le `theme:` explicite de
+`templates/settings.conf` lorsqu'il est actif ; sinon, c'est le thème typé du
+preset sélectionné. Le preset virtuel `default` conserve l'identifiant
+synthétique `default` lorsqu'aucune ligne `theme:` n'est présente. Lorsqu'au
+moins une propriété est épinglée, le payload expose d'abord une variante
+dynamique `custom(<thème>)`, composée du thème de base et de ces propriétés ;
+le thème de base brut reste ensuite présent sous son propre identifiant. La
+lecture se fait au build : une modification utilisateur de `settings.conf` est
+donc la source de vérité et ne doit pas être remplacée par l'option `--themes`.
+`all` ajoute tous les thèmes du catalogue effectif. Une sélection est une liste
+séparée par des virgules sur la CLI, ou une liste JSON de chaînes sous `themes`.
+Chaque élément peut être un slug, `all`, `essential`, ou un sélecteur `X:Y` :
 
 | Forme | Facette | Valeur exemple |
 |---|---|---|
@@ -3009,16 +3068,23 @@ la feuille (§9.3), la recompose pour toute page portant des propriétés
 d'article (§9.6), et échoue avec une erreur nommée sur la première
 propriété invalide.
 
-#### 9.4.1 `init --theme`
+#### 9.4.1 `init --preset`
 
-`init` écrit la surface de personnalisation : `settings.conf` — le scaffold
-complet du thème choisi, avec sa ligne `theme: <slug>` et son
-`# scaffold-for: <slug>` (sans `--theme` : pas de ligne `theme:` active,
-scaffold aux défauts intégrés) —, et `custom.css` (vide, §9.3.2). Il ne pose ni `nav.js`
-ni pack de langue split ou unifié : ceux-là appartiennent à l'outil et y restent
-(§9.4.5). Aucune substitution dans du CSS : choisir
-un thème à l'init, c'est écrire un mot dans un fichier de données. Un
-slug inconnu est une erreur fatale qui liste les slugs valides.
+`init --preset` valide et, pour un preset concret, vendorise le paquet sous
+`templates/layouts/`, écrit son sélecteur dans `series_meta`, puis écrit la
+surface de personnalisation. `settings.conf` est un scaffold complet des
+propriétés du thème typé du preset, avec `# scaffold-for:` réglé sur le
+sélecteur ; aucune ligne `theme:` n'est active sans `--theme`. Cette option
+reste disponible : son thème explicite masque la base du preset et devient le
+repère du scaffold. `custom.css` est vide (§9.3.2). Le littéral `default`
+laisse la sélection absente et conserve le scaffold des défauts intégrés.
+
+Après ces fichiers, `init` applique le starter optionnel déclaré par le preset,
+sauf avec `--no-starter` (§9.9.4). Il ne pose ni `nav.js` ni pack de langue
+split ou unifié : ceux-là appartiennent à l'outil et y restent (§9.4.5).
+Aucune substitution dans du CSS : choisir un thème ou un preset à l'init est
+une écriture de données validées. Un slug ou sélecteur inconnu est une erreur
+fatale qui liste les choix valides.
 
 #### 9.4.2 `series theme set`
 
@@ -3030,6 +3096,10 @@ gardait — fichiers à moitié recolorés, marqueurs mentant sur le thème,
 `--force` — existait parce que l'outil écrivait dans le fichier que
 l'auteur édite ; il n'y a plus rien à garder, et **`--force` n'existe
 plus**. Comportements, tous vérifiés :
+
+Un thème ainsi déclaré masque le thème de base du preset sélectionné, sans
+modifier le preset, ses layouts, son chrome ou ses assets. Retirer cette ligne
+par `series preset set --use-preset-theme` révèle de nouveau cette base.
 
 - répertoire jamais installé (pas de `templates/`) : erreur propre
   renvoyant vers `init` — `series theme set` configure une série, il n'en
@@ -3081,20 +3151,21 @@ Quand il n'y a rien à faire — l'état normal d'une série saine — la
 commande le dit. Une commande qui n'imprimerait que « run build again »
 se lirait comme une commande qui a échoué en silence.
 
-En complément, la commande **crée** les
-fichiers de la surface auteur s'ils manquent (série d'avant la
-refonte) : un `settings.conf` neuf (scaffold aux défauts, aucun thème
-déclaré) et un `custom.css` vide. Un `templates/style.css` hérité est
+En complément, la commande **crée** les fichiers de la surface auteur s'ils
+manquent (série d'avant la refonte) : un `settings.conf` neuf (scaffold au
+thème de base résolu, preset inclus, aucun thème explicite) et un `custom.css`
+vide. Un `templates/style.css` hérité est
 **signalé, jamais migré** : ses valeurs sont les décisions de l'auteur,
 les déplacer lui revient — `audit` nomme chaque renommage pour rendre le
 geste mécanique (§9.8).
 
 **`--scaffold`** est la seule exception à « l'outil ne touche jamais
-`settings.conf` », et elle est explicite. Elle régénère la surface
-commentée du `settings.conf` existant pour le thème courant — les
+`settings.conf` », et elle est explicite. Elle régénère la surface commentée du
+`settings.conf` existant pour le thème de base résolu — thème explicite ou
+preset — les
 propriétés apparues dans une nouvelle version apparaissent, les disparues
 disparaissent — **en conservant chaque ligne décommentée** que l'auteur a
-épinglée, et en réalignant `scaffold-for:` sur le thème déclaré. C'est
+épinglée, et en réalignant `scaffold-for:` sur ce thème ou ce preset. C'est
 l'action que `audit` recommande quand les deux divergent, et le seul moyen
 de voir les propriétés d'une nouvelle version sans fusion à la main. Une
 propriété épinglée que le registre ne connaît plus n'est pas perdue : elle
@@ -3130,8 +3201,8 @@ travail de quelqu'un, et le build n'en dit rien.
 
 #### 9.4.4 `audit` (volet présentation)
 
-`audit` (§11.5) avertit, ne bloque jamais. Quatre yeux sur la surface de
-présentation, chacun vérifié — et ces quatre-là sont exactement ce à quoi
+`audit` (§11.5) avertit, ne bloque jamais. Cinq yeux sur la surface de
+présentation, chacun vérifié — et ces cinq-là sont exactement ce à quoi
 `audit --templates` réduit la commande : il saute les contrôles par article
 et ne déclenche pas le rendu, donc il reste bon marché :
 
@@ -3142,12 +3213,15 @@ et ne déclenche pas le rendu, donc il reste bon marché :
    ne résout plus rien — elle ne peint rien et ne dit rien ;
    l'avertissement la nomme, avec le remplaçant.
 3. **`settings.conf`** : une erreur de syntaxe ou de propriété (mêmes
-   messages qu'au build, mais non bloquants ici) ; et un
-   `scaffold-for:` différent du `theme:` déclaré — décommenter une ligne
-   épinglerait une valeur du thème quitté ; l'avertissement renvoie à
-   `template update --scaffold` (§9.4.3), qui réaligne la surface
-   commentée sans perdre les épingles.
-4. **La feuille résolue** : les trois façons dont une feuille composée
+   messages qu'au build, mais non bloquants ici) ; et un `scaffold-for:`
+   différent du thème explicite ou du preset résolu — décommenter une ligne
+   épinglerait une valeur de la base quittée ; l'avertissement renvoie à
+   `template update --scaffold` (§9.4.3), qui réaligne la surface commentée
+   sans perdre les épingles.
+4. **Le paquet résolu** : son manifeste, ses chemins, fragments, chrome,
+   assets, starter et CSS structurel sont validés avant le rendu. Un défaut
+   est nommé sans que l'audit simple modifie quoi que ce soit.
+5. **La feuille résolue** : les trois façons dont une feuille composée
    cesse de fonctionner — un contrôle de navigation qu'on ne voit plus,
    du texte peint de la couleur de son fond, une taille absolue sous le
    plancher de lisibilité (§11.5, §9.5.6). Le jugement porte sur le
@@ -4109,6 +4183,189 @@ neuve au premier `template update`, ou directement le thème voulu par
 capable de tout régénérer — l'architecture est conçue pour être juste,
 pas compatible.
 
+### 9.9 Paquets et presets de présentation
+
+Un thème répond aux propriétés visuelles typées ; un **paquet de
+présentation** est une unité versionnée qui apporte des enveloppes de contenu,
+du chrome, des assets déclarés et du CSS structurel contraint. Un **preset**
+est le choix auteur, à l'intérieur de ce paquet, qui lie un thème de base et
+les défauts des quatre types de fiche. Le paquet ne reçoit jamais la page
+entière ni la navigation : LWP conserve le shell `<html>`, `<head>`, `<body>`,
+`<section>`, les scripts et les liens. Il ne peut donc modifier que les
+enveloppes de contenu, le chrome, ses assets déclarés et sa structure CSS.
+
+#### 9.9.1 Sélection, portée et catalogue
+
+Seul `series_meta.presentation_preset` sélectionne la présentation. Sa valeur
+est exactement `id@MAJOR.MINOR.PATCH/preset`, par exemple
+`corporate@1.0.0/brief` ; l'identifiant est en minuscules, chiffres et traits
+d'union, et la version a trois composantes numériques. La sélection est
+**unique pour toute la série**, index compris. Le champ absent désigne le
+preset virtuel intégré `default` et conserve le rendu historique. Les commandes
+acceptent le littéral `default`, mais le sérialisent par l'omission du champ ;
+ce n'est ni un paquet installable ni une valeur persistée.
+
+Un article ne peut pas choisir de preset. `presentation_preset` dans une entrée
+`articles[]` ou dans un bloc `lwp:meta` est rejeté. Les champs retirés
+`presentation_template`, `slide_layouts` et `slide_chrome` sont eux aussi
+rejetés dans toute métadonnée ou JSON auteur : il n'existe ni compatibilité, ni
+migration, ni cascade par article. Les seuls overrides de fiche sont les
+champs Markdown de §9.9.3.
+
+Le catalogue charge les racines dans cet ordre de précédence : preset virtuel
+`default` < paquets installés < catalogue utilisateur < `templates/layouts/`
+de la série. `LWP_PRESENTATION_PACKAGES_DIR` désigne le seul emplacement
+utilisateur (§2.3). Une racine plus proche qui contient le même `id@version`
+remplace le paquet externe complet ; LWP ne compose jamais des fichiers de deux
+paquets homonymes.
+
+#### 9.9.2 Arborescence et manifeste
+
+Un paquet concret réside sous `layouts/<id>/<version>/` et contient un
+`manifest.json` UTF-8, objet JSON conforme au schéma
+`lightwebpres.presentation-package/1`. Les clés inconnues sont refusées.
+`schema`, `id`, `version`, `layouts`, `themes` et `presets` sont requis ;
+`structure_css`, `chrome`, `assets` et `starters` sont facultatifs :
+
+```json
+{
+  "schema": "lightwebpres.presentation-package/1",
+  "id": "corporate",
+  "version": "1.0.0",
+  "layouts": {
+    "cover": {"default": "layouts/cover.html", "hero": "layouts/cover-hero.html"},
+    "standard": {"default": "layouts/standard.html"},
+    "series-nav": {"default": "layouts/series-nav.html"},
+    "full-article": {"default": "layouts/full-article.html"},
+    "index": "layouts/index.html"
+  },
+  "themes": {
+    "light": "themes/light.conf"
+  },
+  "structure_css": "structure.css",
+  "chrome": "chrome.json",
+  "assets": {
+    "logo": {"path": "assets/logo.svg", "kind": "image"}
+  },
+  "starters": {
+    "brief": "starters/brief/starter.json"
+  },
+  "presets": {
+    "brief": {
+      "label": "Brief",
+      "description": "Présentation sobre prête à compléter.",
+      "theme": "light",
+      "slide_layouts": {
+        "cover": "hero",
+        "standard": "default",
+        "series-nav": "default",
+        "full-article": "default"
+      },
+      "slide_chrome": {"all": {"footer": "Exemple"}},
+      "starter": "brief"
+    }
+  }
+}
+```
+
+Chaque type de fiche (`cover`, `standard`, `series-nav`, `full-article`) porte
+une map non vide avec une variante `default`; les autres clés sont des
+variantes nommées. `layouts.index` est une chaîne facultative, non une map de
+variantes. `themes` est une map non vide de thèmes typés du paquet ; `presets`
+est une map non vide. Chaque preset porte un `label`, une `description`, un
+thème du paquet, les quatre défauts `slide_layouts`, des défauts
+`slide_chrome`, et peut nommer un starter déclaré. Les noms `slide_layouts` et
+`slide_chrome` appartiennent uniquement à ce manifeste : ils ne sont pas une
+surface JSON pour l'auteur.
+
+`chrome` référence un objet JSON de modèles de chrome ; `structure_css`
+référence la feuille structurelle contrainte ; `starters` mappe un nom à son
+`starters/.../starter.json`. Un asset déclaré a un nom, un `kind` `image` ou
+`icon`, et un chemin sous `assets/`. Tous les chemins sont relatifs POSIX,
+contenus dans le paquet et ne traversent ni `..`, ni un lien symbolique sortant
+(§13.7).
+
+#### 9.9.3 Fragments, variantes et chrome
+
+Un fragment de fiche est une enveloppe, non un squelette de page. Il contient
+exactement une fois chacun des slots `{{content}}`, `{{slide_header}}` et
+`{{slide_footer}}`. Le fragment d'index contient exactement une fois
+`{{content}}` et aucun autre slot. LWP rend d'abord le contenu normal de la
+fiche, injecte le chrome, puis insère ce résultat dans le fragment tout en
+gardant la `<section>` extérieure. Les balises `html`, `head`, `body`,
+`section`, `script`, `style` et `link`, les styles en attribut, les attributs
+d'événement, les URL `javascript:` et tout asset de layout (`img`, `picture`,
+`source`, média, SVG ou `src`) sont interdits. Les assets passent exclusivement
+par le chrome déclaré.
+
+Les défauts `slide_layouts` et `slide_chrome` du **preset** sont la seule base
+de sélection. `slide_layouts` donne une variante pour chacun des quatre types.
+`slide_chrome` peut donner `all` puis un type précis, chacun avec `header` et/ou
+`footer` : le type précis complète ou remplace `all`. Ces noms ne se lisent que
+dans le manifeste du paquet, jamais dans `series.json` ni dans le bloc meta.
+
+Sur une fiche, les trois champs Markdown sont les overrides finaux :
+
+```text
+slide-layout: hero
+slide-header: Marque interne
+slide-footer: ""
+```
+
+`slide-layout` choisit une variante pour cette fiche. `slide-header` et
+`slide-footer` acceptent du texte, `""` (suppression explicite de la valeur
+du preset), ou un objet JSON `{ "model": "…", "text": "…", "assets": {…} }`.
+Ces champs sont admis sur les quatre types de fiche. Une variante autre que
+`default` ou tout override de chrome demande un paquet autre que le défaut
+virtuel ; `slide-layout: default` seul conserve le rendu historique. Le texte
+de chrome, y compris les libellés d'icône, est échappé : un modèle ne transporte
+pas de HTML brut.
+
+`chrome.json` peut déclarer des `models`. Un modèle appartient à `header` ou
+`footer` et contient des items `text`, `image` ou `icon`. Un item image nomme un
+asset déclaré et son texte alternatif ; un item icône nomme un asset icône et
+son libellé. Les modèles peuvent aussi recevoir, via `assets`, des références
+`presentation:<nom>` pour leurs slots d'asset. Un modèle ou un asset inconnu, ou un
+asset du mauvais `kind`, est fatal avant l'écriture des pages.
+
+#### 9.9.4 Thème, CSS structurel, assets et starters
+
+Le thème du preset devient la base typée **seulement** si
+`templates/settings.conf` ne choisit pas explicitement `theme:`. La précédence
+reste donc : défauts du registre, thème de base du preset, pins de
+`settings.conf`, `style.*` de la page, puis styles d'instance. Le CSS
+`structure_css` du paquet est composé après le squelette et avant la sortie
+typée ; `templates/custom.css` reste le dernier mot de l'auteur. La clé retirée
+`layout_css` est rejetée : un paquet ne reçoit que `structure_css`.
+
+Le CSS structurel est une surface volontairement étroite. Chaque sélecteur doit
+être `.lwp-presentation--<id>` ou commencer par ce scope ; il ne peut viser ni
+`:root`, `html`, `body`, le shell `.slide`, la navigation, le sélecteur de
+thème, le présentateur, ni les frères du scope. Seuls les blocs `@media` sont
+admis. Il ne peut déclarer de propriété personnalisée, le raccourci `font`, une
+couleur littérale, une variable typée inconnue, ni une famille de police autre
+qu'une variable typée unique. `url()`, `@import`, les fontes, `!important` et
+la fermeture de la balise `style` sont refusés. Cette contrainte donne au
+paquet une structure de contenu sans lui donner la palette, le shell ou le
+chargement de ressources.
+
+Les assets déclarés sont publiés sous
+`public/assets/presentations/<id>/<version>/…`; leur URL dans la page est
+`assets/presentations/<id>/<version>/…`. Avec `--inline-images`, ils deviennent
+des URI `data:` et ne sont pas copiés. Ils entrent dans
+`.lwp-manifest.json`, donc `clean` les connaît, et leur changement est une
+dépendance que `watch` surveille. Seul le paquet effectivement résolu fournit
+ces assets à la sortie.
+
+Un starter est un payload source déclaratif et **additif**, disponible à
+`init` seulement. Son manifeste ne peut lister que des fichiers Markdown sûrs,
+non exécutables et non symlinks, directement sous son `sources/`, accompagnés
+d'une entrée `articles[]` pour chacun. Il ne peut ni écraser les fichiers de
+l'auteur, de l'outil, de configuration ou de sortie, ni sortir de son arbre par
+un chemin ou un symlink. `init --no-starter` omet ce payload ; changer de preset
+plus tard ne lance jamais de starter. Sans preset persisté, le rendu historique
+reste inchangé.
+
 ---
 
 ## 10. Pipeline GitLab CI
@@ -4156,20 +4413,22 @@ série se construit-elle sans rien à signaler ? ».
 ### 11.1 `init`
 
 ```bash
-lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci]
+lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--preset id@version/preset|default] [--no-starter] [--gitlab-ci]
 ```
 
 Crée la structure de travail dans `[répertoire]` :
 
 1. Crée le répertoire s'il n'existe pas
 2. Crée les sous-répertoires : `sources/`, `templates/`, `interface/`,
-   `typography/`, `language/`, `public/`
+   `typography/`, `language/`, `public/`, et `templates/layouts/` lorsqu'un
+   preset concret doit y être vendorisé
 3. Écrit la surface de personnalisation (§9.3, §9.4.1) :
    - `templates/settings.conf` — le scaffold complet : toutes les
-     propriétés en commentaire à la valeur du thème choisi, avec la ligne
-     `theme: <nom>` si `--theme <nom>` est fourni (sinon, scaffold aux
-     défauts intégrés, sans ligne `theme:` active) ; `<nom>` inconnu de
-     `THEMES` est une erreur fatale, qui liste les noms valides
+     propriétés en commentaire à la valeur du thème explicitement choisi, ou
+     sinon à celle du thème typé du preset ; une ligne `theme: <nom>` n'est
+     active que si `--theme <nom>` est fourni. Les pins restent donc libres de
+     primer le preset ; `<nom>` inconnu est une erreur fatale, qui liste les
+     noms valides
    - `templates/custom.css` — vide, zéro octet (§9.3.2)
    (pas de `templates/style.css` : la feuille est composée au build, §9.3 ;
    pas de `templates/nav.js` ni de pack de langue : ils appartiennent à
@@ -4177,8 +4436,9 @@ Crée la structure de travail dans `[répertoire]` :
 4. Crée un `series.json` de départ : `series_meta` pré-rempli de
    valeurs génériques (`title`/`subtitle`/`version`/`intro`, plus
    `author`/`license` vides — présents pour faire connaître les champs,
-   rien n'est rendu tant qu'ils sont vides) et un tableau `articles`
-   vide
+   rien n'est rendu tant qu'ils sont vides) et un tableau `articles` vide ; un
+   preset concret y écrit `presentation_preset`, tandis que `default` laisse le
+   champ absent
 5. Crée un `.gitlab-ci.yml` de base, **mais seulement si `--gitlab-ci` est
    passé** — `init` seul ne présuppose jamais un déploiement GitLab
    (§10) ; par défaut, aucun fichier de CI n'est créé. La commande de
@@ -4192,6 +4452,16 @@ Crée la structure de travail dans `[répertoire]` :
    en plus à côté n'ajoutait rien (§9.4.5)
 7. Nomme en dernier `template show` et `template write` : ce que la série
    ne contient pas est ce qu'un auteur ne pensera pas à demander
+
+Avec `--preset`, `init` valide d'abord le sélecteur et le paquet. Pour un
+preset concret, il vendorise le paquet entier sous `templates/layouts/`, écrit
+sa sélection dans `series_meta`, produit le scaffold depuis son thème typé,
+puis applique son starter déclaré sauf avec `--no-starter`. Le littéral
+`default` ne vendorise rien, n'écrit aucun sélecteur et conserve le scaffold et
+le rendu historiques. `--no-starter` exige `--preset` ; il ne désactive que le
+starter optionnel, jamais la validation ou la sélection. Le payload de starter
+est vérifié avant toute écriture et reste additif dans `sources/` et
+`articles[]` (§9.9.4).
 
 **`--lang` à l'init.** La langue n'est **pas** une propriété du projet
 stockée quelque part : les deux packs sont toujours dans l'exécutable, et
@@ -4260,8 +4530,11 @@ lightwebpres build [répertoire] [--lang fr] [--output public/] [--no-typography
 
 Construit le site :
 
-1. Lit `series.json` dans `[répertoire]`. Les articles `status: ignored`
-   (§20.6) sortent de la liste d'abord et sans condition. Les articles
+1. Lit `series.json` dans `[répertoire]` et résout
+   `series_meta.presentation_preset` avant toute source : paquet, preset,
+   thème de base, layouts, chrome, CSS structurel et assets constituent un
+   contexte unique pour tous les articles et pour l'index. Les articles
+   `status: ignored` (§20.6) sortent de la liste d'abord et sans condition. Les articles
    `status: draft` sont ensuite **entièrement exclus** — pas de page, pas
    de carte d'index, pas d'entrée dans les navigations des autres
    articles — sauf avec `--include-drafts` (build **et** verify), qui les
@@ -4284,25 +4557,28 @@ Construit le site :
       aucun article de ce build, §4.5/§19.6) ou pour un article dont le
       bloc meta porte `typo: off` (même effet, mais pour cet article
       seul, §4.5)
-   e. Assemble le HTML avec la structure de page fixe (§9), la feuille
-      composée (§9.3 — recomposée pour cette page si le bloc meta porte
-      des propriétés `style.*`, §9.6.1) et le JS
+    e. Assemble le HTML avec la structure de page fixe (§9), les enveloppes et
+       le chrome du preset résolu (§9.9), la feuille composée (§9.3 —
+       recomposée pour cette page si le bloc meta porte des propriétés
+       `style.*`, §9.6.1) et le JS
    f. Écrit le fichier HTML dans `public/`
-3. Génère la page d'index (`public/index.html`)
+3. Génère la page d'index (`public/index.html`) dans ce même contexte de
+   présentation
 4. Génère le `README.md` à la racine du répertoire de série (§8.3)
 5. Inventorie les `src` locaux des pages rendues, puis copie de
    `sources/img/` vers `public/img/` les seuls fichiers référencés par ces
-   pages. Les images absentes de la source sont ignorées par la copie et
-   signalées par `audit`; les fichiers source non référencés ne sont pas
-   publiés. La copie fusionne avec l'existant et ne supprime **jamais** un
-   fichier présent dans `public/img/` même si ce build ne le référence pas —
-   comme pour les pages HTML d'articles retirés de `series.json` (qui restent
-   elles aussi dans `public/` sans être nettoyées), `build` est additif/à jour,
-   jamais un miroir exact qui purge ce qui n'est plus source. Un `--output`
-   mal typé ne peut donc jamais faire disparaître du contenu qui n'a pas été
-   mis là par `build` lui-même. Un résidu (image ou page orpheline) reste
-   possible après suppression d'un article ; `clean` peut le retirer si le
-   manifeste l'avait déjà déclaré.
+   pages. Il publie aussi les assets du seul paquet effectivement résolu sous
+   `public/assets/presentations/<id>/<version>/`. Les images absentes de la
+   source sont ignorées par la copie et signalées par `audit`; les fichiers
+   source non référencés ne sont pas publiés. La copie fusionne avec l'existant
+   et ne supprime **jamais** un fichier présent dans `public/img/` même si ce
+   build ne le référence pas — comme pour les pages HTML d'articles retirés de
+   `series.json` (qui restent elles aussi dans `public/` sans être nettoyées),
+   `build` est additif/à jour, jamais un miroir exact qui purge ce qui n'est plus
+   source. Un `--output` mal typé ne peut donc jamais faire disparaître du
+   contenu qui n'a pas été mis là par `build` lui-même. Un résidu (image ou page
+   orpheline) reste possible après suppression d'un article ; `clean` peut le
+   retirer si le manifeste l'avait déjà déclaré.
 6. Écrit l'empreinte de navigation (§11.3.1) dans `.lwp-cache/nav.json`
    (ou le chemin donné par `--nav-cache`)
 
@@ -4317,10 +4593,10 @@ et `0`.
 chaque page le payload décrit en §9.3.7. Sans l'option, la liste racine
 `series.json.themes` est utilisée si elle existe. Sur la CLI, les sélecteurs
 sont séparés par des virgules; dans JSON, `themes` est une liste de chaînes.
-Le thème effectif de `templates/settings.conf` est ajouté en première position
-dans tous les cas ; si `settings.conf` porte des propriétés, sa variante
-`custom(<thème>)` le précède et le snapshot brut est conservé. La sélection
-n'écrit pas dans les sources. Sans option ni clé
+Le thème de base effectif — `theme:` explicite ou thème du preset — est ajouté
+en première position dans tous les cas ; si `settings.conf` porte des
+propriétés, sa variante `custom(<thème>)` le précède et le snapshot brut est
+conservé. La sélection n'écrit pas dans les sources. Sans option ni clé
 JSON, le build embarque néanmoins le lot `essential` par défaut (§9.3.7);
 `--no-essential-theme` le désactive.
 
@@ -4603,6 +4879,11 @@ HTML. Le répertoire `img/` n'est pas copié vers `public/` : chaque page
 est alors un seul fichier HTML autonome, distribuable sans dépendance
 externe.
 
+Les assets déclarés par le paquet de présentation résolu suivent la même
+règle : sans l'option, ils sont copiés sous
+`public/assets/presentations/<id>/<version>/`; avec `--inline-images`, leurs
+URLs deviennent aussi des data URIs et ce répertoire n'est pas créé.
+
 L'HTML grossit d'environ 33 % par image (l'encodage base64 ajoute 4
 octets pour 3). Un gzip de servage récupère ce surcoût sur le wire
 (l'alphabet de 64 caractères compresse bien). En ouverture locale
@@ -4621,6 +4902,10 @@ lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-fil
 ```
 
 Vérifie sans modifier :
+
+Comme `build`, `verify` résout le preset de `series_meta` avant le rendu en
+mémoire. Articles, index, enveloppes, chrome, thème de base et CSS structurel
+doivent donc correspondre au même contexte que la sortie vérifiée.
 
 `--themes` doit reprendre la sélection utilisée par le build dont `public/`
 est vérifié si le build l'avait explicitement fournie. Sans l'option, la même
@@ -4676,8 +4961,8 @@ déclenche pas le rendu.
 
 Trois regards, sur trois objets différents. Le premier lit l'**arbre
 syntaxique** des sources. Le deuxième lit la **feuille résolue** — le
-résultat de la cascade, thème puis `settings.conf` puis les `style.*`
-d'un article — parce qu'un texte peint de la couleur de son fond est
+résultat de la cascade, thème de base du preset ou `theme:` explicite, puis
+`settings.conf` et les `style.*` d'un article — parce qu'un texte peint de la couleur de son fond est
 correct à chaque couche et n'existe qu'une fois composé. Le troisième
 **rend la série en mémoire**, jette le HTML et rapporte ce que la
 composition a eu à dire. `verify` rend pour *comparer* à `public/` ;
@@ -4733,16 +5018,18 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
 9. Avertit si l'article n'a de description **nulle part** (`page_desc` vide
    à tous les niveaux de la cascade §20.3.1 — la balise `<meta
    name="description">` serait omise)
-10. Volet présentation (§9.4.4) : avertit si un `templates/style.css` hérité
+10. Volet présentation (§9.9) : avertit si un `templates/style.css` hérité
     existe encore (plus lu — avec, pour lui comme pour `custom.css`, chaque
     variable **retirée** encore référencée, nommée avec son remplaçant,
     table `RETIRED_VARIABLES` de §9.8 — aucun alias n'a été conservé, une
     telle déclaration cesse de s'appliquer sans que rien ne le signale, et
     c'est ici que la rupture devient audible) ; si `settings.conf` contient
     une erreur de syntaxe ou de propriété (mêmes messages qu'au build, non
-    bloquants ici) ; et si son `scaffold-for:` ne correspond plus au
-    `theme:` déclaré (décommenter une ligne épinglerait une valeur du thème
-    quitté)
+     bloquants ici) ; si son `scaffold-for:` ne correspond plus au thème de
+     base résolu (thème explicite ou preset) ; et si un paquet de présentation,
+     son manifeste, ses fragments, son chrome ou son CSS structurel est
+     invalide. Décommenter une ligne dans un scaffold désaccordé épinglerait
+     une valeur de la base quittée
 11. **Juge la feuille résolue** (§9.4.4, §9.5.6) — celle de la série, puis
     celle de chaque article qui porte des `style.*`. Trois familles, et rien
     d'autre : un contrôle de navigation sous 3:1 sur son propre fond, du
@@ -4834,8 +5121,9 @@ pack unifié, prise par `template write` (§9.4.5).
    `rules` remplaçant le jeu de base en bloc (§19.2)
 4. S'il n'y a rien à faire — l'état normal — la commande le dit
 5. Crée les fichiers de la surface auteur s'ils **manquent** (série
-   installée avant la refonte §9) : `templates/settings.conf` (scaffold
-   aux défauts, aucun thème déclaré) et `templates/custom.css` (vide) —
+   installée avant la refonte §9) : `templates/settings.conf` (scaffold au
+   thème de base résolu, preset inclus, sans thème explicite) et
+   `templates/custom.css` (vide) —
    écrire un fichier qui n'existe pas ne trahit aucune promesse de
    propriété ; un fichier présent n'est **jamais** touché
 6. Avertit (`[WARNING]`) si un `templates/style.css` hérité existe encore :
@@ -4843,7 +5131,7 @@ pack unifié, prise par `template write` (§9.4.5).
    décisions de l'auteur ; `audit` nomme chaque renommage de variable
    pour rendre le déplacement mécanique (§9.8)
 7. **Avec `--scaffold`** : régénère en plus la surface commentée de
-   `templates/settings.conf` aux valeurs du thème déclaré, en
+   `templates/settings.conf` aux valeurs du thème de base résolu, en
    **conservant** les lignes décommentées — les valeurs épinglées par
    l'auteur — et avertit sur celles qui épinglent une propriété disparue.
    Sans changement à écrire, la commande le dit et n'écrit rien. C'est
@@ -5200,10 +5488,11 @@ avertissent : `build` sort 0, `audit` nu aussi.
   `builtin:nord` force la version intégrée lorsqu'un fichier local masque
   `nord`.
 - **Un répertoire de série** (`theme show .`) : le thème **effectif**,
-  c'est-à-dire après application des valeurs que la série épingle dans
+  c'est-à-dire le thème explicitement nommé ou, à défaut, le thème du preset,
+  après application des valeurs que la série épingle dans
   `templates/settings.conf`. Les deux réponses peuvent différer, et c'est
-  précisément le renseignement utile : un auteur qui a épinglé trois
-  couleurs a pu faire tomber son thème sous le seuil sans le savoir.
+  précisément le renseignement utile : un auteur qui a épinglé trois couleurs a
+  pu faire tomber son thème sous le seuil sans le savoir.
 
 #### Un niveau par catégorie, pas une lettre
 
@@ -5340,13 +5629,13 @@ slugs ou `--all`, c'est une **liste** de ces objets, dans l'ordre demandé.
 
 | Clé | Type | Sens |
 |---|---|---|
-| `schema` | chaîne | `lightwebpres.theme-info/4` — le nom porte encore la clé de dispatch historique `theme-info`, et c'est voulu : c'est ce que le GUI teste pour distinguer un exécutable ancien d'un neuf, au lieu de le deviner aux clés qu'il trouve. Le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
+| `schema` | chaîne | `lightwebpres.theme-info/5` — le nom porte encore la clé de dispatch historique `theme-info`, et c'est voulu : c'est ce que le GUI teste pour distinguer un exécutable ancien d'un neuf, au lieu de le deviner aux clés qu'il trouve. Le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
 | `label` | chaîne ou `null` | l'étiquette affichable du thème ; `null` si aucun thème n'est nommé |
 | `note` | chaîne ou `null` | la remarque éditoriale, **en texte nu** (§9.5.4) |
 | `source` | chaîne ou `null` | la provenance de la palette (`lightwebpres`, `nord`, …) |
-| `facets` | objet | `polarity`, `hue`, `family` (§9.5.2) ; `family` vaut `null` sur un répertoire sans thème |
+| `facets` | objet | `polarity`, `hue`, `family` (§9.5.2), calculées depuis le thème explicite ou celui du preset sur une série |
 | `palette` | objet | les sept valeurs partagées **résolues**, clés sans le préfixe `color.` : `page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`, `nav`. Valeurs en `#RRGGBBAA` |
 | `fonts` | objet | les quatre piles résolues : `text`, `display`, `ui`, `mono` |
 | `accessibility` | objet | les trois catégories (ci-dessous) |
@@ -5356,7 +5645,8 @@ slugs ou `--all`, c'est une **liste** de ces objets, dans l'ordre demandé.
 | Clé | Type | Sens |
 |---|---|---|
 | `kind` | `"theme"` ou `"series"` | laquelle des deux cibles a répondu |
-| `theme` | chaîne ou `null` | le slug ; `null` pour une série dont `settings.conf` ne nomme aucun thème (elle tourne alors sur les défauts du registre) |
+| `theme` | chaîne ou `null` | le slug explicitement nommé ; `null` pour une série dont `settings.conf` ne nomme aucun thème |
+| `presentation_preset` | chaîne ou `null` | le preset de présentation résolu pour une série ; `null` sur un slug ou avec le preset virtuel intégré `default` |
 | `directory` | chaîne ou `null` | le chemin absolu de la série ; `null` sur un slug |
 | `pinned` | liste de chaînes | les clés de propriété épinglées (décommentées) dans `templates/settings.conf`, triées. Vide sur un slug. C'est la réponse à « qu'est-ce que cette série a changé » |
 | `custom_css` | booléen | `templates/custom.css` porte des règles — donc quelque chose de non mesuré s'applique par-dessus |
@@ -5456,9 +5746,11 @@ modifie pas `custom.css` et ne relance pas le build.
 
 **`theme vendor`** prend des slugs ou sélecteurs runtime (`all`, `essential`,
 facettes) et copie leurs snapshots complets dans `templates/themes/`. Sans
-`--themes`, le thème effectif de `settings.conf` est utilisé. La copie est
-une vraie source de série : elle reste utilisable après disparition du
-catalogue utilisateur. Un fichier déjà présent et différent exige `--force`.
+`--themes`, le thème explicitement déclaré dans `settings.conf` est utilisé ;
+sans thème explicite (donc avec une base de preset), la commande exige une
+sélection. La copie est une vraie source de série : elle reste utilisable après
+disparition du catalogue utilisateur. Un fichier déjà présent et différent
+exige `--force`.
 Les thèmes intégrés peuvent être demandés avec `builtin:<slug>` pour éviter
 toute ambiguïté avec une entrée locale.
 
@@ -5493,8 +5785,8 @@ Comportements, tous vérifiés :
   written.` — rien n'est écrit, plutôt que de mettre à jour une date de
   modification pour rien.
 - **Sinon** : `Theme changed: <ancien> -> <nouveau>`, l'ancien étant
-  `default` si aucune ligne `theme:` n'était active — une réponse à
-  « remplacé par quoi », pas une valeur manquante. Le message rappelle
+  `default` si aucune ligne `theme:` n'était active — le marqueur décrit
+  l'absence de thème explicite, sans modifier le preset. Le message rappelle
   que les valeurs décommentées restent en place et s'appliquent
   par-dessus le nouveau thème, que les commentaires du scaffold montrent
   encore l'ancien (`audit` le signale, §9.4.4), et qu'un `build` doit
@@ -5510,15 +5802,17 @@ rien n'écrit ni ne lit (§9.4.2, §9.8). De même, plus de notion de
 commande n'écrit que dans un fichier de données, sur une ligne qui lui
 appartient.
 
-### 11.11 `status`
+### 11.11 `status` et `series status`
 
 ```bash
 lightwebpres status [répertoire] [--format text|json]
+lightwebpres series status [répertoire] [--format text|json]
 ```
 
-Décrit **ce qu'il y a dans une série** sans rien construire : ses
-articles, dans l'ordre de `series.json`, chacun avec ses champs
-**résolus**.
+Décrit **ce qu'il y a dans une série** sans rien construire : ses articles,
+dans l'ordre de `series.json`, chacun avec ses champs **résolus**, et le
+contexte de preset que le build résoudrait. Les deux formes de commande sont
+équivalentes ; `series status` est la forme canonique.
 
 #### Pourquoi une commande, et pas une lecture de `series.json`
 
@@ -5560,8 +5854,9 @@ c'est lui qui fixe la navigation inter-articles :
   de dire « ce titre vient du fichier » plutôt que de présenter une
   valeur dérivée comme si l'auteur l'avait écrite.
 
-Au niveau de la série : le `series_meta`, le thème en vigueur, et le
-décompte des articles, réparti sur les trois statuts de §20.6.
+Au niveau de la série : le `series_meta`, le thème explicite éventuel, le
+preset de présentation résolu et le décompte des articles, réparti sur les
+trois statuts de §20.6.
 
 Le relevé de visibilité des tags est aussi présent sous la clé `tags`. Il
 vient de la même collection d'articles et de fiches déjà résolue pour la
@@ -5610,10 +5905,11 @@ La sortie texte est le défaut et vise la lecture humaine.
 
 | Clé | Type | Sens |
 |---|---|---|
-| `schema` | chaîne | `lightwebpres.series-info/2` — là encore le nom porte la clé de dispatch historique. Même promesse que celle de `theme show` : le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
+| `schema` | chaîne | `lightwebpres.series-info/3` — là encore le nom porte la clé de dispatch historique. Même promesse que celle de `theme show` : le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
-| `series_meta` | objet | les champs de §20.5 — dont `title`, `subtitle`, `version`, `intro`, `author`, `license` et `scroll_duration` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
+| `series_meta` | objet | les champs de §20.5 — dont `title`, `subtitle`, `version`, `intro`, `author`, `license`, `scroll_duration` et `presentation_preset` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
+| `presentation` | objet | le rapport complet du preset résolu, de schéma `lightwebpres.presentation-preset/1` (§11.18) |
 | `counts` | objet | un nombre par statut de §20.6 — `active`, `draft`, `ignored` — dont la somme est la liste entière. Un article `ignored` est toujours *dans* le fichier de série : le sortir discrètement de l'arithmétique ferait paraître la série plus petite qu'elle n'est |
 | `tags` | objet | l'inventaire de visibilité défini en §11.11.1, identique à la réponse de `series tags` sans son enveloppe `schema`/`target` |
 | `articles` | liste | un objet par article, **dans l'ordre de `series.json`** (ci-dessous) |
@@ -5624,7 +5920,8 @@ La sortie texte est le défaut et vise la lecture humaine.
 |---|---|---|
 | `kind` | `"series"` | la seule cible de cette commande ; présent pour que le bloc ait la forme de celui de `theme show` |
 | `directory` | chaîne | le chemin absolu de la série |
-| `theme` | chaîne ou `null` | le thème en vigueur, lu dans `templates/settings.conf` par le parseur du build ; `null` quand la série n'en nomme aucun (elle tourne alors sur les défauts du registre, §9.3) |
+| `theme` | chaîne ou `null` | le thème explicitement nommé dans `templates/settings.conf`; `null` quand le thème de base vient du preset |
+| `presentation_preset` | chaîne ou `null` | le sélecteur du preset résolu ; `null` pour le preset virtuel intégré `default` |
 
 Un article :
 
@@ -5791,18 +6088,18 @@ porte ce nom » —, parce que la faute la plus probable est justement d'avoir
 #### Ce que chaque genre rapporte
 
 **Propriété de thème.** La chaîne est celle de §9.3, du plus fort au plus
-faible, en **cinq** maillons : `instance` (toujours `present: false`,
-porteur d'une note — voir ci-dessous), `article` (une ligne
-`style.<propriété>` du bloc meta, présente seulement avec `--article`),
-`settings` (`templates/settings.conf`), `theme` (le thème que ce fichier
-nomme), `default` (le registre). Chaque
-niveau montre la valeur **écrite** ; le niveau retenu montre en plus la
-valeur **résolue**, avec les sauts de référence traversés (`ink-quiet →
-#6b7280`), puisqu'une valeur écrite peut être un mot et pas une couleur
-(§9.2).
+faible, en **six** maillons : `instance` (toujours `present: false`, porteur
+d'une note — voir ci-dessous), `article` (une ligne `style.<propriété>` du bloc
+meta, présente seulement avec `--article`), `settings`
+(`templates/settings.conf`), `theme` (le thème explicitement nommé), `preset`
+(le thème du preset sélectionné) et `default` (le registre). `theme` masque
+`preset` lorsqu'il est présent. Chaque niveau montre la valeur **écrite** ; le
+niveau retenu montre en plus la valeur **résolue**, avec les sauts de référence
+traversés (`ink-quiet → #6b7280`), puisqu'une valeur écrite peut être un mot et
+pas une couleur (§9.2).
 
-**Les balises d'instance ne sont pas dans la chaîne.** Elles sont la
-cinquième couche (§9.6.3), mais elles sont *par occurrence* : il n'y a pas
+**Les balises d'instance ne sont pas dans la chaîne.** Elles sont la couche
+finale (§9.6.3), mais elles sont *par occurrence* : il n'y a pas
 une valeur d'instance dans un article, il y en a autant que de balises.
 Une cascade qui prétendrait en retenir une mentirait sur les autres.
 `audit` les énumère déjà, et c'est la bonne forme pour cette donnée-là.
@@ -5824,8 +6121,10 @@ que dans le bloc meta » est la moitié utile de la réponse.
 
 Les champs de `series_meta` (§20.5) se résolvent sans `--article` ; tous
 les autres l'exigent, et l'erreur qui le dit **liste les articles de la
-série**, pour que la correction soit un copier-coller et pas une
-recherche.
+série**, pour que la correction soit un copier-coller et pas une recherche.
+Interroger `presentation_preset` rapporte en plus la description complète du
+preset effectivement résolu ; il est forcément de portée série et refuse
+`--article`.
 
 **Champ de diapositive.** Il n'a pas de cascade : il est écrit sur une
 diapositive ou il n'y est pas. La réponse honnête n'est donc pas une
@@ -5858,7 +6157,7 @@ voisines. Racine :
 
 | Clé | Type | Sens |
 |---|---|---|
-| `schema` | chaîne | `lightwebpres.resolve/1` |
+| `schema` | chaîne | `lightwebpres.resolve/2` |
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `query` | objet | `name`, `kind`, `directory`, `article` (ou `null`) |
 
@@ -5930,9 +6229,10 @@ jamais candidat — `CNAME`, `.nojekyll`, `robots.txt`, `404.html`, le
 `.git/` d'un worktree de publication et toute autre pièce rapportée du
 déploiement restent en place.
 
-`files` se construit à partir des **sources et des pages rendues** : les
-pages déclarées par `series.json` et les fichiers de `sources/img/` référencés
-par les pages produites par ce build. Un fichier source non référencé n'est
+`files` se construit à partir des **sources et des pages rendues** : les pages
+déclarées par `series.json`, les fichiers de `sources/img/` référencés par les
+pages produites par ce build et les assets du paquet de présentation résolu.
+Un fichier source non référencé n'est
 pas déclaré, même s'il existe. Il ne se déduit jamais d'un balayage du
 répertoire de sortie, qui répond « ce qui s'y trouve » là où la question est
 « ce que ce build a fabriqué » — les deux diffèrent exactement du fichier que
@@ -5961,12 +6261,12 @@ build a déclaré, et le manifeste est la déclaration.
 lightwebpres watch [répertoire] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port 8000] [--themes selectors|all] [--no-essential-theme]
 ```
 
-Surveille les sources (articles, `series.json`, `templates/`, `interface/`,
-`typography/`, `language/`) et leurs descendants actuels, puis reconstruit à chaque
-changement. Les fichiers créés après le démarrage sont pris en compte au
-rebuild suivant. Un build initial est exécuté au démarrage. Une erreur de
-rebuild est affichée mais ne stoppe pas la surveillance : corriger le fichier
-relance le build suivant.
+Surveille les sources (articles, `series.json`, `templates/`, y compris les
+paquets sous `templates/layouts/`, `interface/`, `typography/`, `language/`) et
+leurs descendants actuels, puis reconstruit à chaque changement. Les fichiers
+créés après le démarrage sont pris en compte au rebuild suivant. Un build
+initial est exécuté au démarrage. Une erreur de rebuild est affichée mais ne
+stoppe pas la surveillance : corriger le fichier relance le build suivant.
 
 `--serve` (opt-in) démarre un serveur HTTP local sur `127.0.0.1:--port`
 (servant `public/`). `--open` ouvre le navigateur sur le résultat. Ctrl-C
@@ -6079,6 +6379,48 @@ Le format par défaut est JSON, sous le schéma `lightwebpres.slide-draft/1`.
 `--format text` imprime une vue humaine des cardinalités, des champs et des
 squelettes ; aucune forme ne modifie la série, ses sources ou sa sortie.
 
+### 11.18 `preset` et `series preset`
+
+Un paquet est une structure installée ; un preset est le choix complet qu'un
+auteur peut appliquer (§9.9). Ces commandes ne modifient pas la surface
+`template` : un paquet n'est ni `nav.js`, ni `settings.conf`, ni une nouvelle
+sémantique de `template`.
+
+```
+lightwebpres preset list [--format text|json]
+lightwebpres preset show <id@version/preset|default> [--format text|json]
+lightwebpres series preset [répertoire] [--format text|json]
+lightwebpres series preset set [répertoire] --preset <id@version/preset|default> [--keep-theme|--use-preset-theme]
+```
+
+`preset list` expose les choix complets du catalogue global, y compris le
+preset virtuel `default`, jamais des fragments de paquet isolés. `preset show`
+décrit un choix sans écrire de série : paquet et scope, thème, défauts de
+layouts et de chrome, starter éventuel. Les rapports JSON stables sont
+`lightwebpres.preset-list/1` et `lightwebpres.presentation-preset/1`.
+
+`series preset` résout le catalogue de la série, donc aussi
+`templates/layouts/`, et rapporte le choix que son prochain build emploierait
+sous `lightwebpres.series-preset/1`. Il n'écrit rien. `status` et
+`series status` exposent ce même contexte résolu dans leur rapport de série
+(§11.11).
+
+`series preset set` sélectionne un preset sans jamais appliquer son starter.
+Il valide le sélecteur, vendorise un paquet concret sous
+`templates/layouts/<id>/<version>/` si nécessaire, puis écrit le sélecteur dans
+`series_meta.presentation_preset`. Avec `default`, il retire ce champ et ne
+vendorise rien. Les pins de `settings.conf` et `custom.css` restent intacts.
+Une ligne `theme:` active doit être traitée explicitement : `--keep-theme` la
+conserve ; `--use-preset-theme` la retire pour révéler le thème du preset ; les
+deux options sont mutuellement exclusives. Sans l'une d'elles, le conflit est
+refusé. `--keep-theme` sans thème actif est aussi refusé. Les écritures du
+paquet, de `settings.conf` et de `series.json` sont préparées avec rollback en
+cas d'échec ; une restauration qui ne peut être complète est signalée.
+
+Les anciens nœuds de commandes `layout` et `starter` sont retirés et rejetés.
+Un starter ne se choisit pas séparément : seul `init --preset` peut appliquer
+celui que le preset déclare (§11.1).
+
 ---
 
 ## 12. Algorithme du build
@@ -6088,32 +6430,41 @@ squelettes ; aucune forme ne modifie la série, ses sources ou sa sortie.
 ```
 build(répertoire):
   1. series = read_json(répertoire/series.json)
-  2. lang = --lang OU $LWP_LANG OU "fr" (défaut)
-   3. language = load_language(lang, --language-file)  # vue de compatibilité rules + strings ; sources split/legacy/FHS, §19.5
-  4. settings = parse_settings(répertoire/templates/settings.conf)  # §9.3.1 ; absent = couche vide
-     css = compose_stylesheet(défauts ← thème(settings.theme) ← settings)  # §9.3 — en mémoire, jamais sur disque
-           + read_file(répertoire/templates/custom.css)  # ajouté en dernier (§9.3.2)
-  5. js = read_file(répertoire/templates/nav.js) OR built-in default
+  2. presentation_catalog = load_presentation_catalog(répertoire/templates/)
+     preset = resolve(series_meta.presentation_preset)  # absent = preset virtuel default (§9.9)
+     # Ce contexte unique (paquet, preset, thème, layouts, chrome, assets)
+     # vaut pour tous les articles et pour l'index.
+  3. lang = --lang OU $LWP_LANG OU "fr" (défaut)
+  4. language = load_language(lang, --language-file)  # vue de compatibilité rules + strings ; sources split/legacy/FHS, §19.5
+  5. settings = parse_settings(répertoire/templates/settings.conf)  # §9.3.1 ; absent = couche vide
+     base = thème(settings.theme) SI settings.theme actif SINON preset.theme
+     index_css = compose_stylesheet(défauts ← base ← settings)
+                 # structure_css du preset après le squelette, avant la sortie typée
+                 + read_file(répertoire/templates/custom.css)  # toujours ajouté en dernier (§9.9.4)
+  6. js = read_file(répertoire/templates/nav.js) OR built-in default
   # La structure de page est fixe, intégrée à l'exécutable — pas lue depuis
   # templates/ (§9). Articles et index partagent le même squelette et le
   # même JS (§18.1, §18.2).
 
-  6. FOR each article IN series:
+  7. FOR each article IN series:
      a. source = read_file(répertoire/sources/{article.page_source})
      b. meta, slides = parse_markdown(source)
+     b2. validate_article_presentation(slides, preset)
+         # slide-layout / slide-header / slide-footer remplacent seulement
+         # les défauts du preset, jamais le preset lui-même (§9.9.3)
      c. html_slides = []
      d. slide_num = 0
      e. total_slides = count_slides(slides)
-         e2. show_slide_num = resolve_slide_page_numbers(meta, args, series_meta)  # §3.3.5
-             # show_slide_num est transmis à chaque renderer (cover/standard/full-article)
+        e2. show_slide_num = resolve_slide_page_numbers(meta, args, series_meta)  # §3.3.5
+            # show_slide_num est transmis à chaque renderer (cover/standard/full-article)
 
-      f. FOR each slide IN slides:
-         IF "excluded" IN slide.tags:      # §4.3.1 — ni rendue ni numérotée
-           continue
-         IF slide.type == "full-article" AND article_directive_is_present
-            AND slide.article is empty:      # §22.6 — brouillon omis avec avertissement
-           continue
-         slide_num += 1
+     f. FOR each slide IN slides:
+        IF "excluded" IN slide.tags:      # §4.3.1 — ni rendue ni numérotée
+          continue
+        IF slide.type == "full-article" AND article_directive_is_present
+           AND slide.article is empty:      # §22.6 — brouillon omis avec avertissement
+          continue
+        slide_num += 1
         IF slide.type == "cover":
           html = render_cover(slide, meta, slide_num, total_slides, show_slide_num)
         ELIF slide.type == "series-nav":
@@ -6126,32 +6477,38 @@ build(répertoire):
         ELSE:  # standard
           html = render_standard(slide, slide_num, total_slides, language, show_slide_num)
 
-        html_slides.append(html)
+        html_slides.append(wrap_presentation_fragment(
+          html, preset))  # garde la <section> LWP (§9.9.3)
 
      g. title = extract_title(meta)
      h. html = fill_page_template({
           "lang": lang,
           "title": title,
-          "css": css,  # recomposée pour cette page si le bloc meta porte des propriétés style.* (§9.6.1)
+          "css": page_css(preset, settings, meta),  # thème du preset si aucun theme: explicite,
+                                                     # style.* de l'article, structure_css, custom.css (§9.9.4)
           "js_nav": js,
           "content": "\n".join(html_slides)
         })  # fill_page_template uses the fixed, built-in page structure (§18.1)
      i. write_file(répertoire/public/{article.page_dest}, html)
 
-   7. IF NOT --no-index:
-        index_html = build_index(series, css, js)  # le même squelette que les articles (§18.1), contenu d'index (§18.2)
-        write_file(répertoire/public/index.html, index_html)
+  8. IF NOT --no-index:
+       index_html = build_index(series, index_css, js, preset)  # le même preset et squelette que les articles (§18.1), contenu d'index (§18.2)
+       write_file(répertoire/public/index.html, index_html)
 
-   8. generate_readme(series, répertoire/README.md)
-   9. image_inventory = images_in_rendered_pages()
-       copy_images(répertoire/sources/img/, répertoire/public/img/,
-                   image_inventory)  # referenced files only, merge, never wipe
-   10. write_file(répertoire/public/.lwp-manifest.json)  # ce que ce build a écrit — base de `clean` (§11.13)
-       write_file(répertoire/.lwp-cache/nav.json)        # empreinte de navigation — base de `--only` (§11.3.1)
-       # Les deux sont écrits à chaque build, pas seulement avec `--only`.
+  9. IF NOT --no-readme:
+       generate_readme(series, répertoire/README.md)
+  10. IF NOT --inline-images:
+        image_inventory = images_in_rendered_pages()
+        copy_images(répertoire/sources/img/, répertoire/public/img/,
+                    image_inventory)  # referenced files only, merge, never wipe
+        IF preset.package:
+          copy_presentation_assets(preset.package, répertoire/public/)  # seulement le paquet résolu (§9.9.4)
+  11. write_file(répertoire/public/.lwp-manifest.json)  # ce que ce build a écrit — base de `clean` (§11.13)
+      write_file(répertoire/.lwp-cache/nav.json)        # empreinte de navigation — base de `--only` (§11.3.1)
+      # Les deux sont écrits à chaque build, pas seulement avec `--only`.
 
-   # Sorties optionnelles (commandes build / watch) : `--no-index` saute
-   # l'étape 7, `--no-readme` saute l'étape 8, `--no-nav` vide le
+  # Sorties optionnelles (commandes build / watch) : `--no-index` saute
+  # l'étape 8, `--no-readme` saute l'étape 9, `--no-nav` vide le
   # placeholder de navigation inter-articles (§11.3.3). `--drafts-only`
   # ne construit que les articles `status: draft`.
 ```
@@ -6433,6 +6790,39 @@ régression :
   n'est jamais substitué — ce qui fermait la seule voie par laquelle du
   contenu d'auteur pouvait contourner le débalisage de `<title>`/`<meta>`
   (§18.4).
+
+#### Paquets de présentation
+
+Un paquet est aussi une entrée semi-fiable : il peut venir d'un catalogue
+utilisateur ou d'une série obtenue par CI. Son manifeste, son chrome et ses
+descripteurs de starter doivent être du JSON UTF-8, objet à la racine, avec
+seulement les clés du schéma `lightwebpres.presentation-package/1`. `id`,
+versions, variantes, noms de thèmes, presets, assets, modèles et starters sont
+validés avant tout rendu ; les références de modèle doivent désigner un asset
+déclaré du `kind` attendu.
+
+Les chemins du manifeste sont des chemins POSIX relatifs, non vides, sans octet
+NUL, barre inverse, chemin absolu, `.` ou `..`. Chaque fichier désigné doit
+rester sous la racine résolue du paquet, et **tout** l'arbre est parcouru pour
+refuser un symlink qui en sort. Un paquet local ne peut donc pas faire lire ou
+publier un fichier de son voisin, même par une référence indirecte. Un starter
+ne peut déclarer que ses fichiers `.md` source non exécutables et non symlinks,
+et ne peut écrire hors de cette surface additive.
+
+Les fragments n'acceptent que leurs slots connus, chacun exactement une fois :
+`content`, `slide_header`, `slide_footer` pour une fiche ; `content` seul pour
+l'index. Ils refusent les balises qui pourraient prendre le contrôle du shell
+(`html`, `head`, `body`, `section`, `script`, `style`, `link`), les styles et
+attributs `on…=`, les URL `javascript:` et les assets de layout. Les ressources
+visuelles passent par les assets déclarés et le chrome (§9.9), jamais par une
+URL arbitraire injectée dans la feuille inline.
+
+`structure_css` ne sort pas du scope `.lwp-presentation--<id>` et ne peut viser
+le shell LWP, ses slides, sa navigation ou leurs frères. Seuls `@media` et des
+déclarations structurelles sont admis ; couleurs littérales, variables
+inconnues, propriétés personnalisées, fontes, `url()`, `@import`,
+`!important` et `</style>` sont refusés. La clé retirée `layout_css` est rejetée
+plutôt que traitée comme un alias.
 
 ### 13.8 Dépendance vendorisée (page navigateur)
 
@@ -7016,6 +7406,28 @@ utilise la chaîne `series_nav_title`.
 - Les placeholders sont sensibles à la casse : `{{title}}` ≠ `{{Title}}`.
 - Pas d'échappement : le contenu remplacé est du HTML prêt à l'emploi.
 
+### 18.5 Fragments de paquet de présentation
+
+Les fragments déclarés par le paquet du preset résolu (§9.9) utilisent le même
+remplacement à une passe, mais à une portée délibérément plus petite que
+`TEMPLATE_PAGE`. Ce preset est déjà fixé pour la série entière ; aucun bloc
+meta ni article ne peut substituer un autre fragment. Pour une fiche, LWP
+conserve la `<section>` qu'il a construite et remplace son contenu intérieur
+dans le fragment :
+
+| Slot | Valeur injectée |
+|------|-----------------|
+| `{{content}}` | Contenu LWP de la fiche, sans sa `<section>` extérieure |
+| `{{slide_header}}` | Chrome d'en-tête résolu, ou vide |
+| `{{slide_footer}}` | Chrome de pied résolu, ou vide |
+
+Pour `layouts.index`, seul `{{content}}` existe : il reçoit l'en-tête, l'intro
+et les cartes déjà générés. Ni le fragment de fiche ni celui d'index ne peut
+remplacer le `<head>`, le `<body>`, les boutons de navigation, le JavaScript,
+`{{css}}`, `{{page_footer}}` ou les autres placeholders de page. Les règles de
+confinement, d'unicité des slots et d'absence d'assets de layout sont en
+§9.9.3/§13.7.
+
 ---
 
 ## 19. Schémas des packs de langue
@@ -7428,7 +7840,8 @@ désormais.
     "title": "Les classiques de la pâtisserie",
     "subtitle": "Une série d'articles sur les techniques, les proportions et les erreurs à éviter",
     "version": "v0.1",
-    "intro": "« Une pâte trop travaillée devient élastique. » « Le sucre n'est pas qu'une question de goût. » ..."
+    "intro": "« Une pâte trop travaillée devient élastique. » « Le sucre n'est pas qu'une question de goût. » ...",
+    "presentation_preset": "corporate@1.0.0/brief"
   },
   "themes": ["essential", "family:terrain"],
   "articles": [
@@ -7489,6 +7902,11 @@ fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
 | `tags` | string | non | index, nav, runtime | Tags d'article dans le bloc meta ; le tag sélectionné doit correspondre à l'un d'eux et à au moins une slide disponible (§4.3.1) |
 | `status` | chaîne | non | build/verify/status | `active` (défaut) \| `draft` \| `ignored` (§20.6) |
 | `comment` | string | non | aucun — jamais lu | Note de relecture ; ignorée par le build (§4.6) |
+
+`presentation_preset` n'est pas un champ d'article. Les champs retirés
+`presentation_template`, `slide_layouts` et `slide_chrome` sont également
+rejetés dans une entrée `articles[]` ; aucun ne produit une sélection ni une
+cascade locale (§20.5.3).
 
 ### 20.3 Règles de validation
 
@@ -7623,12 +8041,15 @@ ci-dessus, ils sont rendus hors des fiches :
 Le fichier `series.json` peut contenir un objet `series_meta` (optionnel)
 qui décrit la série elle-même (pour l'index et le README), ainsi que la clé
 racine `themes` (optionnelle) qui configure les thèmes runtime (§9.3.7) :
+il porte aussi l'unique sélection de preset de présentation de la série
+(§9.9).
 
 Si la configuration objet est utilisée, `articles` est un tableau, `series_meta`
 est un objet lorsqu'il est présent, et `themes` est une liste de chaînes
 lorsqu'il est présent. Si `series_meta` et `themes` sont absents, le fichier
 peut rester un tableau direct (rétrocompatible avec un format de série déjà
-utilisé). Ce tableau direct n'a pas de place pour la sélection runtime JSON.
+utilisé). Ce tableau direct n'a pas de place pour `themes` ni pour les réglages
+de présentation de `series_meta`.
 
 ### 20.5 Champs de `series_meta`
 
@@ -7648,6 +8069,7 @@ utilisé). Ce tableau direct n'a pas de place pour la sélection runtime JSON.
 | `notes_tooltip` | `on` ou `off` | non | Ajoute le corps de la note à l'info-bulle de l'appel ; cascade comme `notes_placement` (§6.5) |
 | `slide_page_numbers` | booléen ou chaîne (`on`/`off`) | non | Active les numéros gravés des fiches ; la valeur de série est surchargée par le bloc meta de l'article ou par l'option de build (§3.3.5) |
 | `slug_prefix` | string | non | Préfixe d'espace de noms appliqué à toutes les identités de fiche de la page (§12.1.1) |
+| `presentation_preset` | string `id@MAJOR.MINOR.PATCH/preset` | non | Sélection unique de preset pour toute la série, index compris ; absent = preset virtuel intégré `default` (§20.5.3) |
 
 Le template d'index enveloppe `intro` dans un unique `<p>` fixe
 (`<p>{{series_intro}}</p>`) : pour plusieurs paragraphes, insérer
@@ -7688,6 +8110,29 @@ existe) correspond exactement au choix, et si une de ses slides non exclues
 est visible sous ce choix. Un article sans tag d'article est libre sur cette
 première condition. La règle spéciale de partage de `default` ne s'applique
 qu'aux slides, pas à un `tags:` explicite d'article.
+
+### 20.5.3 Sélection de preset de présentation
+
+`series_meta.presentation_preset` est l'unique champ de sélection. Sa valeur
+est exactement `id@MAJOR.MINOR.PATCH/preset` et désigne un preset valide du
+catalogue résolu. Le champ absent sélectionne le preset virtuel intégré
+`default`; écrire `default` dans `series.json` est refusé, car le CLI le
+représente par l'omission. La sélection s'applique à tous les articles et à
+l'index avant que leurs sources ne soient lues.
+
+Le bloc `lwp:meta` et les entrées `articles[]` ne peuvent ni choisir ni
+modifier ce preset. `presentation_preset` à ces niveaux est rejeté. Les champs
+retirés `presentation_template`, `slide_layouts` et `slide_chrome` y sont aussi
+rejetés : les défauts de layouts et de chrome appartiennent au preset du
+manifeste, sans fusion JSON auteur.
+
+Les trois champs Markdown restent les seules exceptions locales, sur chacun
+des quatre types de fiche : `slide-layout` remplace la variante par défaut du
+preset ; `slide-header` et `slide-footer` remplacent leurs slots de chrome. Une
+valeur de chrome est un texte, `""`, ou un objet de modèle avec `model`, `text`
+exige un paquet non-default. `slide-layout: default` seul conserve le rendu
+historique. Tout sélecteur, variante, modèle, slot ou asset mal formé est fatal
+et nomme son origine.
 
 ### 20.6 Statut d'un article (`status`)
 
@@ -7806,7 +8251,8 @@ horizontal dans le texte, utiliser `<hr>` en HTML inline.
 ### 22.2 `kicker:` dans le texte d'une fact-box
 
 Les métadonnées (`kicker:`, `tags:`, `summary:`, `fact-label:`, `fact-variant:`,
-`source:`, `highlight:`, `highlight-caption:`, `comment:`, `note:`, `article:`)
+`source:`, `highlight:`, `highlight-caption:`, `slide-layout:`,
+`slide-header:`, `slide-footer:`, `comment:`, `note:`, `article:`)
 ne sont reconnues que **dans l'en-tête** de la slide (les premières lignes avant
 le premier paragraphe de contenu). Une fois
 que le parseur a rencontré une ligne de contenu (paragraphe, liste, titre), il
@@ -7906,10 +8352,10 @@ Erreur fatale. Un article ne peut contenir qu'une seule navigation de série.
 ### 22.9.1 Contenu non reconnu dans une fiche `series-nav` ou `full-article`
 
 Erreur fatale. Ces deux types de fiche ne rendent **aucun** contenu
-propre : leurs seules lignes reconnues sont leurs directives — `tags:` et
-`comment:` (tous les deux sur les deux types), plus `article:` (fiche
-`full-article` uniquement) (§4.6, `comment` est reconnu sur tout type et
-jamais rendu). Toute autre ligne non vide
+libre : leurs seules lignes reconnues sont `slug:`, `tags:`, les trois champs
+de présentation `slide-layout:`/`slide-header:`/`slide-footer:` et `comment:`
+(tous les deux types), plus `article:` (fiche `full-article` uniquement)
+(§4.6, `comment` est reconnu sur tout type et jamais rendu). Toute autre ligne non vide
 (du texte, un champ de fiche standard, un `article:` sur une
 `series-nav`...) arrête le build avec un message citant le début de la
 ligne fautive, plutôt que de disparaître silencieusement du rendu.
@@ -7945,9 +8391,10 @@ elle-même un champ reconnu bascule immédiatement en texte libre.
 
 ### 22.12 Contenu inattendu après les champs reconnus d'une fiche `cover`
 
-Erreur fatale. Une fiche `cover` n'a pas de fact-box : `kicker`, `tags`,
-`slide_title` (écrit `# Titre`), `summary`, `comment` et `note` sont ses
-champs d'en-tête. Si du texte suit ces champs sans être lui-même un champ
+Erreur fatale. Une fiche `cover` n'a pas de fact-box : `slug`, `kicker`,
+`tags`, `slide_title` (écrit `# Titre`), `summary`, `slide-layout`,
+`slide-header`, `slide-footer`, `comment` et `note` sont ses champs d'en-tête.
+Si du texte suit ces champs sans être lui-même un champ
 reconnu, le build s'arrête avec un message indiquant le fichier et le
 numéro de fiche, plutôt que d'ignorer silencieusement ce texte.
 
@@ -7960,8 +8407,9 @@ la perte d'affichage sans casser la source.
 
 Si le contenu inattendu contient une ligne qui commence par un identifiant
 suivi de `:`, le diagnostic rappelle qu'il s'agit peut-être d'un champ mal
-écrit et énumère les champs reconnus par une cover (`kicker:`, `tags:`,
-`summary:`, `comment:`, `note:`). Pour l'ancien `tag:`, il précise que
+écrit et énumère les champs reconnus par une cover (`slug:`, `kicker:`,
+`tags:`, `summary:`, `slide-layout:`, `slide-header:`, `slide-footer:`,
+`comment:`, `note:`). Pour l'ancien `tag:`, il précise que
 `kicker:` désigne le libellé visible et `tags:` le filtrage par tag.
 
 ### 22.13 Nombre et position des fiches `cover`
@@ -8020,7 +8468,10 @@ littéral, a besoin d'un `` \` ``.
 Une valeur vide sur un champ scalaire (`kicker:`, `summary:`, `source:`,
 `comment:`, `note:` et les champs de fiche équivalents) est traitée comme une
 valeur absente : aucun élément qui dépend de ce champ n'est rendu. Une ligne
-`tags:` vide reçoit `default`. La ligne `slug:` reste une déclaration
+`tags:` vide reçoit `default`. `slide-layout:` vide est une erreur ;
+`slide-header:` et `slide-footer:` vides sans guillemets sont aussi des erreurs,
+car il faut omettre le champ pour hériter ou écrire exactement `""` pour
+supprimer le chrome. La ligne `slug:` reste une déclaration
 incomplète et ne constitue pas une identité valide pour le build ;
 `series slug set` ne remplace pas une ligne `slug:` explicitement présente,
 même vide (§12.1.2).

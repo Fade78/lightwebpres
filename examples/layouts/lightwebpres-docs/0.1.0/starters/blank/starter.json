@@ -1,0 +1,16 @@
+{
+  "id": "blank",
+  "label": "Documentation blank",
+  "description": "A small editable series scaffold using the LightWebPres documentation preset.",
+  "sources": [
+    "sources/welcome.md"
+  ],
+  "articles": [
+    {
+      "page_source": "welcome.md",
+      "page_dest": "welcome.html",
+      "nav_title": "Welcome",
+      "nav_desc": "The first editable card in this series."
+    }
+  ]
+}

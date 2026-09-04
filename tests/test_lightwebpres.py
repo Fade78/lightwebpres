@@ -3474,7 +3474,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertIn('GLOBAL OPTIONS', result.stdout)
         # A NODE is not a command: `theme --help` answered "Unknown theme
         # verb: `theme --help`", which reads as a typo nobody made.
-        for node in ('theme', 'series', 'template'):
+        for node in ('theme', 'series', 'preset', 'template'):
             result = run(node, '--help')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('VERBS', result.stdout)
@@ -4838,7 +4838,8 @@ class CliVersionAndShortcuts(unittest.TestCase):
 
     def test_no_bare_filesystem_write_outside_helpers(self):
         """--dry-run relies on every filesystem write going through the
-        _write_file/_mkdir/_copy/_copytree/_remove helpers. This AST test
+        _write_file/_mkdir/_copy/_copytree/_remove/_remove_tree/_replace_tree/
+        _remove_empty_dir helpers. This AST test
         guards that no bare call exists outside them in the executable.
 
         THE ALPHABET IS THE TEST. An earlier version listed only creation
@@ -4852,7 +4853,8 @@ class CliVersionAndShortcuts(unittest.TestCase):
         by line number — robust against the helpers moving in the file."""
         import ast
         tree = ast.parse(EXECUTABLE.read_text(encoding='utf-8'))
-        HELPER_NAMES = {'_write_file', '_mkdir', '_copy', '_copytree', '_remove'}
+        HELPER_NAMES = {'_write_file', '_mkdir', '_copy', '_copytree', '_remove',
+                        '_remove_tree', '_replace_tree', '_remove_empty_dir'}
         # The one allowed bare print to stderr is inside log() itself.
         # Script validation sends its input directly to node, so it has no
         # filesystem exception to this guard.
@@ -4992,7 +4994,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
 
     def test_completion_stays_in_sync_with_command_tables(self):
         """The completion script is generated from _SHORTCUTS,
-        _SERIES_VERBS, _THEME_VERBS, _TEMPLATE_VERBS and
+        _SERIES_VERBS, _THEME_VERBS, _PRESET_VERBS, _TEMPLATE_VERBS and
         _COMMAND_OPTIONS. A command or option added to those tables and
         not to the script must fail here, so an evolution of the CLI
         cannot silently break completion.
@@ -5019,7 +5021,8 @@ class CliVersionAndShortcuts(unittest.TestCase):
         script = run('completion', '--shell', 'bash').stdout
         self.assertEqual(
             sorted(self._complete(script, ['lightwebpres', ''], 1)),
-            sorted(set(lwp._SHORTCUTS) | {'series', 'theme', 'template'}),
+            sorted(set(lwp._SHORTCUTS)
+                   | {'series', 'theme', 'preset', 'template'}),
             'the root command list is not what the tables say')
 
     def test_completion_offers_nothing_the_tool_refuses(self):
@@ -5043,6 +5046,12 @@ class CliVersionAndShortcuts(unittest.TestCase):
         self.assertEqual(
             sorted(self._complete(script, ['lightwebpres', 'template', ''], 2)),
             sorted(lwp._TEMPLATE_VERBS))
+        self.assertEqual(
+            sorted(self._complete(script, ['lightwebpres', 'preset', ''], 2)),
+            sorted(lwp._PRESET_VERBS))
+        self.assertEqual(
+            self._complete(script, ['lightwebpres', 'series', 'preset', ''], 3),
+            ['set'])
         # `template show <TAB>` offers the three files and not the
         # directory listing, which is what a closed set deserves.
         for verb in ('show', 'write'):
@@ -5051,13 +5060,17 @@ class CliVersionAndShortcuts(unittest.TestCase):
                     script, ['lightwebpres', 'template', verb, ''], 3)),
                 sorted(lwp.tool_owned_files()), verb)
         # And the offer is real: every verb offered must be one the tool
-        # accepts. `theme set` exits non-zero with a message that names
-        # the right spelling.
-        for verb in self._complete(script, ['lightwebpres', 'theme', ''], 2):
-            result = run('theme', verb, '--help')
-            self.assertEqual(result.returncode, 0,
-                             f'completion offers `theme {verb}`, which the '
-                             f'tool refuses: {result.stderr}')
+        # accepts. The same check covers the catalogue nodes whose tables
+        # completion reads.
+        for node, verbs in (('theme', lwp._THEME_VERBS),
+                            ('preset', lwp._PRESET_VERBS)):
+            for verb in self._complete(script, ['lightwebpres', node, ''], 2):
+                result = run(node, verb, '--help')
+                self.assertEqual(result.returncode, 0,
+                                 f'completion offers `{node} {verb}`, which '
+                                 f'the tool refuses: {result.stderr}')
+        result = run('series', 'preset', 'set', '--help')
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     @staticmethod
     def _command_paths(lwp):
@@ -5070,8 +5083,9 @@ class CliVersionAndShortcuts(unittest.TestCase):
         typed = list(lwp._SHORTCUTS)
         typed += [f'series {v}' for v in lwp._SERIES_VERBS]
         typed += [f'theme {v}' for v in lwp._THEME_VERBS]
+        typed += [f'preset {v}' for v in lwp._PRESET_VERBS]
         typed += [f'template {v}' for v in lwp._TEMPLATE_VERBS]
-        typed += ['series theme set', 'series slug set']
+        typed += ['series theme set', 'series preset set', 'series slug set']
         paths = []
         for path in typed:
             key, _rest = lwp._resolve_command(path.split() + ['x'])
@@ -5126,7 +5140,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
         self.assertEqual(
             sorted(self._complete(script, ['lightwebpres', '--'], 1)),
             sorted(lwp._GLOBAL_OPTIONS))
-        for node in ('series', 'theme', 'template'):
+        for node in ('series', 'theme', 'preset', 'template'):
             self.assertEqual(
                 self._complete(script, ['lightwebpres', node, '--'], 2),
                 ['--help'], node)
@@ -8764,6 +8778,504 @@ class TemplateOverride(unittest.TestCase):
             self.assertIn('</script>\n\n</body>', index_html)
 
 
+class PresentationPackages(unittest.TestCase):
+    """Presentation packages are complete, versioned, series-wide choices."""
+
+    PACKAGE_ID = 'studio'
+    PACKAGE_VERSION = '1.2.3'
+    PRESET_ID = 'brief'
+    SELECTOR = f'{PACKAGE_ID}@{PACKAGE_VERSION}/{PRESET_ID}'
+
+    @staticmethod
+    def _article(slug='a', title='Article'):
+        return (
+            '<!-- lwp:meta -->\n'
+            f'page_dest: {slug}.html\npage_title: {title}\n'
+            f'nav_title: {title}\nnav_desc: {title}\n---\n\n'
+            '<!-- lwp:slide:cover -->\n'
+            f'slug: {slug}-cover\n# {title}\nsummary: Summary.\n\n'
+            '---\n\n'
+            '<!-- lwp:slide -->\n'
+            f'slug: {slug}-standard\n## {title} details\nsummary: Detail.\n'
+        )
+
+    def _write_package(self, catalogue_root, with_starter=False):
+        package = (Path(catalogue_root) / self.PACKAGE_ID
+                   / self.PACKAGE_VERSION)
+        layouts = package / 'layouts'
+        themes = package / 'themes'
+        assets = package / 'assets'
+        layouts.mkdir(parents=True)
+        themes.mkdir()
+        assets.mkdir()
+
+        layout_paths = {}
+        for slide_type in ('cover', 'standard', 'series-nav', 'full-article'):
+            filename = f'{slide_type}.html'
+            (layouts / filename).write_text(
+                f'<div class="presentation-{self.PACKAGE_ID}-{slide_type}">\n'
+                '  {{slide_header}}\n'
+                '  {{content}}\n'
+                '  {{slide_footer}}\n'
+                '</div>\n',
+                encoding='utf-8',
+            )
+            layout_paths[slide_type] = {'default': f'layouts/{filename}'}
+        (layouts / 'cover-hero.html').write_text(
+            f'<div class="presentation-{self.PACKAGE_ID}-cover-hero">\n'
+            '  {{slide_header}}\n'
+            '  {{content}}\n'
+            '  {{slide_footer}}\n'
+            '</div>\n',
+            encoding='utf-8',
+        )
+        layout_paths['cover']['hero'] = 'layouts/cover-hero.html'
+        (layouts / 'index.html').write_text(
+            f'<main class="presentation-{self.PACKAGE_ID}-index">{{{{content}}}}</main>\n',
+            encoding='utf-8',
+        )
+        layout_paths['index'] = 'layouts/index.html'
+        (package / 'structure.css').write_text(
+            f'.lwp-presentation--{self.PACKAGE_ID} '
+            f'.presentation-{self.PACKAGE_ID}-standard {{ display: grid; }}\n',
+            encoding='utf-8',
+        )
+        (assets / 'mark.svg').write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"></svg>\n',
+            encoding='utf-8',
+        )
+        created = run('theme', 'create', 'brand', '--from', 'dracula',
+                      '--output', str(themes / 'brand.conf'))
+        self.assertEqual(created.returncode, 0, created.stderr)
+        (package / 'chrome.json').write_text(json.dumps({
+            'models': {
+                'brand-header': {
+                    'slot': 'header',
+                    'items': [
+                        {'kind': 'image', 'asset': 'presentation:mark',
+                         'alt': 'Package mark'},
+                        {'kind': 'text', 'slot': 'text'},
+                    ],
+                },
+            },
+        }), encoding='utf-8')
+
+        starters = {}
+        preset = {
+            'label': 'Brief',
+            'description': 'A complete test presentation.',
+            'theme': 'brand',
+            'slide_layouts': {
+                'cover': 'hero', 'standard': 'default',
+                'series-nav': 'default', 'full-article': 'default',
+            },
+            'slide_chrome': {
+                'all': {'footer': 'Package footer'},
+                'cover': {'header': {
+                    'model': 'brand-header', 'text': 'Package header'}},
+            },
+        }
+        if with_starter:
+            starter = package / 'starters' / 'seed'
+            (starter / 'sources').mkdir(parents=True)
+            (starter / 'sources' / 'starter.md').write_text(
+                self._article('starter', 'Starter'), encoding='utf-8')
+            (starter / 'starter.json').write_text(json.dumps({
+                'id': 'seed',
+                'label': 'Seed',
+                'description': 'One starter article.',
+                'sources': ['sources/starter.md'],
+                'articles': [{'page_source': 'starter.md'}],
+            }), encoding='utf-8')
+            starters['seed'] = 'starters/seed/starter.json'
+            preset['starter'] = 'seed'
+
+        (package / 'manifest.json').write_text(json.dumps({
+            'schema': 'lightwebpres.presentation-package/1',
+            'id': self.PACKAGE_ID,
+            'version': self.PACKAGE_VERSION,
+            'layouts': layout_paths,
+            'structure_css': 'structure.css',
+            'chrome': 'chrome.json',
+            'assets': {
+                'mark': {'path': 'assets/mark.svg', 'kind': 'image'},
+            },
+            'themes': {'brand': 'themes/brand.conf'},
+            'starters': starters,
+            'presets': {self.PRESET_ID: preset},
+        }), encoding='utf-8')
+        return package
+
+    def _selected_series(self, tmp):
+        root = scaffold(tmp, self._article())
+        package = self._write_package(root / 'templates' / 'layouts')
+        series_path = root / 'series.json'
+        series = json.loads(series_path.read_text(encoding='utf-8'))
+        series['series_meta'] = {'presentation_preset': self.SELECTOR}
+        series_path.write_text(json.dumps(series), encoding='utf-8')
+        return root, package
+
+    def test_series_preset_uses_local_manifest_structure_chrome_and_assets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, _package = self._selected_series(tmp)
+            output = root / 'public'
+            built = run('build', str(root), '--output', str(output))
+            self.assertEqual(built.returncode, 0, built.stderr)
+
+            article = (output / 'a.html').read_text(encoding='utf-8')
+            index = (output / 'index.html').read_text(encoding='utf-8')
+            asset = (output / 'assets' / 'presentations' / self.PACKAGE_ID
+                     / self.PACKAGE_VERSION / 'mark.svg')
+            self.assertIn('presentation-studio-cover-hero', article)
+            self.assertIn('presentation-studio-standard', article)
+            self.assertIn('Package header', article)
+            self.assertIn('Package footer', article)
+            self.assertIn('<div class="lwp-presentation--studio">', article)
+            self.assertIn('presentation-studio-index', index)
+            self.assertIn('<div class="lwp-presentation--studio">', index)
+            self.assertIn(
+                '.lwp-presentation--studio .presentation-studio-standard '
+                '{ display: grid; }', article)
+            self.assertTrue(asset.is_file())
+            self.assertIn('assets/presentations/studio/1.2.3/mark.svg', article)
+
+            shown = run('series', 'preset', str(root), '--format', 'json')
+            self.assertEqual(shown.returncode, 0, shown.stderr)
+            report = json.loads(shown.stdout)
+            self.assertEqual(report['preset']['selector'], self.SELECTOR)
+            self.assertEqual(report['preset']['slide_layouts']['cover'], 'hero')
+            self.assertEqual(report['preset']['slide_chrome']['all']['footer'],
+                             {'text': 'Package footer'})
+
+    def test_external_catalogue_preset_commands_and_virtual_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            catalogue = root / 'catalogue'
+            self._write_package(catalogue)
+            env = {'LWP_PRESENTATION_PACKAGES_DIR': str(catalogue)}
+
+            listed = run('preset', 'list', '--format', 'json', env=env)
+            self.assertEqual(listed.returncode, 0, listed.stderr)
+            reports = json.loads(listed.stdout)['presets']
+            default = next(report for report in reports if report['default'])
+            custom = next(report for report in reports
+                          if report['selector'] == self.SELECTOR)
+            self.assertIsNone(default['selector'])
+            self.assertEqual(custom['package']['scope'], 'user')
+
+            shown = run('preset', 'show', self.SELECTOR, '--format', 'json',
+                        env=env)
+            self.assertEqual(shown.returncode, 0, shown.stderr)
+            self.assertEqual(json.loads(shown.stdout)['slide_layouts']['cover'],
+                             'hero')
+            virtual = run('preset', 'show', 'default', '--format', 'json',
+                          env=env)
+            self.assertEqual(virtual.returncode, 0, virtual.stderr)
+            self.assertTrue(json.loads(virtual.stdout)['default'])
+
+            series = root / 'series'
+            initialized = run('init', str(series), env=env)
+            self.assertEqual(initialized.returncode, 0, initialized.stderr)
+            selected = run('series', 'preset', 'set', str(series), '--preset',
+                           'default', env=env)
+            self.assertEqual(selected.returncode, 0, selected.stderr)
+            data = json.loads((series / 'series.json').read_text(encoding='utf-8'))
+            self.assertNotIn('presentation_preset', data['series_meta'])
+            current = run('series', 'preset', str(series), '--format', 'json',
+                          env=env)
+            self.assertEqual(current.returncode, 0, current.stderr)
+            self.assertTrue(json.loads(current.stdout)['preset']['default'])
+            data['series_meta']['presentation_preset'] = 'default'
+            (series / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+            persisted = run('series', 'preset', str(series), env=env)
+            self.assertNotEqual(persisted.returncode, 0)
+            self.assertIn('presentation_preset must be id@version/preset',
+                          persisted.stderr)
+
+    def test_init_preset_applies_or_skips_its_declared_starter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            catalogue = root / 'catalogue'
+            self._write_package(catalogue, with_starter=True)
+            env = {'LWP_PRESENTATION_PACKAGES_DIR': str(catalogue)}
+
+            refused = run('init', str(root / 'needs-preset'), '--no-starter',
+                          env=env)
+            self.assertNotEqual(refused.returncode, 0)
+            self.assertIn('needs --preset', refused.stderr)
+
+            with_starter = root / 'with-starter'
+            initialized = run('init', str(with_starter), '--preset', self.SELECTOR,
+                              env=env)
+            self.assertEqual(initialized.returncode, 0, initialized.stderr)
+            data = json.loads((with_starter / 'series.json').read_text(
+                encoding='utf-8'))
+            self.assertEqual(data['series_meta']['presentation_preset'],
+                             self.SELECTOR)
+            self.assertTrue((with_starter / 'sources' / 'starter.md').is_file())
+            self.assertTrue((with_starter / 'templates' / 'layouts'
+                             / self.PACKAGE_ID / self.PACKAGE_VERSION
+                             / 'manifest.json').is_file())
+
+            without_starter = root / 'without-starter'
+            skipped = run('init', str(without_starter), '--preset', self.SELECTOR,
+                          '--no-starter', env=env)
+            self.assertEqual(skipped.returncode, 0, skipped.stderr)
+            data = json.loads((without_starter / 'series.json').read_text(
+                encoding='utf-8'))
+            self.assertEqual(data['articles'], [])
+            self.assertFalse((without_starter / 'sources' / 'starter.md').exists())
+
+    def test_series_preset_set_preserves_pins_and_requires_theme_choice(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            catalogue = root / 'catalogue'
+            self._write_package(catalogue)
+            env = {'LWP_PRESENTATION_PACKAGES_DIR': str(catalogue)}
+            series = root / 'series'
+            initialized = run('init', str(series), env=env)
+            self.assertEqual(initialized.returncode, 0, initialized.stderr)
+            settings = series / 'templates' / 'settings.conf'
+            settings.write_text('theme: nord\ncolor.page: #123456FF\n',
+                                encoding='utf-8')
+
+            ambiguous = run('series', 'preset', 'set', str(series), '--preset',
+                            self.SELECTOR, env=env)
+            self.assertNotEqual(ambiguous.returncode, 0)
+            self.assertIn('explicitly selects theme', ambiguous.stderr)
+
+            kept = run('series', 'preset', 'set', str(series), '--preset',
+                        self.SELECTOR, '--keep-theme', env=env)
+            self.assertEqual(kept.returncode, 0, kept.stderr)
+            self.assertIn('theme: nord', settings.read_text(encoding='utf-8'))
+            self.assertIn('color.page: #123456FF',
+                          settings.read_text(encoding='utf-8'))
+            report = run('series', 'theme', str(series), '--format', 'json',
+                         env=env)
+            self.assertEqual(report.returncode, 0, report.stderr)
+            theme = json.loads(report.stdout)
+            self.assertEqual(theme['target']['theme'], 'nord')
+            self.assertEqual(theme['target']['presentation_preset'], self.SELECTOR)
+            self.assertIn('color.page', theme['target']['pinned'])
+            self.assertEqual(theme['palette']['page'], '#123456FF')
+
+            revealed = run('series', 'preset', 'set', str(series), '--preset',
+                           self.SELECTOR, '--use-preset-theme', env=env)
+            self.assertEqual(revealed.returncode, 0, revealed.stderr)
+            settings_text = settings.read_text(encoding='utf-8')
+            self.assertNotIn('theme: nord', settings_text)
+            self.assertIn('color.page: #123456FF', settings_text)
+            report = run('series', 'theme', str(series), '--format', 'json',
+                         env=env)
+            self.assertEqual(report.returncode, 0, report.stderr)
+            theme = json.loads(report.stdout)
+            self.assertIsNone(theme['target']['theme'])
+            self.assertEqual(theme['target']['presentation_preset'], self.SELECTOR)
+            self.assertEqual(theme['palette']['page'], '#123456FF')
+
+    def test_author_presentation_overrides_and_article_selection_are_rejected(self):
+        cases = (
+            ('series layouts', 'series_meta', 'slide_layouts',
+             {'cover': 'default'}, 'slide_layouts'),
+            ('series chrome', 'series_meta', 'slide_chrome',
+             {'all': {'footer': 'Author footer'}}, 'slide_chrome'),
+            ('article preset', 'article', 'presentation_preset', self.SELECTOR,
+             'puts "presentation_preset" on an article'),
+            ('article template', 'article', 'presentation_template',
+             'studio@1.2.3', 'uses retired "presentation_template"'),
+        )
+        for name, location, field, value, expected in cases:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                root, _package = self._selected_series(tmp)
+                series_path = root / 'series.json'
+                series = json.loads(series_path.read_text(encoding='utf-8'))
+                target = (series['series_meta'] if location == 'series_meta'
+                          else series['articles'][0])
+                target[field] = value
+                series_path.write_text(json.dumps(series), encoding='utf-8')
+                result = run('build', str(root), '--output', str(root / 'public'))
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(expected, result.stderr)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root, _package = self._selected_series(tmp)
+            source = root / 'sources' / 'a.md'
+            source.write_text(self._article().replace(
+                'nav_desc: Article\n---',
+                f'nav_desc: Article\npresentation_preset: {self.SELECTOR}\n---'),
+                encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('presentation_preset is series-wide', result.stderr)
+
+    def test_manifest_schema_and_layout_fragments_are_validated(self):
+        for kind in ('schema', 'layout'):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as tmp:
+                root, package = self._selected_series(tmp)
+                if kind == 'schema':
+                    manifest_path = package / 'manifest.json'
+                    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+                    manifest['schema'] = 'lightwebpres.presentation-template/1'
+                    manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+                    expected = 'expected \'lightwebpres.presentation-package/1\''
+                else:
+                    (package / 'layouts' / 'cover.html').write_text(
+                        '<script>window.bad = true</script>\n'
+                        '{{slide_header}}{{content}}{{slide_footer}}\n',
+                        encoding='utf-8')
+                    expected = 'layout fragment cannot contain'
+                result = run('build', str(root), '--output', str(root / 'public'))
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(expected, result.stderr)
+
+    def test_structure_css_cannot_escape_its_package_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, package = self._selected_series(tmp)
+            (package / 'structure.css').write_text(
+                'body { display: grid; }\n', encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('structure_css cannot select :root, html or body',
+                          result.stderr)
+
+    def test_verify_reports_missing_and_changed_presentation_assets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, _package = self._selected_series(tmp)
+            output = root / 'public'
+            built = run('build', str(root), '--output', str(output))
+            self.assertEqual(built.returncode, 0, built.stderr)
+            asset = (output / 'assets' / 'presentations' / self.PACKAGE_ID
+                     / self.PACKAGE_VERSION / 'mark.svg')
+
+            asset.unlink()
+            missing = run('verify', str(root), '--output', str(output))
+            self.assertNotEqual(missing.returncode, 0)
+            self.assertIn('[NEW] assets/presentations/studio/1.2.3/mark.svg',
+                          missing.stdout)
+
+            rebuilt = run('build', str(root), '--output', str(output))
+            self.assertEqual(rebuilt.returncode, 0, rebuilt.stderr)
+            asset.write_text('<svg>changed</svg>\n', encoding='utf-8')
+            drifted = run('verify', str(root), '--output', str(output))
+            self.assertNotEqual(drifted.returncode, 0)
+            self.assertIn('[DRIFT] assets/presentations/studio/1.2.3/mark.svg',
+                          drifted.stdout)
+
+    def test_package_markup_and_css_cannot_escape_their_contract(self):
+        scope = f'.lwp-presentation--{self.PACKAGE_ID}'
+        cases = (
+            ('linked stylesheet', 'layouts/cover.html',
+             '<link rel="stylesheet" href="outside.css">\n'
+             '{{slide_header}}{{content}}{{slide_footer}}\n',
+             'layout fragment cannot load a stylesheet'),
+            ('inline style', 'layouts/cover.html',
+             '<div style="display: grid">{{slide_header}}{{content}}'
+             '{{slide_footer}}</div>\n',
+             'layout fragment cannot contain inline styles'),
+            ('escaped import', 'structure.css',
+             r'\40import "outside.css";',
+             'structure_css cannot import, load URLs or fonts'),
+            ('escaped important', 'structure.css',
+             f'{scope} .card {{ display: grid !\\69mportant; }}\n',
+             'structure_css cannot import, load URLs or fonts'),
+            ('scope sibling', 'structure.css',
+             f'{scope} + .outside {{ display: grid; }}\n',
+             'structure_css cannot select siblings of its package scope'),
+            ('custom property', 'structure.css',
+             f'{scope} .card {{ --color-page: red; }}\n',
+             'structure_css cannot declare custom properties'),
+        )
+        for name, relative, text, expected in cases:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                root, package = self._selected_series(tmp)
+                (package / relative).write_text(text, encoding='utf-8')
+                result = run('build', str(root), '--output', str(root / 'public'))
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(expected, result.stderr)
+
+    def test_starters_are_additive_even_when_init_is_forced(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            catalogue = root / 'catalogue'
+            self._write_package(catalogue, with_starter=True)
+            env = {'LWP_PRESENTATION_PACKAGES_DIR': str(catalogue)}
+            series = root / 'series'
+            source = series / 'sources' / 'starter.md'
+            source.parent.mkdir(parents=True)
+            source.write_text('author content\n', encoding='utf-8')
+
+            result = run('init', str(series), '--preset', self.SELECTOR,
+                         '--force', env=env)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('starter refuses to overwrite', result.stderr)
+            self.assertEqual(source.read_text(encoding='utf-8'), 'author content\n')
+            self.assertFalse((series / 'series.json').exists())
+            self.assertFalse((series / 'templates').exists())
+
+    def test_hostile_starter_is_rejected_before_init_creates_a_series(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            catalogue = root / 'catalogue'
+            package = self._write_package(catalogue, with_starter=True)
+            descriptor_path = package / 'starters' / 'seed' / 'starter.json'
+            descriptor = json.loads(descriptor_path.read_text(encoding='utf-8'))
+            descriptor['sources'] = ['../outside.md']
+            descriptor_path.write_text(json.dumps(descriptor), encoding='utf-8')
+            series = root / 'series'
+
+            result = run('init', str(series), '--preset', self.SELECTOR,
+                         env={'LWP_PRESENTATION_PACKAGES_DIR': str(catalogue)})
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('contained POSIX relative path', result.stderr)
+            self.assertFalse(series.exists())
+
+    def test_existing_series_preset_set_never_applies_a_starter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            catalogue = root / 'catalogue'
+            self._write_package(catalogue, with_starter=True)
+            env = {'LWP_PRESENTATION_PACKAGES_DIR': str(catalogue)}
+            series = root / 'series'
+            self.assertEqual(run('init', str(series), env=env).returncode, 0)
+
+            selected = run('series', 'preset', 'set', str(series), '--preset',
+                           self.SELECTOR, env=env)
+            self.assertEqual(selected.returncode, 0, selected.stderr)
+            data = json.loads((series / 'series.json').read_text(encoding='utf-8'))
+            self.assertEqual(data['series_meta']['presentation_preset'],
+                             self.SELECTOR)
+            self.assertEqual(data['articles'], [])
+            self.assertFalse((series / 'sources' / 'starter.md').exists())
+
+    def test_preset_collision_leaves_series_and_settings_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            catalogue = root / 'catalogue'
+            self._write_package(catalogue)
+            env = {'LWP_PRESENTATION_PACKAGES_DIR': str(catalogue)}
+            series = root / 'series'
+            self.assertEqual(run('init', str(series), env=env).returncode, 0)
+            settings = series / 'templates' / 'settings.conf'
+            settings.write_text('theme: nord\ncolor.page: #123456FF\n',
+                                encoding='utf-8')
+            collision = (series / 'templates' / 'layouts' / self.PACKAGE_ID
+                         / self.PACKAGE_VERSION)
+            collision.parent.mkdir(parents=True)
+            collision.write_text('not a package\n', encoding='utf-8')
+            series_path = series / 'series.json'
+            before_series = series_path.read_bytes()
+            before_settings = settings.read_bytes()
+
+            result = run('series', 'preset', 'set', str(series), '--preset',
+                         self.SELECTOR, '--use-preset-theme', env=env)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('already exists; refusing to replace', result.stderr)
+            self.assertEqual(series_path.read_bytes(), before_series)
+            self.assertEqual(settings.read_bytes(), before_settings)
+            self.assertEqual(collision.read_text(encoding='utf-8'),
+                             'not a package\n')
+
+
 class RefreshTemplates(unittest.TestCase):
     """§11.6: what the command does to the AUTHOR's surface — create
     `settings.conf` or `custom.css` when they are missing, regenerate the
@@ -11660,7 +12172,8 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
 
     ROOT_KEYS = {'schema', 'lightwebpres_version', 'target', 'label', 'note',
                  'source', 'facets', 'palette', 'fonts', 'accessibility'}
-    TARGET_KEYS = {'kind', 'theme', 'directory', 'pinned', 'custom_css'}
+    TARGET_KEYS = {'kind', 'theme', 'presentation_preset', 'directory',
+                   'pinned', 'custom_css'}
     CATEGORY_KEYS = {'level', 'threshold_aa', 'threshold_aaa',
                      'pairs_measured', 'worst', 'failures'}
     PAIR_KEYS = {'site', 'foreground', 'foreground_color', 'ground',
@@ -11673,7 +12186,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         removed one, and the GUI is entitled to know which it is from the
         `schema` string."""
         report = self._report('nord')
-        self.assertEqual(report['schema'], 'lightwebpres.theme-info/4')
+        self.assertEqual(report['schema'], 'lightwebpres.theme-info/5')
         self.assertEqual(report['lightwebpres_version'],
                          self.lwp.VERSION)
         self.assertEqual(set(report), self.ROOT_KEYS)
@@ -14517,7 +15030,8 @@ class H1H2FieldFormRemoved(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('unrecognized field "tag:"', result.stderr)
             self.assertIn(
-                'kicker:, tags:, summary:, comment:, note:', result.stderr)
+                'kicker:, tags:, summary:, slide-layout:, slide-header:, '
+                'slide-footer:, comment:, note:', result.stderr)
             self.assertIn(
                  'Use "kicker:" for a visible label or "tags:" for tag filtering.',
                 result.stderr,
@@ -14536,7 +15050,8 @@ class H1H2FieldFormRemoved(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('unrecognized field "mystery:"', result.stderr)
             self.assertIn(
-                'kicker:, tags:, summary:, comment:, note:', result.stderr)
+                'kicker:, tags:, summary:, slide-layout:, slide-header:, '
+                'slide-footer:, comment:, note:', result.stderr)
             self.assertNotIn('Use "kicker:" for a visible label', result.stderr)
 
 
@@ -16358,12 +16873,23 @@ class TheGuideBuildsWithTheToolItDescribes(unittest.TestCase):
                                capture_output=True, text=True, timeout=180)
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
             self.assertFalse((out / 'stale.html').exists())
-            for name in sorted(p.name for p in out.iterdir() if p.is_file()):
-                if name.startswith('.lwp-'):
-                    continue
+            def generated_files(directory):
+                return sorted(
+                    p.relative_to(directory)
+                    for p in directory.rglob('*')
+                    if p.is_file() and not p.name.startswith('.lwp-'))
+
+            committed_files = generated_files(committed)
+            fresh_files = generated_files(out)
+            self.assertEqual(
+                fresh_files, committed_files,
+                'generated/guide does not contain exactly the files produced '
+                'by `python3 tools/build_guide.py`')
+            for relative in fresh_files:
                 self.assertEqual(
-                    (committed / name).read_bytes(), (out / name).read_bytes(),
-                    f'generated/guide/{name} is stale: re-run '
+                    (committed / relative).read_bytes(),
+                    (out / relative).read_bytes(),
+                    f'generated/guide/{relative.as_posix()} is stale: re-run '
                     f'`python3 tools/build_guide.py`')
 
     def test_the_guide_builds_and_shows_what_it_names(self):
@@ -16377,6 +16903,10 @@ class TheGuideBuildsWithTheToolItDescribes(unittest.TestCase):
                                capture_output=True, text=True, timeout=180)
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
             html = (out / 'guide.html').read_text(encoding='utf-8')
+            index_html = (out / 'index.html').read_text(encoding='utf-8')
+            package_asset = (out / 'assets' / 'presentations' / 'lightwebpres-docs'
+                             / '0.1.0' / 'lightwebpres-mark.svg')
+            package_asset_exists = package_asset.is_file()
 
         # Every component the guide's own anatomy section names.
         for cls in ('slide slide-cover', 'slide full-article', 'fact-box',
@@ -16388,6 +16918,15 @@ class TheGuideBuildsWithTheToolItDescribes(unittest.TestCase):
         for field in ('source:', 'fact-label:', 'highlight:'):
             self.assertNotIn(f'<p>{field}', html,
                              f'{field} rendered as literal text')
+        for marker in (
+                'lwp-doc-frame lwp-doc-cover-frame lwp-doc-cover-hero',
+                'lwp-doc-frame lwp-doc-standard-frame',
+                'lwp-doc-frame lwp-doc-article-frame',
+                'LIGHTWEBPRES / OFFICIAL DOCUMENTATION',
+                'assets/presentations/lightwebpres-docs/0.1.0/lightwebpres-mark.svg'):
+            self.assertIn(marker, html, f'official package marker missing: {marker}')
+        self.assertIn('class="lwp-doc-index-frame"', index_html)
+        self.assertTrue(package_asset_exists)
 
 
 class TheGalleryPanelStaysOnTheDecksOwnSideOfItsBreakpoint(unittest.TestCase):
@@ -18569,24 +19108,32 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                                              'author': 'Fade78'})
             report = self._report(root)
 
-        # /2, not /1: `draft` disappeared and `counts` changed meaning.
-        # The promise is that the number moves for exactly that, and
-        # never for a key merely being added.
-        self.assertEqual(report['schema'], 'lightwebpres.series-info/2')
+        # /3 exposes the resolved presentation separately from raw series
+        # metadata, after /2 removed `draft` and changed `counts`.
+        self.assertEqual(report['schema'], 'lightwebpres.series-info/3')
         version = run('--help').stdout.split('LightWebPres v', 1)[1].split(' ', 1)[0]
         self.assertEqual(report['lightwebpres_version'], version)
         self.assertEqual(set(report), {'schema', 'lightwebpres_version',
-                                       'target', 'series_meta', 'counts',
-                                       'tags', 'articles'})
-        self.assertEqual(set(report['target']), {'kind', 'directory', 'theme'})
+                                       'target', 'series_meta', 'presentation',
+                                       'counts', 'tags', 'articles'})
+        self.assertEqual(set(report['target']),
+                         {'kind', 'directory', 'theme', 'presentation_preset'})
         self.assertEqual(report['target']['kind'], 'series')
         self.assertEqual(report['target']['directory'], str(Path(root).resolve()))
         self.assertIsNone(report['target']['theme'])
+        self.assertIsNone(report['target']['presentation_preset'])
         self.assertEqual(set(report['series_meta']),
-                         {'title', 'subtitle', 'version', 'intro', 'author',
-                          'license', 'default_tag', 'scroll_duration',
-                          'lang_tags', 'notes_placement', 'notes_tooltip',
-                          'slide_page_numbers', 'slug_prefix'})
+                          {'title', 'subtitle', 'version', 'intro', 'author',
+                            'license', 'default_tag', 'scroll_duration',
+                            'lang_tags', 'notes_placement', 'notes_tooltip',
+                            'slide_page_numbers', 'slug_prefix',
+                            'presentation_preset'})
+        self.assertEqual(set(report['presentation']),
+                         {'schema', 'selector', 'id', 'label', 'description',
+                          'default', 'package', 'theme', 'slide_layouts',
+                          'slide_chrome', 'starter'})
+        self.assertTrue(report['presentation']['default'])
+        self.assertIsNone(report['presentation']['selector'])
         self.assertEqual(report['series_meta']['title'], 'A series')
         self.assertIsNone(report['series_meta']['default_tag'])
         self.assertIsNone(report['series_meta']['subtitle'])
@@ -18943,6 +19490,7 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
             ):
                 with self.subTest(name):
                     report = self._resolve(root, name, *extra)
+                    self.assertEqual(report['schema'], 'lightwebpres.resolve/2')
                     self.assertEqual(report['query']['kind'], kind)
 
     def test_slug_prefix_resolves_for_an_article(self):
@@ -19145,7 +19693,8 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
                 ('author',
                  ['series', 'article', 'series-default', 'default']),
                 ('kicker.fg',
-                 ['instance', 'article', 'settings', 'theme', 'default']),
+                 ['instance', 'article', 'settings', 'theme', 'preset',
+                  'default']),
             ):
                 with self.subTest(name):
                     chain = self._resolve(

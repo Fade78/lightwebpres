@@ -1,0 +1,60 @@
+{
+  "schema": "lightwebpres.presentation-package/1",
+  "id": "lightwebpres-docs",
+  "version": "0.1.0",
+  "layouts": {
+    "cover": {
+      "default": "slides/cover.html",
+      "hero": "slides/cover-hero.html"
+    },
+    "standard": {
+      "default": "slides/standard.html"
+    },
+    "series-nav": {
+      "default": "slides/series-nav.html"
+    },
+    "full-article": {
+      "default": "slides/full-article.html"
+    },
+    "index": "index.html"
+  },
+  "structure_css": "structure.css",
+  "chrome": "chrome.json",
+  "assets": {
+    "mark": {
+      "path": "assets/lightwebpres-mark.svg",
+      "kind": "image"
+    }
+  },
+  "themes": {
+    "docs": "themes/docs.conf"
+  },
+  "starters": {
+    "blank": "starters/blank/starter.json"
+  },
+  "presets": {
+    "docs": {
+      "label": "LightWebPres documentation",
+      "description": "The structure, complete typed theme and starter used by the official guide.",
+      "theme": "docs",
+      "slide_layouts": {
+        "cover": "default",
+        "standard": "default",
+        "series-nav": "default",
+        "full-article": "default"
+      },
+      "slide_chrome": {
+        "all": {
+          "header": {
+            "model": "brand-header",
+            "text": "DOCS"
+          },
+          "footer": {
+            "model": "docs-footer"
+          }
+        }
+      },
+      "starter": "blank"
+    }
+  }
+}

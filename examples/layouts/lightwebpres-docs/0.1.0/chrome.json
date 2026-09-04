@@ -1,0 +1,27 @@
+{
+  "models": {
+    "brand-header": {
+      "slot": "header",
+      "items": [
+        {
+          "kind": "image",
+          "asset": "presentation:mark",
+          "alt": "LightWebPres"
+        },
+        {
+          "kind": "text",
+          "slot": "text"
+        }
+      ]
+    },
+    "docs-footer": {
+      "slot": "footer",
+      "items": [
+        {
+          "kind": "text",
+          "text": "LIGHTWEBPRES / OFFICIAL DOCUMENTATION"
+        }
+      ]
+    }
+  }
+}

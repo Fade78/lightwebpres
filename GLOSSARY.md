@@ -79,6 +79,12 @@ Once per series, in `series.json`'s `series_meta` object.
 | `default_tag` | `default` | Tag selected when a page has no valid persisted reader choice; must occur on an article or non-excluded slide selected for the build, and warns when the effective article/slide intersection is empty. `series tags` and `status --format json` expose the resulting `default_output` too |
 | `scroll_duration` | `200` ms | Duration of the deck's own slide glide. It must be a non-negative integer; `0` jumps instantly. `--scroll-duration` overrides it for one `build`, `verify` or `watch` invocation, and the presenter menu or **I** toggles between this configured value and `0` |
 | `lang_tags` | `{}` — no tag selects a typography pack | Object mapping a slide tag to a typography pack name, e.g. `{"fr": "fr", "en": "en"}`; the first mapped tag on a slide selects its engine (§20.5) |
+| `presentation_preset` | omitted — virtual built-in `default` | Sélecteur exact `id@MAJOR.MINOR.PATCH/preset`, persisté uniquement dans `series_meta` pour toute la série et son index. Le sélecteur CLI `default` signifie qu'on omet le champ |
+
+Les anciens champs auteur `presentation_template`, `slide_layouts` et
+`slide_chrome` sont retirés et rejetés, jamais ignorés. `slide_layouts` et
+`slide_chrome` restent des clés valides dans un manifeste de paquet, où elles
+portent les défauts internes d'un préréglage.
 
 ## Language pack files
 
@@ -127,6 +133,9 @@ taking priority when both are set (§20.3.1).
 | `typo_units` | meta block only | Unset — rule stays on | `off` disables only the units/`×`/`≈` typography rule, for this article only |
 | `typo_thousands` | meta block only | Unset — rule stays on | `off` disables only the thousands-grouping typography rule, for this article only |
 | `slide_page_numbers` | meta block, `series_meta`, or `--slides-page-numbers` | `off` (§3.3.5) | Engraves the top-right `NN / NN` slide number on every slide; cascade: meta block > CLI flag > `series_meta` > `off` |
+
+Un préréglage ne se choisit ni dans une entrée `articles[]` ni dans le bloc
+`lwp:meta` : seul `series_meta.presentation_preset` le fait pour toute la série.
 
 ## Tag visibility reports
 
@@ -189,9 +198,27 @@ A `<!-- lwp:slide:full-article -->` slide's own header.
 
 A `<!-- lwp:slide:series-nav -->` slide has no author-written body. Its
 navigation cards are generated from `series.json`; it accepts the shared
-`tags` and `slug` fields, and `slug` is required on it as on every other
-card. `comment` is documented above because it is accepted on every slide
-type and is never rendered.
+`tags`, `slug` and presentation fields below, and `slug` is required on it as
+on every other card. `comment` is documented above because it is accepted on
+every slide type and is never rendered.
+
+## Champs communs de paquet de présentation
+
+`slide-layout`, `slide-header` et `slide-footer` sont acceptés dans l'en-tête
+des quatre types (`cover`, standard, `series-nav`, `full-article`). Ils
+remplacent pour une fiche précise les défauts que possède le préréglage de la
+série; ils n'écrivent ni la page, ni la navigation, et ne forment pas une
+cascade JSON auteur.
+
+| Field | Default | Description |
+|---|---|---|
+| `slide-layout` | preset-owned layout default | Nom de variante en minuscules/chiffres/tirets. Vide = erreur; `default` conserve le défaut du préréglage |
+| `slide-header` | preset-owned chrome default | Texte, objet JSON de modèle, ou exactement `""` pour supprimer l'en-tête hérité. Vide sans guillemets = erreur |
+| `slide-footer` | preset-owned chrome default | Même contrat que `slide-header`, pour le pied de fiche |
+
+Le préréglage est le seul propriétaire des défauts de layout et de chrome; les
+champs de fiche gagnent en dernier. Voir `specifications.md` §9.9 et §20.5.3
+pour le manifeste, les fragments, les assets et les contrôles.
 
 The historical `tag:` field is not an alias for either current field. Use
 `kicker:` for the visible label above a slide title, and `tags:` for tag
@@ -236,6 +263,10 @@ description; the terms are fixed here, in English.
 | **article tag** | A normalized word from an article's meta-block `tags:`. It gates the article card/page for the exact selected tag; an article without tags has no article-level gate. |
 | **image asset** | A regular file below `sources/img/`. A standard build publishes it under `public/img/` only when a rendered page references its local `img/...` path; an existing output file is not removed by the build (§11.3). |
 | **image inventory** | The audit's count of local image references in rendered pages, separated into inline images and standalone figures. It warns about unused source files and references whose source file is missing (§11.5). |
+| **presentation package** | Arbre versionné `layouts/<id>/<version>/` avec `manifest.json`, ou `templates/layouts/<id>/<version>/` une fois vendorisé. Il possède structure, layouts, chrome, assets et CSS structurel contraint, sans remplacer le shell de page; ses assets publiés vivent sous `public/assets/presentations/<id>/<version>/...`. |
+| **presentation preset** | Configuration nommée d'un paquet, adressée par `id@MAJOR.MINOR.PATCH/preset` et persistée uniquement dans `series_meta.presentation_preset`. Ses propres `slide_layouts` et `slide_chrome` sont des défauts de manifeste, non des champs auteur. |
+| **layout fragment** | Fragment HTML de paquet : `{{content}}`, `{{slide_header}}`, `{{slide_footer}}` exactement une fois pour une fiche; `{{content}}` seul pour l'index. |
+| **chrome model** | Déclaration JSON d'un header ou footer, composée d'items texte, image ou icône et d'assets déclarés. |
 | **furniture** | Descriptive family, not a mechanism: the properties painting the page's apparatus rather than its content or signals — rules, surface veils, sunken and control grounds, the modal scrim. Ordinary properties; the word only lets one speak of them collectively. |
 | **skeleton** | The static, layout-only CSS no property drives: flex, grid, spacing, media queries. Not an editable surface. |
 

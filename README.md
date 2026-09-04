@@ -168,8 +168,8 @@ renders of that mode in the `lava`, `terminal` and `pop-lemon` themes.
   lockfile, no network at build time, so any image with `python3` runs
    it. Every path is an environment variable (`LWP_SERIES_DIR`,
    `LWP_SOURCES_DIR`, `LWP_TEMPLATES_DIR`, `LWP_INTERFACE_DIR`,
-   `LWP_TYPOGRAPHY_DIR`, `LWP_LANGUAGE_DIR`, `LWP_OUTPUT_DIR`,
-   `LWP_THEMES_DIR`, …), and
+    `LWP_TYPOGRAPHY_DIR`, `LWP_LANGUAGE_DIR`, `LWP_OUTPUT_DIR`,
+     `LWP_THEMES_DIR`, `LWP_PRESENTATION_PACKAGES_DIR`, …), and
    `--only file` targets one article when the
   navigation cache is safe, while refreshing derived outputs; otherwise it
   falls back to a full build. The Markdown can come from anywhere — a CMS
@@ -387,11 +387,77 @@ A slide field has no cascade — it is written on a slide or it is not —
 so `resolve fact-label` answers with every slide that sets it, across
 the series or within one article.
 
+### Paquets de présentation et préréglages
+
+Un paquet de présentation versionné possède la structure, les layouts, le
+chrome, les assets et le CSS structurel contraint de ses fiches, **pas** le
+shell de page : LWP conserve le `<head>`, le `<body>`, la navigation, le script
+et la `<section>` de chaque fiche. Ses fragments ne peuvent employer que
+`{{content}}`, `{{slide_header}}` et `{{slide_footer}}` (`{{content}}` seul
+pour l'index).
+
+Un seul sélecteur est persisté :
+`series_meta.presentation_preset`, de forme exacte
+`id@MAJOR.MINOR.PATCH/preset`. Il n'existe ni sélecteur par article ni dans le
+bloc `lwp:meta` : omettre le champ conserve le rendu intégré virtuel `default`.
+Le sélecteur CLI littéral `default` signifie cette omission, jamais une valeur
+écrite dans `series.json`.
+
+```json
+{
+  "series_meta": {
+    "presentation_preset": "corporate@1.0.0/brief"
+  }
+}
+```
+
+Les anciens champs auteur `presentation_template`, `slide_layouts` et
+`slide_chrome` sont retirés et rejetés, ils ne sont pas ignorés. Les deux
+derniers restent des clés internes valides d'un manifeste, où un préréglage
+déclare ses propres valeurs par défaut.
+
+Les quatre types de fiche acceptent toujours `slide-layout`, `slide-header` et
+`slide-footer`. Ce sont des overrides par fiche des défauts du préréglage
+sélectionné, pas une cascade JSON auteur. Le thème déclaré par le préréglage est
+la base typée : thème de base < pins de `settings.conf` < `style.*` de l'article
+< styles d'instance; `templates/custom.css` reste le CSS final avancé. Les
+assets déclarés sont publiés sous
+`public/assets/presentations/<id>/<version>/...`, ou inlinés par
+`--inline-images`.
+
+Le paquet utilisé par le guide officiel est lui-même un exemple suivi dans
+`examples/layouts/lightwebpres-docs/0.1.0/`. Ce n'est ni une seconde source du
+guide ni une sortie générée : `tools/build_guide.py` le vendorise dans sa série
+temporaire, puis copie aussi l'asset produit dans `generated/guide/`. La garde
+du guide compare cet arbre entier, pas seulement les deux fichiers HTML.
+
+```bash
+./lightwebpres preset list
+./lightwebpres preset show <id@MAJOR.MINOR.PATCH/preset|default>
+./lightwebpres init [dir] --preset <id@MAJOR.MINOR.PATCH/preset|default> [--no-starter]
+./lightwebpres series preset [dir]
+./lightwebpres series preset set [dir] --preset <id@MAJOR.MINOR.PATCH/preset|default> [--keep-theme|--use-preset-theme]
+```
+
+`init --preset` valide et vendorise le paquet sous
+`templates/layouts/<id>/<version>/`, écrit le sélecteur, génère les réglages à
+partir du thème du préréglage et applique son starter déclaré, sauf avec
+`--no-starter`. `series preset set` vendorise et sélectionne sans starter; il
+préserve les pins et `custom.css`. Si `settings.conf` contient un `theme:`
+explicite, il exige `--keep-theme` ou `--use-preset-theme`; ce dernier retire la
+ligne `theme:`.
+
+`LWP_PRESENTATION_PACKAGES_DIR` remplace le catalogue utilisateur. Le namespace
+physique reste `layouts/<id>/<version>/` dans un catalogue et
+`templates/layouts/<id>/<version>/` une fois vendorisé; une collision
+id/version remplace le paquet entier. Le manifeste complet, la validation des
+symlinks/chemins et les règles de fragments sont dans `specifications.md` §9.9.
+
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `init [dir]` | Scaffolds a series directory (`sources/`, `templates/` with your `settings.conf` and `custom.css`, empty `interface/`, `typography/` and legacy `language/` directories, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed). The tool's own files — the navigation script and language packs — stay in the executable and are read from there, so upgrading it is the whole upgrade |
+| `init [dir]` | Scaffolds a series directory (`sources/`, `templates/` with your `settings.conf` and `custom.css`, empty `interface/`, `typography/` and legacy `language/` directories, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed). `--preset id@MAJOR.MINOR.PATCH/preset` validates and vendors its package, writes `series_meta.presentation_preset`, generates settings from its theme, and applies its declared starter unless `--no-starter` is passed. The tool's own files — the navigation script and language packs — stay in the executable and are read from there, so upgrading it is the whole upgrade |
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field; `--dry-run` journals the files and reports the build plan without touching the series |
 | `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file` targets one article when the navigation cache is safe but still refreshes derived outputs (article, index/README/images according to the options, manifest and cache), falling back to a full build if anything affecting `index.html`/navigation changed (see specifications.md §11.3.1). Standard builds copy only images referenced by their rendered pages; `--inline-images` embeds Markdown images as base64 data URIs (no `img/` directory); the essential runtime theme bundle is embedded by default, with `--themes selectors|all` adding more |
 | `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate; pass the same `--themes` and `--no-essential-theme` decision used by the build |
@@ -406,6 +472,9 @@ the series or within one article.
 | `theme migrate [dir]` | Reduces a complete `settings.conf` scaffold to the selected theme plus explicit pins, preserving retired pins as comments |
 | `theme vendor [dir]` | Copies selected effective catalogue snapshots into `templates/themes/`, making a series independent of the user catalogue |
 | `theme path` | Prints the installed and user catalogue roots in precedence order |
+| `preset list` / `preset show <id@MAJOR.MINOR.PATCH/preset\|default>` | Lists the effective presentation-package catalogue or describes one named preset, including the virtual built-in `default`; both accept `--format text\|json` |
+| `series preset [dir]` | Reports the series' selected preset, or the virtual `default` when `presentation_preset` is absent; `--format text\|json` is available |
+| `series preset set [dir] --preset <id@MAJOR.MINOR.PATCH/preset\|default> [--keep-theme\|--use-preset-theme]` | Vendors and selects a preset without applying a starter. It preserves pins and `custom.css`; an explicit `theme:` requires one of the two theme decisions, and `--use-preset-theme` removes that line |
 | `status [dir]` | Says what is in a series without building anything: its articles in `series.json` order, every field *resolved* the way a build resolves it, and which level of the cascade each value came from. `--format json` for machines |
 | `series tags [dir]` | Inventories effective tag visibility, status totals, non-excluded slides and default-output coverage without building; `--tag` filters one tag. `--format json` for machines |
 | `series slug [dir]` | Lists every card of the series and the effective name it is published under, including `slug_prefix` — the anchor a shared link and a printed QR code point at. `status` answers by article; this answers by card. `--format json` for machines |
@@ -415,7 +484,7 @@ the series or within one article.
 | `series theme set [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf` or `$LWP_TEMPLATES_DIR`; your pinned values stay and apply on top |
 | `theme gallery [path]` | Generates a self-contained HTML page previewing every entry in the global effective catalogue — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
 | `clean [dir]` | Purges orphan files from `public/` using the build manifest (dry-run by default, `--force` to actually remove) |
-| `watch [dir]` | Polls `series.json`, sources, templates, split interface/typography packs and legacy language packs (including their current descendants), rebuilds on change, notices files created after startup, and keeps watching after a failed rebuild; optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
+| `watch [dir]` | Polls `series.json`, sources, templates (including presentation-package dependencies), split interface/typography packs and legacy language packs, rebuilds on change, notices files created after startup, and keeps watching after a failed rebuild; optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
 | `completion --shell bash\|zsh` | Prints a shell completion script — install with `eval "$(lightwebpres completion --shell bash)"` (or `zsh`) to get tab-completion for commands, subcommands, and options |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
 | `--version` | Prints the version (`LightWebPres vX.Y.Z`) and exits |
@@ -450,7 +519,10 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--themes selectors\|all` | `build`, `verify`, `watch`, `theme vendor` | embeds or vendors slugs, `essential` or `X:Y` facet selectors from the effective catalogue; the base theme in `templates/settings.conf` is first for a build, with `custom(<theme>)` before it when settings has pins, and `C` opens the picker |
 | `--no-essential-theme` | `build`, `verify`, `watch` | do not embed the default `essential` bundle (Monochrome, Monochrome Night, Print Ink); an explicit `--themes` on the same command still applies |
 | `--gitlab-ci` | `init` | emits a `.gitlab-ci.yml` |
-| `--format text\|json` | `resolve`, `status`, `series tags`, `series slug`, `theme show`, `series theme`, `contract` | machine-readable output for `json`; `contract` defaults to JSON, other commands to text |
+| `--format text\|json` | `resolve`, `status`, `series tags`, `series slug`, `theme show`, `series theme`, `preset list`, `preset show`, `series preset`, `contract` | machine-readable output for `json`; `contract` defaults to JSON, other commands to text |
+| `--preset id@MAJOR.MINOR.PATCH/preset\|default` | `init`, `series preset set` | selects a named presentation preset; `default` means omit `series_meta.presentation_preset` |
+| `--no-starter` | `init` | does not apply the selected preset's declared starter |
+| `--keep-theme` / `--use-preset-theme` | `series preset set` | required only when `settings.conf` pins an explicit `theme:`; retain it, or remove it to use the preset theme |
 | `--tag name` | `series tags` | restricts the inventory to one canonical tag |
 | `--from name` | `theme create` | starts a new complete snapshot from an embedded or external catalogue entry; `builtin:<slug>` forces the embedded entry |
 | `--label text`, `--family name`, `--source text`, `--note text` | `theme create` | writes the snapshot metadata; `--family` uses the closed family vocabulary |
@@ -947,6 +1019,7 @@ DECISIONS.md          # what has been decided and what has not, on six states
 web/                  # the browser-based build tool (upload-a-zip and GitLab-sync tabs)
 agent/skills/         # two packaged skills: the article format, and one optional editorial method
 AGENTS.md             # the working rules for an agent editing this repository
+examples/layouts/     # tracked demonstration presentation packages used by examples and builds
 generated/            # committed build output — regenerated by a command, never edited by hand
 tools/                # maintenance scripts and their inputs: the guide deck, the gallery snapshot, the index generators, the reference checker
 tests/                # regression suite

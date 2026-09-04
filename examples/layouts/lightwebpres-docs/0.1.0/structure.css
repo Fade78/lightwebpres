@@ -1,0 +1,280 @@
+.lwp-presentation--lightwebpres-docs .lwp-doc-frame {
+  position: relative;
+  width: 100%;
+  min-height: min(78vh, 860px);
+  padding: clamp(24px, 4vw, 58px);
+  border: 1px solid var(--card-rule-fg);
+  border-radius: 22px;
+  background: var(--card-bg);
+  overflow: hidden;
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-frame::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 34%;
+  height: 4px;
+  background: var(--color-nav);
+  content: '';
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-content {
+  position: relative;
+  z-index: 1;
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-frame .slide-chrome-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: clamp(28px, 5vh, 54px);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-frame .slide-chrome-header img {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-frame .slide-chrome-footer {
+  position: relative;
+  z-index: 1;
+  margin-top: clamp(28px, 5vh, 52px);
+  padding-top: 14px;
+  border-top: 1px solid var(--footer-rule-fg);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-standard-grid {
+  display: grid;
+  grid-template-columns: minmax(32px, 8%) minmax(0, 1fr);
+  gap: clamp(18px, 4vw, 58px);
+  min-height: min(66vh, 710px);
+  align-items: stretch;
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-column .lwp-doc-content {
+  flex: 1 1 auto;
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  writing-mode: vertical-rl;
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-rail i {
+  display: block;
+  width: 1px;
+  flex: 1 1 auto;
+  background: var(--slide-rule-fg);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-standard-frame .fact-box {
+  border-left-width: 3px;
+  border-left-color: var(--fact-rule-fg);
+  border-radius: 0 14px 14px 0;
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-standard-frame .highlight {
+  margin-top: 0;
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-cover-frame {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-color: var(--cover-bg-to);
+  background: var(--cover-bg-from);
+  color: var(--cover-fg);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-cover-frame::after {
+  width: 52%;
+  background: var(--color-mark);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-cover-frame .lwp-doc-cover-grid {
+  position: absolute;
+  top: clamp(24px, 4vw, 58px);
+  right: clamp(24px, 4vw, 58px);
+  left: clamp(24px, 4vw, 58px);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-cover-rule {
+  height: 1px;
+  background: var(--slide-rule-fg);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-cover-frame .lwp-doc-content {
+  max-width: 780px;
+  margin-top: clamp(34px, 8vh, 100px);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-cover-hero {
+  min-height: min(84vh, 900px);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-hero-orbit {
+  position: absolute;
+  top: 14%;
+  right: 9%;
+  width: clamp(150px, 24vw, 330px);
+  aspect-ratio: 1;
+  border: 1px solid var(--card-rule-fg);
+  border-radius: 50%;
+  transform: rotate(-24deg);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-hero-orbit::before,
+.lwp-presentation--lightwebpres-docs .lwp-doc-hero-orbit::after {
+  position: absolute;
+  inset: 14%;
+  border: 1px solid var(--color-mark);
+  border-radius: 50%;
+  content: '';
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-hero-orbit::after {
+  inset: 28%;
+  border-color: var(--color-nav);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-orbit-a,
+.lwp-presentation--lightwebpres-docs .lwp-doc-orbit-b,
+.lwp-presentation--lightwebpres-docs .lwp-doc-orbit-c {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-mark);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-orbit-a {
+  top: 9%;
+  left: 35%;
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-orbit-b {
+  right: 14%;
+  bottom: 32%;
+  background: var(--color-nav);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-orbit-c {
+  bottom: 6%;
+  left: 22%;
+  background: var(--cover-fg);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-nav-frame {
+  min-height: min(64vh, 690px);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-nav-frame .series-list {
+  display: grid;
+  gap: 12px;
+  max-width: 780px;
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-nav-frame .series-item {
+  border: 1px solid var(--series-nav-link-rule-fg);
+  border-radius: 12px;
+  background: var(--series-nav-link-bg);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-article-frame {
+  min-height: min(82vh, 980px);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-article-frame .lwp-doc-content {
+  max-width: 860px;
+  margin: 26px auto 0;
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-index-frame {
+  width: 100%;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: clamp(26px, 5vw, 72px);
+  border: 1px solid var(--card-rule-fg);
+  border-radius: 22px;
+  background: var(--card-bg);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-index-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: clamp(30px, 6vh, 64px);
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--header-rule-fg);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-index-frame .header {
+  margin-bottom: 30px;
+  padding-left: 22px;
+  border-left: 4px solid var(--color-mark);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-index-frame .intro {
+  max-width: 720px;
+  margin-bottom: 34px;
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-index-frame .article-card {
+  border: 1px solid var(--card-rule-fg);
+  border-radius: 14px;
+  background: var(--card-bg);
+}
+
+.lwp-presentation--lightwebpres-docs .lwp-doc-index-frame .article-card:hover,
+.lwp-presentation--lightwebpres-docs .lwp-doc-index-frame .article-card:focus-visible {
+  border-color: var(--card-rule-fg-hover);
+}
+
+@media (max-width: 700px) {
+  .lwp-presentation--lightwebpres-docs .lwp-doc-frame {
+    min-height: 0;
+    padding: 24px;
+    border-radius: 16px;
+  }
+
+  .lwp-presentation--lightwebpres-docs .lwp-doc-standard-grid {
+    display: block;
+    min-height: 0;
+  }
+
+  .lwp-presentation--lightwebpres-docs .lwp-doc-rail {
+    display: none;
+  }
+
+  .lwp-presentation--lightwebpres-docs .lwp-doc-cover-frame .lwp-doc-cover-grid {
+    right: 24px;
+    left: 24px;
+  }
+
+  .lwp-presentation--lightwebpres-docs .lwp-doc-index-frame {
+    padding: 24px;
+    border-radius: 16px;
+  }
+
+  .lwp-presentation--lightwebpres-docs .lwp-doc-index-bar {
+    flex-direction: column;
+    gap: 6px;
+  }
+}

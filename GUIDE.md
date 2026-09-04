@@ -49,7 +49,7 @@ no wheel, no lockfile, no network at build time — any image with
 `python3` in it can run it. And **every path is an environment
 variable** (`LWP_SERIES_DIR`, `LWP_SOURCES_DIR`, `LWP_OUTPUT_DIR`,
 `LWP_TEMPLATES_DIR`, `LWP_INTERFACE_DIR`, `LWP_TYPOGRAPHY_DIR`,
-`LWP_LANGUAGE_DIR`, `LWP_LANG`, `LWP_THEMES_DIR`), so a pipeline can
+`LWP_LANGUAGE_DIR`, `LWP_LANG`, `LWP_THEMES_DIR`, `LWP_PRESENTATION_PACKAGES_DIR`), so a pipeline can
 lay the pieces out however it likes without passing a single flag.
 
 **Every page is also a presentation deck.** Open the generated HTML in a
@@ -93,6 +93,12 @@ for the build to write into, a starter `series.json`, and a copy of the
 `lightwebpres` executable itself with its `COPYING` and
 `COPYING.EXCEPTION` beside it, so the project directory is self-sufficient
 and the copy travels with its licence.
+
+`init --preset id@MAJOR.MINOR.PATCH/preset` validates and vendors one complete
+presentation package under `templates/layouts/`, writes its selector in
+`series_meta.presentation_preset`, generates settings from its preset theme,
+and applies the preset's declared starter unless `--no-starter` is passed.
+Neither option changes the meaning of `template` commands.
 
 What it does *not* scaffold is the tool's own files — the navigation
 script and the typography/interface language packs. Those live inside the
@@ -169,10 +175,10 @@ syntax and every edge case.
 
 | Type | Carries | How many |
 |---|---|---|
-| `cover` | `slug`, `kicker`, `tags:`, `# Title`, `summary`, `comment`, `note` | any number, anywhere — it is a look, not a structural marker |
-| standard *(the default)* | `slug`, `kicker`, `tags:`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown | as many as you want |
-| `series-nav` | `slug`, `tags:`, `comment:` — the navigation itself is generated from `series.json` | 0 or 1 per article |
-| `full-article` | `slug`, `article: filename.md`, `tags:` and `comment:` | any number, each with its own file |
+| `cover` | `slug`, `kicker`, `tags:`, `# Title`, `summary`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note` | any number, anywhere — it is a look, not a structural marker |
+| standard *(the default)* | `slug`, `kicker`, `tags:`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note`, then free Markdown | as many as you want |
+| `series-nav` | `slug`, `tags:`, `slide-layout`, `slide-header`, `slide-footer`, `comment:` — the navigation itself is generated from `series.json` | 0 or 1 per article |
+| `full-article` | `slug`, `article: filename.md`, `tags:`, `slide-layout`, `slide-header`, `slide-footer` and `comment:` | any number, each with its own file |
 
 Four, and only four. Mistype one — `<!-- lwp:slide:covre -->` — and the
 build stops and tells you which slide, what you wrote, and what the four
@@ -346,6 +352,58 @@ used by the build. For the focused view, use
 `lightwebpres series tags my-series`: it reports effective article and slide
 visibility by tag, separates `active`, `draft`, and `ignored`, and shows what
 the default selection will actually publish. Add `--tag fr` to keep one row.
+
+### Paquets de présentation et préréglages
+
+Un paquet de présentation versionné possède la structure, les layouts, le
+chrome, les assets et le CSS structurel contraint des fiches. Il ne remplace ni
+le shell de page, ni la navigation, ni le JavaScript. Ses fragments ont les
+slots `{{content}}`, `{{slide_header}}`, `{{slide_footer}}` (l'index ne reçoit
+que `{{content}}`).
+
+La seule sélection persistée est
+`series_meta.presentation_preset: id@MAJOR.MINOR.PATCH/preset`. Elle n'existe
+ni dans le meta de l'article ni dans son entrée `articles[]`; son absence est le
+rendu intégré virtuel `default`. Le sélecteur CLI littéral `default` demande
+l'omission du champ, non une valeur enregistrée.
+
+```json
+{
+  "series_meta": {
+    "presentation_preset": "corporate@1.0.0/brief"
+  }
+}
+```
+
+Les champs auteur `presentation_template`, `slide_layouts` et `slide_chrome`
+sont retirés et rejetés, jamais ignorés. Les deux derniers restent permis dans
+un manifeste de paquet, pour les défauts de son préréglage.
+
+`slide-layout`, `slide-header` et `slide-footer` sont valides sur les quatre
+types de fiche. Ils remplacent les défauts appartenant au préréglage sélectionné
+pour une fiche précise; ce n'est pas une cascade JSON auteur. Le thème du
+préréglage est la base typée : thème de base < pins de `settings.conf` <
+`style.*` de l'article < styles d'instance, puis `templates/custom.css` reste le
+CSS final avancé. Les assets sont publiés sous
+`public/assets/presentations/<id>/<version>/...`, ou inlinés par
+`--inline-images`.
+
+```bash
+./lightwebpres preset list
+./lightwebpres preset show <id@MAJOR.MINOR.PATCH/preset|default>
+./lightwebpres series preset my-series
+./lightwebpres series preset set my-series --preset <id@MAJOR.MINOR.PATCH/preset|default> --keep-theme
+./lightwebpres init my-series --preset <id@MAJOR.MINOR.PATCH/preset|default> [--no-starter]
+```
+
+`series preset set` vendorise et sélectionne sans starter. Il préserve les
+pins et `custom.css`; avec un `theme:` explicite dans `settings.conf`, il exige
+`--keep-theme` ou `--use-preset-theme`, qui retire cette ligne. Le namespace
+reste `layouts/<id>/<version>/` dans un catalogue et
+`templates/layouts/<id>/<version>/` une fois vendorisé.
+`LWP_PRESENTATION_PACKAGES_DIR` remplace le catalogue utilisateur; une collision
+id/version remplace le paquet entier. Les détails du manifeste, de la validation
+et de la sécurité sont dans `specifications.md` §9.9.
 
 ## 5. Adjusting the look
 

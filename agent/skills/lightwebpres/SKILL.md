@@ -2,7 +2,8 @@
 name: lightwebpres
 description: >
   The exact LWP article syntax the lightwebpres tool parses: the lwp:meta
-  block, the four slide types and their fields, series.json wiring, the
+  block, the four slide types and their fields, presentation-preset selection
+  and per-slide layout/chrome overrides, series.json wiring, the
   read-only status and series-tags visibility reports, and the automatic
   non-breaking-space typography. Format mechanics, not editorial
   advice. Use when writing, editing or debugging a lightwebpres .md article
@@ -257,6 +258,50 @@ the readability floor — get named, under this article's filename.
 `comment:` here works too, for an article-wide note — same rule as the
 per-slide one below: recognized, never read, never published.
 
+## Presentation packages and presets
+
+A presentation package is not a page template: LWP keeps the `<head>`,
+`<body>`, navigation, JavaScript, and each slide's `<section>`. The package
+owns the inner structure/layouts, chrome, assets, and constrained structural
+CSS. Its catalogue namespace remains `layouts/<id>/<version>/`; a vendored
+copy lives at `templates/layouts/<id>/<version>/`. Published package assets use
+`public/assets/presentations/<id>/<version>/...`. The complete manifest,
+fragment, asset, and validation reference is `specifications.md` §9.9.
+
+Only `series_meta.presentation_preset` persists a selection, in the exact form
+`id@MAJOR.MINOR.PATCH/preset`. It applies to the entire series and index; no
+article entry or `lwp:meta` block may select a preset. Omitting the field uses
+the virtual built-in `default`; the literal CLI selector `default` means to
+omit it rather than write it.
+
+```json
+{
+  "series_meta": {
+    "presentation_preset": "corporate@1.0.0/brief"
+  }
+}
+```
+
+The old author fields `presentation_template`, `slide_layouts`, and
+`slide_chrome` are retired and rejected, never silently ignored. The latter two
+remain valid package-manifest keys for a preset's own defaults.
+
+On **every** slide, these fields override the selected preset's defaults:
+
+```text
+slide-layout: hero
+slide-header: Marque interne
+slide-footer: ""
+```
+
+`slide-layout` is a lowercase/digit/hyphen variant; an empty value is fatal.
+`slide-header` and `slide-footer` may be text, a JSON model, or exactly `""` to
+remove inherited chrome; an unquoted empty value is fatal. These are per-slide
+overrides, not an author JSON cascade, and are valid on `cover`, standard,
+`series-nav`, and `full-article`. The preset theme is the typed base layer:
+base theme < `settings.conf` pins < article `style.*` < instance styles, with
+`templates/custom.css` as advanced final CSS.
+
 ## Tags: `tags:`
 
 On a slide header, `tags:` is a slide-level filter field, separate from the
@@ -311,15 +356,17 @@ the build.
 
 | Type | Fields | Cardinality |
 |---|---|---|
-| `cover` | `slug`, `kicker`, `tags`, `# Title`, `summary`, `comment`, `note` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
-| standard (default, or explicit `<!-- lwp:slide -->`) | `slug`, `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown text | As many as you want |
-| `series-nav` | `slug`, `tags`, `comment` — navigation generated from `series.json` | 0 or 1 per article |
-| `full-article` | `slug`, `article: filename.md` (required for publication), `tags`, `comment` | Any number — each carries its own file. An explicit empty `article:` is a warned, omitted draft slide. Under `notes_placement: local` each one numbers its notes from 1, as a card does. |
+| `cover` | `slug`, `kicker`, `tags`, `# Title`, `summary`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
+| standard (default, or explicit `<!-- lwp:slide -->`) | `slug`, `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note`, then free Markdown text | As many as you want |
+| `series-nav` | `slug`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `comment` — navigation generated from `series.json` | 0 or 1 per article |
+| `full-article` | `slug`, `article: filename.md` (required for publication), `tags`, `slide-layout`, `slide-header`, `slide-footer`, `comment` | Any number — each carries its own file. An explicit empty `article:` is a warned, omitted draft slide. Under `notes_placement: local` each one numbers its notes from 1, as a card does. |
 
 `kicker`, `tags`, `summary`, `fact-label`, `fact-variant`, `source`,
-`highlight`/`highlight-caption`, `comment`, and `note` are all optional — omit
-the line if you don't need it. (`slug` is NOT optional — see below.) An empty
-scalar value behaves like omitting it; an empty `tags:` receives `default`.
+`highlight`/`highlight-caption`, `slide-layout`, `slide-header`,
+`slide-footer`, `comment`, and `note` are all optional — omit the line if you
+don't need it. (`slug` is NOT optional — see below.) An empty scalar value
+behaves like omitting it; an empty `tags:` receives `default`; the three
+presentation fields follow the stricter empty-value rules above.
 An empty `#` or `##` is still the slide's own empty title, not free text. The
 one special incomplete value is `article:` on a `full-article`: when the line
 is present but empty, `build` warns and omits that slide; when the line is
@@ -366,8 +413,9 @@ get a `[WARNING]` — from `build`, and from `audit` too, which
 renders — exit code 0, and a page missing what you wrote. Only
 free *text* on a cover is fatal.
 
-**Cover slides only accept** `kicker`, `tags`, `# Title`, `summary`,
-`comment`, and `note` as their own header fields. Any standard-slide field
+**Cover slides only accept** `slug`, `kicker`, `tags`, `# Title`, `summary`,
+`slide-layout`, `slide-header`, `slide-footer`, `comment`, and `note` as their
+own header fields. Any standard-slide field
 (`highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`)
 is parsed but **never rendered** on a cover — the build warns and continues.
 This is deliberate so you can toggle a slide between `cover` and `standard`
@@ -410,7 +458,8 @@ error, not "the second one wins." `full-article` has no such limit: a page
 may pull in several long-form files, each `full-article` slide naming its
 own (§22.8). An explicit empty `article:` is the unfinished form of that
 slide and is omitted with a warning; a missing `article:` remains fatal. Both also
-accept `tags:` and `comment:` like every other slide; beyond that, any
+accept `tags:`, the three presentation fields and `comment:` like every other
+slide; beyond that, any
 unrecognized non-blank line inside either one is fatal, not ignored: a
 `series-nav` slide takes no free body, and a `full-article` slide takes
 `article:` plus those two optional fields.
@@ -771,6 +820,10 @@ file, e.g.:
 {"page_source": "apple-pie.md", "card_label": "Article 3 (corrected)"}
 ```
 
+An `articles[]` entry cannot select or refine the presentation preset. It is
+series-wide only through `series_meta.presentation_preset`; use the per-slide
+fields above for a card-specific override.
+
 Most of these resolve down the cascade and cannot fail — but four things
 here are fatal, and they are the ones worth checking before you call a
 file done:
@@ -789,7 +842,8 @@ Any non-string value for one of these fields is fatal as well.
 `series_meta`, the object beside `articles`, holds what belongs to the
 series rather than to one article: `title`, `subtitle`, `version`, `intro`,
 `author`, `license`, `default_tag`, `scroll_duration`, `lang_tags`,
-`notes_placement`, `notes_tooltip`, `slide_page_numbers`, and `slug_prefix`.
+`notes_placement`, `notes_tooltip`, `slide_page_numbers`, `slug_prefix`,
+`presentation_preset`.
 The first four drive the generated index page and `README.md`; `author` and
 `license` are the fallback for every article's byline and licence line;
 `default_tag` selects the initial tag, and `lang_tags` selects typography

@@ -33,6 +33,29 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.53.0
+
+Presentation packages now expose named versioned presets, selected only by
+`series_meta.presentation_preset` with the exact
+`id@MAJOR.MINOR.PATCH/preset` form. The virtual built-in `default` rendering
+continues to be represented by omitting that field; the literal CLI selector
+`default` does the same. Per-article and metadata selection is gone, and the
+retired author fields `presentation_template`, `slide_layouts`, and
+`slide_chrome` are rejected rather than ignored. The latter two remain valid
+inside package manifests as preset defaults.
+
+`preset list`, `preset show`, `series preset`, `series preset set`, and
+`init --preset` inspect or select portable presets. Initialisation validates and
+vendors the package, generates settings from its theme, and applies its declared
+starter unless `--no-starter` is given. Changing an existing series does not
+apply a starter and preserves pins and `custom.css`; an explicit `theme:`
+requires `--keep-theme` or `--use-preset-theme`.
+
+Packages own their structure, layouts, chrome, assets, and constrained
+structural CSS without replacing the LWP shell. Their assets publish under
+`public/assets/presentations/<id>/<version>/...`; the repository example is now
+the inspectable `lightwebpres-docs@0.1.0/docs` preset.
+
 ## v0.52.0
 
 Symlinks can now compose a series' sources, templates, output and language

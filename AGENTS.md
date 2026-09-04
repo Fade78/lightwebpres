@@ -67,6 +67,9 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 - `tools/guide-deck.md` — deck source du guide, à côté du script qui le
   lit (`tools/build_guide.py`, qui assemble `GUIDE.md` comme article).
   Entrée de build, pas documentation : se corrige comme du code.
+- `examples/layouts/` — source suivie des paquets de présentation de
+  démonstration. Le paquet utilisé par le guide officiel y reste inspectable et
+  versionné ; il n'est ni une seconde source du guide ni une sortie générée.
 - **Deux blocs de ces documents sont générés** et se réécrivent au lieu
   de s'éditer. Chacun a sa garde dans la suite, donc une édition à la
   main ne survit ni au script ni au test :
@@ -95,8 +98,10 @@ pas reproductible à l'octet, à refaire à la main quand la galerie change.
 - `generated/themes-gallery.png` — `NODE_PATH=/opt/node22/lib/node_modules
   PW_CHROMIUM_PATH=/opt/pw-browsers/chromium node
   tools/screenshot-gallery.cjs` — planche-contact compacte du README.
-- `generated/guide/` — `python3 tools/build_guide.py` (garde :
-  `test_the_committed_guide_is_the_guide_the_tool_makes`).
+- `generated/guide/` — `python3 tools/build_guide.py`, y compris les assets
+  publiés par le paquet de démonstration (garde :
+  `test_the_committed_guide_is_the_guide_the_tool_makes`, qui compare tout
+  l'arbre hors manifestes `.lwp-*`).
 - `generated/golden-demo/` — la série démo (`init --theme pop-lemon` +
   `demo` + `build`) committée comme garde d'identité de rendu : tout
   changement de sortie échoue
