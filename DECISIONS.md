@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 7 · **à faire** 0 · **en cours** 0 · **terminé** 52 · **abandonné** 1 · **sans objet** 3
+**à étudier** 7 · **à faire** 0 · **en cours** 0 · **terminé** 53 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -165,6 +165,7 @@ gets its own entry and its own state**, however small.
 - **B57** — Une fiche adjacente partielle doit être alignée avant la suivante
 - **B58** — Les préréglages de présentation restent des enveloppes confinées
 - **B59** — La dernière cible de navigation reste visible
+- **B60** — Le zoom de présentation ne grandit pas le cadre des fiches
 
 ### abandonné
 
@@ -2784,3 +2785,19 @@ focalisée est entièrement visible immédiatement avec sa marge. Le parcours de
 bords haut/bas et des fiches adjacentes restent verts. Un probe Lava vérifie
 également qu'un lien de source hérite bien de `source-fg`, pas du bleu du
 navigateur.
+
+## B60 — Le zoom de présentation ne grandit pas le cadre des fiches
+
+**État :** terminé · **Depuis :** 2026-09-05
+**Voir :** specifications.md §9.3.5 ; `lightwebpres` ;
+`tests/keyboard_nav_e2e.cjs`
+
+Le raccourci `+` agrandit le contenu de la page, mais ne doit pas transformer
+une fiche normale de 800 px en cadre de 880 px : `zoom` à la racine agrandit
+aussi les unités de viewport. La `min-height` du cadre est donc divisée par le
+facteur runtime avant ce zoom. Le contenu qui dépasse réellement cette boîte
+reste une fiche longue et conserve le parcours incrémental borné.
+
+**Ce qui est vérifié.** Le probe Chromium mesure une fiche normale à la hauteur
+du viewport après `+`, puis vérifie que le premier `ArrowDown` entre bien dans
+la fiche suivante ; les parcours des fiches réellement longues restent verts.

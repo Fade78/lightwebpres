@@ -319,10 +319,28 @@ async function main() {
     if (idx !== 3) fail('Control+End should jump to the last slide, got ' + idx);
     console.log('keyboard edge shortcuts OK: End / Home / Control+Home / Control+End');
 
+    await page.keyboard.press('Home');
+    await page.waitForTimeout(300);
     await page.keyboard.press('Shift+=');
     await page.waitForTimeout(100);
     let pageZoom = await page.evaluate(() => document.documentElement.style.zoom);
     if (pageZoom !== '1.1') fail('plus should increase page zoom to 1.1, got ' + pageZoom);
+    const zoomedSlide = await page.evaluate(() => {
+      const rect = document.querySelector('.slide').getBoundingClientRect();
+      return { height: rect.height, viewport: window.innerHeight };
+    });
+    if (Math.abs(zoomedSlide.height - zoomedSlide.viewport) > 2) {
+      fail('presentation zoom must keep a normal slide at viewport height, got '
+           + JSON.stringify(zoomedSlide));
+    }
+    await press(page, 'ArrowDown');
+    await page.waitForTimeout(600);
+    idx = await activeDotIndex(page);
+    if (idx !== 1) {
+      fail('ArrowDown after presentation zoom should enter slide 1, got ' + idx);
+    } else {
+      console.log('presentation zoom keeps slide sizing and ArrowDown navigation OK');
+    }
     await page.keyboard.press('-');
     await page.waitForTimeout(100);
     pageZoom = await page.evaluate(() => document.documentElement.style.zoom);

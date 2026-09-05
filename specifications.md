@@ -2911,10 +2911,11 @@ un seul niveau (cartes d'articles, §8.4) :
    partout et peut faire sortir la sélection de la page, alors que les
    flèches restent dans ce parcours à trois niveaux.
 3. **Défilement par incréments sur une fiche plus grande que l'écran** —
-   une fiche ne dépasse la hauteur de la fenêtre que par son propre
-   contenu (`.slide` ne fixe qu'un `min-height: 100vh`, jamais une
-   hauteur figée) ; le cas courant est un `full-article` (article
-   complet inclus) suffisamment long, typiquement en fin de série, mais
+   une fiche ne dépasse la hauteur de la fenêtre que par son propre contenu
+   (`.slide` fixe une `min-height` égale au viewport, compensée par le zoom de
+   présentation, jamais une hauteur figée) ; le cas courant est un
+   `full-article` (article complet inclus) suffisamment long, typiquement en
+   fin de série, mais
    la détection ne dépend que de la hauteur réelle mesurée, jamais du
    type ou de la position de la fiche.
 

@@ -948,14 +948,15 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --page-content-max — a colour here
-       would survive theming, the exact defect the registry kills.
+     - no colour literal, and no var() but the two theme measures or the
+       runtime presentation-zoom factor — a colour here would survive theming,
+       the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
    the output would read it as markup. */
 
-/* The skeleton's own layout variable: the one it declares, and the one
-   var() allowed below. Every other variable comes from the engine. */
+/* The skeleton consumes two engine-owned layout measures and one runtime
+   navigation variable. Every other variable comes from the engine. */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -963,8 +964,11 @@ html.help-open, html.help-open body { overflow: hidden; }
 
 /* --- The slide frame --- */
 .slide {
-  min-height: 100vh;
-  min-height: 100svh;
+  /* `zoom` scales viewport units along with the content. Divide them by the
+     same runtime factor so a normal slide remains one visible viewport tall;
+     content that genuinely needs more space may still make it taller. */
+  min-height: calc(100vh / var(--lwp-presentation-zoom, 1));
+  min-height: calc(100svh / var(--lwp-presentation-zoom, 1));
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -3009,6 +3013,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function setPresentationZoom(value) {
     presentationZoom = Math.max(PRESENTATION_ZOOM_MIN,
       Math.min(PRESENTATION_ZOOM_MAX, Math.round(value * 10) / 10));
+    // CSS zoom scales viewport units too. Keep the slide frame at one
+    // viewport while letting its content grow, so navigation measures the
+    // same frame the reader sees.
+    document.documentElement.style.setProperty(
+      '--lwp-presentation-zoom', String(presentationZoom));
     document.documentElement.style.zoom = String(presentationZoom);
   }
 
@@ -4106,11 +4115,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (focusedCard >= 0) { indexCards[focusedCard].blur(); focusedCard = -1; }
   }
 
-  // .slide only sets min-height: 100vh (specifications.md §9), so a
-  // slide's real height only exceeds the viewport when its own content
-  // demands it — a long full-article slide being the common case, but
-  // this only ever looks at actual layout, never a slide type or
-  // position, so it works for whichever slide ends up being the tall one.
+  // .slide sets a presentation-zoom-compensated viewport min-height
+  // (specifications.md §9), so a slide's real height only exceeds the
+  // viewport when its own content demands it — a long full-article slide
+  // being the common case. This only ever looks at actual layout, never a
+  // slide type or position, so it works for whichever slide ends up tall.
   function overflowsViewport(slide) {
     return slide.getBoundingClientRect().height > window.innerHeight + 1;
   }

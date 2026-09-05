@@ -16524,11 +16524,12 @@ class ThemeEngineStaged(unittest.TestCase):
         # length property, so this test can also insist the one var it
         # tolerates is BACKED by the registry — a typo would previously
         # have produced a silently unset width.
-        # Two layout tokens, and only two: the prose measure and the width
-        # of the boxes that are not prose. Both must be registry-backed —
-        # before B13 the skeleton declared its own, which no layer could
-        # reach and no audit could see retire.
-        allowed = {'--page-content-max', '--page-block-max'}
+        # Two theme layout tokens, plus the runtime-only presentation zoom:
+        # the prose measure and the width of the boxes that are not prose
+        # must be registry-backed; the zoom is maintained by nav.js and is
+        # deliberately not an author/theme property.
+        allowed = {'--page-content-max', '--page-block-max',
+                   '--lwp-presentation-zoom'}
         for line in self.lwp.TEMPLATE_SKELETON.splitlines():
             for var in re.findall(r'var\((--[a-z-]+)', line):
                 self.assertIn(var, allowed, f'skeleton references {var}')
@@ -17829,6 +17830,16 @@ class ContentMeasure(unittest.TestCase):
         # 18px body text — and the card lost its inner edge.
         default = self.lwp.PROPERTY_REGISTRY['page.content-max'].default
         self.assertEqual(default, '84vw')
+
+    def test_slide_minimum_compensates_for_presentation_zoom(self):
+        rule_start = self.lwp.TEMPLATE_SKELETON.index('.slide {')
+        rule = self.lwp.TEMPLATE_SKELETON[rule_start:]
+        rule = rule[:rule.index('}')]
+        for unit in ('100vh', '100svh'):
+            self.assertIn(
+                f'min-height: calc({unit} / var(--lwp-presentation-zoom, 1));',
+                rule,
+            )
 
     def test_the_type_scale_has_no_ceiling_either(self):
         # The column and the type have to be uncapped TOGETHER. Capping one

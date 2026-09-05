@@ -33,14 +33,16 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.53.2
+## v0.53.2
 
 Selected index and series-navigation cards now keep 24px of breathing room
 from the viewport edge when space permits. Card focus corrects the browser's
 nearest scrolling behaviour after selection, so the focus ring and a little
 background remain visible. Links in generated source lines now inherit the
 source text colour instead of falling back to browser blue, including on the
-Lava theme.
+Lava theme. Presentation page zoom now keeps an ordinary slide at the
+viewport height while allowing its content to grow; genuinely overflowing
+content retains its bounded incremental navigation.
 
 ## v0.53.1
 
