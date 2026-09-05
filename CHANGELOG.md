@@ -33,7 +33,13 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.53.0
+## v0.53.0
+
+Presentation keyboard navigation now uses `Home` for the beginning of the
+current page and `Ctrl/Cmd+Home` for the series index; on the index itself,
+both return to the top. The presenter menu's index action now advertises the
+same `Ctrl+Home` shortcut, while the middle-button/right-click gesture keeps
+its direct return to the index.
 
 Presentation packages now expose named versioned presets, selected only by
 `series_meta.presentation_preset` with the exact

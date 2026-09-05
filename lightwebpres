@@ -1284,8 +1284,9 @@ LANG_FR = r'''{
     "help_title": "Raccourcis clavier",
     "help_next": "Slide suivante",
     "help_prev": "Slide précédente",
-     "help_home": "Retour à l'index de la série",
-     "help_edges": "Première / dernière slide du deck (Ctrl+Home / Ctrl+End)",
+    "help_home": "Début de la page",
+    "help_index": "Retour à l'index de la série (sur l'index : début de page)",
+    "help_edges": "Dernière slide du deck (sur l'index : dernière carte)",
      "help_zoom": "Zoom de la page : + agrandir, - réduire, = réinitialiser",
     "help_fullscreen": "Plein écran (Échap pour quitter)",
     "help_scroll": "Basculer entre défilement fluide et instantané (touche I)",
@@ -1418,8 +1419,9 @@ LANG_EN = r'''{
     "help_title": "Keyboard shortcuts",
     "help_next": "Next slide",
     "help_prev": "Previous slide",
-     "help_home": "Back to the series index",
-     "help_edges": "First / last slide of the deck (Ctrl+Home / Ctrl+End)",
+    "help_home": "Beginning of the page",
+    "help_index": "Back to the series index (on the index: top of the page)",
+    "help_edges": "Last slide of the deck (on the index: last article card)",
      "help_zoom": "Page zoom: + enlarge, - reduce, = reset",
     "help_fullscreen": "Fullscreen (Esc to exit)",
     "help_scroll": "Toggle smooth and instant scrolling (I key)",
@@ -9978,8 +9980,9 @@ document.addEventListener('DOMContentLoaded', function() {
   var helpEntries = [
     ['&darr; / PageDown / &rarr;', lwpString('help_next')],
     ['&uarr; / PageUp / &larr; / Backspace', lwpString('help_prev')],
-     ['Home', lwpString('help_home')],
-     ['Ctrl+Home / Ctrl+End', lwpString('help_edges')],
+    ['Home', lwpString('help_home')],
+    ['Ctrl+Home', lwpString('help_index')],
+    ['Ctrl+End', lwpString('help_edges')],
      ['+ / - / =', lwpString('help_zoom')],
     ['F', lwpString('help_fullscreen')],
     ['I', lwpString('help_scroll')],
@@ -9993,7 +9996,7 @@ document.addEventListener('DOMContentLoaded', function() {
     [lwpString('help_mouse_keys'), lwpString('help_mouse')]
   ];
   if (themeAlternatives()) {
-    helpEntries.splice(5, 0, ['C', lwpString('help_theme')]);
+    helpEntries.splice(6, 0, ['C', lwpString('help_theme')]);
   }
   if (helpList) {
     helpEntries.forEach(function (e) {
@@ -10293,8 +10296,8 @@ document.addEventListener('DOMContentLoaded', function() {
       scrollY + direction * window.innerHeight * 0.9));
     window.scrollTo({ top: targetY, behavior: navigationScrollBehavior() });
   }
-  // The top of the page — the index's Home, and the beginning of the
-  // card journey.
+  // The top of the page — the index's Home and Ctrl/Cmd+Home, and the
+  // beginning of the card journey.
   function scrollToTop() {
     window.scrollTo({ top: 0, behavior: navigationScrollBehavior() });
   }
@@ -10436,9 +10439,9 @@ document.addEventListener('DOMContentLoaded', function() {
   if (btnNext) btnNext.addEventListener('click', function() {
     stepForward(true);
   });
-  // Home is the way out of an article deck — back to the index. On the
-  // index itself there is no way out and no fiche to leave: the key and the
-  // menu action mean the top of the page, where the journey starts.
+  // The index action is the way out of an article deck — back to the index.
+  // On the index itself there is no way out and no fiche to leave: the key
+  // and the menu action mean the top of the page, where the journey starts.
   function goHome() {
     if (!isIndex) {
       window.location.href = 'index.html';
@@ -10732,7 +10735,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
-      if (e.key === 'Home') goToFirstSlide();
+      if (e.key === 'Home') goHome();
       else if (e.key === 'End') goToLastSlide();
       return;
     }
@@ -10796,11 +10799,9 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault(); runStepped(stepBackward);
     } else if (e.key === 'Home') {
       e.preventDefault();
-      // The same fork as the Home menu action: on an article, Home is the way
-      // out of the deck, back to the index; on the index itself it means
-      // the top of the page — where the journey starts — not a
-      // navigation to itself.
-      goHome();
+      // Home is the beginning of the current page: the first slide on an
+      // article, or the top of the card journey on the index.
+      goToFirstSlide();
     } else if (e.key === 'End') {
       e.preventDefault();
       goToLastSlide();
@@ -11377,7 +11378,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // right-click keeps its deck meaning: go back one card.
     if (String(window.getSelection())) return;
     // A right-click inside the intent window was already consumed by
-    // the middle-then-right gesture (Home) — the menu must not also
+    // the middle-then-right gesture (return to the index) — the menu must not also
     // appear.
     if (Date.now() < fsIntentUntil) return;
     e.preventDefault();
@@ -11390,7 +11391,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // requestFullscreen() from a non-left event (B37), so entry is a
   // two-step gesture: middle button (arms the intent), then a LEFT click
   // within the window (carries the gesture the browser requires). A RIGHT
-  // click within the same window goes Home instead. A middle press while
+  // click within the same window returns to the index instead. A middle press while
   // fullscreen simply exits. The WHEEL itself keeps scrolling; the ⛶ button
   // and F keep working as direct entries.
   var fsIntentUntil = 0;
@@ -11422,7 +11423,7 @@ document.addEventListener('DOMContentLoaded', function() {
       fsEntryPending = true;
       toggleFullscreen();
     } else if (e.button === 2) {
-      // The same intent, the other way: middle then RIGHT goes Home.
+      // The same intent, the other way: middle then RIGHT returns to the index.
       // Right-click normally steps back; inside the intent window it
       // is a deliberate second half, so it is swallowed here — and the
       // contextmenu handler below never sees it (its own guard checks
@@ -11700,8 +11701,8 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
       <button type="button" class="presenter-menu-action" id="menuPrev" data-menu-action="prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace">
         {{icon_prev}}<span class="presenter-menu-label" data-lwp-i18n="menu_prev">{{str_menu_prev}}</span><kbd>Page Up</kbd>
       </button>
-      <button type="button" class="presenter-menu-action nav-btn-home" id="menuHome" data-menu-action="home" aria-keyshortcuts="Home">
-        {{icon_home}}<span class="presenter-menu-label" data-lwp-i18n="menu_home">{{str_menu_home}}</span><kbd>Home</kbd>
+      <button type="button" class="presenter-menu-action nav-btn-home" id="menuHome" data-menu-action="home" aria-keyshortcuts="Control+Home Meta+Home">
+        {{icon_home}}<span class="presenter-menu-label" data-lwp-i18n="menu_home">{{str_menu_home}}</span><kbd>Ctrl+Home</kbd>
       </button>
       <button type="button" class="presenter-menu-action" id="menuNext" data-menu-action="next" aria-keyshortcuts="ArrowDown ArrowRight PageDown">
         {{icon_next}}<span class="presenter-menu-label" data-lwp-i18n="menu_next">{{str_menu_next}}</span><kbd>Page Down</kbd>

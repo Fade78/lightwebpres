@@ -2140,8 +2140,9 @@ La page d'index a le même pack présentateur que les articles — mêmes
 touches, mêmes gestes souris, même partage (§9.3.4), même aide — la
 seule différence est le contenu : sans fiches, le pas y est une carte
 (le focus fait défiler la page avec lui), le compteur X/N est masqué,
-le saut par numéro (0-9 + Entrée) est inerte, Home revient en haut de
-page (où commence le parcours) au lieu de retourner à l'index, et la
+le saut par numéro (0-9 + Entrée) est inerte, Home et Ctrl/Cmd+Home
+reviennent en haut de page (où commence le parcours) au lieu de quitter
+l'index, et la
 portée « Fiche » du partage est désactivée (§9.3.4).
 
 **La sélection change le clic.** Un clic gauche tenu et relâché après
@@ -2153,9 +2154,10 @@ touche pas). Un clic droit sur une sélection ouvre le menu du navigateur
 appartient au lecteur.
 
 **Clavier** : ↓/PageDown/→ = slide suivant, ↑/PageUp/←/Backspace =
-slide précédent, Home = retour à l'index (sur l'index lui-même : haut de
-page, où commence le parcours des cartes), Ctrl/Cmd+Home = première slide,
-End ou Ctrl/Cmd+End = dernière slide (sur l'index : dernière carte), F = plein écran, B = écran
+slide précédent, Home = début de la page (première slide sur un article ;
+haut de page sur l'index), Ctrl/Cmd+Home = retour à l'index (sur l'index :
+haut de page), End ou Ctrl/Cmd+End = dernière slide (sur l'index : dernière
+carte), F = plein écran, B = écran
 noir, W = écran blanc, T = écran de la couleur de fond du thème. Les
 écrans de pause (B/W/T) cachent la fiche pour ramener l'attention sur
 l'orateur ; appuyer de nouveau sur la même touche ou n'importe quelle
@@ -2218,7 +2220,7 @@ du plein écran tout seul, et **entre** par un geste en deux temps —
 bouton du milieu puis **clic gauche** dans la fenêtre (le clic gauche
 porte le geste que les navigateurs exigent pour `requestFullscreen`,
 refusé depuis tout évènement souris non-gauche — B37). Le même
-deux-temps avec un **clic droit** va à l'**index** (Home). En plein
+deux-temps avec un **clic droit** va à l'**index**. En plein
 écran, le bouton du milieu sort sans armer de geste : le clic qui
 suit a son sens ordinaire. La molette, elle, ne fait que défiler ;
 le bouton ⛶ et F restent des entrées directes.
@@ -2805,8 +2807,8 @@ Le JavaScript de navigation gère :
    incréments sur une fiche plus grande que l'écran (§9.3.5) — et, sur
    l'index, carte par carte à travers toute la liste (même JS, même
    parcours)
-- Les raccourcis de bord de document : Ctrl/Cmd+Home vers la première
-  slide et End/Ctrl/Cmd+End vers la dernière
+- Les raccourcis de bord de document : Home vers le début de la page,
+  Ctrl/Cmd+Home vers l'index, et End/Ctrl/Cmd+End vers la dernière slide
 - **Tout le pack présentateur** (§8.4), arrivé après cette liste et qui en
   double le volume : plein écran, écrans de pause B/W/T, panneau
   présentateur et notes, overlay d'aide, saut par numéro de fiche, menu

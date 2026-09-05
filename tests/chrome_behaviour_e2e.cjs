@@ -1043,7 +1043,7 @@ async function main() {
     fail('the middle button did not EXIT fullscreen: exit asked '
          + midOut + ' times');
   }
-  // Middle then RIGHT: Home. On the article page, Home is the index.
+  // Middle then RIGHT: return to the index.
   await page.mouse.click(640, 400, { button: 'middle' });
   await page.waitForTimeout(50);
   await page.mouse.click(640, 400, { button: 'right' });

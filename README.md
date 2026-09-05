@@ -26,8 +26,9 @@ are not published, while existing output assets are left in place.
 travel as one file. The output opens straight from disk or any static host.
 
 **Every page is a presentation deck.** Open it in a browser and you have
-a presenter experience with fullscreen available: keyboard (↑/↓, Home,
-Ctrl/Cmd+Home, End and +/-/= for deck edges and page zoom, F for fullscreen,
+a presenter experience with fullscreen available: keyboard (↑/↓, Home for the
+page beginning, Ctrl/Cmd+Home for the series index, End and +/-/= for deck
+edges and page zoom, F for fullscreen,
 I for smooth or instant scrolling, B/W/T for pause screens, C for
 compiled themes, H for keyboard help, S for sharing, M for the presenter
 menu), mouse (click to advance,
@@ -42,7 +43,8 @@ configured glide duration and an instant jump; `series_meta.scroll_duration`
 sets the series default and `--scroll-duration` overrides it for a build. The
 lower-right navigation controls form one column: from
 bottom to top, Menu, down, up and fullscreen. The arrows are grayed when they
-cannot move further; Home, sharing and tag filters live in the presenter menu.
+cannot move further; the series-index action, sharing and tag filters live in
+the presenter menu.
 Navigation buttons fade
 after 3 seconds of idleness (1 second in fullscreen) — the speaker sees
 only slides. The cursor hides on the same clock, and both come back on
@@ -123,7 +125,8 @@ renders of that mode in the `lava`, `terminal` and `pop-lemon` themes.
    local browser addresses are called out instead of producing a misleading
    link.
 - **Built-in presentation mode.** Every generated page can become a full-screen
-   presenter deck: keyboard (↑/↓, Home, Ctrl/Cmd+Home, End, +/-/= page zoom, F fullscreen, B/W/T pause
+   presenter deck: keyboard (↑/↓, Home for the page beginning,
+   Ctrl/Cmd+Home for the series index, End, +/-/= page zoom, F fullscreen, B/W/T pause
    screens, C compiled themes, H keyboard help, S sharing, M presenter menu), mouse (click advance,
   right-click back, middle button
   leaves fullscreen; entering is a two-step gesture — middle button,

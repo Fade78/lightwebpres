@@ -14,7 +14,8 @@ slide-to-slide arrow navigation:
      one (instead of skipping straight past the whole slide), and Enter
      on a focused card jumps to that article — like Tab, but confined to
      the natural slide/card/scroll journey instead of leaving the page.
-   - End and Ctrl/Cmd+Home/Ctrl/Cmd+End jump to the deck edges.
+   - Home returns to the beginning of the current page, Ctrl/Cmd+Home returns
+     to the series index, and End/Ctrl/Cmd+End reaches the far edge.
 
 Independent series (built separately, served side by side) keep the
 fixtures' navigation states separate: 'tall' is a single-article series

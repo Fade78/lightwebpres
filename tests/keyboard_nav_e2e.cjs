@@ -236,15 +236,37 @@ async function main() {
     await page.waitForTimeout(300);
     idx = await activeDotIndex(page);
     if (idx !== 3) fail('End should jump to the last slide, got ' + idx);
-    await page.keyboard.press('Control+Home');
+    await page.keyboard.press('Home');
     await page.waitForTimeout(300);
     idx = await activeDotIndex(page);
-    if (idx !== 0) fail('Control+Home should jump to the first slide, got ' + idx);
+    const articleHome = await page.evaluate(() => ({
+      y: window.pageYOffset || document.documentElement.scrollTop,
+    }));
+    if (idx !== 0) fail('Home should return to the first slide, got ' + idx);
+    if (articleHome.y > 2) fail('Home should return to the beginning of the article, got scrollY ' + articleHome.y);
+    console.log('article Home returns to the beginning of the page OK');
+
+    await page.keyboard.press('Control+Home');
+    await page.waitForURL('**/tall/index.html', { timeout: 5000 });
+    const articleIndexPath = await page.evaluate(() => location.pathname);
+    if (!/\/tall\/index\.html$/.test(articleIndexPath)) {
+      fail('Control+Home should return to the series index, got ' + articleIndexPath);
+    }
+    console.log('article Control+Home returns to the series index OK');
+    await page.close();
+
+    // Re-open the article after the index shortcut so Ctrl+End remains tested
+    // on an article rather than on the index page.
+    page = await context.newPage();
+    collectConsoleErrors(page, consoleErrors);
+    page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
+    await page.goto(tallArticleUrl);
+    await page.waitForSelector('.nav-dots a');
     await page.keyboard.press('Control+End');
     await page.waitForTimeout(300);
     idx = await activeDotIndex(page);
     if (idx !== 3) fail('Control+End should jump to the last slide, got ' + idx);
-    console.log('keyboard edge shortcuts OK: End / Control+Home / Control+End');
+    console.log('keyboard edge shortcuts OK: End / Home / Control+Home / Control+End');
 
     await page.keyboard.press('Shift+=');
     await page.waitForTimeout(100);
@@ -282,9 +304,17 @@ async function main() {
       tag: document.activeElement.tagName,
       scrollY: window.scrollY,
     }));
-    if (indexEdge.scrollY > 2) fail('Control+Home on the index should return to the top, got scrollY ' + indexEdge.scrollY);
+    if (indexEdge.scrollY > 2) fail('Control+Home on the index should remain at the top, got scrollY ' + indexEdge.scrollY);
     if (indexEdge.tag === 'A') fail('Control+Home on the index should clear the card focus');
-    console.log('index edge shortcuts OK: End focuses the last card, Control+Home returns to top');
+    await press(page, 'End');
+    await press(page, 'Home');
+    const indexHome = await page.evaluate(() => ({
+      tag: document.activeElement.tagName,
+      scrollY: window.scrollY,
+    }));
+    if (indexHome.scrollY > 2) fail('Home on the index should return to the top, got scrollY ' + indexHome.scrollY);
+    if (indexHome.tag === 'A') fail('Home on the index should clear the card focus');
+    console.log('index edge shortcuts OK: End / Home / Control+Home return to top');
     await page.close();
 
     // --- 2. A tall full-article that is the LAST slide stays at its

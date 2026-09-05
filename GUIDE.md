@@ -54,13 +54,15 @@ lay the pieces out however it likes without passing a single flag.
 
 **Every page is also a presentation deck.** Open the generated HTML in a
 browser and you have a full-screen presenter experience: keyboard (↑/↓,
-Home, +/−/= for page zoom, F for fullscreen, I for smooth or instant scrolling, B/W/T for pause
+Home for the page beginning, Ctrl/Cmd+Home for the series index, +/−/= for
+page zoom, F for fullscreen, I for smooth or instant scrolling, B/W/T for pause
 screens, C for compiled themes, S for sharing, M for the presenter menu), mouse (click to
 advance, right-click to go back, middle button to leave fullscreen), and
 touch (swipe) all work out of the box — the index included, whose step
  is one article card at a time. The navigation buttons form one lower-right
  column: from bottom to top, Menu, down, up and fullscreen. The arrows are
- grayed when they cannot move further; Home, sharing and tags live in the
+grayed when they cannot move further; the series-index action, sharing and
+tags live in the
  presenter menu. They fade after 3 seconds of idleness (1 second in
  fullscreen) — the speaker sees only slides.
 The cursor hides on that same clock, and
@@ -860,8 +862,8 @@ speaker drive the deck without looking at the screen.
 |---|---|
 | ↓ / PageDown / → | Next slide — on the index, next article card |
 | ↑ / PageUp / ← / Backspace | Previous slide — on the index, previous article card |
-| Home | On an article: back to the index. On the index: top of the page |
-| Ctrl/Cmd+Home | First slide. On the index: top of the page |
+| Home | Beginning of the page — first slide on an article; top on the index |
+| Ctrl/Cmd+Home | Back to the series index — on the index: top of the page |
 | End or Ctrl/Cmd+End | Last slide. On the index: last article card |
 | + / - / = | Enlarge / reduce / reset the page zoom (the page only; Ctrl/Cmd +/- remains the browser zoom) |
 | F | Fullscreen (Esc to exit) |
@@ -973,7 +975,8 @@ steps: the deck never treats a double click as anything else.
 
 The round buttons in the bottom-right corner form one column: from bottom to
 top, Menu, down, up and fullscreen. The arrows are grayed when they cannot
-move further. Home, share, Scroll (also **I**) and the variant filter are
+move further. The series-index action, share, Scroll (also **I**) and the
+variant filter are
 actions in the presenter menu, which also carries the themes, help, notes and
 pause screens. The same controls sit on the index, where previous and next step
 one article card at a time.

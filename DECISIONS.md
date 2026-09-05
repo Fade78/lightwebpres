@@ -2675,8 +2675,9 @@ au fil du texte ne change pas le flux du paragraphe.
 Le zoom de la page est une aide de présentation distincte du zoom navigateur :
 `+` agrandit, `-` réduit et `=` réinitialise, dans une plage bornée. Il n'est
 pas persisté et les raccourcis `Ctrl/Cmd +/-` restent au navigateur. Les
-raccourcis de bord (`End`, `Ctrl/Cmd+Home`, `Ctrl/Cmd+End`) complètent le
-parcours sans modifier les sources.
+raccourcis de parcours (`Home` vers le début de la page,
+`Ctrl/Cmd+Home` vers l'index, `End` et `Ctrl/Cmd+End` vers la fin) complètent
+le parcours sans modifier les sources.
 
 **Ce qui est vérifié.** Les tests unitaires couvrent les deux formes d'image,
 les valeurs étendues valides et le refus d'une clé inconnue. Le probe
