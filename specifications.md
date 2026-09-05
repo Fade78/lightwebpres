@@ -2145,6 +2145,15 @@ reviennent en haut de page (où commence le parcours) au lieu de quitter
 l'index, et la
 portée « Fiche » du partage est désactivée (§9.3.4).
 
+**La cible reste visible.** À la fin de chaque action de navigation, l'objet
+qu'elle sélectionne reste dans la fenêtre. Une carte de l'index ou de
+`series-nav` qui tient dans la fenêtre est entièrement visible ; le focus ne
+doit pas confier ce placement au `scroll-behavior` du navigateur, qui peut
+laisser la carte coupée pendant son animation. Une fiche plus haute que la
+fenêtre est l'exception nécessaire : elle ne peut pas être entière ; son haut
+est aligné au haut de la fenêtre à l'entrée, puis ses incréments s'arrêtent
+au haut ou au bas de la fiche selon la direction (§9.3.5).
+
 **La sélection change le clic.** Un clic gauche tenu et relâché après
 un glissé est une **sélection**, pas un coup — il n'avance pas (§
 « Relâcher le bouton... » ci-dessous), et le clic suivant sur une
@@ -2895,7 +2904,8 @@ un seul niveau (cartes d'articles, §8.4) :
    le focus clavier une par une, dans l'ordre du document ; un appui sur
    Entrée sur une carte focalisée saute vers l'article correspondant
    (comportement natif du navigateur sur un `<a>` focalisé, aucun code
-   dédié nécessaire). Volontairement différent de Tab : Tab fonctionne
+   dédié nécessaire). La carte focalisée est entièrement dans la fenêtre
+   quand sa hauteur le permet. Volontairement différent de Tab : Tab fonctionne
    partout et peut faire sortir la sélection de la page, alors que les
    flèches restent dans ce parcours à trois niveaux.
 3. **Défilement par incréments sur une fiche plus grande que l'écran** —

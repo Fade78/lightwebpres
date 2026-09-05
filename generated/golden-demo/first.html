@@ -2129,7 +2129,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Raccourcis clavier</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <strong>LightWebPres</strong> v0.53.0</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <strong>LightWebPres</strong> v0.53.1</div>
   </div>
 </div>
 
@@ -3036,8 +3036,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // focus, the list below.
   //
   // The index's card list is built once at load (it cannot change under
-  // the page). focus() scrolls a card into view on its own, which is
-  // the same scroll the old arrows did, only aimed at something.
+  // the page). Card focus uses an explicit instant reveal below: bare
+  // focus() inherits the document's smooth scroll and can leave a selected
+  // card clipped at the viewport edge while that animation is still running.
   var focusedCard = -1;
   var allIndexCards = isIndex
     ? Array.prototype.slice.call(document.querySelectorAll('.article-card')) : [];
@@ -4075,10 +4076,15 @@ document.addEventListener('DOMContentLoaded', function() {
   function indexCardFocused() {
     return focusedCard;
   }
+  function focusNavigableCard(card) {
+    card.focus({ preventScroll: true });
+    card.scrollIntoView({ block: 'nearest', inline: 'nearest',
+      behavior: 'instant' });
+  }
   function focusIndexCard(i) {
     if (focusedCard >= 0) indexCards[focusedCard].blur();
     focusedCard = i;
-    indexCards[focusedCard].focus();
+    focusNavigableCard(indexCards[focusedCard]);
   }
   function clearIndexFocus() {
     if (focusedCard >= 0) { indexCards[focusedCard].blur(); focusedCard = -1; }
@@ -4136,9 +4142,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // The natural keyboard journey (in this order, each one only kicking in
   // once the previous is exhausted): slide to slide, then — on the
-  // series-nav slide specifically — card to card (focus() already
-  // scrolls a card into view on its own, which doubles as "scroll a
-  // series-nav slide taller than the viewport"), then, for any other
+  // series-nav slide specifically — card to card (the explicit reveal in
+  // focusNavigableCard doubles as "scroll a series-nav slide taller than
+  // the viewport"), then, for any other
   // slide taller than the viewport (typically the closing full-article),
   // scroll it down in increments before moving on. Enter needs no extra
   // handling: once a card has real focus, the browser's own default
@@ -4169,7 +4175,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var cards = slideCards(current);
     if (cards.length && focusedCard < cards.length - 1) {
       focusedCard++;
-      cards[focusedCard].focus();
+      focusNavigableCard(cards[focusedCard]);
       return;
     }
     if (focusedCard >= 0 && cards.length) { cards[focusedCard].blur(); }
@@ -4206,7 +4212,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var cards = slideCards(current);
     if (focusedCard > 0) {
       focusedCard--;
-      cards[focusedCard].focus();
+      focusNavigableCard(cards[focusedCard]);
       return;
     }
     if (focusedCard === 0) {

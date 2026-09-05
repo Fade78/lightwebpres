@@ -77,6 +77,56 @@ async function main() {
   const consoleErrors = [];
 
   try {
+    // --- 0. A card selected on a series-nav slide must be fully visible
+    // immediately, even when the slide is taller than this small viewport.
+    // This exercises the same instant reveal as the index, in both directions
+    // through the card list, without changing the exhaustion scenario below.
+    let cardVisibilityPage = await context.newPage();
+    await cardVisibilityPage.setViewportSize({ width: 1024, height: 500 });
+    collectConsoleErrors(cardVisibilityPage, consoleErrors);
+    cardVisibilityPage.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
+    await cardVisibilityPage.goto(navArticleUrl);
+    await cardVisibilityPage.waitForSelector('.nav-dots a');
+    await press(cardVisibilityPage, 'ArrowDown'); // cover -> standard
+    await press(cardVisibilityPage, 'ArrowDown'); // standard -> series-nav
+    for (let i = 0; i < 3; i++) {
+      await cardVisibilityPage.keyboard.press('ArrowDown');
+      const cardBounds = await cardVisibilityPage.evaluate(() => {
+        const card = document.activeElement;
+        const rect = card.getBoundingClientRect();
+        return {
+          isCard: card.classList.contains('series-link'),
+          top: rect.top,
+          bottom: rect.bottom,
+          viewport: window.innerHeight,
+        };
+      });
+      if (!cardBounds.isCard || cardBounds.top < -1
+          || cardBounds.bottom > cardBounds.viewport + 1) {
+        fail('the selected series-nav card is not fully visible: '
+             + JSON.stringify(cardBounds));
+      }
+      await cardVisibilityPage.waitForTimeout(200);
+    }
+    await cardVisibilityPage.keyboard.press('ArrowUp');
+    const backwardCardBounds = await cardVisibilityPage.evaluate(() => {
+      const card = document.activeElement;
+      const rect = card.getBoundingClientRect();
+      return {
+        isCard: card.classList.contains('series-link'),
+        top: rect.top,
+        bottom: rect.bottom,
+        viewport: window.innerHeight,
+      };
+    });
+    if (!backwardCardBounds.isCard || backwardCardBounds.top < -1
+        || backwardCardBounds.bottom > backwardCardBounds.viewport + 1) {
+      fail('the series-nav card selected while moving backward is not fully visible: '
+           + JSON.stringify(backwardCardBounds));
+    }
+    console.log('series-nav card visibility OK in both directions');
+    await cardVisibilityPage.close();
+
     // --- 1. A slide taller than the viewport gets scrolled in
     // increments before the arrow key advances to the next slide ------
     let page = await context.newPage();

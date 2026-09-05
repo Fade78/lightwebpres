@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 7 · **à faire** 0 · **en cours** 0 · **terminé** 51 · **abandonné** 1 · **sans objet** 3
+**à étudier** 7 · **à faire** 0 · **en cours** 0 · **terminé** 52 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -164,6 +164,7 @@ gets its own entry and its own state**, however small.
 - **B56** — Images dimensionnables et zoom de présentation
 - **B57** — Une fiche adjacente partielle doit être alignée avant la suivante
 - **B58** — Les préréglages de présentation restent des enveloppes confinées
+- **B59** — La dernière cible de navigation reste visible
 
 ### abandonné
 
@@ -2750,3 +2751,27 @@ virtuel, le rejet des anciens champs auteur, les fragments, le chrome, le thème
 les assets inlinés ou publiés, l'index, le vendor, les starters et les décisions
 de thème. La documentation permanente décrit désormais la même frontière, les
 mêmes priorités et les mêmes commandes.
+
+## B59 — La dernière cible de navigation reste visible
+
+**État :** terminé · **Depuis :** 2026-09-05
+**Voir :** specifications.md §8.4, §9.3.5 ; `lightwebpres` ;
+`tests/index_mouse_e2e.cjs` et `tests/keyboard_nav_e2e.cjs`
+
+Une action de navigation ne doit pas laisser l'objet qu'elle vient de
+sélectionner coupé par le bord de la fenêtre. C'est une règle générale pour
+les cartes de l'index et de `series-nav` : lorsqu'une carte tient dans la
+fenêtre, sa boîte entière reste visible, et le focus ne délègue pas ce
+placement au défilement lissé implicite du navigateur.
+
+Cette règle ne remplace pas le parcours des fiches plus hautes que l'écran.
+À l'entrée, leur haut est aligné au haut de la fenêtre ; vers le bas, le
+dernier incrément finit au bas de la fiche ; vers le haut, le dernier
+incrément finit à son haut. Une fiche adjacente laissée partiellement visible
+par un défilement manuel est d'abord alignée avant que le parcours ne continue
+(B57).
+
+**Ce qui est vérifié.** Le probe Chromium force une carte d'index assez haute
+pour révéler le défaut dans les deux sens, puis vérifie que la carte
+focalisée est entièrement visible immédiatement. Le parcours de `series-nav`
+et les tests des bords haut/bas et des fiches adjacentes restent verts.

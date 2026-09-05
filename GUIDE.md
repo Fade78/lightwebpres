@@ -877,6 +877,12 @@ speaker drive the deck without looking at the screen.
 | H | Open the help overlay, which lists every key on this table |
 | Esc | Leave fullscreen; also closes the speaker panel |
 
+Every navigation action leaves its selected target visible. An index card or a
+series-navigation card is kept entirely inside the viewport when it fits. A
+slide taller than the screen is the necessary exception: it enters with its
+top aligned to the top of the viewport, then its bounded reading steps finish
+with its top or bottom aligned to the corresponding viewport edge.
+
 When the help overlay is open, its scrollable foreground owns the arrow,
 PageUp/PageDown, Home/End and Space keys. The same is true of the speaker
 panel when it has focus; while that panel is merely open and unfocused, the

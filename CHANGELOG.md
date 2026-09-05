@@ -33,6 +33,15 @@ link to the originals. They are at
 
 ---
 
+## v0.53.1
+
+Navigation now keeps the selected index and series-navigation card fully
+inside the viewport when it fits. Card focus no longer inherits the page's
+smooth scroll, which could leave the selected card clipped while the scroll
+animation was running. Keyboard navigation continues to align tall slides at
+their top and bottom bounds and to align partially visible adjacent slides
+before moving on.
+
 ## v0.53.0
 
 Presentation keyboard navigation now uses `Home` for the beginning of the

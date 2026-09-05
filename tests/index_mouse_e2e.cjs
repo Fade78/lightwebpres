@@ -64,6 +64,56 @@ async function main() {
       : -1;
   });
 
+  // --- 0. Focusing a card must reveal the whole card immediately --------
+  // The page uses smooth scrolling for deliberate deck moves. A bare
+  // focus() inherits that setting in Chromium and leaves a newly selected
+  // card clipped at the viewport edge while the native animation runs.
+  const visibilityPage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  collectConsoleErrors(visibilityPage, errors);
+  await visibilityPage.goto(indexUrl, { waitUntil: 'load' });
+  await visibilityPage.waitForSelector('.article-card');
+  await visibilityPage.evaluate(() => {
+    document.querySelectorAll('.article-card').forEach((card) => {
+      card.style.minHeight = '320px';
+    });
+    window.scrollTo({ top: document.scrollingElement.scrollHeight,
+      behavior: 'instant' });
+  });
+  await visibilityPage.keyboard.press('ArrowDown');
+  await visibilityPage.waitForTimeout(200);
+  let selectedBounds = await visibilityPage.evaluate(() => {
+    const card = document.activeElement;
+    const rect = card.getBoundingClientRect();
+    return {
+      isCard: card.classList.contains('article-card'),
+      top: rect.top,
+      bottom: rect.bottom,
+      viewport: window.innerHeight,
+    };
+  });
+  if (!selectedBounds.isCard || selectedBounds.top < -1
+      || selectedBounds.bottom > selectedBounds.viewport + 1) {
+    fail('the selected first index card is not fully visible: '
+         + JSON.stringify(selectedBounds));
+  }
+  await visibilityPage.keyboard.press('ArrowDown');
+  selectedBounds = await visibilityPage.evaluate(() => {
+    const card = document.activeElement;
+    const rect = card.getBoundingClientRect();
+    return {
+      isCard: card.classList.contains('article-card'),
+      top: rect.top,
+      bottom: rect.bottom,
+      viewport: window.innerHeight,
+    };
+  });
+  if (!selectedBounds.isCard || selectedBounds.top < -1
+      || selectedBounds.bottom > selectedBounds.viewport + 1) {
+    fail('the selected index card is not fully visible: '
+         + JSON.stringify(selectedBounds));
+  }
+  await visibilityPage.close();
+
   // --- 1. A left click on the ground focuses the next card -----------
   // The "ground" is the page's own margin: the cards fill the content
   // column (a click on one of them would follow it, which is test 3),

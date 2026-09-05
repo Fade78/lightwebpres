@@ -14,6 +14,8 @@ slide-to-slide arrow navigation:
      one (instead of skipping straight past the whole slide), and Enter
      on a focused card jumps to that article — like Tab, but confined to
      the natural slide/card/scroll journey instead of leaving the page.
+   - Cards selected on a series-nav slide remain fully visible when they fit,
+     including while stepping backward through a viewport-shortened fixture.
    - Home returns to the beginning of the current page, Ctrl/Cmd+Home returns
      to the series index, and End/Ctrl/Cmd+End reaches the far edge.
 

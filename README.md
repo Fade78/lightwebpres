@@ -45,6 +45,10 @@ lower-right navigation controls form one column: from
 bottom to top, Menu, down, up and fullscreen. The arrows are grayed when they
 cannot move further; the series-index action, sharing and tag filters live in
 the presenter menu.
+Every navigation action keeps its selected target visible: index and
+series-navigation cards are fully shown when they fit, while a slide taller
+than the screen enters at the top and its bounded reading steps end at the
+corresponding top or bottom edge.
 Navigation buttons fade
 after 3 seconds of idleness (1 second in fullscreen) — the speaker sees
 only slides. The cursor hides on the same clock, and both come back on
