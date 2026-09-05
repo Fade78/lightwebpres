@@ -11284,7 +11284,7 @@ class ContrastFloors(unittest.TestCase):
     # A body link's treatment is now split across the seam: `color:
     # inherit` and the underline itself are skeleton (architecture, B3),
     # its tint is a registry property. Only the composed sheet sees both.
-    LINK_SELECTOR = frozenset({'.fact-content a', '.full-article a'})
+    LINK_SELECTOR = frozenset({'.fact-content a', '.full-article a', '.source a'})
 
     def _link_declarations(self, css):
         """Every declaration the composed sheet lands on the body-link
@@ -11313,7 +11313,7 @@ class ContrastFloors(unittest.TestCase):
     def test_the_link_rule_never_reaches_navigation(self):
         """Underlining every <a> would have underlined the series-nav
         cards, the index cards and the slide-progress dots. The rule is
-        scoped to the two containers the Markdown converter writes into,
+        scoped to the two Markdown containers and the generated source line,
         and nothing else."""
         css = re.sub(r'/\*.*?\*/', '', self.lwp.compose_stylesheet(
             self.lwp.resolve_theme_properties({})), flags=re.DOTALL)
@@ -11329,7 +11329,7 @@ class ContrastFloors(unittest.TestCase):
         # absent: a bare `a` reaches every one of those containers
         # without naming any of them, which is how the first version of
         # this guard passed its own mutation.
-        allowed = ('.fact-content ', '.full-article ')
+        allowed = ('.fact-content ', '.full-article ', '.source ')
         for selector in selectors:
             for part in (p.strip() for p in selector.split(',')):
                 if not part:
@@ -11349,7 +11349,7 @@ class ContrastFloors(unittest.TestCase):
         for selector in selectors:
             for part in (p.strip() for p in selector.split(',')):
                 self.assertTrue(part.startswith(('.fact-content ',
-                                                 '.full-article ')),
+                                                 '.full-article ', '.source ')),
                                 f'{part!r} is not scoped to a prose container')
 
     def test_the_underline_tint_defaults_to_the_ink_and_is_theme_settable(self):

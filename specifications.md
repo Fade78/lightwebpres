@@ -2147,12 +2147,13 @@ portée « Fiche » du partage est désactivée (§9.3.4).
 
 **La cible reste visible.** À la fin de chaque action de navigation, l'objet
 qu'elle sélectionne reste dans la fenêtre. Une carte de l'index ou de
-`series-nav` qui tient dans la fenêtre est entièrement visible ; le focus ne
-doit pas confier ce placement au `scroll-behavior` du navigateur, qui peut
-laisser la carte coupée pendant son animation. Une fiche plus haute que la
-fenêtre est l'exception nécessaire : elle ne peut pas être entière ; son haut
-est aligné au haut de la fenêtre à l'entrée, puis ses incréments s'arrêtent
-au haut ou au bas de la fiche selon la direction (§9.3.5).
+`series-nav` qui tient dans la fenêtre est entièrement visible, avec une
+marge de 24 px quand la place le permet ; le focus ne doit pas confier ce
+placement au `scroll-behavior` du navigateur, qui peut laisser la carte coupée
+pendant son animation. Une fiche plus haute que la fenêtre est l'exception
+nécessaire : elle ne peut pas être entière ; son haut est aligné au haut de la
+fenêtre à l'entrée, puis ses incréments s'arrêtent au haut ou au bas de la
+fiche selon la direction (§9.3.5).
 
 **La sélection change le clic.** Un clic gauche tenu et relâché après
 un glissé est une **sélection**, pas un coup — il n'avance pas (§
@@ -2904,8 +2905,9 @@ un seul niveau (cartes d'articles, §8.4) :
    le focus clavier une par une, dans l'ordre du document ; un appui sur
    Entrée sur une carte focalisée saute vers l'article correspondant
    (comportement natif du navigateur sur un `<a>` focalisé, aucun code
-   dédié nécessaire). La carte focalisée est entièrement dans la fenêtre
-   quand sa hauteur le permet. Volontairement différent de Tab : Tab fonctionne
+   dédié nécessaire). La carte focalisée est entièrement dans la fenêtre,
+   avec 24 px de marge quand sa hauteur et la place disponible le permettent.
+   Volontairement différent de Tab : Tab fonctionne
    partout et peut faire sortir la sélection de la page, alors que les
    flèches restent dans ce parcours à trois niveaux.
 3. **Défilement par incréments sur une fiche plus grande que l'écran** —
@@ -3606,11 +3608,11 @@ L'héritage et le soulignement
 eux-mêmes sont de l'architecture (correctif B3), pas des réglages : ils
 ne sont pas exposés.
 
-La règle est portée par `.fact-content a, .full-article a` — les deux
-seuls conteneurs dans lesquels le convertisseur Markdown écrit. Elle ne
-doit jamais viser `a` nu : cela soulignerait aussi les pastilles de
-progression, les cartes de la navigation entre articles et celles de
-l'index.
+La règle est portée par `.fact-content a, .full-article a, .source a` — les
+deux conteneurs dans lesquels le convertisseur Markdown écrit et la ligne de
+source générée. Elle ne doit jamais viser `a` nu : cela soulignerait aussi les
+pastilles de progression, les cartes de la navigation entre articles et
+celles de l'index.
 
 Mesuré sur le catalogue de 33 thèmes de l'époque avant de choisir, et
 c'est ce qui a écarté les autres options :

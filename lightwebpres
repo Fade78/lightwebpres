@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.53.1"
+VERSION = "0.53.2"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -3183,8 +3183,9 @@ THEME_COMPONENTS = [
     ]),
 
     # color:inherit and the underline itself are architecture (B3), not
-    # settings; only the rule's tint is exposed.
-    ThemeComponent('link', '.fact-content a, .full-article a', [
+    # settings; only the rule's tint is exposed. Sources are generated prose
+    # too, so they must not fall back to the browser's blue.
+    ThemeComponent('link', '.fact-content a, .full-article a, .source a', [
         ThemeProp('link.decoration-color', PROP_COLOR, 'ink',
                   css='text-decoration-color'),
     ]),
@@ -7526,7 +7527,7 @@ sup { vertical-align: super; line-height: 0; }
    hairline sitting on the baseline is what makes underlined text hard
    to read. The scope is load-bearing: widen this selector and every
    navigation card in the site gets underlined too. */
-.fact-content a, .full-article a {
+.fact-content a, .full-article a, .source a {
   color: inherit;
   text-decoration: underline;
   text-decoration-thickness: 1px;
@@ -7674,6 +7675,9 @@ sup { vertical-align: super; line-height: 0; }
   transform: translateY(-2px);
 }
 .series-link:focus-visible { outline-style: solid; outline-offset: 2px; }
+/* The explicit card reveal uses scrollIntoView; keep its target clear of
+   the viewport edge so the lower navigation selector cannot cover it. */
+.series-link, .article-card { scroll-margin-block: 24px; }
 .series-label { margin-bottom: 4px; }
 .series-title { margin-bottom: 4px; }
 .series-desc { margin-bottom: 8px; }
@@ -9207,6 +9211,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // the page). Card focus uses an explicit instant reveal below: bare
   // focus() inherits the document's smooth scroll and can leave a selected
   // card clipped at the viewport edge while that animation is still running.
+  // The same margin is enforced after the reveal because Chromium considers
+  // a card already inside the viewport "nearest", even when its lower edge
+  // is underneath the breathing room wanted by the navigation selector.
   var focusedCard = -1;
   var allIndexCards = isIndex
     ? Array.prototype.slice.call(document.querySelectorAll('.article-card')) : [];
@@ -10244,10 +10251,20 @@ document.addEventListener('DOMContentLoaded', function() {
   function indexCardFocused() {
     return focusedCard;
   }
+  var navigableCardViewportMargin = 24;
   function focusNavigableCard(card) {
     card.focus({ preventScroll: true });
     card.scrollIntoView({ block: 'nearest', inline: 'nearest',
       behavior: 'instant' });
+    var rect = card.getBoundingClientRect();
+    var correction = 0;
+    if (rect.top < navigableCardViewportMargin) {
+      correction = rect.top - navigableCardViewportMargin;
+    } else if (rect.bottom > window.innerHeight - navigableCardViewportMargin) {
+      correction = rect.bottom
+        - (window.innerHeight - navigableCardViewportMargin);
+    }
+    if (correction) window.scrollBy({ top: correction, behavior: 'instant' });
   }
   function focusIndexCard(i) {
     if (focusedCard >= 0) indexCards[focusedCard].blur();

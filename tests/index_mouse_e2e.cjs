@@ -63,6 +63,7 @@ async function main() {
       ? Array.prototype.indexOf.call(document.querySelectorAll('.article-card'), a)
       : -1;
   });
+  const cardViewportMargin = 24;
 
   // --- 0. Focusing a card must reveal the whole card immediately --------
   // The page uses smooth scrolling for deliberate deck moves. A bare
@@ -91,9 +92,9 @@ async function main() {
       viewport: window.innerHeight,
     };
   });
-  if (!selectedBounds.isCard || selectedBounds.top < -1
-      || selectedBounds.bottom > selectedBounds.viewport + 1) {
-    fail('the selected first index card is not fully visible: '
+  if (!selectedBounds.isCard || selectedBounds.top < cardViewportMargin - 1
+      || selectedBounds.bottom > selectedBounds.viewport - cardViewportMargin + 1) {
+    fail('the selected first index card is not fully visible with a margin: '
          + JSON.stringify(selectedBounds));
   }
   await visibilityPage.keyboard.press('ArrowDown');
@@ -107,9 +108,9 @@ async function main() {
       viewport: window.innerHeight,
     };
   });
-  if (!selectedBounds.isCard || selectedBounds.top < -1
-      || selectedBounds.bottom > selectedBounds.viewport + 1) {
-    fail('the selected index card is not fully visible: '
+  if (!selectedBounds.isCard || selectedBounds.top < cardViewportMargin - 1
+      || selectedBounds.bottom > selectedBounds.viewport - cardViewportMargin + 1) {
+    fail('the selected index card is not fully visible with a margin: '
          + JSON.stringify(selectedBounds));
   }
   await visibilityPage.close();

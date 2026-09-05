@@ -89,6 +89,7 @@ async function main() {
     await cardVisibilityPage.waitForSelector('.nav-dots a');
     await press(cardVisibilityPage, 'ArrowDown'); // cover -> standard
     await press(cardVisibilityPage, 'ArrowDown'); // standard -> series-nav
+    const cardViewportMargin = 24;
     for (let i = 0; i < 3; i++) {
       await cardVisibilityPage.keyboard.press('ArrowDown');
       const cardBounds = await cardVisibilityPage.evaluate(() => {
@@ -101,9 +102,9 @@ async function main() {
           viewport: window.innerHeight,
         };
       });
-      if (!cardBounds.isCard || cardBounds.top < -1
-          || cardBounds.bottom > cardBounds.viewport + 1) {
-        fail('the selected series-nav card is not fully visible: '
+      if (!cardBounds.isCard || cardBounds.top < cardViewportMargin - 1
+          || cardBounds.bottom > cardBounds.viewport - cardViewportMargin + 1) {
+        fail('the selected series-nav card is not fully visible with a margin: '
              + JSON.stringify(cardBounds));
       }
       await cardVisibilityPage.waitForTimeout(200);
@@ -119,9 +120,9 @@ async function main() {
         viewport: window.innerHeight,
       };
     });
-    if (!backwardCardBounds.isCard || backwardCardBounds.top < -1
-        || backwardCardBounds.bottom > backwardCardBounds.viewport + 1) {
-      fail('the series-nav card selected while moving backward is not fully visible: '
+    if (!backwardCardBounds.isCard || backwardCardBounds.top < cardViewportMargin - 1
+        || backwardCardBounds.bottom > backwardCardBounds.viewport - cardViewportMargin + 1) {
+      fail('the series-nav card selected while moving backward is not fully visible with a margin: '
            + JSON.stringify(backwardCardBounds));
     }
     console.log('series-nav card visibility OK in both directions');

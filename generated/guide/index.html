@@ -200,7 +200,7 @@ sup { vertical-align: super; line-height: 0; }
    hairline sitting on the baseline is what makes underlined text hard
    to read. The scope is load-bearing: widen this selector and every
    navigation card in the site gets underlined too. */
-.fact-content a, .full-article a {
+.fact-content a, .full-article a, .source a {
   color: inherit;
   text-decoration: underline;
   text-decoration-thickness: 1px;
@@ -348,6 +348,9 @@ sup { vertical-align: super; line-height: 0; }
   transform: translateY(-2px);
 }
 .series-link:focus-visible { outline-style: solid; outline-offset: 2px; }
+/* The explicit card reveal uses scrollIntoView; keep its target clear of
+   the viewport edge so the lower navigation selector cannot cover it. */
+.series-link, .article-card { scroll-margin-block: 24px; }
 .series-label { margin-bottom: 4px; }
 .series-title { margin-bottom: 4px; }
 .series-desc { margin-bottom: 8px; }
@@ -2106,7 +2109,7 @@ sup {
   font-size: var(--note-page-title-size);
   font-family: var(--note-page-title-font);
 }
-.fact-content a, .full-article a {
+.fact-content a, .full-article a, .source a {
   text-decoration-color: var(--link-decoration-color);
 }
 .comparison-table {
@@ -2408,7 +2411,7 @@ button.share-action:hover:not(:disabled) {
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Keyboard shortcuts</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.53.1</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.53.2</div>
   </div>
 </div>
 
@@ -3275,6 +3278,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // the page). Card focus uses an explicit instant reveal below: bare
   // focus() inherits the document's smooth scroll and can leave a selected
   // card clipped at the viewport edge while that animation is still running.
+  // The same margin is enforced after the reveal because Chromium considers
+  // a card already inside the viewport "nearest", even when its lower edge
+  // is underneath the breathing room wanted by the navigation selector.
   var focusedCard = -1;
   var allIndexCards = isIndex
     ? Array.prototype.slice.call(document.querySelectorAll('.article-card')) : [];
@@ -4312,10 +4318,20 @@ document.addEventListener('DOMContentLoaded', function() {
   function indexCardFocused() {
     return focusedCard;
   }
+  var navigableCardViewportMargin = 24;
   function focusNavigableCard(card) {
     card.focus({ preventScroll: true });
     card.scrollIntoView({ block: 'nearest', inline: 'nearest',
       behavior: 'instant' });
+    var rect = card.getBoundingClientRect();
+    var correction = 0;
+    if (rect.top < navigableCardViewportMargin) {
+      correction = rect.top - navigableCardViewportMargin;
+    } else if (rect.bottom > window.innerHeight - navigableCardViewportMargin) {
+      correction = rect.bottom
+        - (window.innerHeight - navigableCardViewportMargin);
+    }
+    if (correction) window.scrollBy({ top: correction, behavior: 'instant' });
   }
   function focusIndexCard(i) {
     if (focusedCard >= 0) indexCards[focusedCard].blur();

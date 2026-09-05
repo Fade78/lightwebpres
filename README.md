@@ -908,7 +908,9 @@ its own role is what let forty-one per-theme pins disappear.
 A body link deliberately has no palette colour of its own. It keeps the
 ink around it and is signalled by an underline, whose tint is the one
 exposed axis (`link.decoration-color`, defaulting to the text ink, which
-is the strongest thing on the page to point at). An underline is
+is the strongest thing on the page to point at). The same treatment covers
+links in generated source lines, so they do not fall back to browser blue.
+An underline is
 non-text, so the standard asks 3:1 of it and has no AAA level to ask
 for.
 Measured across the catalogue before choosing: the browser's default blue

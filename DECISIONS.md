@@ -437,6 +437,11 @@ the typed property `link.decoration-color` (default: the body ink, which
 cannot fail), and `RETIRED_VARIABLES` maps the old name for legacy
 sheets. Nothing left to decide.
 
+The generated `source` line is part of the same prose boundary: its links
+inherit `source-fg` and keep the underline, rather than taking Chromium's
+default blue. This matters especially on Lava, where the quiet source ink is
+otherwise visibly replaced by `rgb(0, 0, 238)`.
+
 ## B4 — Key-figure alignment, as an option
 
 **État :** terminé · **Voir :** B7
@@ -2761,8 +2766,9 @@ mêmes priorités et les mêmes commandes.
 Une action de navigation ne doit pas laisser l'objet qu'elle vient de
 sélectionner coupé par le bord de la fenêtre. C'est une règle générale pour
 les cartes de l'index et de `series-nav` : lorsqu'une carte tient dans la
-fenêtre, sa boîte entière reste visible, et le focus ne délègue pas ce
-placement au défilement lissé implicite du navigateur.
+fenêtre, sa boîte entière reste visible avec 24 px de marge quand la place le
+permet, et le focus ne délègue pas ce placement au défilement lissé implicite
+du navigateur.
 
 Cette règle ne remplace pas le parcours des fiches plus hautes que l'écran.
 À l'entrée, leur haut est aligné au haut de la fenêtre ; vers le bas, le
@@ -2773,5 +2779,8 @@ par un défilement manuel est d'abord alignée avant que le parcours ne continue
 
 **Ce qui est vérifié.** Le probe Chromium force une carte d'index assez haute
 pour révéler le défaut dans les deux sens, puis vérifie que la carte
-focalisée est entièrement visible immédiatement. Le parcours de `series-nav`
-et les tests des bords haut/bas et des fiches adjacentes restent verts.
+focalisée est entièrement visible immédiatement avec sa marge. Le parcours de
+`series-nav` vérifie la même marge dans les deux directions ; les tests des
+bords haut/bas et des fiches adjacentes restent verts. Un probe Lava vérifie
+également qu'un lien de source hérite bien de `source-fg`, pas du bleu du
+navigateur.
