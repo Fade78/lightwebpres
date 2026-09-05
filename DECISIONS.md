@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 7 · **à faire** 0 · **en cours** 0 · **terminé** 53 · **abandonné** 1 · **sans objet** 3
+**à étudier** 7 · **à faire** 0 · **en cours** 0 · **terminé** 54 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -166,6 +166,7 @@ gets its own entry and its own state**, however small.
 - **B58** — Les préréglages de présentation restent des enveloppes confinées
 - **B59** — La dernière cible de navigation reste visible
 - **B60** — Le zoom de présentation ne grandit pas le cadre des fiches
+- **B61** — Le redimensionnement repositionne la fiche courante
 
 ### abandonné
 
@@ -2801,3 +2802,26 @@ reste une fiche longue et conserve le parcours incrémental borné.
 **Ce qui est vérifié.** Le probe Chromium mesure une fiche normale à la hauteur
 du viewport après `+`, puis vérifie que le premier `ArrowDown` entre bien dans
 la fiche suivante ; les parcours des fiches réellement longues restent verts.
+
+## B61 — Le redimensionnement repositionne la fiche courante
+
+**État :** terminé · **Depuis :** 2026-09-05
+**Voir :** specifications.md §9.3.5 ; `lightwebpres` ;
+`tests/keyboard_nav_e2e.cjs`
+
+Le cadre d'une fiche dépend de la surface disponible. Avant cette correction,
+une fiche active entrée à `scrollY=800` restait à cette coordonnée quand la
+fenêtre passait de `1024×800` à `1024×600` : son haut se retrouvait à `-200px`
+et le lecteur voyait le milieu de la fiche. Le même défaut pouvait apparaître
+après le zoom de présentation, qui modifie lui aussi la géométrie.
+
+Le runtime regroupe maintenant les événements `resize` de la fenêtre et du
+`visualViewport` dans une frame, recalcule la fiche visible puis la replace au
+haut. Pendant un glissé, il conserve la destination déjà choisie au lieu de
+revenir à la fiche encore visible ; sur l'index, il révèle à nouveau la carte
+focalisée. Le parcours et les limites des fiches longues ne changent pas.
+
+**Ce qui est vérifié.** Le probe Chromium vérifie `+`, `-` et `=` puis
+redimensionne une fiche longue active et exige que son bord haut revienne à
+`0px`; les scénarios existants de glissé, de fiches longues et d'index restent
+verts.

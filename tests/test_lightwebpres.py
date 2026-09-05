@@ -9895,6 +9895,14 @@ class DarkBackgroundThemes(unittest.TestCase):
         self.assertEqual(bare['fact.strong.bg'], '#00000000')
         self.assertEqual(bare['fact.strong.fg'], bare['color.ink'])
 
+    def test_lava_uses_molten_marker_and_ochre_source_links(self):
+        lava = self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer('lava'))
+        self.assertEqual(lava['fact.strong.bg'], '#EE4214FF')
+        self.assertEqual(lava['fact.strong.fg'], '#120504FF')
+        self.assertEqual(lava['source.fg'], '#C88A4DFF')
+        self.assertEqual(lava['link.decoration-color'], '#C88A4DFF')
+
 
 class ThePrintFamilyKeepsPaperWhiteAndNamesItsInkTreatment(unittest.TestCase):
     SURFACES = (

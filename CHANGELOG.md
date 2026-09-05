@@ -33,6 +33,15 @@ link to the originals. They are at
 
 ---
 
+## v0.53.3
+
+Presentation navigation now reanchors the active slide after viewport and
+visual-viewport resizes, including presentation zoom changes. During a smooth
+navigation, the reanchor preserves the destination slide and index cards keep
+their focus after the layout change. Lava now uses ochre muted ink and
+marker-red fact emphasis so links and highlights remain readable without the
+bright accent.
+
 ## v0.53.2
 
 Selected index and series-navigation cards now keep 24px of breathing room

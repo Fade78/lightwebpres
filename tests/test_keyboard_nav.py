@@ -18,6 +18,7 @@ slide-to-slide arrow navigation:
      including while stepping backward through a viewport-shortened fixture.
    - Home returns to the beginning of the current page, Ctrl/Cmd+Home returns
      to the series index, and End/Ctrl/Cmd+End reaches the far edge.
+   - Resizing the viewport realigns the active slide after its frame changes.
 
 Independent series (built separately, served side by side) keep the
 fixtures' navigation states separate: 'tall' is a single-article series

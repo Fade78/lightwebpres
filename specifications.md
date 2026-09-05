@@ -2190,6 +2190,13 @@ la réduit, et `=` revient à 100 %. La valeur est bornée entre 50 % et 200 %,
 reste en mémoire seulement pour la page courante et ne remplace pas le zoom
 du navigateur déclenché par Ctrl/Cmd+`+` ou Ctrl/Cmd+`-`.
 
+Un changement de taille de la fenêtre ou du `visual viewport` recalcule le
+cadre de la fiche courante et la repositionne par son bord haut. Si le
+changement arrive pendant un glissé, la destination déjà choisie est
+conservée puis repositionnée ; sur l'index, une carte déjà focalisée est
+révélée à nouveau dans la fenêtre. Le même recalcul est appliqué après un
+changement du zoom de présentation.
+
 Lorsqu'une surface de lecture au premier plan est focalisée et défilable,
 les touches de défilement lui appartiennent avant la navigation de la fiche :
 l'aide ouverte défile avec les flèches, PageUp/PageDown, Home/End et Espace ;

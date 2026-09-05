@@ -2134,7 +2134,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Raccourcis clavier</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <strong>LightWebPres</strong> v0.53.2</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <strong>LightWebPres</strong> v0.53.3</div>
   </div>
 </div>
 
@@ -2981,6 +2981,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.documentElement.style.setProperty(
       '--lwp-presentation-zoom', String(presentationZoom));
     document.documentElement.style.zoom = String(presentationZoom);
+    schedulePresentationReanchor();
   }
 
   function changePresentationZoom(delta) {
@@ -4003,6 +4004,43 @@ document.addEventListener('DOMContentLoaded', function() {
     setScrollTop(targetY);
   }
 
+  var presentationReanchorFrame = null;
+  function reanchorPresentation() {
+    if (isIndex) {
+      if (focusedCard >= 0 && indexCards[focusedCard]) {
+        focusNavigableCard(indexCards[focusedCard]);
+      }
+      return;
+    }
+    if (!slides.length) return;
+    // During a glide, `current` is already the intended destination even
+    // though its top has not reached the viewport yet. Resize must cancel the
+    // old glide and place that destination, not revert to the slide still
+    // visible underneath it.
+    var visible = isScrolling ? current : currentVisible();
+    if (visible !== current) {
+      current = visible;
+      focusedCard = -1;
+      recordSlideInUrl(current);
+      updateUI();
+    }
+    var slide = slides[current];
+    if (!slide) return;
+    var targetY = slide.getBoundingClientRect().top
+      + (window.pageYOffset || document.documentElement.scrollTop);
+    jumpScrollTo(targetY);
+    isScrolling = false;
+  }
+  function schedulePresentationReanchor() {
+    if (presentationReanchorFrame) {
+      cancelAnimationFrame(presentationReanchorFrame);
+    }
+    presentationReanchorFrame = requestAnimationFrame(function () {
+      presentationReanchorFrame = null;
+      reanchorPresentation();
+    });
+  }
+
   function goTo(idx, instant) {
     if (isIndex) {
       // On the index there is no slide to go to — the URL keeps no
@@ -4685,6 +4723,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (scrollTimer) clearTimeout(scrollTimer);
     scrollTimer = setTimeout(detectCurrent, 80);
   }, { passive: true });
+  window.addEventListener('resize', schedulePresentationReanchor);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', schedulePresentationReanchor);
+  }
 
   // --- Share button: popover with a copy-link / QR-code matrix, scoped to
   // the series index, this article, or the current slide. §9.3.4.

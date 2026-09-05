@@ -351,6 +351,28 @@ async function main() {
     pageZoom = await page.evaluate(() => document.documentElement.style.zoom);
     if (pageZoom !== '1') fail('equals should reset page zoom to 1, got ' + pageZoom);
     console.log('page zoom shortcuts OK: + / - / =');
+
+    // Changing the viewport changes every slide's min-height. The active
+    // slide must be put back at the top rather than left at its old document
+    // coordinate, which would expose the middle of it after a resize.
+    await page.setViewportSize({ width: 1024, height: 600 });
+    await page.waitForTimeout(200);
+    const resizedSlide = await page.evaluate(() => {
+      const slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+      const active = Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'))
+        .findIndex((d) => d.classList.contains('active'));
+      const rect = slides[1].getBoundingClientRect();
+      return { active, top: rect.top, bottom: rect.bottom, scrollY: window.scrollY };
+    });
+    if (resizedSlide.active !== 1) {
+      fail('viewport resize changed the active slide, got ' + resizedSlide.active);
+    }
+    if (Math.abs(resizedSlide.top) > 2) {
+      fail('viewport resize should realign the active slide to the top, got '
+           + JSON.stringify(resizedSlide));
+    } else {
+      console.log('viewport resize keeps the active slide aligned OK');
+    }
     await page.close();
 
     // The index uses the same edge shortcuts, with article cards as its
