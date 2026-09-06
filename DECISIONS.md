@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 7 · **à faire** 0 · **en cours** 0 · **terminé** 54 · **abandonné** 1 · **sans objet** 3
+**à étudier** 7 · **à faire** 0 · **en cours** 1 · **terminé** 54 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -110,6 +110,10 @@ gets its own entry and its own state**, however small.
 - **B35** — Reaching a verdict class without writing HTML
 - **B36** — The engine can halo 32 components; the catalogue haloes three
 - **B50** — Soft animation of cover colours
+
+### en cours
+
+- **B62** — Le cover Lava reste sauvegardé dans Lava hot
 
 ### terminé
 
@@ -2825,3 +2829,29 @@ focalisée. Le parcours et les limites des fiches longues ne changent pas.
 redimensionne une fiche longue active et exige que son bord haut revienne à
 `0px`; les scénarios existants de glissé, de fiches longues et d'index restent
 verts.
+
+## B62 — Le cover Lava reste sauvegardé dans Lava hot
+
+**État :** en cours · **Depuis :** 2026-09-06
+**Voir :** `lightwebpres` ; `tests/test_lightwebpres.py`
+
+La photo d'éruption ne tire pas son intérêt de la couleur dominante du ciel
+rouge sombre. Les accents rares qui structurent la scène sont un or jaune
+médian autour de `#FEB702` (environ `0,26 %` des pixels analysés), puis des
+points presque blancs autour de `#FEFE35` (environ `0,1 %`). Le texte discret
+de Lava essaie donc `#D7A523`, un or chaud assombri, tandis que le rouge
+incandescent reste le marqueur et que le jaune clair reste la navigation.
+
+Le cover actuel est une composition particulière : angle `180deg`, de
+`#000000A6` vers `#6E1400A6`, avec son halo rouge. Il ne doit pas être aplati
+ou recoloré pour faire évoluer le texte secondaire. `lava-hot` conserve la
+palette précédente (`#C88A4D`) et toutes ces propriétés de cover et de halo.
+Il s'appelle maintenant `Lava hot` (`lava-hot`) et retrouve le surlignage
+jaune de l'ancien design, adouci en `#F2BA2C` au lieu de `#FFC42E`; ce dernier
+reste la couleur de navigation et du kicker de cover. `lava` peut ainsi être
+comparé à sa sauvegarde dans la galerie.
+
+**Ce qui est vérifié.** Le test de catalogue exige le nouvel or sur `lava`,
+la palette précédente, le jaune de surlignage adouci et les deux stops du
+dégradé sur `lava-hot`; les gardes de galerie et les rendus générés restent
+déterministes.

@@ -9895,13 +9895,30 @@ class DarkBackgroundThemes(unittest.TestCase):
         self.assertEqual(bare['fact.strong.bg'], '#00000000')
         self.assertEqual(bare['fact.strong.fg'], bare['color.ink'])
 
-    def test_lava_uses_molten_marker_and_ochre_source_links(self):
+    def test_lava_uses_molten_marker_and_volcanic_gold_source_links(self):
         lava = self.lwp.resolve_theme_properties(
             self.lwp.theme_property_layer('lava'))
         self.assertEqual(lava['fact.strong.bg'], '#EE4214FF')
         self.assertEqual(lava['fact.strong.fg'], '#120504FF')
-        self.assertEqual(lava['source.fg'], '#C88A4DFF')
-        self.assertEqual(lava['link.decoration-color'], '#C88A4DFF')
+        self.assertEqual(lava['source.fg'], '#D7A523FF')
+        self.assertEqual(lava['link.decoration-color'], '#D7A523FF')
+
+    def test_lava_hot_preserves_the_previous_lava_cover_and_hot_marker(self):
+        lava_hot = self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer('lava-hot'))
+        self.assertEqual(self.lwp.THEMES['lava-hot']['label'], 'Lava hot')
+        self.assertEqual(self.lwp.THEMES['lava-hot']['fact_highlight'], 'accent')
+        self.assertEqual(lava_hot['color.ink-quiet'], '#C88A4DFF')
+        self.assertEqual(lava_hot['source.fg'], '#C88A4DFF')
+        self.assertEqual(lava_hot['fact.strong.bg'], '#F2BA2CFF')
+        self.assertEqual(lava_hot['fact.strong.fg'], '#120504FF')
+        self.assertEqual(lava_hot['color.call'], '#FFC42EFF')
+        self.assertEqual(lava_hot['cover.bg.from'], '#000000A6')
+        self.assertEqual(lava_hot['cover.bg.to'], '#6E1400A6')
+        self.assertEqual(lava_hot['cover.bg.angle'], '180deg')
+        self.assertEqual(lava_hot['cover.kicker.fg'], '#FFC42EFF')
+        self.assertEqual(lava_hot['note.local.rule-fg'], '#F5E6DA60')
+        self.assertEqual(lava_hot['note.page.rule-fg'], '#F5E6DA60')
 
 
 class ThePrintFamilyKeepsPaperWhiteAndNamesItsInkTreatment(unittest.TestCase):

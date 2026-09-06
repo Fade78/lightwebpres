@@ -2082,18 +2082,39 @@ THEMES = {
     'lava': {
         'family': 'light', 'label': 'Lava', 'source': 'lightwebpres',
         'dark_background': True,
-        'marker': '#EE4214', 'ink': '#F5E6DA', 'ink-muted': '#C88A4D',
+        'marker': '#EE4214', 'ink': '#F5E6DA', 'ink-muted': '#D7A523',
         'page': '#120504', 'accent': '#FFC42E', 'positive': '#D2D24A',
         'nav': '#FFC42E',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Rock lit from inside. Not a fire someone lit — the strongest "
                 "halo of the family, and the only one where the ground itself "
-                "reads as hot. Three temperatures, in the order the rock "
-                "passes through them: cooled basalt for the page, molten red "
-                "for the mark and fact emphasis, and incandescent yellow kept "
-                "for the navigation signal. The affirm role is sulphur rather "
-                "than the usual green — the one mineral of the set that is "
-                "actually found on a volcano.",
+                "reads as hot. Four temperatures, in the order the rock "
+                "passes through them: cooled basalt for the page, dark molten "
+                "gold for quiet text, red lava for the mark and fact emphasis, "
+                "and incandescent yellow kept for the navigation signal. The "
+                "affirm role is sulphur rather than the usual green — the one "
+                "mineral of the set that is actually found on a volcano.",
+        'note_good': True,
+    },
+    # Keep the pre-gold treatment available while the eruption palette is
+    # being tuned. This is a copy, not an alias, so the reference can stay
+    # stable if Lava continues to evolve.
+    'lava-hot': {
+        'family': 'light', 'label': 'Lava hot', 'source': 'lightwebpres',
+        'dark_background': True,
+        'marker': '#EE4214', 'ink': '#F5E6DA', 'ink-muted': '#C88A4D',
+        'page': '#120504', 'accent': '#FFC42E', 'positive': '#D2D24A',
+        'nav': '#FFC42E',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'accent',
+        'note': "Original hot Lava treatment. Rock lit from inside. Not a fire "
+                "someone lit — the strongest halo of the family, and the only "
+                "one where the ground itself reads as hot. Four temperatures, "
+                "in the order the rock passes through them: cooled basalt for "
+                "the page, molten red for the mark, warm yellow for fact "
+                "emphasis, and incandescent yellow kept for the navigation "
+                "signal. The affirm role is sulphur rather than the usual green "
+                "— the one mineral of the set that is actually found on a "
+                "volcano.",
         'note_good': True,
     },
 
@@ -5847,7 +5868,7 @@ THEME_PROPERTY_OVERRIDES = {
     # crust's own red, and a glow drawn in the mark's colour reads as a
     # blur of the mark rather than as light coming off it.
     'lava': {
-        # Source text is the quiet ochre, and its underline should not jump
+        # Source text is the dark volcanic gold, and its underline should not jump
         # back to the pale body ink. Body links still inherit their context;
         # this only tints the exposed rule, while source links inherit this
         # theme's source colour as usual.
@@ -5870,6 +5891,18 @@ THEME_PROPERTY_OVERRIDES = {
         # the one thing on the cover that got harder to read, so it goes
         # to `call` -- the tone that is already the hottest here.
         'cover.kicker.fg': 'call',
+        'page.shadow.fg': '#FF4A182E', 'page.shadow.blur': '0.17em',
+        'title1.shadow.fg': '#FF4A18B3', 'title1.shadow.blur': '0.38em',
+        'highlight.shadow.fg': '#FF4A1899', 'highlight.shadow.blur': '0.26em',
+    },
+    'lava-hot': {
+        'link.decoration-color': 'ink-quiet',
+        'table.col-snap.rule-fg': 'call',
+        'cover.bg.from': '#000000A6', 'cover.bg.to': '#6E1400A6',
+        'cover.kicker.fg': 'call',
+        # Restore the old yellow fact marker, softened slightly without
+        # changing the brighter yellow used by the cover and navigation.
+        'fact.strong.bg': '#F2BA2C',
         'page.shadow.fg': '#FF4A182E', 'page.shadow.blur': '0.17em',
         'title1.shadow.fg': '#FF4A18B3', 'title1.shadow.blur': '0.38em',
         'highlight.shadow.fg': '#FF4A1899', 'highlight.shadow.blur': '0.26em',
@@ -6044,6 +6077,7 @@ THEME_NOTE_PROPS = {
     'candlelight': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#FFEEDC5B', 'note.page.bg': '#FFEEDC11', 'note.page.rule-fg': '#FFEEDC5B'},
     'lantern': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#FFF6DC59', 'note.page.bg': '#FFF6DC11', 'note.page.rule-fg': '#FFF6DC59'},
     'lava': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#F5E6DA60', 'note.page.bg': '#F5E6DA15', 'note.page.rule-fg': '#F5E6DA60'},
+    'lava-hot': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#F5E6DA60', 'note.page.bg': '#F5E6DA15', 'note.page.rule-fg': '#F5E6DA60'},
     'aurora': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#DCFFE958', 'note.page.bg': '#DCFFE910', 'note.page.rule-fg': '#DCFFE958'},
     'nebula': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#EEE2FF61', 'note.page.bg': '#EEE2FF15', 'note.page.rule-fg': '#EEE2FF61'},
     'abyss': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#D6F4FF5C', 'note.page.bg': '#D6F4FF11', 'note.page.rule-fg': '#D6F4FF5C'},
