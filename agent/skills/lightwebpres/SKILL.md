@@ -396,16 +396,14 @@ a namespace in front of every id on the page.
 the raw `slug:` lines, so its output is the address a reader will actually
 receive.
 
-**The `source` field on a standard slide** is the designated place for
-the slide's citation. Write the reference there (e.g. `source: Baking
-guide, 2024 edition.`). You may optionally refer to it in the fact-box
-text with a short callout (e.g. `[see source]` or a note marker `[^1]`),
-but **do not write the full citation inline in the fact-box body**. The
-rendered page displays the `source` field in a consistent, styled location
-separate from the fact content — inline citations break that layout and
-are not accessible in the same way. For longer references, use a note
-(`[^1]`) whose body goes to the foot of the card (default) or the page
-end (`notes_placement: page` in the meta block).
+**The `source` field on a standard slide** renders a citation in a dedicated,
+styled location separate from the fact content (e.g. `source: Baking guide,
+2024 edition.`). Inline citations in the fact-box body are also valid
+Markdown; the parser does not forbid them. Prefer `source:` for a short
+reference and a footnote (`[^1]`) for a longer one, unless the series uses
+another citation convention. This is a layout recommendation, not a parser
+restriction. A footnote body goes to the foot of the card by default, or to
+the page end with `notes_placement: page` in the meta block.
 
 A cover slide **accepts** `fact-label`, `fact-variant`, `source`, `highlight`
 and `highlight-caption` without failing, and then never renders them — you
@@ -610,8 +608,8 @@ field (below).
 ## Speaker notes (`note:`)
 
 A footnote (`[^x]:`) is a *source* note the reader sees. A speaker note is a
-different thing: the line you say aloud, withheld from the slide the audience
-sees. Write it as a `note:` field on the slide:
+different thing: a speaking cue hidden from the normal slide view, but still
+published in the page's HTML. Write it as a `note:` field on the slide:
 
 ```markdown
 <!-- lwp:slide -->
@@ -623,12 +621,13 @@ note: Mention the 2020 study — the audience asked for it last time.
   If time runs short, skip the appendix.
 ```
 
-`note:` is parsed and **never rendered into the slide** — the reader gets no
-marker, no footnote, nothing. It is held in the page and surfaced only by the
-**presenter panel**: while presenting, press **N** and the panel shows the
-current slide's `note:` text alongside the next slide's title, so you can read
-ahead unseen. The panel rides along as you navigate; press **N** again to
-close it. `note:` is accepted on `cover` and `standard` slides.
+`note:` is rendered into a hidden HTML element, without a footnote marker.
+Press **N** to open the **presenter panel**, which shows the current slide's
+`note:` text alongside the next slide's title. The panel is in the same page,
+not a private presenter window: a projected or shared screen shows it too.
+Anyone with the HTML can read the notes, so do not put confidential content
+there. The panel follows navigation; press **N** again to close it. `note:`
+is accepted on `cover` and `standard` slides.
 
 A `note:` may span several lines: each continuation line starts with
 whitespace, and an indented blank line is a paragraph break. The block ends at

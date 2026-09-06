@@ -3472,6 +3472,13 @@ class CliVersionAndShortcuts(unittest.TestCase):
                              f'`{" ".join(argv)}`:\n{result.stderr}')
             self.assertIn('lightwebpres', result.stdout)
             self.assertIn('GLOBAL OPTIONS', result.stdout)
+            globals_help = result.stdout.split('GLOBAL OPTIONS', 1)[1]
+            modifiers, actions = globals_help.split('GLOBAL ACTIONS', 1)
+            self.assertNotIn('--version', modifiers)
+            self.assertIn('--version (before the command only; reports and exits)',
+                          actions)
+            self.assertIn('--help (before: full help; after: command help)',
+                          actions)
         # A NODE is not a command: `theme --help` answered "Unknown theme
         # verb: `theme --help`", which reads as a typo nobody made.
         for node in ('theme', 'series', 'preset', 'template'):

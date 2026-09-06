@@ -80,12 +80,20 @@ Section 8 has the shape of a pipeline that uses all of it.
 
 ## 2. Set up & your first build
 
+Download `lightwebpres` from the
+[GitHub releases](https://github.com/Fade78/lightwebpres/releases), either as
+the release file or inside the source archive. Install Python 3.8+ if needed;
+there are no extra packages. From the directory containing `lightwebpres`:
+
 ```bash
-./lightwebpres init my-series
-./lightwebpres demo my-series --lang en      # explicit English interface
-./lightwebpres build my-series --lang en
-xdg-open my-series/public/index.html         # `open` on macOS
+python3 lightwebpres init my-series
+python3 lightwebpres demo my-series --lang en # explicit English interface
+python3 lightwebpres build my-series --lang en
 ```
+
+Open `my-series/public/index.html` in a browser. On Windows, use `python`
+instead of `python3`. Later examples use `./lightwebpres`; on Unix, run
+`chmod +x lightwebpres` to enable that form, or keep the Python invocation.
 
 `init` scaffolds a working project — `sources/` (empty, for your `.md`
 files), `templates/` (your customization surface: `settings.conf` and
@@ -144,6 +152,8 @@ base64 data URIs so the HTML needs no `img/` directory at all — useful for
 emailing a single file or hosting where only static HTML is served. The HTML
 grows about a third per image; a serving gzip recovers the overhead. It covers
 images in a card and images in a file a `full-article` card pulls in, alike.
+`verify` cannot reproduce `--inline-images`; keep a separate non-inline
+output if you use it as a CI gate (section 6).
 
 One thing it cannot inline: an `<img>` you write as raw HTML rather than
 in Markdown. The converter passes raw HTML through untouched by design,
@@ -355,19 +365,19 @@ used by the build. For the focused view, use
 visibility by tag, separates `active`, `draft`, and `ignored`, and shows what
 the default selection will actually publish. Add `--tag fr` to keep one row.
 
-### Paquets de présentation et préréglages
+### Presentation packages and presets
 
-Un paquet de présentation versionné possède la structure, les layouts, le
-chrome, les assets et le CSS structurel contraint des fiches. Il ne remplace ni
-le shell de page, ni la navigation, ni le JavaScript. Ses fragments ont les
-slots `{{content}}`, `{{slide_header}}`, `{{slide_footer}}` (l'index ne reçoit
-que `{{content}}`).
+A versioned presentation package owns its slides' structure, layouts,
+headers and footers, assets, and constrained structural CSS. It replaces
+neither the page shell nor navigation nor JavaScript. Its fragments have
+`{{content}}`, `{{slide_header}}` and `{{slide_footer}}` slots (the index
+receives only `{{content}}`).
 
-La seule sélection persistée est
-`series_meta.presentation_preset: id@MAJOR.MINOR.PATCH/preset`. Elle n'existe
-ni dans le meta de l'article ni dans son entrée `articles[]`; son absence est le
-rendu intégré virtuel `default`. Le sélecteur CLI littéral `default` demande
-l'omission du champ, non une valeur enregistrée.
+The only persisted selection is
+`series_meta.presentation_preset: id@MAJOR.MINOR.PATCH/preset`. It belongs
+neither in article metadata nor in an `articles[]` entry; its absence means
+the virtual built-in `default` rendering. The literal CLI selector `default`
+requests omission of the field, not a stored value.
 
 ```json
 {
@@ -377,18 +387,18 @@ l'omission du champ, non une valeur enregistrée.
 }
 ```
 
-Les champs auteur `presentation_template`, `slide_layouts` et `slide_chrome`
-sont retirés et rejetés, jamais ignorés. Les deux derniers restent permis dans
-un manifeste de paquet, pour les défauts de son préréglage.
+The author fields `presentation_template`, `slide_layouts` and `slide_chrome`
+are retired and rejected, never ignored. The last two remain allowed in a
+package manifest to declare preset defaults.
 
-`slide-layout`, `slide-header` et `slide-footer` sont valides sur les quatre
-types de fiche. Ils remplacent les défauts appartenant au préréglage sélectionné
-pour une fiche précise; ce n'est pas une cascade JSON auteur. Le thème du
-préréglage est la base typée : thème de base < pins de `settings.conf` <
-`style.*` de l'article < styles d'instance, puis `templates/custom.css` reste le
-CSS final avancé. Les assets sont publiés sous
-`public/assets/presentations/<id>/<version>/...`, ou inlinés par
-`--inline-images`.
+`slide-layout`, `slide-header` and `slide-footer` work on all four slide types.
+They override the selected preset's defaults for one slide, not through an
+author JSON cascade. The preset's theme supplies the typed base unless
+`settings.conf` explicitly selects another theme. Precedence is: base theme
+< `settings.conf` pins < article `style.*` < instance styles;
+`templates/custom.css` remains the final advanced CSS layer. Assets are
+published under `public/assets/presentations/<id>/<version>/...`, or embedded
+by `--inline-images`.
 
 ```bash
 ./lightwebpres preset list
@@ -398,14 +408,15 @@ CSS final avancé. Les assets sont publiés sous
 ./lightwebpres init my-series --preset <id@MAJOR.MINOR.PATCH/preset|default> [--no-starter]
 ```
 
-`series preset set` vendorise et sélectionne sans starter. Il préserve les
-pins et `custom.css`; avec un `theme:` explicite dans `settings.conf`, il exige
-`--keep-theme` ou `--use-preset-theme`, qui retire cette ligne. Le namespace
-reste `layouts/<id>/<version>/` dans un catalogue et
-`templates/layouts/<id>/<version>/` une fois vendorisé.
-`LWP_PRESENTATION_PACKAGES_DIR` remplace le catalogue utilisateur; une collision
-id/version remplace le paquet entier. Les détails du manifeste, de la validation
-et de la sécurité sont dans `specifications.md` §9.9.
+`series preset set` vendors and selects without applying a starter. It
+preserves pins and `custom.css`; with an explicit `theme:` in `settings.conf`,
+it requires `--keep-theme` or `--use-preset-theme`, which removes that line.
+`--keep-theme` requires an explicit `theme:`. The namespace remains
+`layouts/<id>/<version>/` in a catalogue and
+`templates/layouts/<id>/<version>/` once vendored.
+`LWP_PRESENTATION_PACKAGES_DIR` replaces the user catalogue location; an
+id/version collision shadows the entire package. See `specifications.md`
+§9.9 for manifest, validation and security details.
 
 ## 5. Adjusting the look
 
@@ -516,7 +527,9 @@ author opting in. Three reasons, in order:
   carries. A reader who cannot read the deck as drawn has an alternative
   that does not depend on the author having planned for them.
 - **Print.** Print Ink is drawn for paper — pure white ground, black ink —
-  so a PDF handout at `Ctrl`/`Cmd`+`P` is clean without any theme choice.
+  and is available without an author-supplied theme selection. Press **C**,
+  select **Print Ink**, then print with `Ctrl`/`Cmd`+`P`. Printing preserves
+  the active theme; it does not select Print Ink automatically.
 - **Sobriety.** Monochrome and Print Ink carry no hue, so the essential set
   never clashes with a series built around one. The author's chosen theme
   remains primary; the three are alternatives, never a replacement.
@@ -690,9 +703,16 @@ unavailable instead of falsely calling them unused; the render failure is
 reported separately.
 
 `verify` asks the other question: it rebuilds every article in memory and
-compares it byte-for-byte against `public/`, exiting non-zero the moment
+compares it against `public/` (ignoring build stamps and surrounding
+whitespace), exiting non-zero the moment
 anything differs — wire it in before `build` to catch a `public/` that
 was hand-edited or never rebuilt after a source change.
+
+Use the same supported rendering options as the build, including `--lang`,
+`--themes` and `--no-essential-theme`. **`verify` does not accept
+`--inline-images`** and cannot reproduce that build mode: embedded images or
+presentation assets can therefore report drift even with unchanged sources.
+Use a separate, non-inline build output for this CI check.
 
 ### Asking why a value is what it is
 
@@ -804,7 +824,7 @@ If your `public/` is committed rather than built from scratch, put
 
 ```yaml
   script:
-    - python3 lightwebpres verify .    # fails if public/ is stale
+    - python3 lightwebpres verify . --lang fr # fails if public/ is stale
     - python3 lightwebpres build . --lang fr
 ```
 
@@ -905,9 +925,10 @@ opt-in (off by default) and turned on only by `--slides-page-numbers on`,
 the article front-matter `slide_page_numbers`, or `series_meta.slide_page_numbers`
 (see specifications.md §3.3.5). Press **N** to open the speaker panel: it
 shows the current slide's `note:` field (the speaker note you wrote for
-that slide — see below) and the title of the next slide, so you can read
-ahead without the audience seeing it. The panel rides along as you
-navigate; press **N** again to close it.
+that slide, see below) and the title of the next slide. The panel opens in
+the same page, so anyone watching the projected or shared screen sees it
+too. It follows navigation; press **N** again to close it. There is no
+separate private presenter window.
 
 A speaker note is a `note:` field on the slide — distinct from a `[^n]`
 footnote, which is a *source* note printed for the reader:
@@ -921,8 +942,11 @@ note: Mention the 2020 study — the audience asked for it last time.
   If time runs short, skip the appendix.
 ```
 
-The `note:` value is parsed and withheld from the slide the reader sees;
-only the presenter panel surfaces it. A `note:` may run over several lines:
+The `note:` value is embedded in the HTML as a hidden element and displayed
+by the presenter panel. Anyone with the page can open the panel or inspect
+its source: do not put confidential content in `note:`.
+
+A `note:` may run over several lines:
 any line that starts with whitespace continues the note, and an indented
 blank line marks a paragraph break. The block ends at the first
 non-indented, non-empty line (the next field or the slide's body), so the
@@ -934,6 +958,10 @@ Each page is print-ready. **Print** from the browser (Ctrl/Cmd+P) and
 choose "Save as PDF": every slide lands on its own sheet, the navigation
 chrome is stripped, and the theme colours are kept. A short slide no
 longer blanks a page — each sheet sizes to its own content.
+
+For black ink on white, press **C** and select **Print Ink** before opening
+the print dialog. It is included by default in the essential theme bundle;
+printing does not switch to it automatically.
 
 ### Mouse
 

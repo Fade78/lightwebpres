@@ -33,6 +33,27 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.53.4
+
+Lava now uses a dark volcanic gold for quiet text, while the previous hot
+treatment remains available as `Lava hot` with its cover composition preserved
+and its yellow fact highlight softened. The theme gallery and contrast checks
+cover both variants.
+
+The optional `sourced-presentation` method is synced to version 0.15. It now
+guides work at series, page and card scale, records what each change
+invalidates, keeps quantities and source boundaries precise, and verifies the
+actual delivered artifact before handoff.
+
+Documentation now states that speaker notes are embedded in the HTML and
+shown in the same page, not privately, and that Print Ink must be selected
+before printing. The README introduces phone reading and presentation from
+one source with download and first-run instructions; preset sections are in
+English. The skill index and citation guidance separate format mechanics
+from editorial recommendations. CI examples use matching languages and
+document that `verify` cannot reproduce `--inline-images`. Contextual CLI
+help distinguishes command modifiers from the leading `--version` action.
+
 ## v0.53.3
 
 Presentation navigation now reanchors the active slide after viewport and

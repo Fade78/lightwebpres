@@ -171,8 +171,9 @@ Every build embeds that `essential` bundle by default — Monochrome, Monochrome
 Night and Print Ink — so **C** works on any page without the author opting in.
 Accessibility: Monochrome is high-contrast ink with no hue, Monochrome Night is
 the same on a dark ground, Print Ink is pure black on white. Print: Print Ink is
-drawn for paper, so a PDF handout at `Ctrl`/`Cmd`+`P` is clean without a theme
-choice. Sobriety: none of the three carries a hue, so the set never clashes
+drawn for paper: press **C**, select **Print Ink**, then `Ctrl`/`Cmd`+`P`.
+Printing keeps the active theme; it does not switch automatically.
+Sobriety: none of the three carries a hue, so the set never clashes
 with a series built around one. `--no-essential-theme` (build/verify/watch) opts
 out; the page then carries no runtime picker unless `--themes` or
 `series.json["themes"]` adds one.

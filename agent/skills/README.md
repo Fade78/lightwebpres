@@ -37,15 +37,13 @@ content — a deck of short cards, each readable on its own, backed by a
 fully referenced long-form article — covering the chain from commissioning
 research to verifying every fact at its source.
 
-It ships alongside as a **facilitation**, for whoever would like a method
-and does not have one. It is an offered interface, not the core of what
-LightWebPres does.
+Use it to plan a series, make each card understandable on its own, connect
+claims to checked sources, and verify the delivered presentation. It can
+help experienced writers as well as people who want a repeatable method.
 
-**LightWebPres is for people who already know how to write.** It renders
-what you give it and has no opinion about how you got there: no rule here
-is enforced by the tool, nothing in it is checked at build time, and a
-series that follows none of it builds exactly the same. Take it or leave
-it.
+It remains optional. LightWebPres renders what you give it: these editorial
+rules are not enforced at build time, and a series that follows none of
+them builds exactly the same.
 
 > The same separation runs through the whole project. The theme system
 > renders a theme; it does not teach you to design one. The format
@@ -59,10 +57,11 @@ it.
 - **Writing or debugging an article** → `lightwebpres`. Always.
 - **Also want a method for sourced editorial work** → add
   `sourced-presentation`. Optional.
-- **A series with its own written rules** → those rules win over
-  `sourced-presentation`, always. It says so itself: the series sets the
-  thresholds, the skill sets the method, and anything written nowhere is
-  decided by the skill.
+- **A series with its own written rules** → use those rules for audience,
+  format, scope and editorial conventions; use `sourced-presentation` for
+  the method. Local rules cannot make a false claim true, remove necessary
+  qualifications or justify a misleading omission. Check claims against
+  evidence even when a local convention asks for a simpler story.
 
 ## Keeping them current
 

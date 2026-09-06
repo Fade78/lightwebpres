@@ -940,7 +940,7 @@ restent les seuls overrides par fiche (§4.3, §9.9.3).
 | `slide-layout`   | Choisit une variante du paquet de présentation (§9.9.3) | Non |
 | `slide-header`   | Chrome d'en-tête du paquet ; `""` le supprime | Non |
 | `slide-footer`   | Chrome de pied du paquet ; `""` le supprime | Non |
-| `note`           | `<div class="speaker-note" hidden>` — panneau présentateur seulement (§8.4) | Non |
+| `note`           | `<div class="speaker-note" hidden>` : embarqué dans le HTML, affiché par le panneau de la même page, sans confidentialité (§8.4) | Non |
 | `comment`        | Aucun — jamais rendu (§4.6)               | Non         |
 
 Le jeu de champs fait foi dans le code (`SLIDE_FIELD_NAMES`), d'où `--help`
@@ -2129,6 +2129,13 @@ répertoire de série est imbriqué). Contient, dans l'ordre :
     `/` même sous Windows)
 
 ### 8.4 Pack présentateur (v0.26.0)
+
+**Les notes présentateur ne sont pas privées.** Le champ `note:` des fiches
+`cover` et `standard` est embarqué dans le HTML dans un élément masqué.
+**N** ouvre son panneau dans la même page : le public le voit sur un écran
+projeté ou partagé. Il n'existe pas de fenêtre présentateur privée, et toute
+personne disposant du HTML peut lire les notes. Ne pas y mettre de contenu
+confidentiel.
 
 **Le coup, partout, est le même.** Les flèches, les boutons prev/next et
 les clics gauche/droit déplacent d'un « coup » : une fiche complète sur une
@@ -4415,11 +4422,12 @@ Le fichier `lightwebpres` est dans le dépôt, à la racine du répertoire de
 série lui-même (`init` l'y copie, §11.1). Le pipeline n'a besoin que de
 Python 3 (image `python:3.12-slim`), pas de `pip install`.
 
-Rien n'empêche d'ajouter une étape `python3 lightwebpres verify .` avant le
+Rien n'empêche d'ajouter une étape `python3 lightwebpres verify . --lang fr` avant le
 `build` : son code de sortie non nul en cas de différence (§11.4) en fait
 une porte de vérification utilisable dans ce même pipeline, pour détecter
 un `public/` non reconstruit avant de merge — pas fait par défaut par
-`init`, à ajouter à la main si voulu.
+`init`, à ajouter à la main si voulu. Les deux commandes doivent reprendre
+les mêmes options de rendu prises en charge, notamment `--lang fr` ici.
 
 De même pour `python3 lightwebpres audit . --strict`. `audit` rendant la
 série (§11.5), son code de sortie couvre aussi ce qu'un `build`
@@ -4891,6 +4899,9 @@ pour un no-op.
 
 #### 11.3.7 `--inline-images`
 
+Ce mode n'est pas reproductible par `verify`, qui n'accepte pas cette
+option. Sa porte de CI nécessite une sortie non inline distincte (§11.4).
+
 ```
 lightwebpres build [répertoire] --inline-images
 ```
@@ -4924,6 +4935,11 @@ lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-fil
 ```
 
 Vérifie sans modifier :
+
+`verify` ne prend pas en charge `--inline-images` et ne peut pas reproduire
+ce mode de build. Les images ou assets de présentation embarqués peuvent
+donc provoquer un `[DRIFT]` même sans changement des sources. Pour cette
+porte de CI, utiliser une sortie distincte construite sans cette option.
 
 Comme `build`, `verify` résout le preset de `series_meta` avant le rendu en
 mémoire. Articles, index, enveloppes, chrome, thème de base et CSS structurel

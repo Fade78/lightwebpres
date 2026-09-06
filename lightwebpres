@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.53.3"
+VERSION = "0.53.4"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -24879,8 +24879,12 @@ def print_command_help(command):
     else:
         print('This command takes no options of its own.')
     print()
-    print('GLOBAL OPTIONS (before or after the command)')
-    print('  ' + '  '.join(sorted(_GLOBAL_OPTIONS)))
+    print('GLOBAL OPTIONS (modifiers; before or after the command)')
+    print('  ' + '  '.join(sorted(_GLOBAL_MODIFIERS)))
+    print()
+    print('GLOBAL ACTIONS')
+    print('  --help (before: full help; after: command help)')
+    print('  --version (before the command only; reports and exits)')
     print()
     print(f'Run `lightwebpres --help` for every command and the full '
           f'description of each option.')

@@ -4,77 +4,32 @@
 
 # LightWebPres
 
-A single-file, dependency-free Python tool that turns an extended Markdown
-format into scrollable HTML "slide deck" articles with an inline runtime — with
-series navigation, an index page, and a generated README — deployable to
-any static host.
+A single-file Python tool that turns one Markdown source into a page for
+phone reading and landscape presentation. Each HTML article carries its own
+CSS and JavaScript, with series navigation and an index for static hosting.
+
+Get `lightwebpres` from the [GitHub releases](https://github.com/Fade78/lightwebpres/releases)
+(the release file or the source archive). You need Python 3.8+ and no extra
+packages. From the directory containing the executable:
 
 ```bash
-./lightwebpres init my-series
-./lightwebpres demo my-series
-./lightwebpres build my-series
+python3 lightwebpres init my-series
+python3 lightwebpres demo my-series --lang en
 # -> my-series/public/index.html
 ```
 
-No `pip install`, no build step beyond the tool itself, no JavaScript
-framework in the output. Python 3.8+ (standard library only); on
-Windows, run `python lightwebpres <command>`. Every generated page is a
-single `.html` file with inline CSS and JS. Images referenced by the rendered
-pages are copied to `public/img/` by default; unused files in `sources/img/`
-are not published, while existing output assets are left in place.
-`--inline-images` embeds Markdown images instead, so pages using them can
-travel as one file. The output opens straight from disk or any static host.
+Open `my-series/public/index.html` in your browser. On Windows, use `python`
+instead of `python3`. Continue with the [quickstart](#quickstart) or the
+[step-by-step guide](GUIDE.md#2-set-up--your-first-build).
 
-**Every page is a presentation deck.** Open it in a browser and you have
-a presenter experience with fullscreen available: keyboard (↑/↓, Home for the
-page beginning, Ctrl/Cmd+Home for the series index, End and +/-/= for deck
-edges and page zoom, F for fullscreen,
-I for smooth or instant scrolling, B/W/T for pause screens, C for
-compiled themes, H for keyboard help, S for sharing, M for the presenter
-menu), mouse (click to advance,
-right-click to go back, middle button to leave fullscreen), and touch
-(swipe) all work out of the box. Entering fullscreen with the mouse is
-a two-step gesture — middle button, then a left click (F or the ⛶
-button enters directly). A click while the deck is gliding to
-the next card jumps straight to its target — two clicks in quick
-succession land two pages on, a right-click during the glide returns to
-the card you left. The presenter menu's Scroll action, or **I**, toggles the
-configured glide duration and an instant jump; `series_meta.scroll_duration`
-sets the series default and `--scroll-duration` overrides it for a build. The
-lower-right navigation controls form one column: from
-bottom to top, Menu, down, up and fullscreen. The arrows are grayed when they
-cannot move further; the series-index action, sharing and tag filters live in
-the presenter menu.
-Every navigation action keeps its selected target visible: index and
-series-navigation cards are fully shown when they fit, while a slide taller
-than the screen enters at the top and its bounded reading steps end at the
-corresponding top or bottom edge.
-Navigation buttons fade
-after 3 seconds of idleness (1 second in fullscreen) — the speaker sees
-only slides. The cursor hides on the same clock, and both come back on
-the same condition: 250 ms of continuous mouse movement, so a knock
-against the desk puts nothing back on the wall. The scroll bar goes with
-them — it is navigation too, and it fades rather than being removed, so
-the page never reflows. The mouse becomes a
-remote: left-click advances, right-click goes back, two distinct buttons,
-no aiming. Fullscreen requests a screen wake lock where the browser supports
-it, so the screen can stay awake mid-talk. An `X / N` counter and a direct number-jump (type the slide
-number, press Enter) keep you oriented in long decks; **N** opens a speaker
-panel with the current slide's notes and the next slide's title, so you can
-read ahead unseen. And every article page prints one slide per sheet — a clean
-PDF handout at Ctrl/Cmd+P; the index has no slides and prints as an index page.
+**One page, two uses.** Read in portrait with touch swipes and text that
+adapts to the phone, or present in landscape with keyboard and mouse controls.
+Press **F** for fullscreen; changing orientation alone does not request it.
+Press **H** for keyboard help. The [presentation controls](GUIDE.md#9-presenting)
+are documented in full in the guide.
 
-**Portrait reading and landscape presentation have equal weight.** The same
-page adapts to a phone: touch swipes, readable measures and controls that get
-out of the way leave the content usable in portrait mode instead of shrinking
-a desktop slide until it becomes a poster stamp.
-
-**Landscape is for the room too.** In a wide or landscape viewport the page
-becomes a public presentation surface, with the left and right mouse buttons
-as a simple remote to advance and go back without aiming at a control. Enter
-fullscreen explicitly with `F` or the fullscreen button; changing orientation
-alone does not request it. The featured previews below are real `640x360`
-renders of that mode in the `lava`, `terminal` and `pop-lemon` themes.
+The previews below are real `640x360` landscape renders in the `lava`,
+`terminal` and `pop-lemon` themes, not palette swatches.
 
 <figure>
   <img src="generated/themes-featured.png" alt="Three real 16 by 9 LightWebPres presentation covers in the Lava, Terminal and Pop Lemon themes" width="100%">
@@ -131,7 +86,7 @@ renders of that mode in the `lava`, `terminal` and `pop-lemon` themes.
 - **Built-in presentation mode.** Every generated page can become a full-screen
    presenter deck: keyboard (↑/↓, Home for the page beginning,
    Ctrl/Cmd+Home for the series index, End, +/-/= page zoom, F fullscreen, B/W/T pause
-   screens, C compiled themes, H keyboard help, S sharing, M presenter menu), mouse (click advance,
+   screens, I smooth or instant scrolling, C compiled themes, H keyboard help, S sharing, M presenter menu), mouse (click advance,
   right-click back, middle button
   leaves fullscreen; entering is a two-step gesture — middle button,
   then a left click), touch (swipe, double tap). Navigation
@@ -147,10 +102,10 @@ renders of that mode in the `lava`, `terminal` and `pop-lemon` themes.
   focus walks the cards and scrolls the page along), instead of a slide.
 - **Speaker aids for long decks.** A `X / N` counter, a type-a-number
   jump (Enter to land on slide N), and a speaker panel (**N**) that shows
-  the current slide's `note:` field (a speaker note withheld from the
-  audience) with the next slide's title — all fighting for the speaker's
-  attention, not the audience's. Every article page also prints one
-  slide per sheet (Ctrl/Cmd+P → PDF) with the theme colours kept and the
+  the current slide's `note:` field with the next slide's title. This panel
+  opens in the same page: a projected or shared screen shows it too. Notes
+  are embedded in the HTML, not private content. Every article page also
+  prints one slide per sheet (Ctrl/Cmd+P → PDF) with the theme colours kept and the
   navigation chrome stripped.
 - **Comes with a companion web page, not just a CLI.** One browser-based
   tool, nothing to install: one tab builds a zip you drop in, the other
@@ -187,10 +142,13 @@ renders of that mode in the `lava`, `terminal` and `pop-lemon` themes.
 ## Quickstart
 
 ```bash
-./lightwebpres init my-series             # scaffold a series directory
-./lightwebpres demo my-series --lang en      # generate + build 3 example articles (English UI)
-open my-series/public/index.html
+python3 lightwebpres init my-series          # scaffold a series directory
+python3 lightwebpres demo my-series --lang en # generate + build 3 example articles
 ```
+
+Open `my-series/public/index.html` in a browser. Later examples use
+`./lightwebpres`; on Unix, enable that form with `chmod +x lightwebpres`, or
+keep using `python3 lightwebpres` (`python lightwebpres` on Windows).
 
 Then write your own `.md` files in `my-series/sources/`, add a `{"page_source":
 "apple-pie.md"}` entry per article to `my-series/series.json` (that's the
@@ -394,21 +352,19 @@ A slide field has no cascade — it is written on a slide or it is not —
 so `resolve fact-label` answers with every slide that sets it, across
 the series or within one article.
 
-### Paquets de présentation et préréglages
+### Presentation packages and presets
 
-Un paquet de présentation versionné possède la structure, les layouts, le
-chrome, les assets et le CSS structurel contraint de ses fiches, **pas** le
-shell de page : LWP conserve le `<head>`, le `<body>`, la navigation, le script
-et la `<section>` de chaque fiche. Ses fragments ne peuvent employer que
-`{{content}}`, `{{slide_header}}` et `{{slide_footer}}` (`{{content}}` seul
-pour l'index).
+A versioned presentation package owns its slides' structure, layouts,
+headers and footers, assets, and constrained structural CSS, **not** the
+page shell: LWP keeps the `<head>`, `<body>`, navigation, script and each
+slide's `<section>`. Package fragments can use only `{{content}}`,
+`{{slide_header}}` and `{{slide_footer}}` (only `{{content}}` for the index).
 
-Un seul sélecteur est persisté :
-`series_meta.presentation_preset`, de forme exacte
-`id@MAJOR.MINOR.PATCH/preset`. Il n'existe ni sélecteur par article ni dans le
-bloc `lwp:meta` : omettre le champ conserve le rendu intégré virtuel `default`.
-Le sélecteur CLI littéral `default` signifie cette omission, jamais une valeur
-écrite dans `series.json`.
+Only one selector is persisted: `series_meta.presentation_preset`, in the
+exact form `id@MAJOR.MINOR.PATCH/preset`. There is no per-article selector
+or selector in `lwp:meta`: omitting the field keeps the virtual built-in
+`default` rendering. The literal CLI selector `default` means this omission,
+never a value written into `series.json`.
 
 ```json
 {
@@ -418,25 +374,24 @@ Le sélecteur CLI littéral `default` signifie cette omission, jamais une valeur
 }
 ```
 
-Les anciens champs auteur `presentation_template`, `slide_layouts` et
-`slide_chrome` sont retirés et rejetés, ils ne sont pas ignorés. Les deux
-derniers restent des clés internes valides d'un manifeste, où un préréglage
-déclare ses propres valeurs par défaut.
+The former author fields `presentation_template`, `slide_layouts` and
+`slide_chrome` are retired and rejected, not ignored. The last two remain
+valid internal manifest keys through which a preset declares its defaults.
 
-Les quatre types de fiche acceptent toujours `slide-layout`, `slide-header` et
-`slide-footer`. Ce sont des overrides par fiche des défauts du préréglage
-sélectionné, pas une cascade JSON auteur. Le thème déclaré par le préréglage est
-la base typée : thème de base < pins de `settings.conf` < `style.*` de l'article
-< styles d'instance; `templates/custom.css` reste le CSS final avancé. Les
-assets déclarés sont publiés sous
-`public/assets/presentations/<id>/<version>/...`, ou inlinés par
-`--inline-images`.
+All four slide types still accept `slide-layout`, `slide-header` and
+`slide-footer`. These override the selected preset's defaults for one slide,
+not through an author JSON cascade. The preset's theme supplies the typed
+base unless `settings.conf` explicitly selects another theme. Precedence is:
+base theme < `settings.conf` pins < article `style.*` < instance styles;
+`templates/custom.css` remains the final advanced CSS layer. Declared assets
+are published under `public/assets/presentations/<id>/<version>/...`, or
+embedded by `--inline-images`.
 
-Le paquet utilisé par le guide officiel est lui-même un exemple suivi dans
-`examples/layouts/lightwebpres-docs/0.1.0/`. Ce n'est ni une seconde source du
-guide ni une sortie générée : `tools/build_guide.py` le vendorise dans sa série
-temporaire, puis copie aussi l'asset produit dans `generated/guide/`. La garde
-du guide compare cet arbre entier, pas seulement les deux fichiers HTML.
+The official guide's package is a tracked example in
+`examples/layouts/lightwebpres-docs/0.1.0/`, not a second guide source or
+generated output. `tools/build_guide.py` vendors it into its temporary
+series, then copies the published asset into `generated/guide/` too. The
+guide's freshness test compares that entire tree, not just the two HTML files.
 
 ```bash
 ./lightwebpres preset list
@@ -446,19 +401,19 @@ du guide compare cet arbre entier, pas seulement les deux fichiers HTML.
 ./lightwebpres series preset set [dir] --preset <id@MAJOR.MINOR.PATCH/preset|default> [--keep-theme|--use-preset-theme]
 ```
 
-`init --preset` valide et vendorise le paquet sous
-`templates/layouts/<id>/<version>/`, écrit le sélecteur, génère les réglages à
-partir du thème du préréglage et applique son starter déclaré, sauf avec
-`--no-starter`. `series preset set` vendorise et sélectionne sans starter; il
-préserve les pins et `custom.css`. Si `settings.conf` contient un `theme:`
-explicite, il exige `--keep-theme` ou `--use-preset-theme`; ce dernier retire la
-ligne `theme:`.
+`init --preset` validates and vendors the package under
+`templates/layouts/<id>/<version>/`, writes the selector, generates settings
+from the preset's theme and applies its declared starter unless
+`--no-starter` is passed. `series preset set` vendors and selects without a
+starter; it preserves pins and `custom.css`. If `settings.conf` contains an
+explicit `theme:`, it requires `--keep-theme` or `--use-preset-theme`; the
+latter removes that line. `--keep-theme` requires an explicit `theme:`.
 
-`LWP_PRESENTATION_PACKAGES_DIR` remplace le catalogue utilisateur. Le namespace
-physique reste `layouts/<id>/<version>/` dans un catalogue et
-`templates/layouts/<id>/<version>/` une fois vendorisé; une collision
-id/version remplace le paquet entier. Le manifeste complet, la validation des
-symlinks/chemins et les règles de fragments sont dans `specifications.md` §9.9.
+`LWP_PRESENTATION_PACKAGES_DIR` replaces the user catalogue location. The
+on-disk namespace remains `layouts/<id>/<version>/` in a catalogue and
+`templates/layouts/<id>/<version>/` once vendored; an id/version collision
+shadows the entire package. See `specifications.md` §9.9 for the complete
+manifest, symlink/path validation and fragment rules.
 
 ## Commands
 
@@ -467,7 +422,7 @@ symlinks/chemins et les règles de fragments sont dans `specifications.md` §9.9
 | `init [dir]` | Scaffolds a series directory (`sources/`, `templates/` with your `settings.conf` and `custom.css`, empty `interface/`, `typography/` and legacy `language/` directories, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed). `--preset id@MAJOR.MINOR.PATCH/preset` validates and vendors its package, writes `series_meta.presentation_preset`, generates settings from its theme, and applies its declared starter unless `--no-starter` is passed. The tool's own files — the navigation script and language packs — stay in the executable and are read from there, so upgrading it is the whole upgrade |
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field; `--dry-run` journals the files and reports the build plan without touching the series |
 | `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file` targets one article when the navigation cache is safe but still refreshes derived outputs (article, index/README/images according to the options, manifest and cache), falling back to a full build if anything affecting `index.html`/navigation changed (see specifications.md §11.3.1). Standard builds copy only images referenced by their rendered pages; `--inline-images` embeds Markdown images as base64 data URIs (no `img/` directory); the essential runtime theme bundle is embedded by default, with `--themes selectors|all` adding more |
-| `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate; pass the same `--themes` and `--no-essential-theme` decision used by the build |
+| `verify [dir]` | Rebuilds in memory and diffs against `public/`; non-zero exit on drift, usable as a CI gate. Match the build's supported rendering options, including `--lang`, `--themes` and `--no-essential-theme`. It does not accept `--inline-images` and cannot reproduce that mode; use a separate non-inline output for verification |
 | `audit [dir]` | Non-blocking warnings. It reads the sources (editorial — e.g. "no cover slide" — tags and language packs), judges the *resolved* stylesheet (a navigation control nobody can see, text painted the colour of its own ground, a size under the readability floor), checks the presentation layer (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme), renders the series in memory to report what only composing it can say, and prints a rendered image inventory with inline/figure counts plus unused or missing local assets. Exit 0 whatever it finds, unless `--strict` is passed |
 | `template update [dir]` | Clears the tool's own files out of a series: a copy identical to the built-in one is removed (it did nothing but freeze you), a differing `nav.js` is saved as `.bak` and removed, and a differing interface or typography pack is reported and kept. Also creates a missing `settings.conf`/`custom.css`; never touches a file you own |
 | `template show <file>` | Prints one of the files the executable owns — `nav.js`, `fr.json`, `en.json`, `interface/fr.json`, `interface/en.json`, `typography/fr.json`, `typography/en.json` — on stdout. No series needed: the answer is inside the program |
@@ -586,8 +541,10 @@ file; omitting the directive entirely remains a fatal error.
  Every slide (and `series.json`/the article's own meta block) also
  accepts `comment:` — a review note, recognized but never rendered, never
  published, not even in the page's raw HTML source. A `note:` field is the
- speaker note: also parsed and withheld from the slide the reader sees, but
-  surfaced by the presenter panel (**N**) for the person presenting. `note:`
+ speaker note: embedded in the HTML as a hidden element and displayed by
+ the presenter panel (**N**) in the same page. A projected or shared screen
+ shows the open panel too; anyone with the HTML can read the notes. They
+ are not confidential. `note:`
   is accepted on `cover` and standard slides. It is
  distinct from a `[^label]` footnote, which is a source note printed for the
  reader (see below). Both `note:` and `comment:` accept multi-line values:
