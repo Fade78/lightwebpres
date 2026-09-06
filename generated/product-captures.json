@@ -1,0 +1,32 @@
+{
+  "inputs": {
+    "lightwebpres": "e705bd615caa858b88317a8d1945b04143e4aa106c4951122fe1b9120b9e58cc",
+    "tools/screenshot-product.cjs": "e311cb876b6450e5b0dfd12742fb25a8269e896c5a2cc77b8cc257e691ac6d49",
+    "examples/first-article/series.json": "381a563a55fdbe2a06662adcab3995ae467a0b1b15fecec977d6c6c505ed6e75",
+    "examples/first-article/sources/first-page.md": "2a426775d0e718abb98baa31272a101e1dce074442a5f739b7f67a55c2ebfa66",
+    "examples/first-article/templates/settings.conf": "4c12ba4e0c6f1351e3555e33051be32a3ed72d48ab377dd0c8dc2688a0846fde"
+  },
+  "browser": "145.0.7632.6",
+  "captures": [
+    {
+      "name": "landscape",
+      "width": 960,
+      "height": 540,
+      "isMobile": false,
+      "hasTouch": false,
+      "deviceScaleFactor": 1,
+      "file": "generated/product-landscape.png",
+      "sha256": "138657891fb3fc6692f6883ca883baff85c2174e009adfe92574393f39cb4246"
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844,
+      "isMobile": true,
+      "hasTouch": true,
+      "deviceScaleFactor": 1,
+      "file": "generated/product-mobile.png",
+      "sha256": "7b854dc0be5256c67a5298eb7567cfa541d07ef9050828709dc8d36431d6fd98"
+    }
+  ]
+}

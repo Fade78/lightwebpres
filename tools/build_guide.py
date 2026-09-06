@@ -20,9 +20,11 @@ the guide is written in English and the interface strings around it
 have to match it.
 """
 import argparse
+import html
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -81,9 +83,37 @@ def build(output, theme=None, lang='en'):
 
         sources = series / 'sources'
         shutil.copy(deck, sources / 'guide.md')
-        # The long-form piece IS the guide, verbatim. No second copy lives
-        # anywhere: it is assembled here and thrown away with the tempdir.
-        shutil.copy(guide, sources / 'guide_article.md')
+        # Adapt repository Markdown links outside examples: LWP only converts
+        # HTTP(S) Markdown links and does not assign IDs to body headings.
+        lines = []
+        fenced = False
+        for line in guide.read_text(encoding='utf-8').splitlines():
+            if line.startswith('```'):
+                fenced = not fenced
+            elif not fenced:
+                if line.startswith('## '):
+                    title = line[3:]
+                    anchor = re.sub(r'[^\w -]', '', title.lower()).replace(' ', '-')
+                    line = f'<h2 id="{anchor}" tabindex="-1">{html.escape(title)}</h2>'
+                # The deck's hash handler navigates to the containing slide.
+                # Chapter links instead focus/scroll inside this long article;
+                # without JS their href still provides native anchor navigation.
+                line = re.sub(
+                    r'(?<!!)\[([^\[\]]+)\]\((?!https?://)([^)]+)\)',
+                    lambda m: '<a href="' + html.escape(
+                        m[2] if m[2].startswith('#') else
+                        'https://github.com/Fade78/lightwebpres/blob/main/' + m[2],
+                        quote=True) + '"' + (
+                        ' onclick="document.getElementById(this.hash.slice(1)).focus(); '
+                        "document.activeElement.scrollIntoView({behavior: 'instant'}); "
+                        'return false;"' if m[2].startswith('#') else '') +
+                        '>' + html.escape(m[1]) + '</a>', line)
+                line = line.replace('generated/product-', 'img/product-')
+            lines.append(line)
+        (sources / 'guide_article.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+        (sources / 'img').mkdir(exist_ok=True)
+        for name in ('product-landscape.png', 'product-mobile.png'):
+            shutil.copy(ROOT / 'generated' / name, sources / 'img' / name)
         (series / 'series.json').write_text(
             json.dumps(SERIES, indent=2, ensure_ascii=False), encoding='utf-8')
 

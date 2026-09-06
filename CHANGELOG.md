@@ -54,6 +54,15 @@ from editorial recommendations. CI examples use matching languages and
 document that `verify` cannot reproduce `--inline-images`. Contextual CLI
 help distinguishes command modifiers from the leading `--version` action.
 
+The README is now a product entry point with one canonical quickstart; the
+GUIDE owns the operational manual, including a complete first personal
+article, publication cleanup, browser deployment and maintenance. Unique
+reference material has been merged into those task-oriented chapters.
+Tracked example sources and a Playwright regeneration script produce real
+landscape and emulated-mobile captures of the same content card and theme.
+The compiled guide includes those images and working chapter links. The
+optional guest method remains unchanged by this documentation reorganization.
+
 ## v0.53.3
 
 Presentation navigation now reanchors the active slide after viewport and

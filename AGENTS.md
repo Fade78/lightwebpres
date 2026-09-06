@@ -102,6 +102,14 @@ pas reproductible à l'octet, à refaire à la main quand la galerie change.
   publiés par le paquet de démonstration (garde :
   `test_the_committed_guide_is_the_guide_the_tool_makes`, qui compare tout
   l'arbre hors manifestes `.lwp-*`).
+- `generated/product-landscape.png`, `generated/product-mobile.png` et
+  `generated/product-captures.json` — `node tools/screenshot-product.cjs`,
+  depuis `examples/first-article/`. Playwright installé résolu par Node
+  (au besoin `NODE_PATH="$(npm root -g)"`), Chromium de son cache par défaut
+  ou `PW_CHROMIUM_PATH`. Le script vérifie les limites du texte et capture
+  une même fiche en paysage et viewport mobile émulé ; `--check` et la suite
+  vérifient les empreintes des entrées et images, pas une identité des pixels
+  entre plateformes. Inspecter les captures puis régénérer le guide.
 - `generated/golden-demo/` — la série démo (`init --theme pop-lemon` +
   `demo` + `build`) committée comme garde d'identité de rendu : tout
   changement de sortie échoue

@@ -1,219 +1,174 @@
 <!-- lwp:meta -->
 page_title: LightWebPres — the guide
-page_desc: The guide to LightWebPres, built with LightWebPres.
+page_desc: Create, customize, verify and publish a LightWebPres series.
 nav_title: Guide
-nav_desc: Setup, anatomy of a page, series, look, shipping
+nav_desc: First article, page anatomy, series, presentation and publication
 ---
 
 <!-- lwp:slide:cover -->
 slug: lightwebpres
-kicker: Guide
+kicker: Product manual
 slide-layout: hero
 # LightWebPres
-summary: Markdown in, self-contained HTML out. This deck is the short version; the article below it is the guide itself, and both were built by the tool they describe.
+summary: One Markdown source for reading and presenting. Start with this overview, then use the complete operational manual below.
 
 ---
 
 <!-- lwp:slide -->
 slug: ce-qu-il-fait
-kicker: Scope
-## What it does, and what it leaves to you
+kicker: Output
+## Pages that carry their runtime
+fact-label: What to publish
+source: Guide, chapters 1 and 7
 
-fact-label: The line
+Each article is an HTML file with its CSS and JavaScript inside. The build
+also derives a series index and navigation. Publish **public/**, including
+referenced images and presentation-package assets, to a static host.
 
-LightWebPres renders. It does **not** teach writing — it is for people who already know how, and it takes whatever you put in it.
-
-A second skill, `sourced-presentation`, ships alongside as a courtesy for anyone who would like a method. It is an offered interface, not the core of this.
+Readers need a browser, not Python or LightWebPres. The source remains plain
+text; the manual describes how to operate the tool, not an editorial method.
 
 ---
 
 <!-- lwp:slide -->
 slug: trois-commandes
-kicker: Setup
-## Three commands to a built site
+kicker: Start
+## Two commands to see a working site
+fact-label: Demo first, then your own article
+source: Guide, chapters 1 and 2
 
-fact-label: The whole loop
-source: Guide, section 2
+Run `python3 lightwebpres init my-series`, then
+`python3 lightwebpres demo my-series --lang en`.
+**Demo already builds.** Open `my-series/public/index.html`.
 
-`init` scaffolds, `demo` fills it with something real to look at, `build` writes `public/`. Normally `demo` runs that build too. Under `--dry-run`, it journals the demo files and reports the build as a plan instead of reading the old on-disk series, which is not yet the demo series. Every page is a single self-contained file — no server, no external runtime dependency, nothing to load. The essential runtime theme bundle is embedded by default; explicit `--themes` or root `series.json` `themes` selections add to or shape the catalogue, and `--no-essential-theme` opts out.
-
-`--lang en` chooses the build-wide fallback. An article's meta-block `tags:`
-can gate the article itself; slide-header `tags:` selects content inside it.
-`series_meta.default_tag` chooses the initial selection, and
-`series_meta.lang_tags` can select a typography pack per slide.
+Next, create `sources/first-page.md`, register its filename in `series.json`
+and run `build --lang en --open`. The manual supplies the complete source and
+JSON, followed by `audit` and `verify`. No extra build belongs before that edit.
 
 ---
 
 <!-- lwp:slide -->
 slug: anatomie
 kicker: Anatomy
-## A page is slides, a slide has components
-
+## Four slide types, one source file
 highlight: 4
-highlight-caption: slide types — cover, standard, series-nav, full-article
+highlight-caption: cover, standard, series-nav and full-article
+fact-label: Fields first, body after
+source: Guide, chapter 3
 
-fact-label: What is in a standard slide
+A cover supplies the title. A standard slide accepts text, images, tables,
+notes and optional named components. A series-nav slide generates links;
+a full-article slide includes a separate plain Markdown file.
 
-A fact box, a key figure, a source line, a comparison table, a figure. Each is reached by a named field or by ordinary Markdown; none of them needs CSS. A figure can use `{50%}` for general image zoom or `{width=50% align=right}` for the extended display format.
+Every slide declares its stable `slug:`. Fields occupy one physical line,
+except indented continuations of `note:` and `comment:`. Once free text
+starts, later field-looking lines are text too.[^syntax]
 
-An editor that needs the grammar can call `lightwebpres contract`: the
-versioned response lists the four types, their fields, cardinalities, empty
-value rules and a complete source skeleton for each one. It is read-only; pass
-`--article file.md` when the generated slugs must avoid cards already in a
-source file.
-
-The switch from fields to free text is **one-way within a slide**: once a line is not a `field:` line, everything after it is prose.
-
-A note[^note] is reached the standard way, and its number is a position rather than the label you wrote. Notes are not a full-article feature: this is a standard card, and the note below is on it.
-
-[^note]: `[^label]` calls it, `[^label]: text` defines it. `notes_placement: local` — the default — lands the body at the foot of the unit that called it, which is why this one is here rather than at the end of the page. Set `notes_placement: page` to gather every note of an article into one section instead, and `notes_tooltip: on` to put the text in the call's tooltip as well. Both cascade: built-in default, then `series_meta`, then the article's own meta block. A label is word characters only — letters, digits, `_`, accents included, no `-`, no space, no punctuation; anything else is neither a note nor an error, and `audit` is the only thing that says so.
+[^syntax]: `lightwebpres contract` exposes accepted fields and parseable skeletons. `note:` is public HTML for the speaker panel; `comment:` is source-only. Footnotes such as this one are reader-visible references, not speaker notes.
 
 ---
 
 <!-- lwp:slide -->
 slug: tags
-kicker: Tags
-## Several readings, one HTML page
+kicker: Series
+## Order articles and inspect their visibility
+fact-label: Registration and filtering are separate
+source: Guide, chapter 4
 
-fact-label: The shared vocabulary
+The `articles` array in `series.json` fixes the index and navigation order.
+Only `page_source` is required per entry. `status` shows resolved metadata;
+`series tags` reports effective article and slide visibility without building.
 
-An article may carry `tags: fr` in its meta block, while `tags: fr` and
-`tags: en` on slides put adjacent language versions in one source file. A
-slide without tags is `default`, shared by every non-default selection;
-`excluded` is removed at build time. Press **L** to select a tag without
-reloading. The menu shows the active tag, counts the visible cards and slides,
-and lists their titles. The choice is stored in `localStorage['lwp-active-tag']`,
-cards and slides follow the same selection, and `series_meta.default_tag` sets
-the initial tag when nothing is stored. `build` and `audit` warn when a tag has
-no effective slide or an article has no non-excluded slide.
-
-For the source-level inventory, `lightwebpres series tags my-series` reports
-the effective articles and slides by tag, status totals, and the default
-output; `--tag fr` narrows it. `status --format json` carries the same report
-for a consumer that already asks what the series resolves to.
-
-Declare `series_meta.lang_tags: {"fr": "fr", "en": "en"}` when typography
-must follow the selected language. The first mapped tag on a slide wins; the
-build's `--lang` remains the fallback.
+Article tags gate the article, slide tags gate its content. Untagged slides
+are shared with non-default selections. **L** opens the reader's tag menu;
+`excluded` removes a slide at build time. Tags are not access control.
 
 ---
 
 <!-- lwp:slide -->
 slug: paquets-presentation
-kicker: Structure
-## Paquets de présentation, pas des pages
+kicker: Layouts
+## Select a preset for the series
+fact-label: Inner structure, not a replacement runtime
+source: Guide, chapter 5
 
-fact-label: Ce qui change, ce qui reste à LWP
+A presentation package supplies layouts, headers, footers, assets and a typed
+theme. LWP keeps the page shell, navigation and script. Select it through
+`series_meta.presentation_preset`; absence means the built-in `default`.
 
-`series_meta.presentation_preset: id@MAJOR.MINOR.PATCH/preset` est le seul choix persisté : il vaut pour toute la série et son index. Sans ce champ, le rendu intégré virtuel est `default`; le sélecteur CLI `default` demande cette omission. Le paquet possède seulement la structure, les layouts, le chrome, les assets et son CSS structurel contraint, jamais le `<head>`, le `<body>`, la navigation ou le script.
-
-Les champs auteur `presentation_template`, `slide_layouts` et `slide_chrome` sont rejetés; les deux derniers restent internes au manifeste pour les défauts d'un préréglage. Les quatre types de fiche acceptent `slide-layout`, `slide-header` et `slide-footer` comme overrides de ces défauts, sans cascade JSON auteur. `preset list/show`, `series preset` et `series preset set` lisent ou sélectionnent un préréglage; `init --preset ...` le vendorise et applique son starter déclaré, sauf `--no-starter`.
+Use `preset list`, `preset show` and `series preset set` to inspect or change
+the choice. `init --preset` can also apply the package's starter.
+Per-slide `slide-layout`, `slide-header` and `slide-footer` override defaults.
 
 ---
 
 <!-- lwp:slide -->
 slug: gestes
-kicker: Look
-## Four value overrides, then CSS rules
+kicker: Customization
+## Change the smallest layer that does the job
+fact-label: Values first, advanced CSS when needed
+source: Guide, chapter 5
 
-fact-label: Pick the smallest one that does the job
+A theme sets the base. `settings.conf` pins values for the series; `style.*`
+metadata changes one page; instance tags change one phrase. The compiler
+checks typed property names and values. `custom.css` adds unrestricted rules
+after the composed stylesheet.
 
-A **theme** repaints the series from one word. An **instance tag** changes one phrase. A `style.` line in a page's meta block changes that page. `settings.conf` changes the series, and `custom.css` adds rules rather than values.
-
-The stylesheet is composed in memory at every build, so nothing the tool writes can collide with anything you wrote.
+`resolve` explains a surprising value, including the levels that lost.
+`series theme` measures the effective typed colors; it does not certify
+arbitrary custom CSS or repair a palette.
 
 ---
 
 <!-- lwp:slide -->
 slug: themes
-kicker: Look
-## Themes, found by facet
+kicker: Reading and presenting
+## Keep alternatives within reach
+fact-label: The same page, a different viewing choice
+source: Guide, chapters 5 and 8
 
-highlight: 3
-highlight-caption: facets — family, polarity, hue — narrowing a catalogue too long to read
+**C** opens the theme picker. Monochrome, Monochrome Night and Print Ink ship
+by default; `--no-essential-theme` opts out. Select Print Ink before printing
+when you want black on white: printing keeps the active theme.
 
-fact-label: Why facets rather than a list
-
-A list of names tells you nothing. What the theme is for, light or dark, and what hue the page carries will get you to a shortlist of three.
-
-`theme gallery` renders every one of them against real slide content. The
-global catalogue combines the embedded themes with complete UTF-8 `.conf`
-snapshots from the installed and user roots; a series can add its own
-`templates/themes/` snapshots on top. `LWP_THEMES_DIR` replaces the user root.
-The order is embedded, installed, user, series, and a collision replaces the
-whole lower entry rather than inheriting it. Use `builtin:<slug>` to select an
-embedded theme hidden by a local file.
-
-`build --themes print-ink,print-grey` embeds a searchable picker: **C** opens
-it, and **M** opens the global presenter menu. The same list can be written as
-`"themes": ["essential", "family:terrain", "bgh:red"]` at the root of
-`series.json`; `essential` means Monochrome, Monochrome Night and Print Ink.
-The effective theme from `templates/settings.conf` is always the first base
-choice. When the file has property pins, the first runtime choice is named
-`custom(<theme>)` and the raw base theme is also present; those pins apply only
-to the custom choice. An explicit CLI value overrides the JSON list, while
-page styles and declared custom CSS variables remain in force as the reader
-switches.
-
-Create or make a theme portable explicitly:
-
-```bash
-./lightwebpres theme create my-theme --from evergreen
-./lightwebpres theme migrate my-series
-./lightwebpres theme vendor my-series --themes my-theme,evergreen
-```
-
-`theme create` writes a complete editable snapshot, `theme migrate` keeps only
-the selected theme and explicit pins in an old scaffold, and `theme vendor`
-copies complete snapshots into the series. No theme file uses `extends`.
-
-Every build embeds that `essential` bundle by default — Monochrome, Monochrome
-Night and Print Ink — so **C** works on any page without the author opting in.
-Accessibility: Monochrome is high-contrast ink with no hue, Monochrome Night is
-the same on a dark ground, Print Ink is pure black on white. Print: Print Ink is
-drawn for paper: press **C**, select **Print Ink**, then `Ctrl`/`Cmd`+`P`.
-Printing keeps the active theme; it does not switch automatically.
-Sobriety: none of the three carries a hue, so the set never clashes
-with a series built around one. `--no-essential-theme` (build/verify/watch) opts
-out; the page then carries no runtime picker unless `--themes` or
-`series.json["themes"]` adds one.
-
-The presenter menu's Scroll action, or **I**, toggles between the configured
-slide glide and an instant jump. The picker is a visual catalogue as well as a
-list: each choice uses the
-theme's resolved page and cover background, including its gradient, and the
-foreground ink chosen for that ground. **M** opens the presenter menu; its
-actions carry icons and their keyboard shortcuts, which remain active while
-the menu is open, and the lower-right Menu button opens the same list.
+**M** opens the presenter menu, **F** requests fullscreen, **H** lists the
+controls and **S** shares a link or QR code. A projected screen also shows an
+open speaker panel: **N** is not a private presenter window.
 
 ---
 
 <!-- lwp:slide -->
 slug: pipeline
 kicker: Automation
-## A step in a content pipeline
+## One engine at the terminal or in a browser
+fact-label: Build, inspect, maintain
+source: Guide, chapters 6, 9 and 10
 
-highlight: 0
-highlight-caption: dependencies to install — the Python standard library is all it uses
+The CLI runs unattended with Python's standard library. `watch` rebuilds on
+edits; `--only` targets an article when the navigation cache is safe. Language
+packs separate interface strings from build-time typography.
 
-fact-label: What makes it pipeline-shaped
-
-Every command runs unattended and returns a meaningful exit code. `verify` fails on drift and `audit --strict` fails on anything worth reporting — two gates, two questions. Plain `audit` never fails, whatever it finds. Every path is an environment variable, so a runner lays the pieces out as it likes.
-
-The Markdown can come from anywhere — a CMS export, a database, a generator, an agent upstream. LightWebPres is the step that turns it into publishable pages.
+The browser builder runs the same executable under Pyodide: upload a series
+zip, or pull/build/push with GitLab. Serve the builder over HTTP(S).
+Sanitize untrusted input upstream: raw HTML is passed through by the engine.
 
 ---
 
 <!-- lwp:slide -->
 slug: verifications
-kicker: Shipping
-## Two checks, two different moments
+kicker: Publication
+## Two checks answer different questions
+fact-label: Match the check to the question
+source: Guide, chapter 7
 
-fact-label: A nudge and a gate
+`audit` renders in memory and reports source and style warnings without
+writing output. Plain audit exits zero; `--strict` turns warnings into a
+gate. `verify` compares a fresh in-memory render with the files on disk and
+fails on drift. Use the same supported rendering options as the build.
 
-`audit` flags what is worth a second look and **normally does not fail** — a missing cover, a stale scaffold comment, a retired variable still referenced, a composed stylesheet whose navigation control or body text has gone invisible. It also **renders the whole series in memory**, throws the HTML away, prints the rendered image inventory, and keeps what composing it had to say — including that the series does not build at all. Nothing is left out: drafts and `ignored` articles are looked at too, because work in progress is what an authoring tool is for. Pass `--strict` when those warnings must fail CI.
-
-`verify` rebuilds in memory and diffs against `public/`, exiting non-zero on any difference. That exit code is what makes it a CI gate.
+**Inspect the rendered page before publishing.** Verify cannot reproduce
+`--inline-images`. Removing an article does not delete an old hosted file;
+review `clean` locally and the host's stale files separately.
 
 ---
 

@@ -1,1074 +1,248 @@
 <p align="center">
-  <img src="web/lwp_banner.svg" alt="LightWebPres — Markdown in, publish-ready pages out" width="100%">
+  <img src="web/lwp_banner.svg" alt="LightWebPres: Markdown in, publish-ready pages out" width="100%">
 </p>
 
 # LightWebPres
 
-A single-file Python tool that turns one Markdown source into a page for
-phone reading and landscape presentation. Each HTML article carries its own
-CSS and JavaScript, with series navigation and an index for static hosting.
+**Write one Markdown source. Read it on a phone, present it in landscape,
+publish it as a static site.**
 
-Get `lightwebpres` from the [GitHub releases](https://github.com/Fade78/lightwebpres/releases)
-(the release file or the source archive). You need Python 3.8+ and no extra
-packages. From the directory containing the executable:
+LightWebPres is a single-file Python tool that builds scrollable HTML
+articles with slide navigation, optional long-form text and a series index.
+Each article carries its CSS and JavaScript: readers need a browser, not
+LightWebPres, a viewer account or a presentation service.
+
+## One page, two uses
+
+The same content card and `evergreen` theme, rendered by LightWebPres in
+Chromium. The text and layout below are actual output, not a design mockup.
+
+**Landscape presentation, 960 × 540 CSS pixels**
+
+![Evergreen content card in landscape: The runtime travels with the page; one HTML file per article, with CSS and JavaScript inside, plus an instruction to keep local image assets](generated/product-landscape.png)
+
+**Emulated mobile viewport, 390 × 844 CSS pixels**
+
+<img src="generated/product-mobile.png" alt="The identical card in a narrow portrait viewport: the title, one HTML highlight and asset reminder reflow vertically" width="390">
+
+These are browser viewport captures, not photographs of physical devices.
+The [source example](examples/first-article/sources/first-page.md) is tracked
+and the [capture script](tools/screenshot-product.cjs) rebuilds it before
+taking either image.
+
+In portrait, scroll and swipe through the page. In landscape, use keyboard
+or mouse navigation. Press **F** for fullscreen and **H** for help; rotating
+the screen alone does not request fullscreen. Long content remains readable
+by scrolling rather than being cut to fit a slide.
+
+## Quickstart
+
+Download a source archive from the
+[GitHub releases](https://github.com/Fade78/lightwebpres/releases) and extract
+the `lightwebpres` file. You need **Python 3.8+**, with no extra packages.
+The archive also includes the browser builder, documentation, examples and
+contributor tools; the single executable is enough for CLI use. Read the
+documentation shipped with your chosen release: this checkout can describe
+features not yet published in a release.
+
+From the directory containing `lightwebpres`:
 
 ```bash
 python3 lightwebpres init my-series
 python3 lightwebpres demo my-series --lang en
-# -> my-series/public/index.html
 ```
 
-Open `my-series/public/index.html` in your browser. On Windows, use `python`
-instead of `python3`. Continue with the [quickstart](#quickstart) or the
-[step-by-step guide](GUIDE.md#2-set-up--your-first-build).
+Open **`my-series/public/index.html`** in your browser. `demo` creates three
+example articles **and builds them**, so no extra `build` command is needed.
+It refuses to overwrite existing work. No web server is required to view
+the generated files locally.
 
-**One page, two uses.** Read in portrait with touch swipes and text that
-adapts to the phone, or present in landscape with keyboard and mouse controls.
-Press **F** for fullscreen; changing orientation alone does not request it.
-Press **H** for keyboard help. The [presentation controls](GUIDE.md#9-presenting)
-are documented in full in the guide.
+On Windows, use `python lightwebpres` or `py lightwebpres` instead of
+`python3 lightwebpres`. On Unix, invoking through Python avoids executable
+permission issues; `chmod +x lightwebpres` also enables `./lightwebpres`.
 
-The previews below are real `640x360` landscape renders in the `lava`,
-`terminal` and `pop-lemon` themes, not palette swatches.
+**Next: [make your first personal article](GUIDE.md#2-make-your-first-personal-article).**
+The guide gives you a complete source file, the exact `series.json` entry,
+and the build/open/verify loop, while keeping the demo available as a reference.
 
-<figure>
-  <img src="generated/themes-featured.png" alt="Three real 16 by 9 LightWebPres presentation covers in the Lava, Terminal and Pop Lemon themes" width="100%">
-  <figcaption><strong>One source, several visual directions.</strong> These are real 640x360 landscape presentation surfaces rendered by the same pipeline as a built deck, not palette swatches. The compact catalogue and full interactive gallery are below.</figcaption>
-</figure>
+## What you get
 
-## Features
+- **Portable pages.** One HTML file per article, with an embedded runtime and
+  theme picker. Referenced local images remain files under `img/`; publish
+  the whole output directory. `--inline-images` can embed Markdown images
+  when a single-file delivery matters.
+- **A small content model.** Series → articles → slides. Four slide types
+  cover titles, content cards, cross-article navigation and long-form text.
+  Plain Markdown sources can be edited by a person, an agent or a pipeline.
+- **Series navigation without an application server.** `series.json` orders
+  the articles; the build derives the index and cross-article links. Tags
+  provide selectable variants within the same published pages.
+- **Presentation controls included.** Keyboard, mouse and touch navigation,
+  fullscreen, pause screens, slide counter, theme switching and speaker
+  notes. Browser printing produces a slide-based handout or PDF.
+- **Stable sharing.** Copy a link or show a locally generated QR code for the
+  series, article or current slide. Explicit slide slugs keep links stable
+  when titles or order change. QR codes need a reachable HTTP(S) page.
+- **Customization with checked values.** Choose a theme or presentation
+  preset, pin typed properties in `settings.conf`, and add advanced rules in
+  `custom.css`. Invalid property names and values are build errors.
+- **Automatic typography.** French and English packs upgrade existing spaces
+  around punctuation, numbers and units to non-breaking spaces. Rules can
+  be extended or disabled, independently of interface translation.
+- **Checks for publishing.** `audit` reports source and rendered-style
+  warnings; `audit --strict` makes them a CI gate. `verify` detects output
+  drift. `watch` rebuilds on edits and can serve a local preview.
+- **A browser builder too.** Build a series zip or pull/build/push a GitLab
+  repository in a browser tab, using the same Python executable under
+  Pyodide rather than a reimplementation.
 
-- **Typography handled for you.** Non-breaking spaces before punctuation,
-  `%`, thousands, and units — applied automatically, never touching what
-  you've already written, switchable off per article or globally when
-  you don't want it. French and English ship built-in; the mechanism
-  isn't French-specific, so adding a language is a matter of writing
-  rules, not touching the engine.
-- **The runtime travels with the page.** The output has one HTML file per page,
-  with no external runtime, viewer or proprietary container that has to still
-  be supported for the words to come back. CSS, JS, the runtime theme picker
-  and its essential alternatives are embedded in the same file by default;
-  `--no-essential-theme` opts out. Images referenced by the rendered pages remain
-  relative files under `img/`; unused source images are not copied.
-  `--inline-images` embeds Markdown images as data URIs. It needs no network or
-  framework.
-  A deck built today opens in any browser that exists now and in any
-  that follows, on a machine with none of this installed — the page and its
-  copied assets, without the tool that made it. The source behind it is plain
-  Markdown, so it outlives the tool as well. A presentation is often the
-  only surviving record of a talk; this one cannot become unreadable
-  because something stopped being maintained.
-- **A simple, three-level structure.** Series → article → slide. Nothing
-  to design: pick a slide type (cover, standard, cross-article nav, full
-  article), fill in the fields.
-- **Styled by typed properties, not by CSS.** Every visual decision is a
-  named, typed property (`component.axis: value`) in one plain-text
-  settings file that drives the whole series — the stylesheet is composed
-  at build time, and a mistyped key or value is a named build error,
-  never a silent no-op.
-- **Every article has its own page, yet belongs to its series.** Each article
-  is one HTML file with its own runtime. If the source includes a
-  `series-nav` slide, that slide carries a cross-article navigation block
-  generated from the series, so a reader can get back to "the rest of the
-  series" without a framework stitching pages together at runtime.
-- **Share in one click, at whatever scope you need.** Copyable link or QR
-  code, for the whole series, the current article, or the exact slide
-  being read — generated entirely client-side. The share button sits on
-  every page, the index included: there "series" points to `index.html`,
-   "article" to the page itself, and the slide scope is disabled (the
-   index has no slides). A slide's address is the
-   `slug:` its author declared, never where it sits and never its title,
-   so reordering the deck, rewriting a heading or dropping a slide does
-   not repoint the links you have already given out — including the
-   printed ones. QR codes require an HTTP(S) page reachable from the phone;
-   local browser addresses are called out instead of producing a misleading
-   link.
-- **Built-in presentation mode.** Every generated page can become a full-screen
-   presenter deck: keyboard (↑/↓, Home for the page beginning,
-   Ctrl/Cmd+Home for the series index, End, +/-/= page zoom, F fullscreen, B/W/T pause
-   screens, I smooth or instant scrolling, C compiled themes, H keyboard help, S sharing, M presenter menu), mouse (click advance,
-  right-click back, middle button
-  leaves fullscreen; entering is a two-step gesture — middle button,
-  then a left click), touch (swipe, double tap). Navigation
-  chrome fades after 3s idle (1s in fullscreen) on every device; with a
-  pointer the cursor hides on the same clock and both return after 250ms
-  of continuous movement, and on a touch screen a double tap switches
-   between the default auto-hide mode and permanent navigation, with a short
-   status toast naming the selected mode. The mouse becomes
-  a remote — left-click advances, right-click goes back, two distinct
-  buttons, no aiming. Fullscreen requests a screen wake lock where the browser
-  supports it. The index page is a deck like any other —
-  same chrome, same controls — where a step is an article card (the
-  focus walks the cards and scrolls the page along), instead of a slide.
-- **Speaker aids for long decks.** A `X / N` counter, a type-a-number
-  jump (Enter to land on slide N), and a speaker panel (**N**) that shows
-  the current slide's `note:` field with the next slide's title. This panel
-  opens in the same page: a projected or shared screen shows it too. Notes
-  are embedded in the HTML, not private content. Every article page also
-  prints one slide per sheet (Ctrl/Cmd+P → PDF) with the theme colours kept and the
-  navigation chrome stripped.
-- **Comes with a companion web page, not just a CLI.** One browser-based
-  tool, nothing to install: one tab builds a zip you drop in, the other
-  pulls, builds, and pushes straight to a GitLab repository — both
-  running the exact same engine as the command line, entirely inside the
-  tab.
-- **Agent friendly, without being agent-only.** Written and run by hand
-  just as naturally as it's scripted: articles are plain Markdown, the
-  CLI never blocks on an interactive prompt, and a bundled skill teaches
-  the format to any skill-aware agent — so a person with an editor and an
-  agent driving a pipeline get the same tool, not two different ones. A
-  second skill ships alongside for one editorial method the format suits
-  well; it is offered, not required — the format takes whatever you put
-  in it.
-- **Made to sit in a content pipeline.** Every command runs unattended
-  and returns a meaningful exit code — `verify` fails on drift and
-  `audit --strict` fails on anything worth reporting, two real CI gates
-  for two different questions. Plain `audit` never fails, whatever it
-  finds: it renders the series in memory and reports, it does not stop.
-  Nothing to
-  install: one file, the Python standard library only, no wheel, no
-  lockfile, no network at build time, so any image with `python3` runs
-   it. Every path is an environment variable (`LWP_SERIES_DIR`,
-   `LWP_SOURCES_DIR`, `LWP_TEMPLATES_DIR`, `LWP_INTERFACE_DIR`,
-    `LWP_TYPOGRAPHY_DIR`, `LWP_LANGUAGE_DIR`, `LWP_OUTPUT_DIR`,
-     `LWP_THEMES_DIR`, `LWP_PRESENTATION_PACKAGES_DIR`, …), and
-   `--only file` targets one article when the
-  navigation cache is safe, while refreshing derived outputs; otherwise it
-  falls back to a full build. The Markdown can come from anywhere — a CMS
-  export, a database, a generator, an agent upstream — but see the trust
-  boundary below: raw HTML in such markdown passes through, so untrusted
-  sources must be sanitized before the build.
+## Choose a look
 
-## Quickstart
+These existing previews show three real `640 × 360` landscape covers:
+`lava`, `terminal` and `pop-lemon`.
+
+![Three real landscape covers in the Lava, Terminal and Pop Lemon themes](generated/themes-featured.png)
+
+Browse the [compact theme catalogue](generated/themes-gallery.png), or open
+the [interactive HTML gallery](generated/themes-gallery.html) in a browser.
+It shows a cover, a content card with a note, page-wide notes and long-form
+text for each theme, with family, polarity and hue filters.
+
+To change the quickstart series:
 
 ```bash
-python3 lightwebpres init my-series          # scaffold a series directory
-python3 lightwebpres demo my-series --lang en # generate + build 3 example articles
+python3 lightwebpres series theme set my-series --theme evergreen
+python3 lightwebpres build my-series --lang en
 ```
 
-Open `my-series/public/index.html` in a browser. Later examples use
-`./lightwebpres`; on Unix, enable that form with `chmod +x lightwebpres`, or
-keep using `python3 lightwebpres` (`python lightwebpres` on Windows).
+The command changes the theme selection, not your pinned property values.
+The default runtime alternatives include Monochrome, Monochrome Night and
+Print Ink. Readers can choose them with **C** without rebuilding; use
+`--no-essential-theme` if you do not want that default bundle.
 
-Then write your own `.md` files in `my-series/sources/`, add a `{"page_source":
-"apple-pie.md"}` entry per article to `my-series/series.json` (that's the
-only field it needs — see below), and run `build` again.
+A theme's contrast report is a measurement, not an accessibility certification.
+`theme show` reports the catalogue theme; `series theme` measures the effective
+typed values after your pins. Advanced `custom.css` is outside that measurement.
 
-## The format
+For layouts, headers, footers and package assets, see
+[presets and customization](GUIDE.md#5-choose-presets-themes-and-customization).
+You do not need to design a package to use the built-in rendering.
 
-Each article is one Markdown file: a metadata block, then a sequence of
-"slides" separated by `---`. An article is self-describing — its own
-`page_title`/`card_title`/`card_desc`/`nav_title`/`nav_desc` all fall back
-to sensible content-derived defaults if left out, and `series.json` only
-needs `page_source` per article (see specifications.md §20.3.1). Every slide
-must still declare its durable `slug:`; other fields below can be omitted or
-overridden from `series.json` instead.
+## Find your route
 
-```markdown
-<!-- lwp:meta -->
-page_title: The apple pie<br>What shortcrust pastry actually changes
-nav_title: The apple pie
-nav_desc: Pastry, baking, and plating
----
+The [GUIDE](GUIDE.md) is the operational product manual. This README is the
+entry point, not a second command reference.
 
-<!-- lwp:slide:cover -->
-slug: apple-pie-cover
-kicker: Recipe
-# The apple pie
-summary: Nine things that make or break a homemade apple pie, from pastry to bake.
-
----
-
-<!-- lwp:slide -->
-slug: temperature
-kicker: Baking
-## Temperature changes everything
-summary: An oven that's too hot cooks the surface before the center is ready.
-fact-label: The takeaway
-highlight: 180 °C
-highlight-caption: recommended baking temperature for shortcrust pastry
-source: Baking guide, 2024 edition.
-
-An oven that's too hot browns the crust while the center stays raw — the
-most common mistake in a homemade pie.
-
----
-
-<!-- lwp:slide:series-nav -->
-slug: series-links
-
----
-
-<!-- lwp:slide:full-article -->
-slug: apple-pie-long
-article: apple-pie_article.md
-```
-
-The `series-nav` marker is optional; when present, the build fills it with the
-other articles in the series. The last slide points at a **second** file,
-`sources/apple-pie_article.md`, holding the long-form text — `build` fails if
-it isn't there. Drop either optional slide if you don't want it.
-
-### Tags across a series
-
-Use `tags:` in an article's `lwp:meta` block to gate the article itself, and
-on slide headers to select the content shown inside it. Tags are
-space-separated, normalized case-insensitively, and may contain Unicode
-letters, digits, `-`, and `_` (but not a leading `_`). An article without
-article tags has no article-level gate. A slide without tags belongs to
-`default`, which is shared with every selected non-`default` tag.
-
-```json
-{
-  "series_meta": {
-    "default_tag": "fr",
-    "lang_tags": {"fr": "fr", "en": "en"}
-  },
-  "articles": [{"page_source": "apple-pie.md"}]
-}
-```
-
-```markdown
-<!-- lwp:meta -->
-tags: fr
----
-
-<!-- lwp:slide:cover -->
-slug: apple-pie-fr
-kicker: Guide
-tags: fr
-# La tarte aux pommes
-summary: Version française.
-
----
-
-<!-- lwp:slide:cover -->
-slug: apple-pie-en
-kicker: Guide
-tags: en
-# The apple pie
-summary: English version.
-
----
-
-<!-- lwp:slide -->
-slug: shared
-kicker: Common
-## Shared slide
-summary: Visible with every selected non-default tag because it has no `tags:` field.
-```
-
-Press **L** in the generated page to choose a tag. The menu appears only when
-at least two tags exist; the choice is retained in
-`localStorage['lwp-active-tag']`. Navigation, slide counts, anchors, and the
-presenter panel operate on the visible subset, while an article card remains
-visible only when its article tag matches and at least one of its slides is
-available. `tags: excluded` removes a
-slide at build time and never emits it in the HTML — and, since a slide's
-anchor is the explicit `slug:` it declares rather than its rank, excluding
-one no longer repoints the anchors of the slides after it. `audit` reports malformed
-tags and language tags whose declared pack is missing without blocking the
-build. The menu identifies the active tag, counts the visible articles and
-slides, and lists their titles. `build` and `audit` warn when a selectable tag
-has no effective slide after article gates and exclusions, or when an article
-contains no non-excluded slide at all.
-
-That builds into a scrollable page: a cover slide inverted against the
-page, a fact-card slide
-with a highlighted figure, and a full long-form article appended at the
-end — plus keyboard/scroll navigation, a share button ("copy link to
-this slide", with a QR code; it sits on every page, index included,
-where the slide scope is disabled), and, when the article includes a
-`series-nav` slide and the series has more than one article, a cross-article
-navigation block. The generated index, README and navigation data are derived
-automatically.
-
-Each page is also a presentation deck: click to advance, right-click to
-go back, middle button to leave fullscreen (entering is a two-step
-gesture — middle button, then a left click), swipe on touch,
-B/W/T for pause screens (black, white, or the theme's background — the
-speaker's remote-mouse use case). See the GUIDE's "Presenting" section
-for the full control list.
-
-Since so much of that is derived rather than written, there is a way to
-ask what a series actually resolves to, without building it:
-
-```bash
-./lightwebpres status my-series
-./lightwebpres status my-series --format json
-./lightwebpres series tags my-series --format json
-./lightwebpres series tags my-series --tag fr
-```
-
-It lists the articles in `series.json` order — the order that fixes the
-cross-article navigation — with each field resolved exactly as the build
-resolves it, each article's status and a count per status, and, for every value,
-which level decided it: the `series.json` entry, the article's meta
-block, the article's own content, another field it was derived from, or
-the built-in default. An article whose file can't be read is still
-listed, with its fields fallen back and a warning on stderr; nothing is
-built and nothing is written.
-
-`series tags` answers the adjacent visibility question without building: it
-lists the shared vocabulary, effective articles and slides by tag, all three
-article statuses, the slides without an explicit tag, and the normal output
-under `series_meta.default_tag`. `--tag` restricts the tag rows while keeping
-the series totals. `status --format json` carries the same tag report under
-its `tags` key.
-
-When the question is about **one** name rather than the whole series —
-and especially when the answer is a surprise — `resolve` says what that
-name is worth here, which level decided it, and what every other level
-held:
-
-```bash
-./lightwebpres resolve my-series page_title --article apple-pie.md
-./lightwebpres resolve my-series kicker.fg
-./lightwebpres resolve my-series fact-label
-```
-
-No option says which kind of thing you are asking about, because the
-name already does: a dot means a theme property, an underscore an
-article or series field, a hyphen a slide field. The losing levels are
-the point — a value on its own never explains why the line you just
-wrote changed nothing, and a chain showing your `settings.conf` entry
-still commented out does.
-
-```
-kicker.fg — theme property
-  value: #BF616AFF
-  from:  settings
-  via:   color.call
-
-  cascade, strongest first:
-    instance  —
-    article   —
-  > settings  call
-    theme     —
-    default   ink-quiet
-```
-
-A slide field has no cascade — it is written on a slide or it is not —
-so `resolve fact-label` answers with every slide that sets it, across
-the series or within one article.
-
-### Presentation packages and presets
-
-A versioned presentation package owns its slides' structure, layouts,
-headers and footers, assets, and constrained structural CSS, **not** the
-page shell: LWP keeps the `<head>`, `<body>`, navigation, script and each
-slide's `<section>`. Package fragments can use only `{{content}}`,
-`{{slide_header}}` and `{{slide_footer}}` (only `{{content}}` for the index).
-
-Only one selector is persisted: `series_meta.presentation_preset`, in the
-exact form `id@MAJOR.MINOR.PATCH/preset`. There is no per-article selector
-or selector in `lwp:meta`: omitting the field keeps the virtual built-in
-`default` rendering. The literal CLI selector `default` means this omission,
-never a value written into `series.json`.
-
-```json
-{
-  "series_meta": {
-    "presentation_preset": "corporate@1.0.0/brief"
-  }
-}
-```
-
-The former author fields `presentation_template`, `slide_layouts` and
-`slide_chrome` are retired and rejected, not ignored. The last two remain
-valid internal manifest keys through which a preset declares its defaults.
-
-All four slide types still accept `slide-layout`, `slide-header` and
-`slide-footer`. These override the selected preset's defaults for one slide,
-not through an author JSON cascade. The preset's theme supplies the typed
-base unless `settings.conf` explicitly selects another theme. Precedence is:
-base theme < `settings.conf` pins < article `style.*` < instance styles;
-`templates/custom.css` remains the final advanced CSS layer. Declared assets
-are published under `public/assets/presentations/<id>/<version>/...`, or
-embedded by `--inline-images`.
-
-The official guide's package is a tracked example in
-`examples/layouts/lightwebpres-docs/0.1.0/`, not a second guide source or
-generated output. `tools/build_guide.py` vendors it into its temporary
-series, then copies the published asset into `generated/guide/` too. The
-guide's freshness test compares that entire tree, not just the two HTML files.
-
-```bash
-./lightwebpres preset list
-./lightwebpres preset show <id@MAJOR.MINOR.PATCH/preset|default>
-./lightwebpres init [dir] --preset <id@MAJOR.MINOR.PATCH/preset|default> [--no-starter]
-./lightwebpres series preset [dir]
-./lightwebpres series preset set [dir] --preset <id@MAJOR.MINOR.PATCH/preset|default> [--keep-theme|--use-preset-theme]
-```
-
-`init --preset` validates and vendors the package under
-`templates/layouts/<id>/<version>/`, writes the selector, generates settings
-from the preset's theme and applies its declared starter unless
-`--no-starter` is passed. `series preset set` vendors and selects without a
-starter; it preserves pins and `custom.css`. If `settings.conf` contains an
-explicit `theme:`, it requires `--keep-theme` or `--use-preset-theme`; the
-latter removes that line. `--keep-theme` requires an explicit `theme:`.
-
-`LWP_PRESENTATION_PACKAGES_DIR` replaces the user catalogue location. The
-on-disk namespace remains `layouts/<id>/<version>/` in a catalogue and
-`templates/layouts/<id>/<version>/` once vendored; an id/version collision
-shadows the entire package. See `specifications.md` §9.9 for the complete
-manifest, symlink/path validation and fragment rules.
-
-## Commands
-
-| Command | What it does |
+| I want to… | Go to |
 |---|---|
-| `init [dir]` | Scaffolds a series directory (`sources/`, `templates/` with your `settings.conf` and `custom.css`, empty `interface/`, `typography/` and legacy `language/` directories, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed). `--preset id@MAJOR.MINOR.PATCH/preset` validates and vendors its package, writes `series_meta.presentation_preset`, generates settings from its theme, and applies its declared starter unless `--no-starter` is passed. The tool's own files — the navigation script and language packs — stay in the executable and are read from there, so upgrading it is the whole upgrade |
-| `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field; `--dry-run` journals the files and reports the build plan without touching the series |
-| `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file` targets one article when the navigation cache is safe but still refreshes derived outputs (article, index/README/images according to the options, manifest and cache), falling back to a full build if anything affecting `index.html`/navigation changed (see specifications.md §11.3.1). Standard builds copy only images referenced by their rendered pages; `--inline-images` embeds Markdown images as base64 data URIs (no `img/` directory); the essential runtime theme bundle is embedded by default, with `--themes selectors|all` adding more |
-| `verify [dir]` | Rebuilds in memory and diffs against `public/`; non-zero exit on drift, usable as a CI gate. Match the build's supported rendering options, including `--lang`, `--themes` and `--no-essential-theme`. It does not accept `--inline-images` and cannot reproduce that mode; use a separate non-inline output for verification |
-| `audit [dir]` | Non-blocking warnings. It reads the sources (editorial — e.g. "no cover slide" — tags and language packs), judges the *resolved* stylesheet (a navigation control nobody can see, text painted the colour of its own ground, a size under the readability floor), checks the presentation layer (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme), renders the series in memory to report what only composing it can say, and prints a rendered image inventory with inline/figure counts plus unused or missing local assets. Exit 0 whatever it finds, unless `--strict` is passed |
-| `template update [dir]` | Clears the tool's own files out of a series: a copy identical to the built-in one is removed (it did nothing but freeze you), a differing `nav.js` is saved as `.bak` and removed, and a differing interface or typography pack is reported and kept. Also creates a missing `settings.conf`/`custom.css`; never touches a file you own |
-| `template show <file>` | Prints one of the files the executable owns — `nav.js`, `fr.json`, `en.json`, `interface/fr.json`, `interface/en.json`, `typography/fr.json`, `typography/en.json` — on stdout. No series needed: the answer is inside the program |
-| `template write <file> [dir]` | Installs one of them where the build reads it, to be modified. The build then prefers your copy to the built-in one and warns on every run that it no longer follows the tool's fixes — at warning level, so `--quiet` keeps it. `--force` to replace an existing file |
-| `theme list` | Lists the effective catalogue available outside a series, built-in and external, with its facets; `--family`/`--polarity`/`--hue` narrow the list |
-| `theme show [<slug>]` | Describes one catalogue entry — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. With no slug from a series directory (or `$LWP_SERIES_DIR`), it shows that series' effective theme. `--format json` for machines |
-| `series theme [dir]` | Same, for the *effective* theme of an installed series — after the values it pins in `templates/settings.conf` or the directory selected by `$LWP_TEMPLATES_DIR` |
-| `theme create <slug>` | Writes a complete editable typed-theme snapshot to the user catalogue; `--from`, metadata options, `--output`, and `--force` control its source and destination |
-| `theme migrate [dir]` | Reduces a complete `settings.conf` scaffold to the selected theme plus explicit pins, preserving retired pins as comments |
-| `theme vendor [dir]` | Copies selected effective catalogue snapshots into `templates/themes/`, making a series independent of the user catalogue |
-| `theme path` | Prints the installed and user catalogue roots in precedence order |
-| `preset list` / `preset show <id@MAJOR.MINOR.PATCH/preset\|default>` | Lists the effective presentation-package catalogue or describes one named preset, including the virtual built-in `default`; both accept `--format text\|json` |
-| `series preset [dir]` | Reports the series' selected preset, or the virtual `default` when `presentation_preset` is absent; `--format text\|json` is available |
-| `series preset set [dir] --preset <id@MAJOR.MINOR.PATCH/preset\|default> [--keep-theme\|--use-preset-theme]` | Vendors and selects a preset without applying a starter. It preserves pins and `custom.css`; an explicit `theme:` requires one of the two theme decisions, and `--use-preset-theme` removes that line |
-| `status [dir]` | Says what is in a series without building anything: its articles in `series.json` order, every field *resolved* the way a build resolves it, and which level of the cascade each value came from. `--format json` for machines |
-| `series tags [dir]` | Inventories effective tag visibility, status totals, non-excluded slides and default-output coverage without building; `--tag` filters one tag. `--format json` for machines |
-| `series slug [dir]` | Lists every card of the series and the effective name it is published under, including `slug_prefix` — the anchor a shared link and a printed QR code point at. `status` answers by article; this answers by card. `--format json` for machines |
-| `series slug set [dir]` | Writes a `slug:` into every card that has none, and only those. The one command that edits your articles — a build never rewrites its own inputs. What it writes is random and meant to be renamed to something readable; `--dry-run` says what it would write |
-| `resolve [dir] <name>` | Says what ONE name is worth here and which level decided it, losing levels included. The shape of the name picks the cascade: dotted = theme property, `snake_case` = article/series field, `kebab-case` = slide field. `--article file.md` adds a page's own layer; `--format json` for machines |
-| `contract [dir]` | Prints the versioned machine-readable slide-draft contract and engine-generated source skeletons. `--article file.md` avoids slugs already declared by that source; JSON is the default, `--format text` is the human view |
-| `series theme set [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf` or `$LWP_TEMPLATES_DIR`; your pinned values stay and apply on top |
-| `theme gallery [path]` | Generates a self-contained HTML page previewing every entry in the global effective catalogue — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
-| `clean [dir]` | Purges orphan files from `public/` using the build manifest (dry-run by default, `--force` to actually remove) |
-| `watch [dir]` | Polls `series.json`, sources, templates (including presentation-package dependencies), split interface/typography packs and legacy language packs, rebuilds on change, notices files created after startup, and keeps watching after a failed rebuild; optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
-| `completion --shell bash\|zsh` | Prints a shell completion script — install with `eval "$(lightwebpres completion --shell bash)"` (or `zsh`) to get tab-completion for commands, subcommands, and options |
-| `--help` | Full reference: options, environment variables, slide types, recognized fields |
-| `--version` | Prints the version (`LightWebPres vX.Y.Z`) and exits |
+| Understand the generated project | [Start with a working site](GUIDE.md#1-start-with-a-working-site) |
+| Replace the demo with my content | [First personal article](GUIDE.md#2-make-your-first-personal-article) |
+| Use slide fields, images and notes | [Page anatomy](GUIDE.md#3-understand-page-anatomy) |
+| Order articles or select variants | [Series and tags](GUIDE.md#4-organize-a-series-and-tags) |
+| Select layouts or change the appearance | [Presets, themes and customization](GUIDE.md#5-choose-presets-themes-and-customization) |
+| Set interface language and spacing rules | [Languages and typography](GUIDE.md#6-set-languages-and-typography) |
+| Check output and put it online | [Verify and publish](GUIDE.md#7-verify-and-publish) |
+| Use fullscreen, PDF or QR sharing | [Present, print and share](GUIDE.md#8-present-print-and-share) |
+| Build without a terminal | [Browser builder](GUIDE.md#9-build-in-the-browser) |
+| Set up CI, watch or upgrade a series | [Automation and maintenance](GUIDE.md#10-automate-and-maintain) |
+| Diagnose unexpected output | [Troubleshooting and references](GUIDE.md#11-troubleshooting-and-references) |
 
-## Options
+The guide is also [built as a LightWebPres article](generated/guide/guide.html).
+Open the HTML in a browser to use its deck and full manual together.
 
-Global options (accepted before the command, like `git`): `--lang fr|en`,
-`--quiet`, `--verbose`, `--no-color`, `--dry-run`, `--timestamp`,
-`--version`, `--help`. The option nearest the command wins.
+## Browser or terminal
 
-| Option | Command(s) | Effect |
-|---|---|---|
-| `--slides-page-numbers on\|off` | `build`, `watch` | engraves the top-right `NN / NN` slide number — opt-in, default `off`; the article front-matter `slide_page_numbers` and `series_meta.slide_page_numbers` also enable it (see specifications.md §3.3.5) |
-| `--scroll-duration milliseconds` | `build`, `verify`, `watch` | sets the slide glide duration; `0` makes navigation instant, and the absent option falls back to `series_meta.scroll_duration` or `200` ms |
-| `--no-typography` | `build`, `verify`, `watch` | disables every typography rule for the run |
-| `--no-nav` | `build`, `verify`, `watch` | leaves an explicitly placed `series-nav` slide without generated navigation links |
-| `--no-index` | `build`, `watch` | skips `index.html` |
-| `--no-readme` | `build`, `watch` | skips the generated `README.md` |
-| `--drafts-only` | `build`, `watch` | builds only `status: draft` articles |
-| `--open` | `build`, `watch` | opens the result in the browser |
-| `--include-drafts` | `build`, `verify` | builds draft articles too |
-| `--force` | `init`, `template write`, `theme create`, `theme vendor`, `clean` | explicitly proceeds with a non-empty scaffold, replaces an existing theme/template file, or removes orphaned output files |
-| `--strict` | `audit` | exits non-zero on any warning — the complete gate: editorial warnings and everything the render raises alike, a failed render included |
-| `--templates` | `audit` | restricts the audit to the presentation/template layer: it still judges the resolved stylesheet, but skips the per-article editorial checks and does not render, so it stays cheap |
-| `--serve` / `--port N` | `watch` | serves on `127.0.0.1` (opt-in), port `N` (default 8000) |
-| `--only file` | `build` | targets one article when the navigation cache is safe; refreshes the derived outputs too and falls back to a full build when it is not |
-| `--inline-images` | `build` | embeds Markdown images as base64 data URIs and does not copy `img/`; relative images left in raw HTML are rejected |
-| `--language-file path` | `build`, `verify` | uses this unified language pack instead of split or legacy sources; highest priority |
-| `--nav-cache path` | `build` | reads and writes the fingerprint used to decide whether `--only` is safe |
-| `--build-stamp` | `build` | adds a version-and-time freshness marker to generated pages |
-| `--build-stamp-minimal` | `build` | adds the freshness marker without version or time; wins over `--build-stamp` |
-| `--themes selectors\|all` | `build`, `verify`, `watch`, `theme vendor` | embeds or vendors slugs, `essential` or `X:Y` facet selectors from the effective catalogue; the base theme in `templates/settings.conf` is first for a build, with `custom(<theme>)` before it when settings has pins, and `C` opens the picker |
-| `--no-essential-theme` | `build`, `verify`, `watch` | do not embed the default `essential` bundle (Monochrome, Monochrome Night, Print Ink); an explicit `--themes` on the same command still applies |
-| `--gitlab-ci` | `init` | emits a `.gitlab-ci.yml` |
-| `--format text\|json` | `resolve`, `status`, `series tags`, `series slug`, `theme show`, `series theme`, `preset list`, `preset show`, `series preset`, `contract` | machine-readable output for `json`; `contract` defaults to JSON, other commands to text |
-| `--preset id@MAJOR.MINOR.PATCH/preset\|default` | `init`, `series preset set` | selects a named presentation preset; `default` means omit `series_meta.presentation_preset` |
-| `--no-starter` | `init` | does not apply the selected preset's declared starter |
-| `--keep-theme` / `--use-preset-theme` | `series preset set` | required only when `settings.conf` pins an explicit `theme:`; retain it, or remove it to use the preset theme |
-| `--tag name` | `series tags` | restricts the inventory to one canonical tag |
-| `--from name` | `theme create` | starts a new complete snapshot from an embedded or external catalogue entry; `builtin:<slug>` forces the embedded entry |
-| `--label text`, `--family name`, `--source text`, `--note text` | `theme create` | writes the snapshot metadata; `--family` uses the closed family vocabulary |
-| `--output path` | `theme gallery`, `theme create` | chooses the gallery HTML path or the `.conf` destination (the latter must be named `<slug>.conf`) |
+The CLI works offline with Python's standard library. Every command runs
+unattended and returns an exit code. `python3 lightwebpres --help` lists the
+commands, options and environment variables; command-specific help narrows
+the reference, for example `python3 lightwebpres build --help`.
 
-The spellings this tool used before the CLI was reorganised — `install`,
-`check`, `themes`, `theme-info`, `set-theme`, `series-info`,
-`refresh-templates`, `themes-gallery` — are not commands. Typing one is an
-error that names what to type instead. They were deprecated aliases that
-warned and then worked, which taught the old spelling as readily as the
-new one.
+The browser builder lives in [`web/`](web/). Serve it over HTTP(S); unlike
+generated articles, it cannot run from `file://`. It needs its vendored
+Pyodide files and a copy of the executable in one of its supported locations.
+The [browser chapter](GUIDE.md#9-build-in-the-browser) gives the local server
+command and deployment layout.
 
-## Slide types
-
-- **`cover`** — title slide: kicker, optional `tags:`, `# Title`, summary. Free position and
-  count — `build` doesn't enforce a layout, `audit` just flags it if you
-  want a reminder.
-- **`standard`** — kicker, optional `tags:`, `## Title`, summary, an optional highlighted
-  figure (`highlight`/`highlight-caption`), and a Markdown fact-box.
-- **`series-nav`** — a cross-article navigation slide; place its marker in the
-  article and the links are generated from `series.json` (at most one per
-  article). It accepts optional `tags:` and `comment:` fields but no free body.
-- **`full-article`** — includes a separate long-form Markdown file, accepts
-  `article:` plus optional `tags:` and `comment:`, and has no free body. A
-  page may carry several of them, each naming its own file;
-  converted with full support for headings (levels 1–6: `####` renders as
-  a bold-font paragraph, `#####`/`######` as plain text), bold/italic,
-  links, notes (see below), lists, tables, blockquotes, images with
-  captions (`![alt](src "Caption")` — small, centered, themed; add `{50%}`
-  for general image zoom or `{width=50% align=right}` for the extended
-  format; wrap it in
-  a link, `[![alt](src "Caption")](url)`, and the picture becomes
-  clickable while
-  the caption stays outside the link, as text about it; mid-sentence the
-  same image stays inline and its title becomes a tooltip),
-  inline/fenced code, and inline raw HTML.
-  A comparison table's cells can carry `yes` / `no` / `partial` — or
-  `col-signal` on a whole column — to be coloured by verdict; written as
-  inline HTML, since Markdown has no syntax for it.
-
-These four are the whole list, and `build` says so: a marker naming
-anything else — `<!-- lwp:slide:covre -->` — stops the build with the
-slide's rank, the token you wrote, and the four names, rather than
-publishing a slide of the wrong kind.
-
-`lightwebpres contract` exposes these same four types as
-`lightwebpres.slide-draft/1`. It returns their accepted fields, required
-fields, cardinalities, canonical source order, empty-value rules, reserved
-IDs, and a complete parseable skeleton for each type. The command is
-read-only. An explicitly empty `article:` is treated as an unfinished
-`full-article`: `build` warns and omits that slide until it names a `.md`
-file; omitting the directive entirely remains a fatal error.
-
- Every slide (and `series.json`/the article's own meta block) also
- accepts `comment:` — a review note, recognized but never rendered, never
- published, not even in the page's raw HTML source. A `note:` field is the
- speaker note: embedded in the HTML as a hidden element and displayed by
- the presenter panel (**N**) in the same page. A projected or shared screen
- shows the open panel too; anyone with the HTML can read the notes. They
- are not confidential. `note:`
-  is accepted on `cover` and standard slides. It is
- distinct from a `[^label]` footnote, which is a source note printed for the
- reader (see below). Both `note:` and `comment:` accept multi-line values:
- each continuation line starts with whitespace, and an indented blank line is a
-  paragraph break; the block ends at the first non-indented, non-empty line.
-
-`tag:` is not a field, and not an alias for one. Use `kicker:` for the label
-above a slide title, and `tags:` for tag filtering. A `tag:` line becomes
-body text on a standard slide; on a cover, `build` reports the unknown field
-and prints the two choices.
-
-## Notes
-
-`[^label]` calls a note, `[^label]: text` defines it. The two are linked
-both ways — the call jumps to the body, the body jumps back — and the
-number a reader sees is the note's **position**, not the label you wrote,
-so you can rename or reorder labels without renumbering anything.
-
-A label is word characters only: letters, digits and `_`, accents and
-non-Latin scripts included, but no `-`, no space and no punctuation.
-`[^kwh]` and `[^clé]` are notes; `[^a-b]`, `[^note 2]` and `[^réf.]` are
-not, and are not errors either — the call ships to the reader as literal
-text and the body renders as an ordinary paragraph with the label
-showing. `audit` names both; `build` says nothing.
-
-Notes work on **any slide**, not only inside a `full-article`. A standard
-card can carry one.
-
-Two fields decide how they are presented. Both cascade the same way —
-built-in default, then `series_meta` in `series.json`, then the article's
-own meta block — so a series can set a house style and one article can
-still depart from it:
-
-| Field | Values | Default | Effect |
-|---|---|---|---|
-| `notes_placement` | `local`, `page` | `local` | `local` collects each note at the foot of the unit that called it. `page` gathers every note of the article into one notes section at the end. |
-| `notes_tooltip` | `on`, `off` | `off` | `on` also puts the note's text in the call's `title`, so a pointer reveals it without leaving the line. |
-
-```
-<!-- lwp:meta -->
-page_title: …
-notes_placement: page
-notes_tooltip: on
-```
-
-Which to choose is an editorial decision, not a cosmetic one: `local`
-keeps the apparatus beside the claim it supports and suits cards read one
-at a time; `page` reads like a printed article's endnotes and suits a
-long argument the reader takes in as a whole.
-
-## Language & typography
-
-Built-in French and English packs contain typography rules (non-breaking
-spaces, etc.) and every UI string (navigation tooltips, "copy link", series
-labels). Both live in the executable and are read from there. The canonical
-override files are independent: `interface/{lang}.json` contains UI strings,
-while `typography/{lang}.json` contains rules. An old unified
-`language/{lang}.json` remains supported, as does `--language-file` for an
-explicit unified override.
-
-Without an explicit `--lang` or `LWP_LANG`, the generated page embeds both
-interface vocabularies and the browser chooses French for a `fr-*` locale and
-English for every other locale. An explicit language locks that choice for the
-page. Typography rules are always applied at build time; changing the browser
-locale never re-runs them. `--lang fr|en` picks the build-wide fallback.
-`template write interface/fr.json` and `template write typography/fr.json`
-give you the built-in domains to start from; `template write fr.json` remains
-the legacy unified form. Domain environment variables and FHS installations
-are documented in `specifications.md` §2.3. `series_meta.lang_tags` maps slide
-tags to typography packs, for example `{"fr": "fr", "en": "en"}`. English is
-the ultimate fallback for any language without a pack.
-
-The French pack automatically upgrades an existing space to a
-non-breaking one before `; : ! ?` and a closing `»`, after an opening
-`«`, before `%`, around the spaced em/en dashes of an incise, between
-thousands-grouped digits (`170 000`, only if the source already spaces it
-out), between a number and `million(s)`/`milliard(s)`/`dollar(s)`/`$`, and
-after `×`/`≈` before a number — it never inserts spacing or digit
-grouping that wasn't already there, and a non-breaking space already in
-your source always passes through unchanged. The English pack carries its
-own smaller rule set (metric units, unit words, initials, `×`/`≈`, the
-two dash rules). This alters generated
-content, so it's controllable at three levels: per-article meta fields
-`typo_units: off` / `typo_thousands: off` (just those rules) or `typo:
-off` (every rule, that article's page only), and the CLI flag
-`--no-typography` on `build`/`verify`/`watch` (every rule, the whole run). See
-`--help` or specifications.md §4.5/§7.5/§19.6 for the full list.
-
-## Theming & customization
-
-Every visual decision is a **typed property**, `component.axis: value`.
-`templates/settings.conf`, written once by `init`, lists **all** of
-them commented out at your theme's values — the complete surface under
-your eyes, no docs needed (the exact count is derived from the tool's
-own registry; `--help` shows it live). Uncomment a line to pin it: it
-survives every theme change and every executable upgrade, because the
-tool never writes in your file. The stylesheet itself is composed in
-memory at every build; a mistyped key or value is a named build error,
-never a silent no-op. Three one-liners:
-
-```conf
-verdict.partial.fg: #8A4B00   # recolor one verdict — footnote calls and note markers don't move
-summary.fg: #10151B           # darken card summaries — the "no" verdict stays put
-link.decoration-color: mark   # tint link underlines — the text itself keeps the ink around it
-```
-
-Rules, as opposed to values, go in `templates/custom.css` — full CSS,
-appended last so it wins ties. Effects are properties too: a halo is a
-shadow with no offset, which is how the `terminal` theme gets its
-phosphor glow (`title1.shadow.fg: #33FF8866`) on an all-monospace page —
-three font lines and a halo in its theme layer, no special case in the
-engine. Every component that paints its own glyphs carries the four halo axes
-(`fg`, `blur`, `dx`, `dy`) — a container does not, because
-`text-shadow` is inherited and a halo on a box reaches everything
-inside it. That inheritance is also why an
-inherited one resolves its `em` once at the root: it can tint a whole
-site at a stroke, but it cannot be proportional to the glyph. Only a
-component's own can. Depth is a property too: every component the sheet
-lifts off the page — the fact box, index cards, series links,
-navigation buttons, the slide counter and the four overlays — carries
-five elevation axes (`fg`, `blur`, `dx`, `dy`, `spread`), with a second
-set under the pointer for the three that lift when you point at them.
-So a dark theme can tune a shadow that was black at an opacity chosen
-against a white page. The
-page/index HTML structure itself is fixed, not a template,
-so a build can't be broken by a malformed structural override.
-
-The executable ships a catalogue of colour themes, and it can load more
-without changing the executable. External themes are complete UTF-8 typed
-snapshots in `.conf` files: metadata followed by every registered property.
-They are not CSS and they do not support `extends`; a local file replaces the
-whole entry for its slug rather than inheriting hidden values.
-
-The catalogue is resolved in this order, from weakest to strongest:
-embedded themes, installed themes, the user catalogue, then
-`templates/themes/` in the series. An FHS installation reads
-`<prefix>/share/lightwebpres/themes/`; a standalone executable reads a sibling
-`themes/` directory. The user layer is `$XDG_DATA_HOME/lightwebpres/themes/`
-on Unix or `%APPDATA%/lightwebpres/themes/` on Windows, unless
-`LWP_THEMES_DIR` replaces it. Only direct `.conf` files are loaded. Use
-`builtin:<slug>` when a local slug shadows an embedded one.
-
-Create, migrate, or freeze a theme into a series explicitly:
-
-```bash
-./lightwebpres theme create my-theme --from evergreen
-./lightwebpres theme migrate my-series
-./lightwebpres theme vendor my-series --themes my-theme,evergreen
-./lightwebpres theme path
-```
-
-`theme create` writes an editable complete snapshot to the user catalogue.
-`theme migrate` turns an old complete `settings.conf` scaffold into the
-selected theme plus the values you actually pinned, retaining retired pins as
-comments. `theme vendor` copies complete snapshots into the series, so a build
-does not depend on a developer's user catalogue. `theme list`, `theme show`
-and `theme gallery` expose the global embedded/installed/user catalogue; builds and series
-reports add the series' vendored layer.
-
-The embedded catalogue includes themes that borrow known editor
-palettes (Nord, Dracula, Solarized, Gruvbox, Catppuccin, Tokyo Night,
-Monokai, Everforest, Rosé Pine); the rest are the project's own —
-high-contrast and monochrome sets, skies at three hours, firelight, earth
-and stone, and a Pop family whose backgrounds carry the colour
-themselves. Every palette is measured and the measurement is published, so you can
-see what a theme does before you pick it. There is no bar a palette has
-to clear to be in the catalogue: a theme is a stance, and the ones with
-the most character are the ones a threshold would flatten. The borrowed
-palettes ship as their editors drew them, for **fidelity**; some of them —
-Dracula, Tokyo Night, Monokai, Everforest — have since been returned to
-the dark grounds they were made for. A theme's family — `desk`, `light`,
-`terrain`, `heat`, `pop`, `ported`, `print` — states editorial intent, not a
-colour-correction strategy.
-
-That is far too many to pick from a list, so themes are found by facet —
-**family**, the one facet a theme declares, against a closed vocabulary;
-**polarity** (light or dark background); and **hue**, computed from the
-background in CIELAB rather than declared, so neither can drift when a
-colour is tweaked:
-
-```bash
-./lightwebpres theme list                                    # the whole catalogue, with its facets
-./lightwebpres theme list --family terrain                   # one editorial family
-./lightwebpres theme list --polarity dark --hue green       # just the ones you mean
-```
-
-Apply one when scaffolding, or change your mind later:
-
-```bash
-./lightwebpres init my-series --theme evergreen
-./lightwebpres series theme set my-series --theme crimson
-```
-
-To read one out before committing to it — its palette, its fonts, its
-facets, and the contrast level it actually reaches:
-
-```bash
-./lightwebpres theme show evergreen        # the theme as shipped
-./lightwebpres series theme my-series      # the effective theme of a series
-./lightwebpres theme show evergreen --format json
-```
-
-The level is **measured**, never declared: it is computed from the same
-resolved properties the build emits, on grounds composited the way a
-browser composites them, so it cannot claim something the palette does
-not do. It comes per WCAG category rather than as a single letter — a
-theme can score high on running text and low on its focus rings — and
-each category is printed with the pairs behind it and their ratios,
-because a number without its counter-examples is not something you can
-act on.
-
-Read it as a **design note about that theme**, not as a grade. Nothing in
-this tool expects a theme to reach any level: `terminal`'s phosphor halo
-measures what it measures, and lifting it would destroy the theme. No
-palette value is ever rewritten, no theme is refused, reordered or hidden
-for what it measures. The number is put in front of the person choosing,
-and the choice is theirs.
-One thing is not a matter of taste, though, and `audit` says so: a
-composed stylesheet where a navigation control is invisible against its
-own rail, where text is painted the colour of its ground, or where a size
-falls under the readability floor. Those thresholds sit below everything
-the shipped catalogue measures, so no theme as delivered can trip them —
-they only fire on something worse than anything this project ships. And
-they warn: `build` still exits 0, and so does plain `audit`.
-
-The two targets answer different questions, and the difference is the
-point: a series that pins three colors in `settings.conf` may have
-dropped below the floor without anyone noticing, and the directory form
-is what shows the whole picture, category by category. `audit` looks at
-the same resolved sheet without being asked, but it only speaks when
-something is broken outright. (`custom.css` is free CSS, outside the typed
-surface, so it is not measured — the output says so when the file has
-rules in it.)
-
-None of this ever reaches a built page. No kicker, no class, no mention: the
-reader of a presentation is never told the contrast level of the theme
-chosen for them.
-
-`series theme set` is one word in a data file: it rewrites the `theme:` line of
-`templates/settings.conf` and nothing else, reports what it replaced
-(`Theme changed: evergreen -> crimson`), and your pinned values stay in
-place and apply on top of the new palette. No CSS is rewritten, so there
-is nothing to force and no half-recolored file to fear.
-
-The build can also carry a selection of themes for the reader to switch
-without rebuilding:
-
-```bash
-./lightwebpres build my-series --themes print-ink,print-grey
-./lightwebpres build my-series --themes all
-```
-
-The same selection can live in the root of `series.json`, so the build command
-does not have to repeat it:
-
-```json
-{
-  "themes": ["essential", "family:terrain", "bgh:red"],
-  "articles": [{"page_source": "intro.md"}]
-}
-```
-
-Selectors use a slug from the effective catalogue, `all`, `essential`
-(Monochrome, Monochrome Night and Print Ink), or `X:Y`: `background`/`bg` selects light or dark backgrounds,
-`family`/`fam` selects an editorial family, and `background hue`/`bgh` selects
-the computed background hue. The long `background hue:red` form must be
-quoted in a shell. Several selectors add their matches; duplicates are
-removed. An explicit CLI `--themes` value overrides the JSON selection.
-
-The `essential` bundle ships by default: every build embeds Monochrome,
-Monochrome Night and Print Ink on top of any explicit selection, so **C**
-works on any page without the author opting in — a high-contrast theme, a
-dark-ground theme and a print-ready theme are always one keystroke away.
-`--no-essential-theme` (build/verify/watch) removes that default; the page
-then carries a picker only if `--themes` or the `series.json` `themes` list
-provides one. Pass `verify` the same decision the build was made with, or
-the payloads differ and drift is reported.
-
-The effective `theme:` in `templates/settings.conf` is always the first
-base choice, even when it is omitted from the list. When that file has property
-pins, the first runtime choice is named `custom(<theme>)` and the raw base
-theme is also present; the pins apply only to the custom choice. The file is
-read at build time, so an author's edit is respected; `style.*` properties and
-declared theme variables in `custom.css` remain pinned while the reader
-switches. The runtime theme payload is inline and delta-encoded, so the runtime
-remains standalone even when the page also uses relative image files. If an
-external file shadows an essential slug, the embedded version remains
-available as `builtin:<slug>`. The browser session key includes the loaded
-catalogue's digest, so changing a local file cannot reuse a choice from an
-older payload.
-On a page carrying runtime alternatives, **C** opens the searchable theme
-picker. Each theme choice previews its resolved page/cover background,
-including its gradient, with the matching foreground ink. **M** opens one menu for
-fullscreen, themes, help, speaker notes, tags, sharing, navigation and pause
-screens; its actions carry icons and their keyboard shortcuts. The same
-presenter menu is available from the lower-right Menu button. The choice is
-kept in the browser's session for the other pages of the same deck.
-
-A theme provides seven shared colors and four font stacks —
-`color.page`, `color.ink`, `color.ink-quiet`, `color.mark`,
-`color.call`, `color.affirm`, `color.nav`;
-`font.text`/`display`/`ui`/`mono` — named for what they do, not for a
-color. Every component property *defaults* to one of them,
-so a theme restyles everything at once; but each use is its own
-property, so overriding one sense never drags the others along (the
-`verdict.partial.fg` line above moves the "partly" verdict and nothing
-else, even though its default shares `color.call` with footnote calls
-and note markers).
-
-`color.nav` is the odd one out, and deliberately so: it paints the
-hardware that moves you through a series — the active progress dot, the
-two focus rings, the rule under a series-nav card — and nothing you
-write. The other six carry editorial constraints (`color.mark` has to
-stay pale enough to read *through*, like a highlighter), which the
-navigation furniture kept inheriting and could not satisfy. Giving it
-its own role is what let forty-one per-theme pins disappear.
-
-A body link deliberately has no palette colour of its own. It keeps the
-ink around it and is signalled by an underline, whose tint is the one
-exposed axis (`link.decoration-color`, defaulting to the text ink, which
-is the strongest thing on the page to point at). The same treatment covers
-links in generated source lines, so they do not fall back to browser blue.
-An underline is
-non-text, so the standard asks 3:1 of it and has no AAA level to ask
-for.
-Measured across the catalogue before choosing: the browser's default blue
-misses AA on well over half of the themes, and every palette colour that
-could replace it either falls short on a large part of the catalogue too,
-or is already one of the verdict colours.
-
-> **Inherited a series whose `templates/` looks nothing like this?**
-> `lightwebpres audit` reads it and names every variable it references
-> that the registry does not define, each with the property that carries
-> it now; `template update` writes `settings.conf` and `custom.css` if
-> they are missing.
-
-![Compact contact sheet showing one rendered cover for every built-in colour theme](generated/themes-gallery.png)
-
-Above is the compact catalogue view: every theme, one rendered cover per
-theme, with its palette and the command that starts a series on it. It is
-deliberately different from the three large landscape presentation surfaces near the
-introduction. [`generated/themes-gallery.html`](generated/themes-gallery.html) in
-this repository is the full thing — **one theme per row, four panels across:**
-the cover, a card carrying a note, the page-wide notes section, and the
-long-form article, with the facets as live filters. Open it in a browser.
-
-Every panel, here and there, is a real rendering at its true size — the
-same parser, the same engine, the same stylesheet, in an iframe at the
-width it claims. Not a mock and not a scaled-down miniature, so a 14px
-note is 14px there too.
-It's generated straight from the tool's global effective catalogue with
-`./lightwebpres theme gallery`, so it can never drift from what
-`init --theme` actually applies.
-
-## One browser-based tool, two tabs
-
-For anyone who'd rather not touch a terminal: `web/index.html` is the
-same tool as a page in a tab — pick a series (upload a zip, or connect a
-GitLab repository), the page builds it, you get the result back, nothing
-to install. It loads the exact same `lightwebpres` executable,
-unmodified, running inside [Pyodide](https://pyodide.org) (CPython
-compiled to WebAssembly) — one build engine, driven from a terminal or a
-tab. It needs to be **served over http(s)**, not opened directly as a
-`file://` page — browsers block Pyodide's asset loading under that origin
-(see specifications.md §23.6 — if you open it as `file://` anyway, it
-shows the exact fix command, with a one-click Copy button, computed from
-where you actually put the files).
-
-It also needs its own `vendor/`/`app.py`/`git_sync.py`, plus a copy of
-`lightwebpres` itself — never duplicated by default, since it stays the
-single source of truth — found in one of two conventional spots relative
-to the page, tried in that order: **`./lightwebpres`** (dropped alongside
-the contents of `web/` — the layout for a real site that serves `web/` as
-its own URL root, no extra path segment needed) or **`../lightwebpres`**
-(the repo's own layout, one level up, for a deployment that's just a
-straight copy of the repo). Local testing from the repo: `python3 -m
- http.server 8000 --bind 127.0.0.1 --directory /path/to/lightwebpres` (the folder
-containing both `lightwebpres` and `web/`), then open
-`http://localhost:8000/web/index.html`. Self-hosting on a real web server
-(Apache/nginx) can also hit a `.mjs` MIME type issue — see
-specifications.md §23.7 for the fix (`web/.htaccess` handles it
-automatically on Apache where allowed).
-
-- **Upload a zip** — drop a zip of your series, get back a zip of
-  `public/`. Archives over 500 MiB compressed or uncompressed are refused
-  before extraction. Nothing ever leaves the browser tab; Pyodide runs
-  vendored locally, not from a CDN.
-- **Sync with GitLab** — pull a series straight from a GitLab repository,
-  build it, and push the result back. Up to 100 file actions go into each
-  commit, so a larger push creates several successive commits. The `100`
-  is a local batching precaution, not a GitLab file-count limit. Talks
-  directly to the GitLab instance you configure (no third-party proxy in
-  the request path); the browser uses the REST API directly, without a
-  GitLab client library providing automatic throttling or retries. GitLab's
-  request-size and rate limits still depend on the GitLab version and
-  instance configuration. Push never deletes a file, only creates/updates.
-
-Both tabs share one Pyodide/`lightwebpres` load at page start, so
-switching between them is instant — no separate page, no reload.
+Zip builds stay in the tab. GitLab sync talks directly to the configured
+instance and only creates or updates files; it does not delete stale output.
+The browser builder is distinct from the separate `lightwebpres-gui` editor.
 
 ## Safety
 
-- Fatal validation for every structurally dangerous input: duplicate or
-  missing required slides, unsafe file paths in `series.json`/`article:`
-  (rejects anything that isn't a plain filename — no directory traversal),
-  malformed JSON.
-- No page is ever written over another. Two articles resolving to the
-  same output name is fatal, and so is an article named `index.html` in a
-  series of several articles when the series index is generated — that name
-  belongs to the series index, which carries the article list. With
-  `--no-index`, the article may take the name because there is no index to
-  collide with. Otherwise, a series of **exactly one** article may take it:
-  the article becomes the page the directory serves, no series index is
-  generated (a list of one adds nothing), and `build` says so on a `[no index]`
-  line.
-- Typography rules are applied to already-assembled HTML but can never
-  touch tag syntax — text and markup are split before any rule runs.
-- Every generated page is checked for HTML tag balance before being
-  written; a rendering bug never silently ships a broken page.
+**LightWebPres is a renderer for trusted sources, not an HTML sanitizer.**
+Raw HTML, including scripts, passes through. Sanitize untrusted CMS exports,
+third-party translations or generated content upstream before building.
+Filename validation and HTML tag-balance checks do not replace that boundary.
 
-## Testing
+**Speaker notes are not private.** The `note:` field is embedded in the HTML,
+and its panel opens in the same page that a projector or screen share shows.
+Use `comment:` for source-only review notes; those are not published.
+Tags are viewing filters, not access control.
 
-```bash
-python3 tests/run_tests.py
-```
-
-The black-box test suite exercises the CLI as a subprocess, plus real headless-
-Chromium end-to-end tests (via Playwright, skipped cleanly if unavailable)
-for both tabs of the browser-based tool.
-
-## Project layout
-
-```
-lightwebpres          # the executable — the only thing you need to run this
-CHANGELOG.md          # what changed between versions, in the release's own words
-specifications.md     # full reference specification (French)
-DECISIONS.md          # what has been decided and what has not, on six states
-web/                  # the browser-based build tool (upload-a-zip and GitLab-sync tabs)
-agent/skills/         # two packaged skills: the article format, and one optional editorial method
-AGENTS.md             # the working rules for an agent editing this repository
-examples/layouts/     # tracked demonstration presentation packages used by examples and builds
-generated/            # committed build output — regenerated by a command, never edited by hand
-tools/                # maintenance scripts and their inputs: the guide deck, the gallery snapshot, the index generators, the reference checker
-tests/                # regression suite
-delete-before-1.0/    # out of the active tree, kept readable until 1.0 — what its name says
-```
+Before publishing, inspect the output and use matching build/verify options.
+`verify` cannot reproduce `--inline-images`; keep a separate non-inline
+output if you need that CI gate. Removing an article or asset from the
+sources does not itself delete an old published file. Review `clean` and
+the host's stale files as described in [Verify and publish](GUIDE.md#7-verify-and-publish).
 
 ## Reference
 
-| Document | What it is |
+| Document | Purpose |
 |---|---|
-| [`GUIDE.md`](GUIDE.md) | **Start here.** The walkthrough, in English: init, build, choose a look, write, verify, ship |
-| [`GLOSSARY.md`](GLOSSARY.md) | Every field, its default, and where it falls back from |
-| [`agent/skills/lightwebpres/SKILL.md`](agent/skills/lightwebpres/SKILL.md) | The exact article format — written for an agent, readable by a person |
-| [`agent/skills/sourced-presentation/SKILL.md`](agent/skills/sourced-presentation/SKILL.md) | One method the format suits — a sourced deck backed by a fully referenced article. Optional: nothing here is required to use LightWebPres |
-| [`CHANGELOG.md`](CHANGELOG.md) | What changed between versions. The entry under a version IS the body of that version's release, written once — not a second telling of it |
-| [`DECISIONS.md`](DECISIONS.md) | What has been decided and what has not, on six states — with the measurement behind each |
+| [GUIDE.md](GUIDE.md) | Operational manual in task order |
+| [Format skill](agent/skills/lightwebpres/SKILL.md) | Exact article grammar, for people and agents |
+| [GLOSSARY.md](GLOSSARY.md) | Field meanings, defaults and fallback chains |
+| [specifications.md](specifications.md) | Normative format and behavior reference, in French |
+| [CHANGELOG.md](CHANGELOG.md) | Version changes and release text |
+| [DECISIONS.md](DECISIONS.md) | Decisions, rationale and outstanding work |
 
+An optional guest [sourced-presentation method](agent/skills/sourced-presentation/SKILL.md)
+ships alongside the format skill for people who want an editorial method.
+It is independent of LightWebPres and is not required to use the tool.
+The [skill index](agent/skills/README.md) distinguishes their roles.
 
-`specifications.md` is the complete, detailed specification (in French) —
-directory layout, `series.json` schema, parser edge cases, full
-placeholder reference, and more.
+## Contribute
+
+Read [AGENTS.md](AGENTS.md) before changing this repository. The engine is
+the single `lightwebpres` file; `tests/` holds CLI, internal-contract and
+real-browser regression tests. Development and public releases use different
+forges, as explained in the contributor rules.
+
+Run the suite before and after a change:
+
+```bash
+python3 tests/run_tests.py
+python3 -m py_compile lightwebpres
+python3 tools/check_refs.py
+```
+
+Browser tests use Playwright and Chromium and skip when unavailable.
+No browser tooling is needed to use the Python CLI.
+
+`examples/` holds tracked inputs, including presentation packages and the
+first-article example. `tools/` holds maintenance scripts and the guide deck.
+`generated/` holds rebuildable output: edit its sources, never its files by
+hand. The guide is regenerated with `python3 tools/build_guide.py`.
+For product images, use `node tools/screenshot-product.cjs` with an installed
+Playwright and Chromium; the [example instructions](examples/first-article/README.md)
+document resolution and freshness checks. Existing gallery captures have
+their own commands in AGENTS.md.
 
 ## License
 
-GNU General Public License v3 or later (`COPYING`), **with the LightWebPres
-Output Exception** (`COPYING.EXCEPTION`).
+The program is **GNU GPL v3 or later**, with the **LightWebPres Output
+Exception**. The legal texts are [COPYING](COPYING) and
+[COPYING.EXCEPTION](COPYING.EXCEPTION).
 
-In plain terms:
+Your generated presentations may be distributed under the terms you choose,
+commercially or not. The exception covers the tool's code copied into normal
+output; it does not extend to a generator using that output as templates.
 
-- **What you make with this tool is yours.** The series it scaffolds and the
-  pages it builds — including the templates, stylesheets and scripts it
-  writes into them — are covered by the Exception: publish them under any
-  terms you like, commercially or not. Nothing in the GPL reaches your
-  presentations. The Exception exists precisely because the tool copies
-  parts of itself into its output, and that copying should cost you nothing.
-- **The tool itself is copyleft.** Improve it and distribute your version,
-  and your improvements ship with it. One caveat worth knowing: `init`
-  places a copy of the executable in your series directory, and that copy
-  is the program, not output — publish your series repository and you are
-  distributing GPL code. That is why `init` writes `COPYING` and
-  `COPYING.EXCEPTION` beside it for you.
+The executable remains copyleft. `init` copies it into the series with its
+licence files: distributing that repository also distributes GPL software,
+not just presentation output. Keep those notices with it.
 
-Third-party code inside the executable is listed in
-`THIRD-PARTY-NOTICES.md`. `web/vendor/pyodide/` is vendored under the
-Mozilla Public License 2.0 — see `web/vendor/NOTICE.md`.
-
-**The name.** "LightWebPres" identifies this project. The licenses above
-cover the code, not the name: fork it freely, but don't present a modified
-version as being this project.
-
-## Troubleshooting
-
-**`./lightwebpres: Permission denied`** (Linux/macOS)
-The executable bit didn't survive however you got the file (some zip
-tools, some transfer methods). Fix it once:
-
-```bash
-chmod +x lightwebpres
-```
-
-**`./lightwebpres: command not found`** (Linux/macOS)
-`lightwebpres` isn't installed system-wide, so it needs either the `./`
-prefix when run from the directory it's in, or its full/relative path.
-Running it by bare name only works if that directory is on your `PATH`.
-
-**Windows**
-Windows doesn't understand the `#!/usr/bin/env python3` line at the top
-of the file, so `lightwebpres` (or `.\lightwebpres`) won't launch on its
-own. Run it through Python explicitly instead:
-
-```powershell
-python lightwebpres init my-series
-```
-
-If that's not found, try the `py` launcher (bundled with most Windows
-Python installs):
-
-```powershell
-py lightwebpres init my-series
-```
-
-**`python3: command not found`**
-Some systems only have `python` on `PATH`, not `python3` (common on
-Windows, occasionally macOS). Use `python` instead of `python3` in any
-command above that invokes it explicitly — e.g. `python -m http.server`
-when serving the [browser-based tool](#one-browser-based-tool-two-tabs).
+Third-party code is listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+Vendored Pyodide uses MPL 2.0; see [web/vendor/NOTICE.md](web/vendor/NOTICE.md).
+The licences cover code, not the LightWebPres name: fork the project, but do
+not present a modified version as this project.
