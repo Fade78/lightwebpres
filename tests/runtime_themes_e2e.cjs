@@ -542,6 +542,15 @@ async function main() {
   if (!menu.open || menu.expanded !== 'true' || menu.visibleActions !== 12) {
     fail('M did not expose the complete presenter menu: ' + JSON.stringify(menu));
   }
+  const menuTypography = await page.evaluate(() => {
+    const size = (id) => getComputedStyle(document.getElementById(id)).fontSize;
+    return { prev: size('menuPrev'), home: size('menuHome'), next: size('menuNext') };
+  });
+  if (menuTypography.prev !== menuTypography.home
+      || menuTypography.home !== menuTypography.next) {
+    fail('a custom nav-btn.size changed the presenter Home action text size: '
+      + JSON.stringify(menuTypography));
+  }
   const firstMenuFocus = await page.evaluate(() =>
     document.activeElement && document.activeElement.getAttribute('data-menu-action'));
   if (firstMenuFocus !== 'prev') {

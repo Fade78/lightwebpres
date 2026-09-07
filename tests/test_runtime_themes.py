@@ -1,5 +1,6 @@
 """End-to-end coverage for the runtime theme picker and menu."""
 
+import json
 import os
 import shutil
 import subprocess
@@ -56,9 +57,20 @@ class RuntimeThemesBrowser(unittest.TestCase):
             capture_output=True, text=True, timeout=60,
         )
         assert demo.returncode == 0, demo.stdout + demo.stderr
+        package_source = REPO_ROOT / 'examples' / 'layouts' / 'lightwebpres-docs' / '0.1.0'
+        package_destination = (root / 'templates' / 'layouts'
+                               / 'lightwebpres-docs' / '0.1.0')
+        shutil.copytree(package_source, package_destination)
+        series_path = root / 'series.json'
+        series = json.loads(series_path.read_text(encoding='utf-8'))
+        series.setdefault('series_meta', {})['presentation_preset'] = \
+            'lightwebpres-docs@0.1.0/docs'
+        series_path.write_text(json.dumps(series), encoding='utf-8')
         settings = root / 'templates' / 'settings.conf'
         settings.write_text(
-            settings.read_text(encoding='utf-8') + 'color.ink: #123456\n',
+            settings.read_text(encoding='utf-8')
+            + 'color.ink: #123456\n'
+            + 'nav-btn.size: 36px\n',
             encoding='utf-8',
         )
         (root / 'templates' / 'custom.css').write_text(

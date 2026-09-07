@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.54.0"
+VERSION = "0.54.1"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -3460,14 +3460,6 @@ THEME_COMPONENTS = [
         # hand.
         ('width',  'calc(var(--nav-btn-size) * 2.2)'),
         ('height', 'calc(var(--nav-btn-size) * 2.2)'),
-    ]),
-    # The house glyph reads larger than the arrows at the same size, so it
-    # is set smaller on purpose -- by a RATIO. Stated flat at 17px it was
-    # 3.2x smaller than its neighbours at 3840, which is not "smaller on
-    # purpose" but a different design at every width. 17 / 20 is what the
-    # flat pair expressed.
-    ThemeComponent('nav-btn-home', '.nav-btn-home', [], composite=[
-        ('font-size', 'calc(var(--nav-btn-size) * 0.85)'),
     ]),
     ThemeComponent('nav-dot', '.nav-dots a', [
         ThemeProp('nav-dot.bg',        PROP_COLOR, '#00000029', css='background'),
@@ -7894,7 +7886,7 @@ body.fs-noselect {
 .nav-btn:active { transform: scale(0.96); }
 .nav-btn:focus-visible { outline-style: solid; outline-offset: 2px; }
 .nav-btn.disabled { opacity: 0.25; cursor: default; pointer-events: none; }
-/* The home glyph's size comes from the nav-btn-home composite. */
+/* The home icon follows the menu action's inherited size. */
 /* The dialog's children are all `em`, so without a size here they were
    `em` of a body that never grows -- flat at every width, measured. */
 .tag-menu {

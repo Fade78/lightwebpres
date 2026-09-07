@@ -33,6 +33,11 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.54.1
+
+The presenter menu's Home action now keeps the same text size as its
+neighbours when a theme sets a custom `nav-btn.size`.
+
 ## Unreleased — 0.54.0
 
 The theme picker now follows the visual grid in both directions, including
