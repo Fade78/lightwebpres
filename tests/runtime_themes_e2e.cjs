@@ -103,14 +103,39 @@ async function main() {
   const mobileHelp = await touchPage.evaluate(() => {
     const keys = document.querySelector('.help-keys');
     const desc = document.querySelector('.help-desc');
+    const keyboard = document.querySelector('.help-keyboard');
+    const touch = document.querySelector('.help-touch');
     return {
       open: document.getElementById('helpOverlay').classList.contains('open'),
       keysWidth: keys ? keys.getBoundingClientRect().width : 0,
       descWidth: desc ? desc.getBoundingClientRect().width : 0,
+      mode: document.getElementById('helpModeToggle').getAttribute('aria-checked'),
+      modeValue: document.getElementById('helpModeValue').textContent,
+      keyboardCount: document.querySelectorAll('.help-keyboard').length,
+      keyboardHidden: keyboard ? keyboard.hidden : true,
+      touchVisible: !!touch && !touch.hidden,
     };
   });
   if (!mobileHelp.open || mobileHelp.descWidth <= mobileHelp.keysWidth) {
     fail('mobile help columns are not balanced: ' + JSON.stringify(mobileHelp));
+  }
+  if (mobileHelp.mode !== 'true' || mobileHelp.modeValue !== 'Tactile'
+      || mobileHelp.keyboardCount === 0 || !mobileHelp.keyboardHidden
+      || !mobileHelp.touchVisible) {
+    fail('mobile help did not default to touch variants while retaining keyboard help: '
+      + JSON.stringify(mobileHelp));
+  }
+  await touchPage.click('#helpModeToggle');
+  const mobileKeyboardHelp = await touchPage.evaluate(() => ({
+    mode: document.getElementById('helpModeToggle').getAttribute('aria-checked'),
+    modeValue: document.getElementById('helpModeValue').textContent,
+    keyboardHidden: document.querySelector('.help-keyboard').hidden,
+    touchHidden: document.querySelector('.help-touch').hidden,
+  }));
+  if (mobileKeyboardHelp.mode !== 'false' || mobileKeyboardHelp.modeValue !== 'Clavier'
+      || mobileKeyboardHelp.keyboardHidden || !mobileKeyboardHelp.touchHidden) {
+    fail('mobile help switch could not expose keyboard variants: '
+      + JSON.stringify(mobileKeyboardHelp));
   }
   await touchContext.close();
   if (touchErrors.length) fail('Mobile page errors: ' + touchErrors.join(' | '));
@@ -124,6 +149,7 @@ async function main() {
     fail('the index did not load the effective primary theme: ' + JSON.stringify(initial));
   }
 
+  await page.setViewportSize({ width: 600, height: 800 });
   await page.keyboard.press('c');
   const picker = await page.evaluate(() => ({
     open: document.getElementById('themeMenu').classList.contains('open'),
@@ -149,17 +175,33 @@ async function main() {
       + JSON.stringify(picker.previews));
   }
 
+  const themeGrid = await page.evaluate(() => Array.prototype.map.call(
+    document.querySelectorAll('.theme-option'), (button) => {
+      const rect = button.getBoundingClientRect();
+      return { theme: button.getAttribute('data-theme'), left: rect.left, top: rect.top };
+    }
+  ));
+  if (themeGrid.length !== 3
+      || Math.abs(themeGrid[0].top - themeGrid[1].top) > 1
+      || themeGrid[2].top <= themeGrid[0].top
+      || Math.abs(themeGrid[0].left - themeGrid[2].left) > 1) {
+    fail('theme picker did not render the expected two-column grid: '
+      + JSON.stringify(themeGrid));
+  }
+
+  await page.keyboard.press('ArrowDown');
+  const themeDownFromFilterFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-theme'));
+  await page.evaluate(() => document.getElementById('themeFilter').focus());
+  await page.keyboard.press('ArrowUp');
+  const themeUpFromFilterFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-theme'));
+  await page.keyboard.press('Home');
   await page.keyboard.press('ArrowDown');
   const themeDownFocus = await page.evaluate(() =>
     document.activeElement && document.activeElement.getAttribute('data-theme'));
   await page.keyboard.press('ArrowUp');
   const themeUpFocus = await page.evaluate(() =>
-    document.activeElement && document.activeElement.getAttribute('data-theme'));
-  await page.keyboard.press('End');
-  const themeEndFocus = await page.evaluate(() =>
-    document.activeElement && document.activeElement.getAttribute('data-theme'));
-  await page.keyboard.press('Home');
-  const themeHomeFocus = await page.evaluate(() =>
     document.activeElement && document.activeElement.getAttribute('data-theme'));
   await page.keyboard.press('ArrowRight');
   const themeRightFocus = await page.evaluate(() =>
@@ -167,17 +209,32 @@ async function main() {
   await page.keyboard.press('ArrowLeft');
   const themeLeftFocus = await page.evaluate(() =>
     document.activeElement && document.activeElement.getAttribute('data-theme'));
-  if (themeDownFocus !== 'custom(print-oldpress)'
-      || themeUpFocus !== 'print-ink'
-      || themeEndFocus !== 'print-ink'
-      || themeHomeFocus !== 'custom(print-oldpress)'
+  await page.keyboard.press('End');
+  const themeEndFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-theme'));
+  await page.keyboard.press('ArrowUp');
+  const themeUpFromLastRowFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-theme'));
+  await page.keyboard.press('Home');
+  const themeHomeFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-theme'));
+  if (themeDownFromFilterFocus !== 'custom(print-oldpress)'
+      || themeUpFromFilterFocus !== 'print-ink'
+      || themeDownFocus !== 'print-ink'
+      || themeUpFocus !== 'custom(print-oldpress)'
       || themeRightFocus !== 'print-oldpress'
-      || themeLeftFocus !== 'custom(print-oldpress)') {
+      || themeLeftFocus !== 'custom(print-oldpress)'
+      || themeEndFocus !== 'print-ink'
+      || themeUpFromLastRowFocus !== 'custom(print-oldpress)'
+      || themeHomeFocus !== 'custom(print-oldpress)'
+      ) {
     fail('theme picker arrow/home/end navigation is wrong: '
-      + JSON.stringify({ themeDownFocus, themeUpFocus, themeEndFocus,
+      + JSON.stringify({ themeDownFromFilterFocus, themeUpFromFilterFocus,
+        themeDownFocus, themeUpFocus, themeEndFocus, themeUpFromLastRowFocus,
         themeHomeFocus, themeRightFocus, themeLeftFocus }));
   }
   await page.keyboard.press('Escape');
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.keyboard.press('c');
   const reopenedPicker = await page.evaluate(() => ({
     open: document.getElementById('themeMenu').classList.contains('open'),
@@ -252,9 +309,15 @@ async function main() {
     scrollLine: Array.prototype.some.call(
       document.querySelectorAll('#helpList li'),
       (li) => li.querySelector('.help-keys')
-        && li.querySelector('.help-keys').textContent === 'I'
+        && li.querySelector('.help-keyboard')
+        && li.querySelector('.help-keyboard').textContent === 'I'
         && li.textContent.indexOf('défilement') !== -1
     ),
+    mode: document.getElementById('helpModeToggle').getAttribute('aria-checked'),
+    modeValue: document.getElementById('helpModeValue').textContent,
+    keyboardCount: document.querySelectorAll('.help-keyboard').length,
+    keyboardHidden: document.querySelector('.help-keyboard').hidden,
+    touchHidden: document.querySelector('.help-touch').hidden,
     stamp: document.querySelector('.help-stamp')
       ? document.querySelector('.help-stamp').textContent.trim() : '',
     stampNameIsBold: !!document.querySelector('.help-stamp strong'),
@@ -263,6 +326,8 @@ async function main() {
   if (!help.open || help.role !== 'dialog' || !help.titleId
       || help.labelledby !== 'helpTitle' || help.cardTabindex !== '0'
       || !help.themeLine || !help.helpOpenLine || !help.scrollLine || !help.noHelpFoot
+      || help.mode !== 'false' || help.modeValue !== 'Clavier'
+      || help.keyboardCount === 0 || help.keyboardHidden || !help.touchHidden
       || !/^Compilé avec LightWebPres v\d+\.\d+\.\d+$/.test(help.stamp)
       || !help.stampNameIsBold) {
     fail('H did not expose a proper modal with theme action and version stamp: ' + JSON.stringify(help));
@@ -325,6 +390,63 @@ async function main() {
   if (closedByClick.open) {
     fail('a click did not close the help overlay: ' + JSON.stringify(closedByClick));
   }
+
+  await page.keyboard.press('h');
+  await page.click('#helpModeToggle');
+  const touchHelp = await page.evaluate(() => ({
+    mode: document.getElementById('helpModeToggle').getAttribute('aria-checked'),
+    modeValue: document.getElementById('helpModeValue').textContent,
+    keyboardHidden: document.querySelector('.help-keyboard').hidden,
+    touchHidden: document.querySelector('.help-touch').hidden,
+  }));
+  if (touchHelp.mode !== 'true' || touchHelp.modeValue !== 'Tactile'
+      || !touchHelp.keyboardHidden || touchHelp.touchHidden) {
+    fail('help switch did not expose the touch variants: ' + JSON.stringify(touchHelp));
+  }
+  await page.click('#helpAbout');
+  const about = await page.evaluate(() => ({
+    helpOpen: document.getElementById('helpOverlay').classList.contains('open'),
+    open: document.getElementById('aboutOverlay').classList.contains('open'),
+    hidden: document.getElementById('aboutOverlay').getAttribute('aria-hidden'),
+    role: document.getElementById('aboutOverlay').getAttribute('role'),
+    focus: document.activeElement && document.activeElement.id,
+    title: document.getElementById('aboutTitle').textContent,
+    description: document.getElementById('aboutDescription').textContent,
+    github: document.querySelector('.about-link').getAttribute('href'),
+    license: document.querySelector('.about-card p[data-lwp-i18n="about_license"]').textContent,
+  }));
+  if (!about.helpOpen || !about.open || about.hidden !== 'false'
+      || about.role !== 'dialog' || about.focus !== 'aboutClose'
+      || about.title !== 'À propos de LightWebPres'
+      || about.description.indexOf('articles Markdown') === -1
+      || about.github !== 'https://github.com/Fade78/lightwebpres'
+      || about.license.indexOf('GNU GPL') === -1
+      || about.license.indexOf('Output Exception') === -1) {
+    fail('LightWebPres about dialog is incomplete: ' + JSON.stringify(about));
+  }
+  await page.keyboard.press('Escape');
+  const aboutClosed = await page.evaluate(() => ({
+    helpOpen: document.getElementById('helpOverlay').classList.contains('open'),
+    aboutOpen: document.getElementById('aboutOverlay').classList.contains('open'),
+    focus: document.activeElement && document.activeElement.id,
+  }));
+  if (!aboutClosed.helpOpen || aboutClosed.aboutOpen || aboutClosed.focus !== 'helpAbout') {
+    fail('closing the about dialog did not return to help: ' + JSON.stringify(aboutClosed));
+  }
+  await page.keyboard.press('Escape');
+  await page.reload({ waitUntil: 'load' });
+  await page.keyboard.press('h');
+  const rememberedHelp = await page.evaluate(() => ({
+    mode: document.getElementById('helpModeToggle').getAttribute('aria-checked'),
+    modeValue: document.getElementById('helpModeValue').textContent,
+    keyboardHidden: document.querySelector('.help-keyboard').hidden,
+    touchHidden: document.querySelector('.help-touch').hidden,
+  }));
+  if (rememberedHelp.mode !== 'true' || rememberedHelp.modeValue !== 'Tactile'
+      || !rememberedHelp.keyboardHidden || rememberedHelp.touchHidden) {
+    fail('help mode choice was not remembered: ' + JSON.stringify(rememberedHelp));
+  }
+  await page.keyboard.press('x');
 
   if (zeroDurationBase) {
     const zeroPage = await context.newPage();

@@ -5957,7 +5957,8 @@ class MarkdownConversion(unittest.TestCase):
             '</a>',
             html,
         )
-        self.assertNotIn('<p>', html)
+        article_html = html[html.index('<section class="slide full-article"'):]
+        self.assertNotIn('<p>', article_html)
 
     def test_blockquote_single_line(self):
         html = self._build_article_html('> A single-line quote.\n')
@@ -10309,11 +10310,16 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             stamp = (
                 '<div class="help-stamp"><span '
                 'data-lwp-i18n="help_stamp">Compilé avec</span> '
-                f'<strong>LightWebPres</strong> v{self.lwp.VERSION}</div>')
+                '<button type="button" class="help-about" id="helpAbout" '
+                'aria-haspopup="dialog" aria-controls="aboutOverlay">'
+                f'<strong>LightWebPres</strong></button> v{self.lwp.VERSION}</div>')
             self.assertIn(stamp, html)
             self.assertNotIn('class="help-foot"', html)
             self.assertIn('role="dialog"', html)
             self.assertIn('aria-labelledby="helpTitle"', html)
+            self.assertIn('id="helpModeToggle" role="switch"', html)
+            self.assertIn('id="aboutOverlay" role="dialog"', html)
+            self.assertIn('https://github.com/Fade78/lightwebpres', html)
             self.assertIn(
                 "lwpString('help_theme')", html)
             self.assertIn("lwpString('help_open')", html)
@@ -10323,7 +10329,9 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             self.assertIn(
                 f'<div class="help-stamp"><span '
                 f'data-lwp-i18n="help_stamp">Compiled with</span> '
-                f'<strong>LightWebPres</strong> v{self.lwp.VERSION}</div>',
+                '<button type="button" class="help-about" id="helpAbout" '
+                'aria-haspopup="dialog" aria-controls="aboutOverlay">'
+                f'<strong>LightWebPres</strong></button> v{self.lwp.VERSION}</div>',
                 english)
             self.assertIn("lwpString('help_open')", english)
 
