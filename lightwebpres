@@ -17306,6 +17306,16 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
                                   disabled_rules)
         page_footer = _page_footer(author, license_text, date)
 
+    # An article's editorial footer is part of its last fiche, not a free
+    # standing page zone after the deck. Keeping it inside the section makes
+    # its height participate in the same bounded navigation journey as the
+    # fiche content and its presentation chrome.
+    if page_footer and slides_html:
+        last_slide_end = slides_html.rfind('</section>')
+        slides_html = (slides_html[:last_slide_end] + '\n' + page_footer
+                       + '\n' + slides_html[last_slide_end:])
+        page_footer = ''
+
     # Draft banner — only ever reachable under --include-drafts (drafts
     # are filtered out of the build entirely otherwise). Inline-styled
     # for the same staleness reason as the build stamp (see

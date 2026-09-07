@@ -15641,6 +15641,20 @@ class EditorialFields(unittest.TestCase):
             self.assertNotIn('page-footer">', html)
             self.assertNotIn('<meta name="author"', html)
 
+    def test_article_editorial_footer_belongs_to_the_last_slide(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(
+                tmp,
+                series_meta={'title': 'S', 'author': 'Alice Martin',
+                             'license': 'CC BY-SA 4.0'},
+            )
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            footer = html.index('<footer class="page-footer">')
+            last_slide = html.rfind('<section class="slide')
+            last_slide_end = html.rfind('</section>')
+            self.assertGreater(footer, last_slide)
+            self.assertLess(footer, last_slide_end)
+
 
 class PageDescMetaDescription(unittest.TestCase):
     """§20.3.1: page_desc feeds <meta name="description"> (series.json >

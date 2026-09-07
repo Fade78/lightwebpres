@@ -33,10 +33,14 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.54.1
+## v0.54.1
 
 The presenter menu's Home action now keeps the same text size as its
 neighbours when a theme sets a custom `nav-btn.size`.
+
+Editorial footers on article pages now belong to the last slide, so their
+height is part of the slide's scrollable content instead of creating an extra
+scroll position after the deck.
 
 ## Unreleased — 0.54.0
 

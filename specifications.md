@@ -2162,6 +2162,13 @@ nécessaire : elle ne peut pas être entière ; son haut est aligné au haut de 
 fenêtre à l'entrée, puis ses incréments s'arrêtent au haut ou au bas de la
 fiche selon la direction (§9.3.5).
 
+Les zones éditoriales appartiennent à la fiche qu'elles accompagnent. Les
+en-têtes et pieds de présentation fournis par un preset sont déjà dans la
+section ; sur une page d'article, le pied éditorial (`page-footer`) est
+également placé dans la dernière section. Leur hauteur compte donc dans la
+hauteur totale de la fiche et ne crée pas une position de défilement autonome
+après elle.
+
 **La sélection change le clic.** Un clic gauche tenu et relâché après
 un glissé est une **sélection**, pas un coup — il n'avance pas (§
 « Relâcher le bouton... » ci-dessous), et le clic suivant sur une
@@ -7328,7 +7335,7 @@ Placeholders :
 | `{{js_nav}}` | `templates/nav.js` | Le JS de navigation (scroll, boutons, bouton de partage, encodeur QR) |
 | `{{str_KEY}}` | `interface/{lang}.json` → `strings` (ou `language/{lang}.json` legacy) | Chaîne d'interface (voir §7.3), remplacée dans `page.html` **et** dans `js_nav` une fois celui-ci chargé |
 | `{{meta_head}}` | `author`/`page_desc` résolus (§20.3.1) | Balises `<meta name="author">` et `<meta name="description">` (débalisées, échappées) — vides toutes deux = rien d'émis |
-| `{{page_footer}}` | `author`/`date`/`license` résolus (§20.3.1) | Pied de page éditorial (`<footer class="page-footer">`) — tout absent = rien d'émis |
+| `{{page_footer}}` | `author`/`date`/`license` résolus (§20.3.1) | Pied de page éditorial (`<footer class="page-footer">`) — dans la dernière fiche d'un article, dans le contenu de l'index sinon ; tout absent = rien d'émis |
 | `{{build_stamp}}` | `--build-stamp`/`--build-stamp-minimal` (§11.3.2) | Marqueur de fraîcheur du build, vide par défaut |
 | `{{draft_banner}}` | `status: draft` + `--include-drafts` (§20.6) | Bandeau « Brouillon » centré dans l'en-tête, vide hors brouillon |
 
@@ -8057,14 +8064,15 @@ pas « corriger » cette asymétrie.
 **Champs éditoriaux (`author`/`license`/`date`) et leurs rendus.** Nouveau
 motif de cascade : l'article se replie sur un défaut *de série*
 (`series_meta.author`/`series_meta.license` — pas de défaut de série pour
-`date`, propre à chaque article). Contrairement aux champs d'affichage
-ci-dessus, ils sont rendus hors des fiches :
+`date`, propre à chaque article). Ils sont rendus dans la zone éditoriale de
+la page et, pour un article, dans la dernière fiche afin que leur hauteur
+participe au parcours :
 
-- `author` + `date` : signature discrète en pied de la page de l'article
-  (`<footer class="page-footer">`, « Auteur — date ») ; `author` alimente
+- `author` + `date` : signature discrète en pied de la dernière fiche de
+  l'article (`<footer class="page-footer">`, « Auteur — date ») ; `author` alimente
   aussi `<meta name="author">` (débalisé et échappé — contexte attribut).
-- `license` : mention en pied de la page de l'article ; HTML brut autorisé
-  (un lien vers la licence, §6.2).
+- `license` : mention dans le pied de la dernière fiche de l'article ; HTML
+  brut autorisé (un lien vers la licence, §6.2).
 - La page d'index porte son propre pied de page avec les valeurs **de
   série** (`series_meta.author`/`series_meta.license`) — les valeurs par
   article restent sur les pages des articles.
