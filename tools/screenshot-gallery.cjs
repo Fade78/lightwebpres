@@ -57,7 +57,8 @@ const FEATURED_SLUGS = ['lava', 'terminal', 'pop-lemon'];
 // sheet, with panels hidden and the row container turned into a grid.
 // `--gal-panel` is pinned rather than left to its `clamp()` so every
 // panel is the same rendering width, which is the property the whole
-// gallery is built on.
+// gallery is built on. The outer tracks are fixed too: max-content would
+// measure each theme heading and make the columns different widths.
 //
 // `--full` captures the page as it stands, every panel, for anyone who
 // wants the long strip.
@@ -82,7 +83,7 @@ const CONTACT_CSS = `
   .masthead, .facets, .facet-count, .theme-note, .fact-treatment { display: none !important; }
   .grid {
     display: grid !important;
-    grid-template-columns: repeat(${COLUMNS}, max-content) !important;
+    grid-template-columns: repeat(${COLUMNS}, ${ROW}px) !important;
     gap: 18px !important;
   }
   /* One track, not four. The page's own rule reserves a column per
@@ -110,7 +111,7 @@ const FEATURED_CSS = `
   .theme-note, .install-hint, footer { display: none !important; }
   .grid {
     display: grid !important;
-    grid-template-columns: repeat(${COLUMNS}, max-content) !important;
+    grid-template-columns: repeat(${COLUMNS}, ${ROW}px) !important;
     gap: ${GAP}px !important;
     margin-top: 0 !important;
   }
@@ -247,6 +248,19 @@ async function main() {
         };
       })
     ));
+    if (!FULL) {
+      const uneven = positions.find((position) => Math.abs(position.width - ROW) > 0.5);
+      if (uneven) {
+        throw new Error(`contact sheet row is ${uneven.width}px wide, expected ${ROW}px`);
+      }
+      const pageWidth = await page.evaluate(() => ({
+        documentWidth: document.documentElement.scrollWidth,
+        viewportWidth: window.innerWidth,
+      }));
+      if (pageWidth.documentWidth > pageWidth.viewportWidth + 1) {
+        throw new Error(`contact sheet overflows horizontally: ${JSON.stringify(pageWidth)}`);
+      }
+    }
     const base = await page.screenshot({ fullPage: true });
     const captures = [];
 

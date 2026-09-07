@@ -61,9 +61,11 @@ reference material has been merged into those task-oriented chapters.
 Tracked example sources and a Playwright regeneration script produce one
 comparison image with real landscape and emulated-mobile captures of the same
 content card and Nebula theme. The README now shows the full theme contact
-sheet, and the compiled guide includes the responsive comparison with working
-chapter links. The optional guest method remains unchanged by this
-documentation reorganization.
+sheet with equal columns, and the compiled guide includes the responsive
+comparison with working chapter links. The contact sheet pins its outer tracks
+to one measured panel width so a theme heading cannot widen the first column.
+The optional guest method remains unchanged by this documentation
+reorganization.
 
 ## v0.53.3
 

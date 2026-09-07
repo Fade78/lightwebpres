@@ -151,6 +151,13 @@ class TheDocumentationDeliversItsExamples(unittest.TestCase):
             self.assertEqual((output / 'img' / name).read_bytes(),
                              (ROOT / 'generated' / name).read_bytes())
 
+    def test_theme_contact_sheet_pins_equal_outer_tracks(self):
+        script = (ROOT / 'tools/screenshot-gallery.cjs').read_text(encoding='utf-8')
+        fixed_tracks = 'grid-template-columns: repeat(${COLUMNS}, ${ROW}px) !important;'
+        self.assertEqual(script.count(fixed_tracks), 2)
+        self.assertNotIn(
+            'grid-template-columns: repeat(${COLUMNS}, max-content) !important;', script)
+
 
 if __name__ == '__main__':
     unittest.main()
