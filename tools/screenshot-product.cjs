@@ -1,4 +1,5 @@
-// Build the tracked first article, then capture its real content card.
+// Build the tracked first article, capture its real content card in two
+// viewports, then compose the captures into one comparison illustration.
 // node tools/screenshot-product.cjs [--check]
 const fs = require('node:fs');
 const os = require('node:os');
@@ -23,6 +24,8 @@ const views = [
   { name: 'landscape', width: 960, height: 540, isMobile: false, hasTouch: false },
   { name: 'mobile', width: 390, height: 844, isMobile: true, hasTouch: true },
 ];
+const MONTAGE = { width: 1280, height: 760 };
+const OUTPUT = 'generated/product-responsive.png';
 const digest = (name) => createHash('sha256')
   .update(fs.readFileSync(path.join(root, name))).digest('hex');
 const inputHashes = () => Object.fromEntries(inputs.map((name) => [name, digest(name)]));
@@ -62,6 +65,7 @@ async function main() {
       ? { executablePath: process.env.PW_CHROMIUM_PATH } : {});
     const manifest = { inputs: inputHashes(), browser: browser.version(), captures: [] };
     const url = pathToFileURL(path.join(series, 'public/first-page.html')).href;
+    const frames = [];
     for (const view of views) {
       const page = await browser.newPage({
         viewport: { width: view.width, height: view.height },
@@ -104,12 +108,61 @@ async function main() {
           r.right > view.width + 1 || r.bottom > view.height + 1)) {
         throw new Error(`${view.name}: card text is cut off: ${JSON.stringify(bounds.rects)}`);
       }
-      const file = `generated/product-${view.name}.png`;
-      await page.screenshot({ path: path.join(root, file) });
-      manifest.captures.push({ ...view, deviceScaleFactor: 1, file, sha256: digest(file) });
+      frames.push({ ...view, deviceScaleFactor: 1,
+        data: (await page.screenshot()).toString('base64') });
       await page.close();
-      console.log(`Captured ${file}: ${view.width}x${view.height}, complete card text`);
+      console.log(`Captured ${view.name}: ${view.width}x${view.height}, complete card text`);
     }
+    const landscape = frames.find((frame) => frame.name === 'landscape');
+    const mobile = frames.find((frame) => frame.name === 'mobile');
+    const montage = await browser.newPage({
+      viewport: MONTAGE, deviceScaleFactor: 1, locale: 'en-US', reducedMotion: 'reduce',
+    });
+    await montage.setContent(`<!doctype html>
+      <html><head><meta charset="utf-8"><style>
+        :root { color-scheme: light; }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; width: 1280px; height: 760px; }
+        body { background: #F5F1FA; color: #241A35;
+          font-family: ui-sans-serif, system-ui, sans-serif; }
+        main { padding: 34px 48px 28px; }
+        h1 { margin: 0 0 6px; font-size: 25px; line-height: 1.15;
+          letter-spacing: -0.02em; }
+        .subtitle { margin: 0 0 24px; color: #625870; font-size: 15px; }
+        .row { display: flex; align-items: flex-start; gap: 32px; }
+        figure { margin: 0; }
+        figcaption { margin: 0 0 9px; color: #625870; font-size: 13px;
+          font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+        img { display: block; background: #fff; border: 1px solid #D7CEE4;
+          border-radius: 8px; box-shadow: 0 8px 24px #241A351F; }
+        .landscape img { width: 820px; height: auto; }
+        .mobile img { width: auto; height: 560px; }
+        .footer { margin: 22px 0 0; color: #625870; font-size: 13px; }
+      </style></head><body><main>
+        <h1>One page, two uses</h1>
+        <p class="subtitle">The same LightWebPres content card in the Nebula theme</p>
+        <div class="row">
+          <figure class="landscape">
+            <figcaption>Landscape · 960 × 540 CSS pixels</figcaption>
+            <img src="data:image/png;base64,${landscape.data}" alt="">
+          </figure>
+          <figure class="mobile">
+            <figcaption>Portrait · 390 × 844 CSS pixels</figcaption>
+            <img src="data:image/png;base64,${mobile.data}" alt="">
+          </figure>
+        </div>
+        <p class="footer">Same source · same page · real Chromium viewports, not device photographs</p>
+      </main></body></html>`);
+    await montage.evaluate(() => Promise.all(
+      [...document.images].map((image) => image.decode())));
+    await montage.screenshot({ path: path.join(root, OUTPUT) });
+    await montage.close();
+    manifest.captures.push({
+      name: 'responsive', width: MONTAGE.width, height: MONTAGE.height,
+      file: OUTPUT, viewports: frames.map(({ data, ...view }) => view),
+      sha256: digest(OUTPUT),
+    });
+    console.log(`Wrote ${OUTPUT}: ${MONTAGE.width}x${MONTAGE.height}, two real viewports`);
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   } finally {
     if (browser) await browser.close();

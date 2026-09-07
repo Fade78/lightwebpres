@@ -150,12 +150,12 @@ stable: changing a title does not change its address. Once you no longer
 want the demo in the site, remove its entries from `articles`, build again,
 then review `clean` before removing old output (section 7).
 
-The same content card, built with the `evergreen` theme, in two browser
-viewports. These are Chromium captures, not photographs of devices:
+The same content card, built with the `nebula` theme, in two browser
+viewports. This is a Chromium comparison, not a photograph of a device:
 
-![Landscape viewport, 960 by 540 CSS pixels: the runtime card with its title, one HTML highlight and asset reminder](generated/product-landscape.png)
-
-<img src="generated/product-mobile.png" alt="Emulated mobile viewport, 390 by 844 CSS pixels: the same Evergreen card reflows into a narrow reading column" width="390">
+<p align="center">
+  <img src="generated/product-responsive.png" alt="The same Nebula content card shown in real landscape and emulated portrait browser viewports" width="100%">
+</p>
 
 ## 3. Understand page anatomy
 

@@ -14,21 +14,17 @@ LightWebPres, a viewer account or a presentation service.
 
 ## One page, two uses
 
-The same content card and `evergreen` theme, rendered by LightWebPres in
+The same content card and `nebula` theme, rendered by LightWebPres in
 Chromium. The text and layout below are actual output, not a design mockup.
 
-**Landscape presentation, 960 × 540 CSS pixels**
-
-![Evergreen content card in landscape: The runtime travels with the page; one HTML file per article, with CSS and JavaScript inside, plus an instruction to keep local image assets](generated/product-landscape.png)
-
-**Emulated mobile viewport, 390 × 844 CSS pixels**
-
-<img src="generated/product-mobile.png" alt="The identical card in a narrow portrait viewport: the title, one HTML highlight and asset reminder reflow vertically" width="390">
+<p align="center">
+  <img src="generated/product-responsive.png" alt="The same Nebula content card shown in real landscape and emulated portrait browser viewports" width="100%">
+</p>
 
 These are browser viewport captures, not photographs of physical devices.
 The [source example](examples/first-article/sources/first-page.md) is tracked
 and the [capture script](tools/screenshot-product.cjs) rebuilds it before
-taking either image.
+taking the two viewport captures used in the comparison.
 
 In portrait, scroll and swipe through the page. In landscape, use keyboard
 or mouse navigation. Press **F** for fullscreen and **H** for help; rotating
@@ -107,6 +103,12 @@ Browse the [compact theme catalogue](generated/themes-gallery.png), or open
 the [interactive HTML gallery](generated/themes-gallery.html) in a browser.
 It shows a cover, a content card with a note, page-wide notes and long-form
 text for each theme, with family, polarity and hue filters.
+
+<p align="center">
+  <a href="generated/themes-gallery.html">
+    <img src="generated/themes-gallery.png" alt="Compact contact sheet showing one rendered cover for every built-in colour theme" width="100%">
+  </a>
+</p>
 
 To change the quickstart series:
 

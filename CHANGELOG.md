@@ -58,10 +58,12 @@ The README is now a product entry point with one canonical quickstart; the
 GUIDE owns the operational manual, including a complete first personal
 article, publication cleanup, browser deployment and maintenance. Unique
 reference material has been merged into those task-oriented chapters.
-Tracked example sources and a Playwright regeneration script produce real
-landscape and emulated-mobile captures of the same content card and theme.
-The compiled guide includes those images and working chapter links. The
-optional guest method remains unchanged by this documentation reorganization.
+Tracked example sources and a Playwright regeneration script produce one
+comparison image with real landscape and emulated-mobile captures of the same
+content card and Nebula theme. The README now shows the full theme contact
+sheet, and the compiled guide includes the responsive comparison with working
+chapter links. The optional guest method remains unchanged by this
+documentation reorganization.
 
 ## v0.53.3
 

@@ -2969,9 +2969,10 @@ python3 lightwebpres verify my-series --lang en
   </code></pre>
   <p>If automatic opening is unavailable, open <code>my-series/public/index.html</code> manually, then select <strong>My first page</strong>. Its direct file is <code>my-series/public/first-page.html</code>; the content card is <code>first-page.html#travels-with-the-page</code>. Check the title, the content card and the links to the demo articles. <code>audit</code> reports warnings; read them even when its exit code is zero. <code>verify</code> should report no drift after this build.</p>
   <p>Edit the title or body and repeat this loop. Keep each published <code>slug:</code> stable: changing a title does not change its address. Once you no longer want the demo in the site, remove its entries from <code>articles</code>, build again, then review <code>clean</code> before removing old output (section 7).</p>
-  <p>The same content card, built with the <code>evergreen</code> theme, in two browser viewports. These are Chromium captures, not photographs of devices:</p>
-  <figure class="figure"><img src="img/product-landscape.png" alt="Landscape viewport, 960 by 540 CSS pixels: the runtime card with its title, one HTML highlight and asset reminder"></figure>
-<img src="img/product-mobile.png" alt="Emulated mobile viewport, 390 by 844 CSS pixels: the same Evergreen card reflows into a narrow reading column" width="390">
+  <p>The same content card, built with the <code>nebula</code> theme, in two browser viewports. This is a Chromium comparison, not a photograph of a device:</p>
+<p align="center">
+  <img src="img/product-responsive.png" alt="The same Nebula content card shown in real landscape and emulated portrait browser viewports" width="100%">
+</p>
 <h2 id="3-understand-page-anatomy" tabindex="-1">3. Understand page anatomy</h2>
   <p>A page is a sequence of <strong>slides</strong>, separated by <code>---</code>, preceded by one metadata block. There are four slide types, and inside a standard slide a small set of named components. This section names them and says how you reach each one; <code>agent/skills/lightwebpres/SKILL.md</code> carries the exact syntax and every edge case.</p>
   <p><strong>The four slide types.</strong></p>

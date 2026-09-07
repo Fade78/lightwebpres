@@ -89,14 +89,19 @@ class TheDocumentationDeliversItsExamples(unittest.TestCase):
         for name, expected in manifest['inputs'].items():
             self.assertEqual(hashlib.sha256((ROOT / name).read_bytes()).hexdigest(),
                              expected, f'{name}: regenerate product captures')
-        self.assertEqual([c['name'] for c in manifest['captures']], ['landscape', 'mobile'])
-        for capture, size in zip(manifest['captures'], [(960, 540), (390, 844)]):
-            image = (ROOT / capture['file']).read_bytes()
-            self.assertEqual(image[:8], b'\x89PNG\r\n\x1a\n')
-            self.assertEqual(struct.unpack('>II', image[16:24]), size)
-            self.assertEqual((capture['width'], capture['height']), size)
-            self.assertEqual(hashlib.sha256(image).hexdigest(), capture['sha256'])
-            self.assertEqual(capture['isMobile'], capture['name'] == 'mobile')
+        self.assertEqual([c['name'] for c in manifest['captures']], ['responsive'])
+        capture = manifest['captures'][0]
+        image = (ROOT / capture['file']).read_bytes()
+        self.assertEqual(image[:8], b'\x89PNG\r\n\x1a\n')
+        self.assertEqual(struct.unpack('>II', image[16:24]), (1280, 760))
+        self.assertEqual((capture['width'], capture['height']), (1280, 760))
+        self.assertEqual(hashlib.sha256(image).hexdigest(), capture['sha256'])
+        self.assertEqual(
+            [(view['name'], view['width'], view['height'], view['isMobile'],
+              view['hasTouch'], view['deviceScaleFactor'])
+             for view in capture['viewports']],
+            [('landscape', 960, 540, False, False, 1),
+             ('mobile', 390, 844, True, True, 1)])
 
     def test_document_links_reach_files_and_real_headings(self):
         for name in ('README.md', 'GUIDE.md', 'examples/first-article/README.md'):
@@ -141,7 +146,7 @@ class TheDocumentationDeliversItsExamples(unittest.TestCase):
         self.assertEqual(len(chapters), 11)
         for chapter in chapters:
             self.assertIn(chapter, parser.ids)
-        for name in ('product-landscape.png', 'product-mobile.png'):
+        for name in ('product-responsive.png',):
             self.assertIn('img/' + name, parser.images)
             self.assertEqual((output / 'img' / name).read_bytes(),
                              (ROOT / 'generated' / name).read_bytes())

@@ -112,7 +112,7 @@ def build(output, theme=None, lang='en'):
             lines.append(line)
         (sources / 'guide_article.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
         (sources / 'img').mkdir(exist_ok=True)
-        for name in ('product-landscape.png', 'product-mobile.png'):
+        for name in ('product-responsive.png',):
             shutil.copy(ROOT / 'generated' / name, sources / 'img' / name)
         (series / 'series.json').write_text(
             json.dumps(SERIES, indent=2, ensure_ascii=False), encoding='utf-8')
