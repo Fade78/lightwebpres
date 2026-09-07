@@ -33,6 +33,17 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.54.0
+
+The theme picker now follows the visual grid in both directions, including
+the incomplete final row, so arrow navigation stays spatially aligned.
+
+The help overlay now offers keyboard and touch guidance, choosing touch by
+default on touch devices and remembering the reader's choice. Keyboard
+shortcuts remain available on touch devices, and the LightWebPres build stamp
+opens an accessible About dialog with the project link, GPLv3 terms, and the
+Output Exception.
+
 ## Unreleased — 0.53.4
 
 Lava now uses a dark volcanic gold for quiet text, while the previous hot
