@@ -637,12 +637,16 @@ async function main() {
   const chromeState = () => phone.evaluate(() => {
     const nav = document.querySelector('.nav-buttons');
     const style = nav ? getComputedStyle(nav) : null;
+    const dots = Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'));
     return {
       idle: document.documentElement.classList.contains('nav-idle'),
-      permanent: document.documentElement.classList.contains('nav-permanent'),
       opacity: style ? style.opacity : null,
       pointerEvents: style ? style.pointerEvents : null,
       fullscreenAsked: window.__askedForFullscreen,
+      active: dots.findIndex((d) => d.classList.contains('active')),
+      scrollX: window.pageXOffset || document.documentElement.scrollLeft || 0,
+      scrollY: window.pageYOffset || document.documentElement.scrollTop || 0,
+      href: window.location.href,
     };
   });
   await phone.evaluate(() => {
@@ -676,10 +680,6 @@ async function main() {
     await tapAt(195, 400);
     await phone.waitForTimeout(60);
     await tapAt(195, 400);
-    // Past the 0.4s opacity transition, so the reads below are of a
-    // settled value. Measured: at 300ms they land mid-fade (0.94, 0.04)
-    // and the assertions fail on a behaviour that is correct.
-    await phone.waitForTimeout(600);
   };
 
   // 5b. A single tap does not bring it back. That is the whole point of
@@ -693,39 +693,70 @@ async function main() {
     fail('a single tap brought the navigation back: ' + JSON.stringify(state));
   }
 
-  // 5c. The first double tap pins the chrome instead of merely waking it.
+  // 5c. The first double tap wakes the chrome and cancels the first tap's
+  // navigation. That first tap was not an indication that the reader wanted
+  // to advance: it was the first half of the visibility gesture.
+  const beforeReveal = await chromeState();
   await doubleTap();
   state = await chromeState();
-  if (state.idle || !state.permanent || state.opacity !== '1') {
-    fail('a double tap did not pin the navigation: '
-      + JSON.stringify(state));
+  if (state.idle || state.active !== beforeReveal.active
+      || Math.abs(state.scrollX - beforeReveal.scrollX) > 1
+      || Math.abs(state.scrollY - beforeReveal.scrollY) > 1
+      || state.href !== beforeReveal.href) {
+    fail('a double tap did not restore the first tap position: '
+      + JSON.stringify({ beforeReveal, state }));
   }
   if (state.fullscreenAsked !== 0) {
     fail('the double tap also asked for fullscreen, which is a second '
-         + 'change the reader did not ask for: ' + JSON.stringify(state));
+      + 'change the reader did not ask for: ' + JSON.stringify(state));
   }
-
-  // 5d. It stays visible past the normal countdown while pinned.
-  await phone.waitForTimeout(3500);
+  await phone.waitForTimeout(600);
   state = await chromeState();
-  if (state.idle || !state.permanent) {
-    fail('pinned navigation auto-hid: ' + JSON.stringify(state));
+  if (state.opacity !== '1') {
+    fail('the revealed navigation did not settle visibly: ' + JSON.stringify(state));
   }
 
-  // 5e. The next double tap returns to auto-hide mode. It leaves the chrome
-  // visible for the normal countdown, rather than hiding it as a second
-  // visibility-only switch would have done.
+  // 5d. The next double tap hides the interface immediately. The first tap
+  // may have started another glide, but the reader's position is restored
+  // before the gesture returns.
+  const beforeHide = await chromeState();
   await doubleTap();
   state = await chromeState();
-  if (state.idle || state.permanent || state.opacity !== '1') {
-    fail('a double tap did not restore auto-hide mode: '
-      + JSON.stringify(state));
+  if (!state.idle || state.active !== beforeHide.active
+      || Math.abs(state.scrollX - beforeHide.scrollX) > 1
+      || Math.abs(state.scrollY - beforeHide.scrollY) > 1
+      || state.href !== beforeHide.href
+      || state.pointerEvents !== 'none') {
+    fail('a double tap did not hide the navigation at the first tap position: '
+      + JSON.stringify({ beforeHide, state }));
+  }
+  await phone.waitForTimeout(600);
+  state = await chromeState();
+  if (state.opacity !== '0') {
+    fail('the hidden navigation did not settle out of sight: ' + JSON.stringify(state));
+  }
+
+  // 5e. A later double tap reveals it again and starts the ordinary
+  // auto-hide countdown. There is no permanent-navigation latch.
+  const beforeRevealAgain = await chromeState();
+  await doubleTap();
+  state = await chromeState();
+  if (state.idle || state.active !== beforeRevealAgain.active
+      || Math.abs(state.scrollX - beforeRevealAgain.scrollX) > 1
+      || Math.abs(state.scrollY - beforeRevealAgain.scrollY) > 1
+      || state.href !== beforeRevealAgain.href) {
+    fail('a double tap did not reveal the navigation at the saved position: '
+      + JSON.stringify({ beforeRevealAgain, state }));
+  }
+  await phone.waitForTimeout(600);
+  state = await chromeState();
+  if (state.opacity !== '1') {
+    fail('the revealed navigation did not settle visibly: ' + JSON.stringify(state));
   }
   await phone.waitForTimeout(3500);
   state = await chromeState();
-  if (!state.idle || state.permanent || state.opacity !== '0') {
-    fail('auto-hide mode did not hide the navigation again: '
-      + JSON.stringify(state));
+  if (!state.idle || state.opacity !== '0') {
+    fail('auto-hide did not hide the navigation again: ' + JSON.stringify(state));
   }
 
   // 5f. The deck does not touch selection at all.
@@ -975,28 +1006,7 @@ async function main() {
          + 'expected 0, got ' + backDuringGlide);
   }
 
-  // 5h. The mode switch remains a latch until the reader switches back.
-  await doubleTap();
-  state = await chromeState();
-  if (state.idle || !state.permanent) {
-    fail('the chrome did not become permanent for the latch test: '
-      + JSON.stringify(state));
-  }
-  await phone.waitForTimeout(4000);
-  state = await chromeState();
-  if (state.idle || !state.permanent) {
-    fail('permanent chrome faded again: '
-      + JSON.stringify(state));
-  }
-  await doubleTap();
-  await phone.waitForTimeout(4000);
-  state = await chromeState();
-  if (!state.idle || state.permanent) {
-    fail('returning to auto-hide did not fade the chrome: '
-      + JSON.stringify(state));
-  }
-
-  // 5i. The middle BUTTON is the fullscreen gatekeeper (B37): the
+  // 5h. The middle BUTTON is the fullscreen gatekeeper (B37): the
   // browsers refuse requestFullscreen from any non-left mouse event,
   // so the button alone can only EXIT. The entry is a two-step — a
   // middle press then a LEFT click within the window (the left click

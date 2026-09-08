@@ -89,15 +89,14 @@ async function main() {
   await touchPage.touchscreen.tap(120, 360);
   await touchPage.waitForTimeout(100);
   await touchPage.touchscreen.tap(120, 360);
-  const permanentMode = await touchPage.evaluate(() => ({
-    permanent: document.documentElement.classList.contains('nav-permanent'),
-    toast: document.getElementById('navModeToast').textContent,
-    toastVisible: document.getElementById('navModeToast').classList.contains('show'),
+  const hiddenNavigation = await touchPage.evaluate(() => ({
+    idle: document.documentElement.classList.contains('nav-idle'),
+    opacity: getComputedStyle(document.querySelector('.nav-buttons')).opacity,
+    pointerEvents: getComputedStyle(document.querySelector('.nav-buttons')).pointerEvents,
   }));
-  if (!permanentMode.permanent || !permanentMode.toastVisible
-      || permanentMode.toast !== 'La navigation reste visible') {
-    fail('mobile double tap did not announce permanent navigation: '
-      + JSON.stringify(permanentMode));
+  if (!hiddenNavigation.idle || hiddenNavigation.pointerEvents !== 'none') {
+    fail('mobile double tap did not hide navigation immediately: '
+      + JSON.stringify(hiddenNavigation));
   }
   await touchPage.keyboard.press('h');
   const mobileHelp = await touchPage.evaluate(() => {

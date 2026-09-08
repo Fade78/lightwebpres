@@ -1109,7 +1109,7 @@ steps: the deck never treats a double click as anything else.
 | Swipe left | Next slide — on the index, next article card |
 | Swipe right | Previous slide — on the index, previous article card |
 | Tap on content | Next slide — on the index, next article card |
-| Double tap | Switch between the default auto-hide mode and permanent navigation |
+| Double tap | Show or hide the navigation immediately |
 | Press and hold | Select text and open the copy menu — the deck does not take it |
 
 ### Navigation buttons
@@ -1129,23 +1129,21 @@ continuous movement, so a knock against the desk does not put it on the
 wall.
 
 On a phone or a tablet they fade after the same three seconds. A **double tap**
-switches to permanent navigation, or back to auto-hide with a fresh countdown;
-a short localized toast names the mode just selected.
-A touch or a scroll restarts the countdown while they are still
-up, so they never vanish under your finger; once they are gone they no
-longer answer a touch at all, so the corner of your own text is safe to
-touch. Fullscreen is the ⛶ button in that bar rather than the middle
-button: the middle button alone only exits fullscreen — entering is
-the two-step, middle button then a left click — and a gesture that
-meant two things depending on a state you cannot see coming would not
-be one.
+toggles them immediately: visible navigation disappears at once; hidden
+navigation returns and starts a fresh countdown. If the first tap has already
+started a slide or scroll, recognizing the pair cancels that movement and
+restores the fiche and position from before the first tap. A touch or a scroll
+restarts the countdown while the controls are still up, so they never vanish
+under your finger; once they are gone they no longer answer a touch at all, so
+the corner of your own text is safe to touch. Fullscreen is the ⛶ button in
+that bar rather than the middle button: the middle button alone only exits
+fullscreen — entering is the two-step, middle button then a left click. With
+a mouse, clicking the corner (not a button) toggles their current visibility.
 
-The double tap is also how a phone selects a word, and the deck does not
-try to take it: selection, long press and the copy menu are the browser's,
-untouched. Which of the two wins a given double tap is the browser's call,
-and if it takes one, press and hold or use the ⛶ button — nothing the deck
-does will have got in your way. With a mouse, clicking the corner (not a button)
-toggles their current visibility.
+Text selection, long press and the copy menu remain the browser's. The
+navigation double tap is recognized from touch events themselves, not from
+the delayed clicks a browser synthesizes, so those clicks cannot advance the
+deck after the first tap has been restored.
 
 ### Share a series, an article or a slide
 

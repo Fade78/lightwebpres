@@ -1335,9 +1335,7 @@ LANG_FR = r'''{
     "about_github": "Code source et projet :",
     "about_github_link": "GitHub",
     "about_license": "LightWebPres est distribué sous la GNU GPL version 3 ou ultérieure, avec la LightWebPres Output Exception, version 1.0. Cette exception permet de publier les présentations générées sous les conditions de votre choix.",
-    "about_close": "Fermer",
-    "nav_mode_permanent": "La navigation reste visible",
-    "nav_mode_auto": "La navigation se masque après inactivité"
+    "about_close": "Fermer"
   }
 }'''
 
@@ -1505,9 +1503,7 @@ LANG_EN = r'''{
     "about_github": "Source code and project:",
     "about_github_link": "GitHub",
     "about_license": "LightWebPres is distributed under the GNU General Public License version 3 or later, with the LightWebPres Output Exception, version 1.0. This exception allows generated presentations to be published under terms of your choice.",
-    "about_close": "Close",
-    "nav_mode_permanent": "Navigation stays visible",
-    "nav_mode_auto": "Navigation hides after inactivity"
+    "about_close": "Close"
   }
 }'''
 
@@ -8027,30 +8023,6 @@ body.fs-noselect {
 :root.nav-idle { scrollbar-color: transparent transparent; }
 .nav-buttons.idle { opacity: 0; }
 .nav-buttons.idle:hover { opacity: 1; }
-.nav-mode-toast {
-  position: fixed;
-  left: 50%;
-  bottom: calc(24px + env(safe-area-inset-bottom) + 64px);
-  z-index: 260;
-  max-width: calc(100vw - 32px);
-  padding: 8px 14px;
-  border-style: solid;
-  border-width: 1px;
-  border-radius: 999px;
-  background: inherit;
-  color: inherit;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translate(-50%, 8px);
-  transition: visibility 0s linear 0.18s, transform 0.18s;
-  white-space: normal;
-  text-align: center;
-}
-.nav-mode-toast.show {
-  visibility: visible;
-  transition-delay: 0s;
-  transform: translate(-50%, 0);
-}
 /* Faded chrome must also stop answering the finger. `opacity: 0` hides a
    thing without disarming it, and with a mouse that is harmless — the
    hover rule above brings it back before any click can land. There is no
@@ -10982,11 +10954,12 @@ document.addEventListener('DOMContentLoaded', function() {
   function navigationScrollBehavior() {
     return scrollDuration === 0 ? 'instant' : 'smooth';
   }
-  function setScrollTop(targetY) {
+  function setScrollTop(targetY, targetX) {
     // The document's scroll-behavior is smooth by default. Explicitly use
     // instant here so it cannot delay either a jump or one frame of our own
     // requestAnimationFrame glide.
-    window.scrollTo({ left: 0, top: targetY, behavior: 'instant' });
+    window.scrollTo({ left: targetX === undefined ? 0 : targetX,
+      top: targetY, behavior: 'instant' });
   }
   function animateScrollTo(targetY, duration) {
     var startY = window.pageYOffset || document.documentElement.scrollTop;
@@ -11004,9 +10977,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     scrollRAF = requestAnimationFrame(frame);
   }
-  function jumpScrollTo(targetY) {
+  function jumpScrollTo(targetY, targetX) {
     if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
-    setScrollTop(targetY);
+    setScrollTop(targetY, targetX);
   }
 
   var presentationReanchorFrame = null;
@@ -12408,7 +12381,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // cost of catching one tap too many.
   var DOUBLE_TAP_MS = 350;
   var TAP_SLOP_PX = 20;
-  var navAutoHide = true;
+  var touchPairScrollX = 0, touchPairScrollY = 0;
+  var touchPairCurrent = 0, touchPairFocusedCard = -1;
+  var touchPairHref = '';
   document.addEventListener('touchstart', function (e) {
     if (helpIsOpen()) {
       touchStartX = null;
@@ -12439,10 +12414,9 @@ document.addEventListener('DOMContentLoaded', function() {
       lastTapT = 0;
       return;
     }
-    // A double tap is the reader's switch between the default auto-hide
-    // mode and a pinned navigation chrome. It changes the mode, not just
-    // the current opacity: the reader can leave the controls available
-    // while reading, then return to the quiet default with the same gesture.
+    // A double tap toggles the navigation chrome. The first tap is not an
+    // indication that the reader wanted to advance: it is the first half of
+    // this visibility gesture, so its navigation must be reversible.
     //
     // Fullscreen keeps the button in that chrome rather than this
     // gesture. One gesture that means two things depending on a state
@@ -12460,9 +12434,11 @@ document.addEventListener('DOMContentLoaded', function() {
       // Suppress the ones that remain, or the gesture that put the
       // chrome away would also have moved the reader two cards on.
       swallowClicksUntil = now + 450;
-      toggleNavMode();
+      restoreTouchPosition();
+      toggleNavVisibility();
       return;
     }
+    rememberTouchPosition();
     lastTapT = now;
   }, { passive: true });
 
@@ -12471,8 +12447,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // the visibility of both the pagination dots and the nav buttons.
   // This lets the speaker hide all distracting chrome on a large screen.
   var navButtons = document.querySelector('.nav-buttons');
-  var navModeToast = document.getElementById('navModeToast');
-  var navModeToastTimer = null;
   function setNavIdle(isIdle) {
     if (navButtons) navButtons.classList.toggle('idle', isIdle);
     if (navDots) navDots.classList.toggle('idle', isIdle);
@@ -12490,9 +12464,49 @@ document.addEventListener('DOMContentLoaded', function() {
   function navIsIdle() {
     return document.documentElement.classList.contains('nav-idle');
   }
+  function rememberTouchPosition() {
+    touchPairScrollX = window.pageXOffset
+      || document.documentElement.scrollLeft || 0;
+    touchPairScrollY = window.pageYOffset
+      || document.documentElement.scrollTop || 0;
+    touchPairCurrent = current;
+    touchPairFocusedCard = focusedCard;
+    touchPairHref = window.location.href;
+  }
+  function restoreTouchPosition() {
+    if (scrollTimer) { clearTimeout(scrollTimer); scrollTimer = null; }
+    if (isIndex) {
+      if (focusedCard >= 0 && indexCards[focusedCard]) {
+        indexCards[focusedCard].blur();
+      }
+      focusedCard = touchPairFocusedCard;
+      if (focusedCard >= 0 && indexCards[focusedCard]) {
+        indexCards[focusedCard].focus({ preventScroll: true });
+      }
+    } else {
+      current = touchPairCurrent;
+      focusedCard = touchPairFocusedCard;
+    }
+    jumpScrollTo(touchPairScrollY, touchPairScrollX);
+    isScrolling = false;
+    if (touchPairHref && window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', touchPairHref);
+    }
+    updateUI();
+  }
+  function toggleNavVisibility() {
+    var goingIdle = !navIsIdle();
+    if (goingIdle) {
+      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+      setNavIdle(true);
+    } else {
+      setNavIdle(false);
+      scheduleHide();
+    }
+  }
   if (navButtons) {
     navButtons.addEventListener('click', function (e) {
-      if (e.target === navButtons && navAutoHide) {
+      if (e.target === navButtons) {
         setNavIdle(!navButtons.classList.contains('idle'));
       }
     });
@@ -12513,39 +12527,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function getIdleDelay() {
     return isFullscreen() ? 1000 : 3000;
   }
-  function setNavMode(autoHide) {
-    navAutoHide = autoHide;
-    if (idleTimer) clearTimeout(idleTimer);
-    idleTimer = null;
-    document.documentElement.classList.toggle('nav-permanent', !autoHide);
-    setNavIdle(false);
-    if (autoHide) scheduleHide();
-  }
-  function showNavModeToast(autoHide) {
-    if (!navModeToast) return;
-    if (navModeToastTimer) clearTimeout(navModeToastTimer);
-    if (autoHide) {
-      navModeToast.textContent = lwpString('nav_mode_auto');
-    } else {
-      navModeToast.textContent = lwpString('nav_mode_permanent');
-    }
-    navModeToast.classList.add('show');
-    navModeToastTimer = setTimeout(function () {
-      navModeToast.classList.remove('show');
-      navModeToastTimer = null;
-    }, 1800);
-  }
-  function toggleNavMode() {
-    setNavMode(!navAutoHide);
-    showNavModeToast(navAutoHide);
-  }
   function scheduleHide() {
     if (idleTimer) clearTimeout(idleTimer);
     idleTimer = null;
-    if (!navAutoHide) return;
     idleTimer = setTimeout(function () {
       idleTimer = null;
-      if (!navAutoHide) return;
       setNavIdle(true);
       // Only where there is one to hide. Setting it on a touch device is
       // harmless but says something false about what just happened.
@@ -12563,11 +12549,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   } else {
     // Nothing here reveals anything: that is the point of asking for a
-    // double tap. What a touch does do is restart the countdown while
-    // auto-hide is active and the chrome is still up, so it never fades
-    // out from under a finger that is in the middle of using it.
+    // double tap. What a touch does do is restart the countdown while the
+    // chrome is still up, so it never fades out from under a finger that is
+    // in the middle of using it.
     function keepAwakeOnTouch() {
-      if (navAutoHide && !navIsIdle()) scheduleHide();
+      if (!navIsIdle()) scheduleHide();
     }
     document.addEventListener('touchstart', keepAwakeOnTouch, { passive: true });
     window.addEventListener('scroll', keepAwakeOnTouch, { passive: true });
@@ -12752,7 +12738,6 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
     <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="M" title="{{str_menu_title}}" data-lwp-i18n-title="menu_title" aria-label="{{str_menu_title}}" data-lwp-i18n-aria-label="menu_title">{{icon_menu}}</div>
   </div>
 </div>
-<div class="nav-mode-toast" id="navModeToast" role="status" aria-live="polite"></div>
 <div class="tag-empty-state" id="tagEmptyState" role="status" aria-live="polite" hidden></div>
 
 <div class="tag-menu" id="tagMenu" role="dialog" aria-modal="true" aria-label="{{str_tags_menu}}" aria-describedby="tagMenuCurrent tagMenuSummary" data-lwp-i18n-aria-label="tags_menu">

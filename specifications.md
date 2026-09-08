@@ -2330,10 +2330,12 @@ la sélection au moment où il saute, et de nouveau à l'évènement
 **Tactile** : swipe gauche = suivant, swipe droit = précédent (seuil
 50px, < 500ms, dominante horizontale). Tap sur le contenu = suivant.
 Le mode initial est **auto-cachant** : les boutons s'effacent après le délai
-normal. **Double tap = interrupteur de mode** : le premier rend la navigation
-permanente, sans nouveau délai, et le suivant revient au mode auto-cachant
-avec un nouveau compte à rebours ; il ne s'agit pas d'un simple réveil ou
-d'une inversion momentanée de l'opacité.
+normal. **Double tap = interrupteur de visibilité** : les boutons visibles
+disparaissent immédiatement ; les boutons absents réapparaissent et relancent
+le compte à rebours normal. Si le premier tap a déjà déclenché un déplacement
+de fiche ou de scroll, la reconnaissance de la paire l'annule et restaure la
+fiche, l'URL et la position du premier tap : ce tap n'était pas une volonté
+d'avancer.
 Le geste est détecté sur les évènements tactiles eux-mêmes (deux taps de
 moins de 350 ms, à moins de 20 px), jamais sur les clics que le
 navigateur synthétise ensuite : un moteur mobile peut retenir un clic
@@ -2345,14 +2347,11 @@ où le même clic avance d'une carte. Le plein écran reste le bouton
 ⛶ de cette barre — un même geste qui voudrait dire deux choses selon un
 état que le lecteur ne voit pas venir n'en est pas un.
 
-**Le deck ne touche pas à la sélection.** Il l'a fait brièvement —
-`user-select: none` tant que le chrome était baissé, pour que le double
-tap qui le rappelle ne perde pas contre la sélection de mot du système —
-et c'est retiré : sur téléphone, la sélection se fait par appui long, et
-un deck n'a pas à réapprendre à un téléphone ce qu'un appui long veut
-dire. Le geste peut donc encore se disputer entre le navigateur et nous,
-et c'est le navigateur qui gagne : un contrat perdu du côté du deck, pas
-du côté du lecteur.
+**Le deck ne touche pas à la sélection.** Sur téléphone, la sélection se
+fait par appui long, et un deck n'a pas à réapprendre à un téléphone ce que
+cet appui veut dire. Le double tap de navigation est reconnu sur les
+évènements tactiles, et non sur la sélection ou les clics synthétisés ; le
+long press et le menu « Copier » restent au navigateur.
 
 **L'appui long appartient au lecteur.** Il déclenche `contextmenu`, le
 même évènement que le second bouton d'une souris, et le deck y avait

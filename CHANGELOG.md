@@ -51,6 +51,11 @@ The optional `sourced-presentation` method is synced to version 0.18 and now
 ships its evidence, explanation and verification references alongside the
 main checklist.
 
+On touch screens, a double tap now toggles the navigation immediately. When
+the pair is recognized, any slide or scroll started by its first tap is
+cancelled and the deck returns to the first tap's position instead of
+advancing.
+
 ## v0.54.1
 
 The presenter menu's Home action now keeps the same text size as its
