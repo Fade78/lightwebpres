@@ -33,19 +33,72 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.55.0
+## Unreleased — 0.56.0
 
-Builds can now publish several versioned presentation presets at once. The
+Builds publish named presets from the native identity, Commons and autonomous
+Identity Kits. The only persisted initial reference is
+`series_meta.presentation_preset`: `builtin/standard`, `commons/id` or
+`id@version/preset`, with native Standard selected implicitly when omitted.
+Both `init --preset` and `series preset set` persist explicit selections,
+including `builtin/standard`; plain `init` leaves the field absent. Identity is
+inferred from that reference. Kits use `lightwebpres.identity-kit/1`, require a
+fixed identity label, and choose a local default with `default_preset` or the
+first preset in manifest order. Their references are local files or native
+`builtin:standard` layouts and `builtin:light` themes, without inter-kit
+dependencies or extensions. Native layouts inside a kit keep its chrome.
+
+Kits live under `kits/` and `templates/kits/`, with `LWP_IDENTITY_KITS_DIR`
+for the user catalogue. Commons themes use the global `themes/` catalogue and
+`LWP_THEMES_DIR`; Commons presets use `commons/presets/`, `LWP_COMMONS_DIR`
+and series-local `templates/commons/presets/`. Their strict
+`lightwebpres.commons-preset/1` descriptors bind a global theme or
+`builtin:light` to native layouts without starters. Initializing or selecting
+a Commons preset vendors its descriptor and selected external theme, if any;
+native selection vendors nothing. Loaders compute resource
+origins; manifests do not declare provenance, filiation or authenticity.
+
+`kit compose recipe.json --output directory` produces an autonomous
+`directory/id/version/` kit. Its strict `lightwebpres.kit-composition/1` recipe
+contains `schema`, `sources`, `manifest` and `files`: explicit source/file/text
+copies, optional CSS parts and the complete final manifest. A source manifest's
+`structure_css` role identifies the file to rebind regardless of suffix;
+only selector class tokens change, with literal text preserved. CSS parts require
+`.css` files and destinations. References are never guessed and dependency
+closure is never inferred. Publication is staged outside the output catalogue
+on the same filesystem, so mount-root catalogues require an output subdirectory.
+Existing output is refused, and `--dry-run` validates in disposable temporary
+storage without creating output.
+
+Builds can publish several presentation presets at once. The
 primary preset remains the static fallback, while **C** lets a reader switch
 the whole deck and its index during the browser session. The root
 `presentation_presets` list and `--presentation-presets` CLI option select the
-ordered alternatives; presentation choice and runtime theme choice remain
-independent.
+ordered alternatives. **C** exposes Identity, Preset and Theme controls;
+Applicable / Current identity / All filter published choices by typed
+compatibility or ownership, not brand approval. All themes of selected kits
+are published with qualified names, without a resource cross-product. Explicit
+themes persist across preset changes; Follow preset resets the runtime override.
+Identity labels stay fixed, while default markers describe initial selections.
+
+Native `builtin/standard` is added automatically after a
+kit or Commons primary's alternatives when the series' slide metadata can use it. Preset
+choices preview their resolved page and cover colours, and generated theme and
+preset labels follow the browser's French or English interface. A kit-only
+slide layout or chrome override keeps the existing validation rule: an implicit
+`builtin/standard` is omitted with a warning, while an explicit request remains an error.
 
 Runtime fragments now retain the browser's interface locale, and presentation
 and theme choices are scoped to the current deck when several decks share an
-origin. Assets from every selected package are included in the published
+origin. Assets from every selected kit are included in the published
 manifest.
+
+## Unreleased — 0.55.0
+
+Builds can publish ordered presentation alternatives through
+`presentation_presets` or `--presentation-presets`. Readers switch the deck
+and its index during the browser session; the primary preset remains the
+static fallback. Runtime fragments retain the browser's interface locale,
+and selected resources are included in the published output.
 
 The optional `sourced-presentation` method is synced to version 0.18 and now
 ships its evidence, explanation and verification references alongside the
@@ -147,23 +200,20 @@ both return to the top. The presenter menu's index action now advertises the
 same `Ctrl+Home` shortcut, while the middle-button/right-click gesture keeps
 its direct return to the index.
 
-Presentation packages now expose named versioned presets, selected only by
-`series_meta.presentation_preset` with the exact
-`id@MAJOR.MINOR.PATCH/preset` form. The virtual built-in `default` rendering
-continues to be represented by omitting that field; the literal CLI selector
-`default` does the same. Per-article and metadata selection is gone, and the
-retired author fields `presentation_template`, `slide_layouts`, and
-`slide_chrome` are rejected rather than ignored. The latter two remain valid
-inside package manifests as preset defaults.
+Identity Kits expose named versioned presets selected only by
+`series_meta.presentation_preset`, using `id@MAJOR.MINOR.PATCH/preset`.
+The native choice is `builtin/standard`, selected when the field is omitted;
+Commons presets use `commons/id`. Layout and chrome defaults belong to the
+kit's preset manifest, with per-slide overrides in the article.
 
 `preset list`, `preset show`, `series preset`, `series preset set`, and
 `init --preset` inspect or select portable presets. Initialisation validates and
-vendors the package, generates settings from its theme, and applies its declared
+vendors the kit, generates settings from its theme, and applies its declared
 starter unless `--no-starter` is given. Changing an existing series does not
 apply a starter and preserves pins and `custom.css`; an explicit `theme:`
 requires `--keep-theme` or `--use-preset-theme`.
 
-Packages own their structure, layouts, chrome, assets, and constrained
+Kits own their structure, layouts, chrome, assets, and constrained
 structural CSS without replacing the LWP shell. Their assets publish under
 `public/assets/presentations/<id>/<version>/...`; the repository example is now
 the inspectable `lightwebpres-docs@0.1.0/docs` preset.

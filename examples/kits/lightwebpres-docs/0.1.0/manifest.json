@@ -1,7 +1,9 @@
 {
-  "schema": "lightwebpres.presentation-package/1",
+  "schema": "lightwebpres.identity-kit/1",
   "id": "lightwebpres-docs",
   "version": "0.1.0",
+  "label": "LightWebPres documentation",
+  "default_preset": "docs",
   "layouts": {
     "cover": {
       "default": "slides/cover.html",

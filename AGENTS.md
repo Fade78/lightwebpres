@@ -67,8 +67,8 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 - `tools/guide-deck.md` — deck source du guide, à côté du script qui le
   lit (`tools/build_guide.py`, qui assemble `GUIDE.md` comme article).
   Entrée de build, pas documentation : se corrige comme du code.
-- `examples/layouts/` — source suivie des paquets de présentation de
-  démonstration. Le paquet utilisé par le guide officiel y reste inspectable et
+- `examples/kits/` — source suivie des kits d'identité de
+  démonstration. Le kit utilisé par le guide officiel y reste inspectable et
   versionné ; il n'est ni une seconde source du guide ni une sortie générée.
 - **Deux blocs de ces documents sont générés** et se réécrivent au lieu
   de s'éditer. Chacun a sa garde dans la suite, donc une édition à la
@@ -99,7 +99,7 @@ pas reproductible à l'octet, à refaire à la main quand la galerie change.
   PW_CHROMIUM_PATH=/opt/pw-browsers/chromium node
   tools/screenshot-gallery.cjs` — planche-contact compacte du README.
 - `generated/guide/` — `python3 tools/build_guide.py`, y compris les assets
-  publiés par le paquet de démonstration (garde :
+  publiés par le kit de démonstration (garde :
   `test_the_committed_guide_is_the_guide_the_tool_makes`, qui compare tout
   l'arbre hors manifestes `.lwp-*`).
 - `generated/product-responsive.png` et `generated/product-captures.json` —
@@ -133,6 +133,19 @@ pas reproductible à l'octet, à refaire à la main quand la galerie change.
   (`specifications.md` §1.1).
 
 ## Conventions
+
+- **Identity / Preset / Theme** : l'identité est déduite de l'unique référence
+  `series_meta.presentation_preset` (`builtin/standard`, `commons/id` ou
+  `id@version/preset`). Le label d'identité est fixe ; le défaut désigne une
+  sélection, pas une identité. Les kits autonomes suivent
+  `lightwebpres.identity-kit/1`, sous `kits/` ou `templates/kits/`, avec
+  `LWP_IDENTITY_KITS_DIR`. Commons garde les thèmes dans `themes/`
+  (`LWP_THEMES_DIR`) et les presets dans `commons/presets/` (`LWP_COMMONS_DIR`).
+  Les origines sont calculées par les chargeurs, jamais déclarées. Pas
+  d'extension ni de dépendance entre kits ; `kit compose` produit un kit final
+  autonome depuis une recette explicite. Les contrats et exemples sont en
+  `specifications.md` §9.9 ; la sortie des assets reste sous
+  `public/assets/presentations/`.
 
 - **Parseur CLI fait main** (pas d'argparse) — `parse_cli_options()` + tables
   `_COMMAND_OPTIONS`, `_VALUE_OPTIONS`, `_GLOBAL_OPTIONS`. L'aide (`--help`)

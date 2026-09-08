@@ -23,7 +23,7 @@ source: Guide, chapters 1 and 7
 
 Each article is an HTML file with its CSS and JavaScript inside. The build
 also derives a series index and navigation. Publish **public/**, including
-referenced images and presentation-package assets, to a static host.
+referenced images and Identity Kit assets, to a static host.
 
 Readers need a browser, not Python or LightWebPres. The source remains plain
 text; the manual describes how to operate the tool, not an editorial method.
@@ -86,24 +86,33 @@ are shared with non-default selections. **L** opens the reader's tag menu;
 ---
 
 <!-- lwp:slide -->
-slug: paquets-presentation
-kicker: Layouts
-## Select a preset for the series
+slug: identity-kits
+kicker: Identity
+## One identity, named presets and themes
 fact-label: Inner structure, not a replacement runtime
 source: Guide, chapter 5
 
-A presentation package supplies layouts, headers, footers, assets and a typed
-theme. LWP keeps the page shell, navigation and script. Select it through
-`series_meta.presentation_preset`; absence means the built-in `default`.
+A self-contained Identity Kit supplies layouts, chrome, assets and typed
+themes. LWP keeps the page shell, navigation and script. Select a preset through
+`series_meta.presentation_preset`: `builtin/standard`, `commons/id`, or
+`id@version/preset`. Omission selects native Standard with minimal Light;
+Commons presets bind global themes to native layouts. Identity is inferred
+from the reference, and its label stays fixed when the selection changes.
 
 Keep alternatives at the root of `series.json` with
 `presentation_presets`, or pass `--presentation-presets` to `build`, `verify`
-or `watch`. The primary stays first; **C** then opens the Appearance picker and
-switches the whole deck without changing its sources. The session choice is
-scoped to that deck as well as its catalogue.
+or `watch`. A kit or Commons primary also adds compatible `builtin/standard`
+after those choices; a kit-only slide layout or chrome override makes that
+implicit candidate unavailable and is reported as a warning. The primary stays
+first; **C** opens Identity, Preset and Theme choices and switches the whole deck
+without changing its sources. The session choice is scoped to that deck as well
+as its catalogue. Applicable / Current identity / All filter published choices
+by typed compatibility or ownership, not brand. Follow preset resets an
+explicit runtime theme choice.
 
 Use `preset list`, `preset show` and `series preset set` to inspect or change
-the choice. `init --preset` can also apply the package's starter.
+the choice. `init --preset` can also apply the kit's starter. `kit compose`
+builds an autonomous kit from explicit files and a complete final manifest.
 Per-slide `slide-layout`, `slide-header` and `slide-footer` override defaults.
 
 ---

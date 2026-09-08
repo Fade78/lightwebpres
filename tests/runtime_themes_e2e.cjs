@@ -153,17 +153,18 @@ async function main() {
   const picker = await page.evaluate(() => ({
     open: document.getElementById('themeMenu').classList.contains('open'),
     focused: document.activeElement && document.activeElement.id,
-    options: document.querySelectorAll('.theme-option').length,
-    previews: Array.prototype.map.call(document.querySelectorAll('.theme-option'), (button) => {
-      const style = getComputedStyle(button);
-      return {
-        background: style.backgroundColor,
-        gradient: style.backgroundImage,
-        foreground: style.color,
-      };
-    }),
+    options: document.querySelectorAll('#themeOptions .theme-option').length,
+    previews: Array.prototype.map.call(
+      document.querySelectorAll('#themeOptions .theme-option[data-theme]'), (button) => {
+        const style = getComputedStyle(button);
+        return {
+          background: style.backgroundColor,
+          gradient: style.backgroundImage,
+          foreground: style.color,
+        };
+      }),
   }));
-  if (!picker.open || picker.focused !== 'themeFilter' || picker.options !== 3) {
+  if (!picker.open || picker.focused !== 'themeFilter' || picker.options < 4) {
     fail('C did not open the theme picker correctly: ' + JSON.stringify(picker));
   }
   if (picker.previews.some((preview) =>
@@ -175,12 +176,12 @@ async function main() {
   }
 
   const themeGrid = await page.evaluate(() => Array.prototype.map.call(
-    document.querySelectorAll('.theme-option'), (button) => {
+    document.querySelectorAll('#themeOptions .theme-option'), (button) => {
       const rect = button.getBoundingClientRect();
       return { theme: button.getAttribute('data-theme'), left: rect.left, top: rect.top };
     }
   ));
-  if (themeGrid.length !== 3
+  if (themeGrid.length < 4
       || Math.abs(themeGrid[0].top - themeGrid[1].top) > 1
       || themeGrid[2].top <= themeGrid[0].top
       || Math.abs(themeGrid[0].left - themeGrid[2].left) > 1) {
@@ -217,15 +218,15 @@ async function main() {
   await page.keyboard.press('Home');
   const themeHomeFocus = await page.evaluate(() =>
     document.activeElement && document.activeElement.getAttribute('data-theme'));
-  if (themeDownFromFilterFocus !== 'custom(print-oldpress)'
-      || themeUpFromFilterFocus !== 'print-ink'
-      || themeDownFocus !== 'print-ink'
-      || themeUpFocus !== 'custom(print-oldpress)'
-      || themeRightFocus !== 'print-oldpress'
-      || themeLeftFocus !== 'custom(print-oldpress)'
-      || themeEndFocus !== 'print-ink'
-      || themeUpFromLastRowFocus !== 'custom(print-oldpress)'
-      || themeHomeFocus !== 'custom(print-oldpress)'
+  if (themeDownFromFilterFocus !== null
+      || themeUpFromFilterFocus !== themeGrid[themeGrid.length - 1].theme
+      || themeDownFocus !== 'print-oldpress'
+      || themeUpFocus !== null
+      || themeRightFocus !== 'custom(print-oldpress)'
+      || themeLeftFocus !== null
+      || themeEndFocus !== themeGrid[themeGrid.length - 1].theme
+      || themeUpFromLastRowFocus !== themeGrid[themeGrid.length - 3].theme
+      || themeHomeFocus !== null
       ) {
     fail('theme picker arrow/home/end navigation is wrong: '
       + JSON.stringify({ themeDownFromFilterFocus, themeUpFromFilterFocus,
@@ -244,8 +245,9 @@ async function main() {
       + JSON.stringify(reopenedPicker));
   }
 
-  // The filter is focused first; three Tab presses reach Print Ink after the
-  // custom primary and its raw base snapshot.
+  // The filter is focused first; four theme choices follow it in the dialog's
+  // tab order. Presentation choices are before the filter and do not count.
+  await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');
@@ -297,9 +299,9 @@ async function main() {
     labelledby: document.getElementById('helpOverlay').getAttribute('aria-labelledby'),
     titleId: !!document.getElementById('helpTitle'),
     cardTabindex: document.querySelector('.help-card').getAttribute('tabindex'),
-    themeLine: Array.prototype.some.call(
+    appearanceLine: Array.prototype.some.call(
       document.querySelectorAll('#helpList li'),
-      (li) => li.textContent.indexOf('Changer de thème pendant la présentation') !== -1
+      (li) => li.textContent.indexOf('Changer d’apparence pendant la présentation') !== -1
     ),
     helpOpenLine: Array.prototype.some.call(
       document.querySelectorAll('#helpList li'),
@@ -324,7 +326,7 @@ async function main() {
   }));
   if (!help.open || help.role !== 'dialog' || !help.titleId
       || help.labelledby !== 'helpTitle' || help.cardTabindex !== '0'
-      || !help.themeLine || !help.helpOpenLine || !help.scrollLine || !help.noHelpFoot
+      || !help.appearanceLine || !help.helpOpenLine || !help.scrollLine || !help.noHelpFoot
       || help.mode !== 'false' || help.modeValue !== 'Clavier'
       || help.keyboardCount === 0 || help.keyboardHidden || !help.touchHidden
       || !/^Compilé avec LightWebPres v\d+\.\d+\.\d+$/.test(help.stamp)
@@ -700,13 +702,25 @@ async function main() {
         selectors: data.presets.map((preset) => preset.selector),
         indexShell: !!document.querySelector('#lwp-presentation-index .lwp-doc-index-frame'),
         appearance: document.querySelector('[data-menu-action="theme"] .presenter-menu-label').textContent,
+        buttonPreviews: Array.from(
+          document.querySelectorAll('#presentationOptions .presentation-option'),
+        ).map((button) => ({
+          background: button.style.backgroundColor,
+          gradient: button.style.backgroundImage,
+          foreground: button.style.color,
+        })),
       };
     });
     if (presentationInitial.primary !== 'lightwebpres-docs@0.1.0/docs'
         || presentationInitial.selectors.join('|')
-          !== 'lightwebpres-docs@0.1.0/docs|lightwebpres-docs@0.1.0/compact'
+          !== 'lightwebpres-docs@0.1.0/docs|lightwebpres-docs@0.1.0/compact|builtin/standard'
         || !presentationInitial.indexShell
-        || presentationInitial.appearance !== 'Changer d’apparence') {
+        || presentationInitial.appearance !== 'Changer d’apparence'
+        || presentationInitial.buttonPreviews.length !== 2
+        || presentationInitial.buttonPreviews.some((preview) => !preview.background
+          || preview.background === 'rgba(0, 0, 0, 0)'
+          || !preview.gradient || preview.gradient === 'none'
+          || !preview.foreground || preview.foreground === 'rgba(0, 0, 0, 0)')) {
       fail('runtime presentation catalogue or appearance label is wrong: '
         + JSON.stringify(presentationInitial));
     }
@@ -716,22 +730,101 @@ async function main() {
       open: document.getElementById('themeMenu').classList.contains('open'),
       title: document.getElementById('themeMenuTitle').textContent,
       presentationTitle: document.getElementById('presentationAxisTitle').textContent,
+      identityTitle: document.getElementById('identityAxisTitle').textContent,
+      identities: Array.from(document.querySelectorAll('#identityOptions .identity-option'))
+        .map((button) => button.textContent),
       themeTitle: document.getElementById('themeAxisTitle').textContent,
       options: document.querySelectorAll('#presentationOptions .presentation-option').length,
       active: document.querySelector('#presentationOptions .presentation-option.active')
         .getAttribute('data-presentation'),
+      standard: JSON.parse(document.getElementById('lwp-presentation-data').textContent)
+        .presets.find((preset) => preset.selector === 'builtin/standard'),
     }));
     if (!presentationPicker.open
         || presentationPicker.title !== 'Choisir une apparence'
-        || presentationPicker.presentationTitle !== 'Présentation'
+        || presentationPicker.presentationTitle !== 'Preset'
+        || presentationPicker.identityTitle !== 'Identité'
+        || presentationPicker.identities.join('|') !== 'LightWebPres documentation|LightWebPres'
         || presentationPicker.themeTitle !== 'Thème'
         || presentationPicker.options !== 2
+        || presentationPicker.standard.label !== 'Standard'
+        || presentationPicker.standard.identity !== 'builtin'
         || presentationPicker.active !== 'lightwebpres-docs@0.1.0/docs') {
-      fail('C did not expose the presentation and theme axes: '
+      fail('C did not expose the identity, preset and theme axes: '
         + JSON.stringify(presentationPicker));
     }
 
+    await presentationPage.locator('#identityOptions .identity-option').first().focus();
+    await presentationPage.keyboard.press('ArrowRight');
+    const identityRight = await presentationPage.evaluate(() =>
+      document.activeElement.getAttribute('data-identity'));
+    await presentationPage.keyboard.press('Home');
+    const identityHome = await presentationPage.evaluate(() =>
+      document.activeElement.getAttribute('data-identity'));
+    await presentationPage.keyboard.press('End');
+    const identityEnd = await presentationPage.evaluate(() =>
+      document.activeElement.getAttribute('data-identity'));
+    await presentationPage.keyboard.press('Home');
+    await presentationPage.keyboard.press('Shift+Tab');
+    const trappedLast = await presentationPage.evaluate(() =>
+      !!document.activeElement.closest('#themeMenu')
+      && document.activeElement.matches('#themeOptions .theme-option'));
+    await presentationPage.keyboard.press('Tab');
+    const trappedFirst = await presentationPage.evaluate(() =>
+      document.activeElement.matches('#identityOptions .identity-option'));
+    if (identityRight !== 'builtin' || identityEnd !== 'builtin'
+        || identityHome !== 'lightwebpres-docs@0.1.0' || !trappedLast || !trappedFirst) {
+      fail('identity grid or three-axis focus trap is wrong: '
+        + JSON.stringify({ identityRight, identityHome, identityEnd, trappedLast, trappedFirst }));
+    }
+    await presentationPage.selectOption('#themeSource', 'identity');
+    const kitThemes = await presentationPage.evaluate(() => Array.from(
+      document.querySelectorAll('#themeOptions [data-theme]'),
+      (button) => button.getAttribute('data-theme')));
+    if (kitThemes.join('|') !== 'kit:lightwebpres-docs@0.1.0/docs|kit:lightwebpres-docs@0.1.0/compact') {
+      fail('current identity omitted a secondary kit theme: ' + JSON.stringify(kitThemes));
+    }
+    await presentationPage.selectOption('#themeSource', 'all');
+    const allThemes = await presentationPage.locator('#themeOptions [data-theme]').count();
+    await presentationPage.selectOption('#themeSource', 'applicable');
+    const applicableThemes = await presentationPage.locator('#themeOptions [data-theme]').count();
+    if (allThemes !== applicableThemes || allThemes <= kitThemes.length) {
+      fail('Applicable must include all published typed themes, without a brand restriction');
+    }
+    if (kitThemes.length) {
+      await presentationPage.locator(
+        '#themeOptions [data-theme="kit:lightwebpres-docs@0.1.0/compact"]',
+      ).click();
+      const appliedKitTheme = await presentationPage.evaluate(() => {
+        const data = JSON.parse(document.getElementById('lwp-theme-data').textContent);
+        const theme = data.themes.find((item) => item.slug === 'kit:lightwebpres-docs@0.1.0/compact');
+        const inkIndex = data.vars.indexOf('--color-ink');
+        return {
+          expected: theme.values.find(([index]) => index === inkIndex)[1],
+          actual: getComputedStyle(document.documentElement).getPropertyValue('--color-ink').trim(),
+          preset: document.querySelector('#presentationOptions .active').getAttribute('data-presentation'),
+        };
+      });
+      if (appliedKitTheme.actual !== appliedKitTheme.expected
+          || appliedKitTheme.preset !== 'lightwebpres-docs@0.1.0/docs') {
+        fail('secondary kit theme was not applied independently of its preset: '
+          + JSON.stringify(appliedKitTheme));
+      }
+      await presentationPage.keyboard.press('c');
+      await presentationPage.locator('#themeOptions [data-theme-mode="preset-default"]').click();
+      await presentationPage.keyboard.press('c');
+    }
+
+    await presentationPage.keyboard.press('Escape');
+    await presentationPage.locator('a.article-card').first().focus();
+    const focusedArticleHref = await presentationPage.locator('a.article-card').first().getAttribute('href');
+    await presentationPage.keyboard.press('c');
+
     await presentationPage.locator('#presentationOptions .presentation-option').nth(1).click();
+    const restoredArticleHref = await presentationPage.evaluate(() => document.activeElement.getAttribute('href'));
+    if (restoredArticleHref !== focusedArticleHref) {
+      fail('index replacement lost the picker return focus');
+    }
     const articleHref = await presentationPage.locator('a.article-card').first().getAttribute('href');
     await presentationPage.goto(new URL(articleHref, presentationBase + '/index.html').href,
       { waitUntil: 'load' });
@@ -800,6 +893,69 @@ async function main() {
         + JSON.stringify({ primaryDefault, compactDefault, compactArticle }));
     }
 
+    await presentationPage.keyboard.press('c');
+    await presentationPage.locator('#identityOptions [data-identity="builtin"]').click();
+    await presentationPage.selectOption('#themeSource', 'identity');
+    const nativeThemes = await presentationPage.evaluate(() => Array.from(
+      document.querySelectorAll('#themeOptions [data-theme]'),
+      (button) => button.getAttribute('data-theme')));
+    if (kitThemes.length && nativeThemes.join('|') !== 'kit:builtin/light') {
+      fail('native identity filter did not select only its Light theme: ' + JSON.stringify(nativeThemes));
+    }
+    await presentationPage.selectOption('#themeSource', 'applicable');
+    await presentationPage.locator(
+      '#presentationOptions .presentation-option[data-presentation="builtin/standard"]',
+    ).click();
+    const defaultPresentation = await presentationPage.evaluate(() => ({
+      hero: !!document.querySelector('.lwp-doc-cover-hero'),
+      footer: document.querySelector('section.slide').textContent
+        .includes('LIGHTWEBPRES / OFFICIAL DOCUMENTATION'),
+      ink: getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-ink').trim(),
+    }));
+    if (defaultPresentation.hero || defaultPresentation.footer) {
+      fail('the native Standard preset kept kit markup: '
+        + JSON.stringify(defaultPresentation));
+    }
+
+    await presentationPage.keyboard.press('c');
+    await presentationPage.locator('#themeOptions .theme-option[data-theme="print-ink"]').click();
+    const defaultExplicit = await presentationPage.evaluate(() => ({
+      hero: !!document.querySelector('.lwp-doc-cover-hero'),
+      footer: document.querySelector('section.slide').textContent
+        .includes('LIGHTWEBPRES / OFFICIAL DOCUMENTATION'),
+      ink: getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-ink').trim(),
+    }));
+    await presentationPage.keyboard.press('c');
+    await presentationPage.locator('#identityOptions [data-identity="lightwebpres-docs@0.1.0"]').click();
+    const identitySelection = await presentationPage.evaluate(() => ({
+      preset: document.querySelector('#presentationOptions .active').getAttribute('data-presentation'),
+      theme: document.querySelector('#themeOptions .active').getAttribute('data-theme'),
+      focus: document.activeElement.getAttribute('data-identity'),
+    }));
+    if (identitySelection.preset !== 'lightwebpres-docs@0.1.0/docs'
+        || identitySelection.theme !== 'print-ink'
+        || identitySelection.focus !== 'lightwebpres-docs@0.1.0') {
+      fail('identity selection did not choose the first published preset, keep theme and restore focus: '
+        + JSON.stringify(identitySelection));
+    }
+    await presentationPage.locator(
+      '#presentationOptions .presentation-option[data-presentation="lightwebpres-docs@0.1.0/compact"]',
+    ).click();
+    const compactExplicit = await presentationPage.evaluate(() => ({
+      hero: !!document.querySelector('.lwp-doc-cover-hero'),
+      footer: document.querySelector('section.slide').textContent
+        .includes('LIGHTWEBPRES / OFFICIAL DOCUMENTATION'),
+      ink: getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-ink').trim(),
+    }));
+    if (!compactExplicit.hero || compactExplicit.footer
+        || compactExplicit.ink !== defaultExplicit.ink) {
+      fail('an explicit theme did not stay independent from Standard presentation: '
+        + JSON.stringify({ defaultExplicit, compactExplicit }));
+    }
+
     await presentationPage.goto(presentationBase + '/index.html', { waitUntil: 'load' });
     await presentationPage.keyboard.press('c');
     const rememberedPresentation = await presentationPage.evaluate(() => ({
@@ -846,6 +1002,10 @@ async function main() {
     const englishInitial = await englishPage.evaluate(() => ({
       read: document.querySelector('.article-cta [data-lwp-i18n="series_read"]')
         .textContent,
+      standardLabel: JSON.parse(document.getElementById('lwp-presentation-data').textContent)
+        .presets.find((preset) => preset.selector === 'builtin/standard').label,
+      identityLabel: document.getElementById('identityAxisTitle').textContent,
+      sourceLabel: document.querySelector('#themeSource option[value="identity"]').textContent,
     }));
     await englishPage.keyboard.press('c');
     await englishPage.locator('#presentationOptions .presentation-option').nth(1).click();
@@ -854,6 +1014,9 @@ async function main() {
         .textContent,
     }));
     if (englishInitial.read !== 'Read the article'
+        || englishInitial.standardLabel !== 'Standard'
+        || englishInitial.identityLabel !== 'Identity'
+        || englishInitial.sourceLabel !== 'Current identity'
         || englishAlternate.read !== 'Read the article') {
       fail('runtime presentation fragments did not retain the browser locale: '
         + JSON.stringify({ englishInitial, englishAlternate }));
@@ -893,6 +1056,100 @@ async function main() {
     if (staticPicker.open) {
       fail('C opened a picker on a static page: ' + JSON.stringify(staticPicker));
     }
+    await page.goto(staticBase + '/single-preset/index.html', { waitUntil: 'load' });
+    await page.keyboard.press('c');
+    const singlePreset = await page.evaluate(() => {
+      const data = JSON.parse(document.getElementById('lwp-presentation-data').textContent);
+      return {
+        open: document.getElementById('themeMenu').classList.contains('open'),
+        identity: document.querySelector('#identityOptions .active').textContent,
+        preset: document.querySelector('#presentationOptions .active span').textContent,
+        presets: data.presets.length,
+        variants: Object.keys(data.variants).length,
+        reset: !!document.querySelector('#themeOptions [data-theme-mode="preset-default"]'),
+      };
+    });
+    if (!singlePreset.open || singlePreset.identity !== 'LightWebPres'
+        || singlePreset.preset !== 'Standard' || singlePreset.presets !== 1
+        || singlePreset.variants !== 0 || !singlePreset.reset) {
+      fail('single-preset builds lost their axes or duplicated page content: '
+        + JSON.stringify(singlePreset));
+    }
+    const noJsContext = await browser.newContext({ javaScriptEnabled: false });
+    const noJsPage = await noJsContext.newPage();
+    await noJsPage.goto(presentationBase + '/index.html', { waitUntil: 'load' });
+    if (!await noJsPage.locator('.lwp-doc-index-frame').isVisible()
+        || !await noJsPage.locator('a.article-card').first().isVisible()) {
+      fail('the primary kit index needs JavaScript to display its content');
+    }
+    await noJsPage.goto(presentationBase + '/first.html', { waitUntil: 'load' });
+    if (!await noJsPage.locator('section.slide').first().isVisible()) {
+      fail('the primary kit article needs JavaScript to display its content');
+    }
+    await noJsContext.close();
+  }
+
+  if (staticBase) {
+    for (const mobile of [false, true]) {
+      for (const [name, rawTheme] of [['native', 'kit:builtin/light'], ['commons', 'dracula']]) {
+        const regressionContext = await browser.newContext({
+          locale: 'en-US', isMobile: mobile, hasTouch: mobile,
+          viewport: mobile ? { width: 390, height: 844 } : { width: 1280, height: 800 },
+        });
+        const regressionPage = await regressionContext.newPage();
+        regressionPage.on('pageerror', (error) => errors.push(String(error)));
+        const palette = () => regressionPage.evaluate(() => {
+          const style = getComputedStyle(document.documentElement);
+          return ['--color-page', '--page-bg'].map((name) => style.getPropertyValue(name).trim());
+        });
+        await regressionPage.goto(staticBase + '/' + name + '-raw/index.html');
+        const rawPalette = await palette();
+        await regressionPage.goto(staticBase + '/' + name + '-pinned/index.html');
+        const pinnedPalette = await palette();
+        if (pinnedPalette.some((value) => value !== '#123456FF')) {
+          fail('fixture did not resolve the shared page role: ' + JSON.stringify({ name, mobile, pinnedPalette }));
+        }
+        await regressionPage.keyboard.press('c');
+        await regressionPage.locator('#themeOptions [data-theme="' + rawTheme + '"]').click();
+        const switchedPalette = await palette();
+        if (JSON.stringify(switchedPalette) !== JSON.stringify(rawPalette)) {
+          fail('raw theme retained a reference-derived settings pin: '
+            + JSON.stringify({ name, mobile, rawPalette, switchedPalette }));
+        }
+        await regressionPage.keyboard.press('c');
+        await regressionPage.locator('#themeOptions [data-theme-mode="preset-default"]').click();
+        const restoredPalette = await palette();
+        if (JSON.stringify(restoredPalette) !== JSON.stringify(pinnedPalette)) {
+          fail('Follow preset did not restore the static cascade: ' + JSON.stringify({ name, mobile, restoredPalette }));
+        }
+        await regressionPage.keyboard.press('c');
+        await regressionPage.locator('#themeFilter').pressSequentially('print-ink');
+        await regressionPage.keyboard.press('Enter');
+        const searched = await regressionPage.evaluate(() => ({
+          open: document.getElementById('themeMenu').classList.contains('open'),
+          theme: document.querySelector('#themeOptions .active').getAttribute('data-theme'),
+        }));
+        if (searched.open || searched.theme !== 'print-ink') {
+          fail('search Enter applied reset instead of the matching theme: ' + JSON.stringify({ name, mobile, searched }));
+        }
+        await regressionPage.keyboard.press('c');
+        await regressionPage.locator('#themeFilter').fill('no-such-theme');
+        await regressionPage.keyboard.press('Enter');
+        const noMatch = await regressionPage.evaluate(() => ({
+          open: document.getElementById('themeMenu').classList.contains('open'),
+          resetActive: document.querySelector('[data-theme-mode="preset-default"]').classList.contains('active'),
+        }));
+        if (!noMatch.open || noMatch.resetActive) {
+          fail('an unmatched search reset the selected theme: ' + JSON.stringify({ name, mobile, noMatch }));
+        }
+        if (!noMatch.open) await regressionPage.keyboard.press('c');
+        await regressionPage.locator('#themeOptions [data-theme-mode="preset-default"]').click();
+        if (JSON.stringify(await palette()) !== JSON.stringify(pinnedPalette)) {
+          fail('Follow preset was not accessible after filtering');
+        }
+        await regressionContext.close();
+      }
+    }
   }
 
   await browser.close();
@@ -901,5 +1158,5 @@ async function main() {
 
 main().catch((error) => {
   console.error(error.stack || error);
-  process.exitCode = 1;
+  process.exit(1);
 });

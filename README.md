@@ -80,7 +80,7 @@ and the build/open/verify loop, while keeping the demo available as a reference.
   series, article or current slide. Explicit slide slugs keep links stable
   when titles or order change. QR codes need a reachable HTTP(S) page.
 - **Customization with checked values.** Choose a theme or presentation
-  preset, pin typed properties in `settings.conf`, and add advanced rules in
+  preset from an identity, pin typed properties in `settings.conf`, and add advanced rules in
   `custom.css`. Invalid property names and values are build errors.
 - **Automatic typography.** French and English packs upgrade existing spaces
   around punctuation, numbers and units to non-breaking spaces. Rules can
@@ -126,9 +126,19 @@ A theme's contrast report is a measurement, not an accessibility certification.
 `theme show` reports the catalogue theme; `series theme` measures the effective
 typed values after your pins. Advanced `custom.css` is outside that measurement.
 
-For layouts, headers, footers and package assets, see
+The Appearance picker separates **Identity**, **Preset** and **Theme**.
+The native `builtin/standard` preset uses the minimal Light theme; Commons
+provides the global themes and native-layout presets. Self-contained Identity
+Kits provide their own layouts, chrome, themes and assets. The identity is
+inferred from the one series preset reference, not stored as a second choice.
+Applicable / Current identity / All filter published choices; compatibility
+checks types, not brand approval. An explicit theme stays selected across preset
+changes until the reader chooses Follow preset.
+
+For layouts, headers, footers, kit assets, Commons presets and a complete
+`kit compose` recipe, see
 [presets and customization](GUIDE.md#5-choose-presets-themes-and-customization).
-You do not need to design a package to use the built-in rendering.
+You do not need to design a kit to use native Standard or Commons themes.
 
 ## Find your route
 
@@ -221,7 +231,7 @@ python3 tools/check_refs.py
 Browser tests use Playwright and Chromium and skip when unavailable.
 No browser tooling is needed to use the Python CLI.
 
-`examples/` holds tracked inputs, including presentation packages and the
+`examples/` holds tracked inputs, including Identity Kits under `examples/kits/` and the
 first-article example. `tools/` holds maintenance scripts and the guide deck.
 `generated/` holds rebuildable output: edit its sources, never its files by
 hand. The guide is regenerated with `python3 tools/build_guide.py`.

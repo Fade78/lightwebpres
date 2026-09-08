@@ -258,21 +258,23 @@ the readability floor — get named, under this article's filename.
 `comment:` here works too, for an article-wide note — same rule as the
 per-slide one below: recognized, never read, never published.
 
-## Presentation packages and presets
+## Identities, presets and themes
 
-A presentation package is not a page template: LWP keeps the `<head>`,
-`<body>`, navigation, JavaScript, and each slide's `<section>`. The package
-owns the inner structure/layouts, chrome, assets, and constrained structural
-CSS. Its catalogue namespace remains `layouts/<id>/<version>/`; a vendored
-copy lives at `templates/layouts/<id>/<version>/`. Published package assets use
+An Identity Kit owns inner layouts, chrome, assets, typed themes and constrained
+structural CSS. LWP keeps the `<head>`, `<body>`, navigation, JavaScript and
+each slide's `<section>`. A kit lives at `kits/<id>/<version>/`; a vendored
+copy lives at `templates/kits/<id>/<version>/`. `LWP_IDENTITY_KITS_DIR` selects
+the user catalogue. Published kit assets use
 `public/assets/presentations/<id>/<version>/...`. The complete manifest,
 fragment, asset, and validation reference is `specifications.md` §9.9.
 
-Only `series_meta.presentation_preset` persists a selection, in the exact form
-`id@MAJOR.MINOR.PATCH/preset`. It applies to the entire series and index; no
-article entry or `lwp:meta` block may select a preset. Omitting the field uses
-the virtual built-in `default`; the literal CLI selector `default` means to
-omit it rather than write it.
+Only `series_meta.presentation_preset` persists the initial selection:
+`builtin/standard`, `commons/<id>` or `id@MAJOR.MINOR.PATCH/preset`. Identity
+is inferred from that reference. It applies to the entire series and index;
+no article entry or `lwp:meta` block may select a preset. Omission selects
+`builtin/standard` implicitly. `init --preset builtin/standard` and
+`series preset set --preset builtin/standard` persist that explicit reference;
+plain `init` leaves the field absent. Neither native choice vendors resources.
 
 ```json
 {
@@ -282,9 +284,24 @@ omit it rather than write it.
 }
 ```
 
-The old author fields `presentation_template`, `slide_layouts`, and
-`slide_chrome` are retired and rejected, never silently ignored. The latter two
-remain valid package-manifest keys for a preset's own defaults.
+The `lightwebpres.identity-kit/1` manifest requires an identity `label` and
+`id`/`version`. Its optional `default_preset` names a local preset, otherwise
+the first in manifest order is used. The identity label stays fixed regardless
+of that initial choice. `slide_layouts` and `slide_chrome` declare preset
+defaults in the manifest only. Kit references are local files or native
+`builtin:standard` layouts and `builtin:light` themes. Native layouts inside
+a kit keep its chrome. Kits neither extend nor depend on other kits or Commons;
+origins are computed by loaders, with no declared provenance or authenticity.
+
+Commons themes are the global catalogue under `themes/` and
+`templates/themes/`, configured with `LWP_THEMES_DIR`. Commons presets live
+under `commons/presets/<id>.json`, installed, user (`LWP_COMMONS_DIR`), or
+series-local (`templates/commons/presets/`). Their strict
+`lightwebpres.commons-preset/1` schema contains `schema`, `id`, `label`,
+`description`, `theme`; the theme is a global slug or `builtin:light`.
+They bind native layouts to a theme, without a starter. Native Standard uses
+the minimal Light theme. See the guide for complete manifest and composition
+examples; `kit compose` creates an autonomous kit from explicit final references.
 
 On **every** slide, these fields override the selected preset's defaults:
 
@@ -304,16 +321,17 @@ base theme < `settings.conf` pins < article `style.*` < instance styles, with
 
 ### Runtime presentation alternatives
 
-The primary preset still comes from `series_meta.presentation_preset` (or the
-omitted virtual `default`). A series may expose additional presets at the root
-of `series.json`:
+The primary preset comes from `series_meta.presentation_preset` (or
+`builtin/standard` when omitted). A kit or Commons primary also exposes compatible native
+Standard as a runtime alternative; a series may expose additional
+presets at the root of `series.json`:
 
 ```json
 {
   "series_meta": {
     "presentation_preset": "corporate@1.0.0/brief"
   },
-  "presentation_presets": ["default"]
+  "presentation_presets": ["builtin/standard"]
 }
 ```
 
@@ -321,16 +339,24 @@ of `series.json`:
 `--presentation-presets selector[,selector...]`; the CLI value overrides the
 root list. It adds alternatives rather than replacing the primary. The primary
 is always first in the effective ordered list, duplicates are removed, and
-`default` is the virtual built-in choice. A missing or unknown selector is a
+`builtin/standard` is the native choice. A missing or unknown selector is a
 build error before output is written. With alternatives, every article and the
 index carries the primary HTML plus inert runtime fragments for each alternative;
 the reader changes the presentation with **C**. The choice applies to the whole
 series, is held in browser session storage, and is not written to source files.
 
-The presentation and theme axes are independent. An explicit `theme:` in
+The Appearance picker has **Identity**, **Preset** and **Theme** controls.
+Applicable / Current identity / All filter only published choices by typed
+compatibility or resource ownership, not brand approval. All themes of selected
+kits are published with kit-qualified names; no cross-product is generated.
+Identity labels name ownership, while default markers name initial selections.
+An explicit `theme:` in
 `settings.conf` stays fixed while the presentation changes. Without one, the
 preset's theme follows the selected presentation until the reader chooses an
-explicit runtime theme.
+explicit runtime theme. That choice persists until the reader chooses
+**Follow preset**. Kit-only slide overrides can make implicit native Standard
+incompatible; it is then omitted with a warning. An explicit incompatible
+request remains a build error.
 
 ## Tags: `tags:`
 

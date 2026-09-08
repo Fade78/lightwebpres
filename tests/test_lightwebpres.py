@@ -5028,8 +5028,8 @@ class CliVersionAndShortcuts(unittest.TestCase):
         script = run('completion', '--shell', 'bash').stdout
         self.assertEqual(
             sorted(self._complete(script, ['lightwebpres', ''], 1)),
-            sorted(set(lwp._SHORTCUTS)
-                   | {'series', 'theme', 'preset', 'template'}),
+        sorted(set(lwp._SHORTCUTS)
+                   | {'series', 'theme', 'preset', 'kit', 'template'}),
             'the root command list is not what the tables say')
 
     def test_completion_offers_nothing_the_tool_refuses(self):
@@ -8902,8 +8902,9 @@ class PresentationPackages(unittest.TestCase):
             preset['starter'] = 'seed'
 
         (package / 'manifest.json').write_text(json.dumps({
-            'schema': 'lightwebpres.presentation-package/1',
+            'schema': 'lightwebpres.identity-kit/1',
             'id': package_id,
+            'label': package_id.title(),
             'version': version,
             'layouts': layout_paths,
             'structure_css': 'structure.css',
@@ -8919,7 +8920,7 @@ class PresentationPackages(unittest.TestCase):
 
     def _selected_series(self, tmp):
         root = scaffold(tmp, self._article())
-        package = self._write_package(root / 'templates' / 'layouts')
+        package = self._write_package(root / 'templates' / 'kits')
         series_path = root / 'series.json'
         series = json.loads(series_path.read_text(encoding='utf-8'))
         series['series_meta'] = {'presentation_preset': self.SELECTOR}
@@ -8928,7 +8929,7 @@ class PresentationPackages(unittest.TestCase):
 
     def _runtime_series(self, tmp):
         root = scaffold(tmp, self._article())
-        layouts_root = root / 'templates' / 'layouts'
+        layouts_root = root / 'templates' / 'kits'
         primary = self._write_package(layouts_root)
 
         # A second preset in the same package exercises preset-level layout
@@ -9023,9 +9024,9 @@ class PresentationPackages(unittest.TestCase):
             self.assertEqual(data['primary'], self.SELECTOR)
             self.assertEqual(
                 [preset['selector'] for preset in data['presets']],
-                [self.SELECTOR, other, simple])
+                [self.SELECTOR, other, simple, 'builtin/standard'])
             self.assertEqual(set(data['variants']),
-                             {self.SELECTOR, simple, other})
+                             {self.SELECTOR, simple, other, 'builtin/standard'})
             self.assertEqual(set(data['variants'][self.SELECTOR]['sections']),
                              {'a-cover', 'a-standard'})
 
@@ -9042,15 +9043,19 @@ class PresentationPackages(unittest.TestCase):
                              data['variants'][simple]['sections']['a-cover'])
 
             self.assertEqual(set(index_data['variants']),
-                             {self.SELECTOR, simple, other})
+                             {self.SELECTOR, simple, other, 'builtin/standard'})
             self.assertIn('presentation-other-index',
                           index_data['variants'][other]['index'])
+            self.assertNotIn('presentation-studio-cover',
+                             data['variants']['builtin/standard']['sections']['a-cover'])
+            self.assertNotIn('presentation-studio-index',
+                             index_data['variants']['builtin/standard']['index'])
 
             manifest = json.loads((output / '.lwp-manifest.json').read_text(
                 encoding='utf-8'))
             self.assertEqual(
                 [preset['selector'] for preset in manifest['presentation_presets']],
-                [self.SELECTOR, other, simple])
+                [self.SELECTOR, other, simple, 'builtin/standard'])
             self.assertTrue((output / 'assets' / 'presentations' / 'studio'
                              / self.PACKAGE_VERSION / 'mark.svg').is_file())
             self.assertTrue((output / 'assets' / 'presentations' / 'other'
@@ -9059,20 +9064,69 @@ class PresentationPackages(unittest.TestCase):
                 preset for preset in data['presets'] if preset['selector'] == simple)
             self.assertTrue(simple_descriptor['theme_values'])
 
+            default_descriptor = next(
+                preset for preset in data['presets'] if preset['selector'] == 'builtin/standard')
+            self.assertEqual(default_descriptor['label'], 'Standard')
+            self.assertEqual(default_descriptor['family'], 'LightWebPres')
+            self.assertEqual(default_descriptor['label_key'], 'presentation_standard')
+            self.assertTrue(default_descriptor['preview']['background'])
+            self.assertTrue(default_descriptor['preview']['foreground'])
+            self.assertEqual(set(default_descriptor['preview']['gradient']),
+                             {'angle', 'from', 'to'})
+
+    def test_real_package_exposes_the_virtual_default_when_compatible(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, _package = self._selected_series(tmp)
+            output = root / 'public'
+            built = run('build', str(root), '--output', str(output),
+                        '--no-essential-theme')
+            self.assertEqual(built.returncode, 0, built.stderr)
+
+            article = (output / 'a.html').read_text(encoding='utf-8')
+            data = self._presentation_data(article)
+            self.assertEqual(
+                [preset['selector'] for preset in data['presets']],
+                [self.SELECTOR, 'builtin/standard'])
+            self.assertNotIn(
+                'presentation-studio-cover',
+                data['variants']['builtin/standard']['sections']['a-cover'])
+            self.assertIn('id="presentationOptions"', article)
+
+    def test_implicit_default_does_not_break_package_specific_slide_overrides(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, _package = self._selected_series(tmp)
+            source = root / 'sources' / 'a.md'
+            source.write_text(
+                source.read_text(encoding='utf-8').replace(
+                    'summary: Summary.\n\n',
+                    'summary: Summary.\nslide-layout: hero\n\n'),
+                encoding='utf-8')
+            output = root / 'public'
+            built = run('build', str(root), '--output', str(output),
+                        '--no-essential-theme')
+            self.assertEqual(built.returncode, 0, built.stderr)
+            self.assertIn('implicit builtin/standard presentation is unavailable',
+                          built.stderr)
+            article = (output / 'a.html').read_text(encoding='utf-8')
+            self.assertEqual(
+                [preset['selector'] for preset in self._presentation_data(article)['presets']],
+                [self.SELECTOR])
+            self.assertIn('presentation-studio-cover-hero', article)
+
     def test_cli_runtime_presentation_list_overrides_series_and_supports_default(self):
         with tempfile.TemporaryDirectory() as tmp:
             root, _primary, _other, _simple, _other_selector = self._runtime_series(tmp)
             output = root / 'cli-public'
             built = run('build', str(root), '--output', str(output),
                         '--no-essential-theme', '--presentation-presets',
-                        'default')
+                        'builtin/standard')
             self.assertEqual(built.returncode, 0, built.stderr)
             article = (output / 'a.html').read_text(encoding='utf-8')
             data = self._presentation_data(article)
             self.assertEqual([preset['selector'] for preset in data['presets']],
-                             [self.SELECTOR, 'default'])
+                             [self.SELECTOR, 'builtin/standard'])
             self.assertNotIn('<div class="lwp-presentation--studio">',
-                             data['variants']['default']['sections']['a-cover'])
+                             data['variants']['builtin/standard']['sections']['a-cover'])
 
     def test_runtime_presentation_unknown_selector_fails_before_output(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -9085,7 +9139,7 @@ class PresentationPackages(unittest.TestCase):
             result = run('build', str(root), '--output', str(output),
                          '--no-essential-theme')
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn('presentation package missing@1.0.0 was not found',
+            self.assertIn('identity kit missing@1.0.0 was not found',
                           result.stderr)
             self.assertFalse(output.exists())
 
@@ -9155,7 +9209,7 @@ class PresentationPackages(unittest.TestCase):
             root = Path(tmp)
             catalogue = root / 'catalogue'
             self._write_package(catalogue)
-            env = {'LWP_PRESENTATION_PACKAGES_DIR': str(catalogue)}
+            env = {'LWP_IDENTITY_KITS_DIR': str(catalogue)}
 
             listed = run('preset', 'list', '--format', 'json', env=env)
             self.assertEqual(listed.returncode, 0, listed.stderr)
@@ -9163,7 +9217,7 @@ class PresentationPackages(unittest.TestCase):
             default = next(report for report in reports if report['default'])
             custom = next(report for report in reports
                           if report['selector'] == self.SELECTOR)
-            self.assertIsNone(default['selector'])
+            self.assertEqual(default['selector'], 'builtin/standard')
             self.assertEqual(custom['package']['scope'], 'user')
 
             shown = run('preset', 'show', self.SELECTOR, '--format', 'json',
@@ -9171,7 +9225,7 @@ class PresentationPackages(unittest.TestCase):
             self.assertEqual(shown.returncode, 0, shown.stderr)
             self.assertEqual(json.loads(shown.stdout)['slide_layouts']['cover'],
                              'hero')
-            virtual = run('preset', 'show', 'default', '--format', 'json',
+            virtual = run('preset', 'show', 'builtin/standard', '--format', 'json',
                           env=env)
             self.assertEqual(virtual.returncode, 0, virtual.stderr)
             self.assertTrue(json.loads(virtual.stdout)['default'])
@@ -9180,10 +9234,11 @@ class PresentationPackages(unittest.TestCase):
             initialized = run('init', str(series), env=env)
             self.assertEqual(initialized.returncode, 0, initialized.stderr)
             selected = run('series', 'preset', 'set', str(series), '--preset',
-                           'default', env=env)
+                           'builtin/standard', env=env)
             self.assertEqual(selected.returncode, 0, selected.stderr)
             data = json.loads((series / 'series.json').read_text(encoding='utf-8'))
-            self.assertNotIn('presentation_preset', data['series_meta'])
+            self.assertEqual(data['series_meta']['presentation_preset'],
+                             'builtin/standard')
             current = run('series', 'preset', str(series), '--format', 'json',
                           env=env)
             self.assertEqual(current.returncode, 0, current.stderr)
@@ -9192,7 +9247,7 @@ class PresentationPackages(unittest.TestCase):
             (series / 'series.json').write_text(json.dumps(data), encoding='utf-8')
             persisted = run('series', 'preset', str(series), env=env)
             self.assertNotEqual(persisted.returncode, 0)
-            self.assertIn('presentation_preset must be id@version/preset',
+            self.assertIn('presentation_preset must be builtin/standard, commons/id or id@version/preset',
                           persisted.stderr)
 
     def test_init_preset_applies_or_skips_its_declared_starter(self):
@@ -9200,7 +9255,7 @@ class PresentationPackages(unittest.TestCase):
             root = Path(tmp)
             catalogue = root / 'catalogue'
             self._write_package(catalogue, with_starter=True)
-            env = {'LWP_PRESENTATION_PACKAGES_DIR': str(catalogue)}
+            env = {'LWP_IDENTITY_KITS_DIR': str(catalogue)}
 
             refused = run('init', str(root / 'needs-preset'), '--no-starter',
                           env=env)
@@ -9216,7 +9271,7 @@ class PresentationPackages(unittest.TestCase):
             self.assertEqual(data['series_meta']['presentation_preset'],
                              self.SELECTOR)
             self.assertTrue((with_starter / 'sources' / 'starter.md').is_file())
-            self.assertTrue((with_starter / 'templates' / 'layouts'
+            self.assertTrue((with_starter / 'templates' / 'kits'
                              / self.PACKAGE_ID / self.PACKAGE_VERSION
                              / 'manifest.json').is_file())
 
@@ -9234,7 +9289,7 @@ class PresentationPackages(unittest.TestCase):
             root = Path(tmp)
             catalogue = root / 'catalogue'
             self._write_package(catalogue)
-            env = {'LWP_PRESENTATION_PACKAGES_DIR': str(catalogue)}
+            env = {'LWP_IDENTITY_KITS_DIR': str(catalogue)}
             series = root / 'series'
             initialized = run('init', str(series), env=env)
             self.assertEqual(initialized.returncode, 0, initialized.stderr)
@@ -9284,8 +9339,8 @@ class PresentationPackages(unittest.TestCase):
              {'all': {'footer': 'Author footer'}}, 'slide_chrome'),
             ('article preset', 'article', 'presentation_preset', self.SELECTOR,
              'puts "presentation_preset" on an article'),
-            ('article template', 'article', 'presentation_template',
-             'studio@1.2.3', 'uses retired "presentation_template"'),
+            ('article chrome', 'article', 'slide_chrome',
+             {'all': {'footer': 'Author footer'}}, 'belongs in a kit preset'),
         )
         for name, location, field, value, expected in cases:
             with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
@@ -9320,7 +9375,7 @@ class PresentationPackages(unittest.TestCase):
                     manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
                     manifest['schema'] = 'lightwebpres.presentation-template/1'
                     manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
-                    expected = 'expected \'lightwebpres.presentation-package/1\''
+                    expected = 'expected \'lightwebpres.identity-kit/1\''
                 else:
                     (package / 'layouts' / 'cover.html').write_text(
                         '<script>window.bad = true</script>\n'
@@ -9383,7 +9438,7 @@ class PresentationPackages(unittest.TestCase):
              'structure_css cannot import, load URLs or fonts'),
             ('scope sibling', 'structure.css',
              f'{scope} + .outside {{ display: grid; }}\n',
-             'structure_css cannot select siblings of its package scope'),
+             'structure_css cannot select siblings of its kit scope'),
             ('custom property', 'structure.css',
              f'{scope} .card {{ --color-page: red; }}\n',
              'structure_css cannot declare custom properties'),
@@ -9401,7 +9456,7 @@ class PresentationPackages(unittest.TestCase):
             root = Path(tmp)
             catalogue = root / 'catalogue'
             self._write_package(catalogue, with_starter=True)
-            env = {'LWP_PRESENTATION_PACKAGES_DIR': str(catalogue)}
+            env = {'LWP_IDENTITY_KITS_DIR': str(catalogue)}
             series = root / 'series'
             source = series / 'sources' / 'starter.md'
             source.parent.mkdir(parents=True)
@@ -9427,7 +9482,7 @@ class PresentationPackages(unittest.TestCase):
             series = root / 'series'
 
             result = run('init', str(series), '--preset', self.SELECTOR,
-                         env={'LWP_PRESENTATION_PACKAGES_DIR': str(catalogue)})
+                         env={'LWP_IDENTITY_KITS_DIR': str(catalogue)})
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('contained POSIX relative path', result.stderr)
             self.assertFalse(series.exists())
@@ -9437,7 +9492,7 @@ class PresentationPackages(unittest.TestCase):
             root = Path(tmp)
             catalogue = root / 'catalogue'
             self._write_package(catalogue, with_starter=True)
-            env = {'LWP_PRESENTATION_PACKAGES_DIR': str(catalogue)}
+            env = {'LWP_IDENTITY_KITS_DIR': str(catalogue)}
             series = root / 'series'
             self.assertEqual(run('init', str(series), env=env).returncode, 0)
 
@@ -9455,13 +9510,13 @@ class PresentationPackages(unittest.TestCase):
             root = Path(tmp)
             catalogue = root / 'catalogue'
             self._write_package(catalogue)
-            env = {'LWP_PRESENTATION_PACKAGES_DIR': str(catalogue)}
+            env = {'LWP_IDENTITY_KITS_DIR': str(catalogue)}
             series = root / 'series'
             self.assertEqual(run('init', str(series), env=env).returncode, 0)
             settings = series / 'templates' / 'settings.conf'
             settings.write_text('theme: nord\ncolor.page: #123456FF\n',
                                 encoding='utf-8')
-            collision = (series / 'templates' / 'layouts' / self.PACKAGE_ID
+            collision = (series / 'templates' / 'kits' / self.PACKAGE_ID
                          / self.PACKAGE_VERSION)
             collision.parent.mkdir(parents=True)
             collision.write_text('not a package\n', encoding='utf-8')
@@ -9532,7 +9587,7 @@ class RefreshTemplates(unittest.TestCase):
 
             result = run('template', 'update', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('settings.conf (new, default theme)', result.stdout)
+            self.assertIn('settings.conf (new, builtin/standard)', result.stdout)
             self.assertIn('custom.css (new, empty)', result.stdout)
             settings = (root / 'templates' / 'settings.conf').read_text(encoding='utf-8')
             self.assertIn('# theme: <slug>', settings)
@@ -10236,6 +10291,19 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
         self.assertEqual(raw_values[ink_index],
                          self.lwp._theme_runtime_resolved('nord')['color.ink'])
 
+    def test_runtime_payload_localizes_generated_theme_labels(self):
+        strings = json.loads(self.lwp.LANG_FR)['strings']
+        data = self.lwp.build_theme_runtime(
+            'nord', 'nord', settings_props={'color.ink': '#123456'},
+            strings=strings)
+        self.assertEqual(data['themes'][0]['label'], 'Personnalisé (Nord)')
+        self.assertEqual(data['themes'][0]['label_key'], 'theme_custom')
+        self.assertEqual(data['themes'][0]['label_base'], 'Nord')
+
+        default = self.lwp.build_theme_runtime('essential', None, strings=strings)
+        self.assertEqual(default['themes'][0]['label'], 'Par défaut')
+        self.assertEqual(default['themes'][0]['family_key'], 'theme_default')
+
     def test_runtime_payload_can_include_every_theme(self):
         data = self.lwp.build_theme_runtime('all', 'print-oldpress')
         self.assertEqual(data['primary'], 'print-oldpress')
@@ -10314,7 +10382,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
                     (root / 'public' / page).read_text(encoding='utf-8'))
                 self.assertEqual(
                     [theme['slug'] for theme in data['themes']],
-                    ['default', 'monochrome', 'monochrome-night', 'print-ink'])
+                    ['kit:builtin/light', 'monochrome', 'monochrome-night', 'print-ink'])
             verify = run('verify', str(root))
             self.assertEqual(verify.returncode, 0, verify.stderr)
 
@@ -10336,7 +10404,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             # essential is always embedded unless --no-essential-theme
             self.assertEqual(
                 [theme['slug'] for theme in data['themes']],
-                ['default', 'monochrome', 'monochrome-night', 'print-ink',
+                ['kit:builtin/light', 'monochrome', 'monochrome-night', 'print-ink',
                  'print-grey'])
 
     def test_series_json_themes_requires_a_non_empty_list_of_strings(self):
@@ -10433,7 +10501,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
                     (out / 'index.html').read_text(encoding='utf-8'))
                 self.assertEqual(
                     [theme['slug'] for theme in data['themes']],
-                    ['default', 'monochrome', 'monochrome-night', 'print-ink'])
+                    ['kit:builtin/light', 'monochrome', 'monochrome-night', 'print-ink'])
             finally:
                 proc.send_signal(signal.SIGINT)
                 try:
@@ -10464,7 +10532,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             self.assertEqual(
                 [theme['slug'] for theme in data['themes']],
                 ['print-oldpress-red-ribbon', 'monochrome', 'monochrome-night',
-                 'print-ink', 'print-grey'])
+                 'print-ink', 'print-grey', 'kit:builtin/light'])
             verify = run('verify', str(root), '--themes', 'print-grey')
             self.assertEqual(verify.returncode, 0, verify.stderr)
 
@@ -10484,10 +10552,10 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             data = self._data(
                 (root / 'public' / 'index.html').read_text(encoding='utf-8'))
             pinned = {data['vars'][index] for index in data['pinned']}
-            self.assertEqual(data['primary'], 'custom(default)')
+            self.assertEqual(data['primary'], 'custom(kit:builtin/light)')
             self.assertEqual(
                 [theme['slug'] for theme in data['themes'][:2]],
-                ['custom(default)', 'default'])
+                ['custom(kit:builtin/light)', 'kit:builtin/light'])
             self.assertNotIn('--color-ink', pinned)
             self.assertIn('--color-mark', pinned)
             ink_index = data['vars'].index('--color-ink')
@@ -10542,7 +10610,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             self.assertIsNotNone(data, 'default build should embed essential themes')
             self.assertEqual(
                 [theme['slug'] for theme in data['themes']],
-                ['default', 'monochrome', 'monochrome-night', 'print-ink'])
+                ['kit:builtin/light', 'monochrome', 'monochrome-night', 'print-ink'])
 
     def test_help_stamp_inherits_the_audited_pair_and_clears_the_size_floor(self):
         """The stamp's contrast is not its own: the skeleton gives it no
@@ -12366,10 +12434,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
             self.assertTrue(after['accessibility']['body_text']['failures'])
 
     def test_a_directory_target_needs_no_theme_line_at_all(self):
-        """A series installed without a theme runs on the registry's own
-        defaults. That is an answer, not an error: `theme` is null and
-        the family facet — the one that is declared and cannot be
-        derived (§9.5.2) — is null with it."""
+        """Without an explicit theme, the native preset supplies Light."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
             self.assertEqual(run('init', str(root)).returncode, 0)
@@ -12380,8 +12445,9 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
                 encoding='utf-8')
             report = self._report(str(root))
             self.assertIsNone(report['target']['theme'])
-            self.assertIsNone(report['facets']['family'])
-            self.assertIsNone(report['label'])
+            self.assertEqual(report['facets']['family'], 'desk')
+            self.assertEqual(report['label'], 'Light')
+            self.assertEqual(report['source'], 'builtin')
             self.assertIn(report['facets']['polarity'], ('light', 'dark'))
 
     def test_custom_css_is_reported_as_unmeasured_only_once_it_has_rules(self):
@@ -19381,7 +19447,7 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
         self.assertEqual(report['target']['kind'], 'series')
         self.assertEqual(report['target']['directory'], str(Path(root).resolve()))
         self.assertIsNone(report['target']['theme'])
-        self.assertIsNone(report['target']['presentation_preset'])
+        self.assertEqual(report['target']['presentation_preset'], 'builtin/standard')
         self.assertEqual(set(report['series_meta']),
                           {'title', 'subtitle', 'version', 'intro', 'author',
                             'license', 'default_tag', 'scroll_duration',
@@ -19391,9 +19457,9 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
         self.assertEqual(set(report['presentation']),
                          {'schema', 'selector', 'id', 'label', 'description',
                           'default', 'package', 'theme', 'slide_layouts',
-                          'slide_chrome', 'starter'})
+                          'slide_chrome', 'starter', 'resource_collection', 'scope'})
         self.assertTrue(report['presentation']['default'])
-        self.assertIsNone(report['presentation']['selector'])
+        self.assertEqual(report['presentation']['selector'], 'builtin/standard')
         self.assertEqual(report['series_meta']['title'], 'A series')
         self.assertIsNone(report['series_meta']['default_tag'])
         self.assertIsNone(report['series_meta']['subtitle'])

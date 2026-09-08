@@ -79,12 +79,10 @@ Once per series, in `series.json`'s `series_meta` object.
 | `default_tag` | `default` | Tag selected when a page has no valid persisted reader choice; must occur on an article or non-excluded slide selected for the build, and warns when the effective article/slide intersection is empty. `series tags` and `status --format json` expose the resulting `default_output` too |
 | `scroll_duration` | `200` ms | Duration of the deck's own slide glide. It must be a non-negative integer; `0` jumps instantly. `--scroll-duration` overrides it for one `build`, `verify` or `watch` invocation, and the presenter menu or **I** toggles between this configured value and `0` |
 | `lang_tags` | `{}` — no tag selects a typography pack | Object mapping a slide tag to a typography pack name, e.g. `{"fr": "fr", "en": "en"}`; the first mapped tag on a slide selects its engine (§20.5) |
-| `presentation_preset` | omitted — virtual built-in `default` | Sélecteur exact `id@MAJOR.MINOR.PATCH/preset`, persisté uniquement dans `series_meta` pour toute la série et son index. Le sélecteur CLI `default` signifie qu'on omet le champ |
+| `presentation_preset` | omitted: implicit `builtin/standard` | One initial reference for the whole series and index: `builtin/standard`, `commons/<id>` or `id@MAJOR.MINOR.PATCH/preset`. Identity is inferred, not persisted separately. Both `init --preset` and `series preset set` persist an explicit selection, including `builtin/standard`; plain `init` leaves the field absent |
 
-Les anciens champs auteur `presentation_template`, `slide_layouts` et
-`slide_chrome` sont retirés et rejetés, jamais ignorés. `slide_layouts` et
-`slide_chrome` restent des clés valides dans un manifeste de paquet, où elles
-portent les défauts internes d'un préréglage.
+`slide_layouts` and `slide_chrome` belong to Identity Kit manifests, where
+they declare preset defaults; they are not author metadata fields.
 
 ## Series root fields
 
@@ -94,7 +92,7 @@ In the object form of `series.json`, these keys live beside `series_meta` and
 | Field | Default | Description |
 |---|---|---|
 | `themes` | omitted — the essential runtime bundle is still added by default | Ordered runtime theme selectors for `build`, `verify` and `watch`; an explicit `--themes` value overrides this list (§9.3.7) |
-| `presentation_presets` | omitted — only the primary presentation is rendered | Non-empty list of presentation selectors made available to the reader; the primary `series_meta.presentation_preset` is inserted first and duplicates are removed. `--presentation-presets` overrides this list (§9.3.8) |
+| `presentation_presets` | omitted: a compatible kit or Commons primary also receives `builtin/standard` | Non-empty list of published runtime preset selectors; the primary `series_meta.presentation_preset` is inserted first, duplicates are removed, and native Standard is appended for a different primary unless a slide's kit-only layout/chrome override makes it incompatible. `--presentation-presets` overrides this list (§9.3.8) |
 
 The list is build configuration, not a persisted reader choice. A reader's
 presentation choice is kept in the browser session and never written back to
@@ -216,7 +214,7 @@ navigation cards are generated from `series.json`; it accepts the shared
 on every other card. `comment` is documented above because it is accepted on
 every slide type and is never rendered.
 
-## Champs communs de paquet de présentation
+## Shared Identity Kit fields
 
 `slide-layout`, `slide-header` et `slide-footer` sont acceptés dans l'en-tête
 des quatre types (`cover`, standard, `series-nav`, `full-article`). Ils
@@ -277,11 +275,18 @@ description; the terms are fixed here, in English.
 | **article tag** | A normalized word from an article's meta-block `tags:`. It gates the article card/page for the exact selected tag; an article without tags has no article-level gate. |
 | **image asset** | A regular file below `sources/img/`. A standard build publishes it under `public/img/` only when a rendered page references its local `img/...` path; an existing output file is not removed by the build (§11.3). |
 | **image inventory** | The audit's count of local image references in rendered pages, separated into inline images and standalone figures. It warns about unused source files and references whose source file is missing (§11.5). |
-| **presentation package** | Arbre versionné `layouts/<id>/<version>/` avec `manifest.json`, ou `templates/layouts/<id>/<version>/` une fois vendorisé. Il possède structure, layouts, chrome, assets et CSS structurel contraint, sans remplacer le shell de page; ses assets publiés vivent sous `public/assets/presentations/<id>/<version>/...`. |
-| **presentation preset** | Configuration nommée d'un paquet, adressée par `id@MAJOR.MINOR.PATCH/preset` et persistée uniquement dans `series_meta.presentation_preset`. Ses propres `slide_layouts` et `slide_chrome` sont des défauts de manifeste, non des champs auteur. |
+| **identity** | Resource ownership group: native `builtin` (LightWebPres), Commons, or a versioned Identity Kit. Its fixed label names the group, not the initially selected preset or theme. |
+| **Identity Kit** | Self-contained `kits/<id>/<version>/` tree, vendored under `templates/kits/`, with a `lightwebpres.identity-kit/1` manifest. Required `label` names the identity; optional `default_preset` names a local preset, otherwise the first in manifest order is used. Owns layouts, chrome, assets, typed themes and constrained structural CSS, never the page shell. Published assets live under `public/assets/presentations/<id>/<version>/...`. `LWP_IDENTITY_KITS_DIR` sets the user root. |
+| **native resource** | Built-in reusable layout `builtin:standard` or minimal theme `builtin:light`. The native preset selector is `builtin/standard`. Using a native layout inside a kit preserves that kit's chrome. |
+| **Commons** | Global theme catalogue under `themes/` (`LWP_THEMES_DIR`) plus native-layout preset descriptors under `commons/presets/<id>.json` (`LWP_COMMONS_DIR`), with series overrides in `templates/themes/` and `templates/commons/presets/`. |
+| **Commons preset** | Five-field `lightwebpres.commons-preset/1` descriptor: `schema`, `id`, `label`, `description`, `theme`. Binds a global theme slug or `builtin:light` to native layouts, without a starter; selected as `commons/<id>`. |
+| **presentation preset** | Named binding of a theme and layout/chrome defaults; selected as `builtin/standard`, `commons/<id>` or `id@MAJOR.MINOR.PATCH/preset`. Only `series_meta.presentation_preset` persists the initial selection, with identity inferred from that reference. |
+| **resource origin** | Collection and scope computed by loaders, never declared in a manifest. Kits carry no extension, inter-kit dependency, provenance, filiation or authenticity record. |
+| **kit composition** | `kit compose recipe.json --output directory` validates and publishes an autonomous `directory/id/version/` tree. The strict `lightwebpres.kit-composition/1` recipe has `schema`, `sources`, `manifest`, `files`; the final manifest explicitly names every final reference. No guessed remapping or dependency closure. |
 | **runtime presentation catalogue** | Ordered primary-plus-alternatives payload made by `presentation_presets` or `--presentation-presets`; it carries the rendered fragments, index variants, structure CSS and typed theme differences for the appearance picker. |
-| **appearance picker** | The `C` dialogue's presentation and theme axes. A presentation choice applies to every page and the index in the current browser session; it does not alter source files. |
-| **layout fragment** | Fragment HTML de paquet : `{{content}}`, `{{slide_header}}`, `{{slide_footer}}` exactement une fois pour une fiche; `{{content}}` seul pour l'index. |
+| **appearance picker** | The `C` dialogue's Identity, Preset and Theme controls. Applicable / Current identity / All filter published choices only: typed compatibility, ownership, or all published resources, not brand approval. Preset and explicit theme choices persist across pages and the index in the browser session; Follow preset resets the runtime theme override. No resource cross-product is generated. |
+| **kit-qualified theme** | A runtime theme addressed as `kit:<id>@<version>/<theme>` under its owning kit (`kit:builtin/light` for native Light). All themes from selected kits are published, including those not used by a selected preset. |
+| **layout fragment** | Kit HTML fragment: exactly one `{{content}}`, `{{slide_header}}` and `{{slide_footer}}` for a slide; only `{{content}}` for the index. |
 | **chrome model** | Déclaration JSON d'un header ou footer, composée d'items texte, image ou icône et d'assets déclarés. |
 | **furniture** | Descriptive family, not a mechanism: the properties painting the page's apparatus rather than its content or signals — rules, surface veils, sunken and control grounds, the modal scrim. Ordinary properties; the word only lets one speak of them collectively. |
 | **skeleton** | The static, layout-only CSS no property drives: flex, grid, spacing, media queries. Not an editable surface. |

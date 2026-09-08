@@ -10,7 +10,6 @@ import unittest
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LWP = REPO_ROOT / 'lightwebpres'
 SCRIPT = Path(__file__).resolve().parent / 'runtime_themes_e2e.cjs'
@@ -40,6 +39,142 @@ class _QuietHandler(SimpleHTTPRequestHandler):
         pass
 
 
+class RuntimeIdentityMetadata(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from tests.test_lightwebpres import load_lightwebpres_module
+        cls.lwp = load_lightwebpres_module()
+
+    def test_single_preset_retains_identity_and_standard_metadata(self):
+        preset = self.lwp.DEFAULT_PRESENTATION_PRESET
+        data = self.lwp._presentation_runtime_context(
+            [preset], ([preset.theme_props, {}], ''), None, None)
+        self.assertEqual(data['primary'], 'builtin/standard')
+        self.assertEqual(data['identities'], [{
+            'selector': 'builtin', 'label': 'LightWebPres', 'origin': 'builtin',
+        }])
+        self.assertEqual(data['presets'][0]['label'], 'Standard')
+        self.assertEqual(data['presets'][0]['identity'], 'builtin')
+        self.assertIn('identityOptions', self.lwp._presentation_picker_markup({}, data))
+        self.assertIsNone(self.lwp.build_theme_runtime(None, None, presets=[preset]))
+
+    def test_native_commons_keeps_its_theme_origin_and_independent_digest(self):
+        native = self.lwp.DEFAULT_PRESENTATION_PRESET
+        commons = self.lwp.PresentationPreset(
+            native.package, 'ink', 'Commons ink', 'Ink preset',
+            theme_props={'color.ink': '#123456'}, default=True,
+            resource_collection='commons', scope='series', digest='first')
+        context = ([native.theme_props, {}], '')
+        data = self.lwp._presentation_runtime_context(
+            [native, commons], context, None, None)
+        descriptor = data['presets'][1]
+        self.assertEqual(descriptor['selector'], 'commons/ink')
+        self.assertEqual(descriptor['identity'], 'builtin')
+        self.assertEqual(descriptor['collection'], 'commons')
+        self.assertEqual(descriptor['origin'], 'series')
+        self.assertEqual(descriptor['label'], 'Commons ink')
+        ink = data['vars'].index('--color-ink')
+        self.assertEqual(dict(descriptor['theme_values'])[ink], '#123456FF')
+        commons._digest = 'second'
+        changed = self.lwp._presentation_runtime_context(
+            [native, commons], context, None, None)
+        self.assertNotEqual(data['catalog_digest'], changed['catalog_digest'])
+
+    def test_all_selected_kit_themes_are_qualified_independent_choices(self):
+        kit = self.lwp.PresentationPackage(
+            'brand', '1.0.0', label='A brand', scope='series', digest='kit-v1',
+            themes={name: {
+                'props': {'color.ink': ink},
+                'meta': {'label': name.title(), 'family': 'brand'},
+            } for name, ink in [('main', '#123456'), ('secondary', '#654321')]})
+        preset = self.lwp.PresentationPreset(
+            kit, 'slides', 'Slides', 'Brand slides', theme_id='main',
+            theme_props=kit.themes['main']['props'])
+        data = self.lwp.build_theme_runtime(
+            'print-ink', None, preset_props=preset.theme_props,
+            preset_selector=preset.selector, presets=[preset])
+        self.assertEqual(data['primary'], 'kit:brand@1.0.0/main')
+        themes = {theme['slug']: theme for theme in data['themes']}
+        self.assertEqual(set(themes), {
+            'kit:brand@1.0.0/main', 'kit:brand@1.0.0/secondary', 'print-ink',
+        })
+        secondary = themes['kit:brand@1.0.0/secondary']
+        self.assertEqual(secondary['identity'], 'brand@1.0.0')
+        self.assertEqual(secondary['identity_label'], 'A brand')
+        self.assertEqual(secondary['origin'], 'series')
+        ink = data['vars'].index('--color-ink')
+        self.assertEqual(dict(secondary['values'])[ink], '#654321FF')
+        self.assertEqual(themes['print-ink']['collection'], 'Commons')
+        self.assertEqual(themes['print-ink']['origin'], 'embedded')
+        kit_only = self.lwp.build_theme_runtime(
+            None, None, preset_props=preset.theme_props,
+            preset_selector=preset.selector, presets=[preset])
+        self.assertEqual(len(kit_only['themes']), 2)
+        kit.digest = 'kit-v2'
+        changed = self.lwp.build_theme_runtime(
+            'print-ink', None, preset_props=preset.theme_props,
+            preset_selector=preset.selector, presets=[preset])
+        self.assertNotEqual(data['catalog_digest'], changed['catalog_digest'])
+
+    def test_commons_theme_origin_comes_from_catalog_not_authored_source(self):
+        catalog = self.lwp.ThemeCatalog()
+        catalog.add_local('print-ink', self.lwp.THEMES['print-ink'],
+                          catalog.layer('print-ink'), LWP, 'series', 'fixture')
+        data = self.lwp.build_theme_runtime('print-ink', 'print-ink', catalog=catalog)
+        self.assertEqual(data['themes'][0]['origin'], 'series')
+        self.assertEqual(data['themes'][0]['collection'], 'Commons')
+
+    def test_commons_primary_is_a_global_theme_not_a_native_identity_theme(self):
+        catalog = self.lwp.ThemeCatalog()
+        native = self.lwp.DEFAULT_PRESENTATION_PACKAGE
+        preset = self.lwp.PresentationPreset(
+            native, 'paper', 'Paper', 'Commons paper', theme_id='print-ink',
+            theme_props=catalog.layer('print-ink'), default=True,
+            resource_collection='commons', scope='user', digest='paper-v1')
+        data = self.lwp.build_theme_runtime(
+            'print-ink', None, catalog=catalog, preset_props=preset.theme_props,
+            preset_selector=preset.selector, presets=[preset])
+        self.assertEqual(data['primary'], 'print-ink')
+        self.assertEqual(data['themes'][0]['collection'], 'Commons')
+        self.assertIsNone(data['themes'][0]['identity'])
+        self.assertEqual(data['themes'][1]['slug'], 'kit:builtin/light')
+
+    def test_theme_deltas_use_the_static_cascade_without_flattening_references(self):
+        catalog = self.lwp.ThemeCatalog()
+        native = self.lwp.DEFAULT_PRESENTATION_PRESET
+        commons = self.lwp.PresentationPreset(
+            native.package, 'night', 'Night', 'Commons night', theme_id='dracula',
+            theme_props=catalog.layer('dracula'), default=True,
+            resource_collection='commons')
+        snapshot = self.lwp.resolve_theme_properties(catalog.layer('dracula'))
+        kit = self.lwp.PresentationPackage(
+            'snapshot', '1.0.0', label='Snapshot', themes={'night': {
+                'props': snapshot, 'meta': {'label': 'Night', 'family': 'desk'},
+            }})
+        kit_preset = self.lwp.PresentationPreset(
+            kit, 'slides', 'Slides', 'Literal snapshot', theme_id='night',
+            theme_props=snapshot)
+        pins = {'color.page': '#123456FF'}
+        _variables, keys = self.lwp._theme_runtime_variables()
+        for preset, raw_id in [(native, 'kit:builtin/light'), (commons, 'dracula'),
+                               (kit_preset, 'kit:snapshot@1.0.0/night')]:
+            with self.subTest(preset=preset.selector):
+                static = self.lwp.resolve_theme_properties(preset.theme_props, pins)
+                raw = self.lwp.resolve_theme_properties(preset.theme_props)
+                self.assertEqual(static['page.bg'], snapshot['page.bg']
+                                 if preset is kit_preset else pins['color.page'])
+                data = self.lwp.build_theme_runtime(
+                    'print-ink', None, catalog=catalog, settings_props=pins,
+                    preset_props=preset.theme_props, presets=[preset])
+                self.assertEqual(data['themes'][0]['preview']['background'], static['page.bg'])
+                for slug, expected in [(raw_id, raw), ('print-ink',
+                        self.lwp._theme_runtime_resolved('print-ink', catalog))]:
+                    theme = next(theme for theme in data['themes'] if theme['slug'] == slug)
+                    applied = dict(static)
+                    applied.update((keys[index], value) for index, value in theme['values'])
+                    self.assertEqual(applied, expected, slug)
+
+
 @unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s'
                      % NPM_ROOT_OR_REASON)
 class RuntimeThemesBrowser(unittest.TestCase):
@@ -57,8 +192,8 @@ class RuntimeThemesBrowser(unittest.TestCase):
             capture_output=True, text=True, timeout=60,
         )
         assert demo.returncode == 0, demo.stdout + demo.stderr
-        package_source = REPO_ROOT / 'examples' / 'layouts' / 'lightwebpres-docs' / '0.1.0'
-        package_destination = (root / 'templates' / 'layouts'
+        package_source = REPO_ROOT / 'examples' / 'kits' / 'lightwebpres-docs' / '0.1.0'
+        package_destination = (root / 'templates' / 'kits'
                                / 'lightwebpres-docs' / '0.1.0')
         shutil.copytree(package_source, package_destination)
         series_path = root / 'series.json'
@@ -110,7 +245,7 @@ class RuntimeThemesBrowser(unittest.TestCase):
             capture_output=True, text=True, timeout=60,
         )
         assert demo.returncode == 0, demo.stdout + demo.stderr
-        presentation_package = (presentation_root / 'templates' / 'layouts'
+        presentation_package = (presentation_root / 'templates' / 'kits'
                                 / 'lightwebpres-docs' / '0.1.0')
         shutil.copytree(package_source, presentation_package)
         presentation_manifest_path = presentation_package / 'manifest.json'
@@ -187,6 +322,13 @@ class RuntimeThemesBrowser(unittest.TestCase):
         )
         assert build.returncode == 0, build.stdout + build.stderr
         static_output = static_root / 'public'
+        build = subprocess.run(
+            ['python3', str(LWP), 'build', str(static_root),
+             '--output', str(static_output / 'single-preset'),
+             '--no-essential-theme', '--themes', 'print-ink'],
+            capture_output=True, text=True, timeout=60,
+        )
+        assert build.returncode == 0, build.stdout + build.stderr
         cls.static_httpd = HTTPServer(
             ('127.0.0.1', 0),
             lambda *args: _QuietHandler(*args, directory=str(static_output)),
@@ -195,6 +337,34 @@ class RuntimeThemesBrowser(unittest.TestCase):
         cls.static_thread = threading.Thread(
             target=cls.static_httpd.serve_forever, daemon=True)
         cls.static_thread.start()
+
+        pinned_root = Path(cls.tmpdir.name) / 'pinned-series'
+        for command in ('init', 'demo'):
+            result = subprocess.run(
+                ['python3', str(LWP), command, str(pinned_root)],
+                capture_output=True, text=True, timeout=60,
+            )
+            assert result.returncode == 0, result.stdout + result.stderr
+        commons_dir = pinned_root / 'templates' / 'commons' / 'presets'
+        commons_dir.mkdir(parents=True)
+        (commons_dir / 'night.json').write_text(json.dumps({
+            'schema': 'lightwebpres.commons-preset/1', 'id': 'night',
+            'label': 'Night', 'description': 'Reference-aware Commons theme',
+            'theme': 'dracula',
+        }), encoding='utf-8')
+        series_path = pinned_root / 'series.json'
+        series = json.loads(series_path.read_text(encoding='utf-8'))
+        for name, selector in [('native', 'builtin/standard'), ('commons', 'commons/night')]:
+            series['series_meta']['presentation_preset'] = selector
+            series_path.write_text(json.dumps(series), encoding='utf-8')
+            for variant, settings in [('pinned', 'color.page: #123456FF\n'), ('raw', '')]:
+                (pinned_root / 'templates' / 'settings.conf').write_text(settings, encoding='utf-8')
+                result = subprocess.run(
+                    ['python3', str(LWP), 'build', str(pinned_root), '--no-essential-theme',
+                     '--themes', 'print-ink', '--output', str(static_output / (name + '-' + variant))],
+                    capture_output=True, text=True, timeout=60,
+                )
+                assert result.returncode == 0, result.stdout + result.stderr
 
     @classmethod
     def tearDownClass(cls):

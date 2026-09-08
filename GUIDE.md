@@ -42,7 +42,7 @@ and the copy travels with its licence.
 The navigation script and built-in language packs stay inside the executable
 so upgrades reach the series without refreshing local copies. For deliberate
 overrides, use `template show`/`template write` (section 10). `init --preset`
-can also install a presentation package and its declared starter (section 5).
+can also install an Identity Kit and its declared starter (section 5).
 
 The quickstart uses `--lang en` explicitly. Without it or `LWP_LANG`, the
 browser chooses the interface language; typography is already fixed at build
@@ -396,19 +396,31 @@ output; `--tag fr` narrows the tag rows without changing series totals.
 
 ## 5. Choose presets, themes and customization
 
-### Presentation packages and presets
+### Identities, presets and themes
 
-A versioned presentation package owns its slides' structure, layouts,
-headers and footers, assets, and constrained structural CSS. It replaces
-neither the page shell nor navigation nor JavaScript. Its fragments have
-`{{content}}`, `{{slide_header}}` and `{{slide_footer}}` slots (the index
-receives only `{{content}}`).
+**Identity** groups presentation choices. The native identity, **LightWebPres**, provides
+`builtin/standard` and the minimal **Light** theme. **Commons** contains the
+global theme catalogue and presets that bind those themes to native layouts.
+An **Identity Kit** is a self-contained versioned collection of layouts,
+headers, footers, assets, typed themes and constrained structural CSS.
+**Preset** selects a layout/chrome configuration and a base **Theme**; it does
+not generate every possible combination of those resources.
 
-The only persisted selection is
-`series_meta.presentation_preset: id@MAJOR.MINOR.PATCH/preset`. It belongs
-neither in article metadata nor in an `articles[]` entry; its absence means
-the virtual built-in `default` rendering. The literal CLI selector `default`
-requests omission of the field, not a stored value.
+LWP owns the page shell, navigation and JavaScript. Kit fragments have
+`{{content}}`, `{{slide_header}}` and `{{slide_footer}}` slots; the index
+receives only `{{content}}`. A kit can use local files or native references
+`builtin:standard` for layouts and `builtin:light` for themes. A native layout
+inside a kit keeps that kit's chrome. Kits cannot depend on Commons or other
+kits, extend them, or declare provenance, parentage or authenticity. Resource
+origins are computed by the loaders.
+
+The only persisted selection is `series_meta.presentation_preset`:
+`builtin/standard`, `commons/<id>` or `id@MAJOR.MINOR.PATCH/preset`.
+The identity is inferred from this reference. The selection belongs neither
+in article metadata nor in an `articles[]` entry. Omission selects
+`builtin/standard` implicitly. `init --preset builtin/standard` and
+`series preset set --preset builtin/standard` persist that explicit reference;
+plain `init` leaves the field absent. Neither native choice vendors resources.
 
 ```json
 {
@@ -418,9 +430,10 @@ requests omission of the field, not a stored value.
 }
 ```
 
-The author fields `presentation_template`, `slide_layouts` and `slide_chrome`
-are retired and rejected, never ignored. The last two remain allowed in a
-package manifest to declare preset defaults.
+The kit manifest's `label` names the identity, not whichever preset happens
+to be initial. Its optional `default_preset` names a local preset, otherwise
+the first preset in manifest order is used. `slide_layouts` and `slide_chrome`
+declare preset defaults in that manifest only.
 
 `slide-layout`, `slide-header` and `slide-footer` work on all four slide types.
 They override the selected preset's defaults for one slide, not through an
@@ -433,39 +446,143 @@ by `--inline-images`.
 
 ```bash
 ./lightwebpres preset list
-./lightwebpres preset show <id@MAJOR.MINOR.PATCH/preset|default>
+./lightwebpres preset show builtin/standard
 ./lightwebpres series preset my-series
-./lightwebpres series preset set my-series --preset <id@MAJOR.MINOR.PATCH/preset|default> --keep-theme
-./lightwebpres init my-series --preset <id@MAJOR.MINOR.PATCH/preset|default> [--no-starter]
+./lightwebpres series preset set my-series --preset builtin/standard --use-preset-theme
+./lightwebpres init my-series --preset builtin/standard
 ```
 
 `series preset set` vendors and selects without applying a starter. It
 preserves pins and `custom.css`; with an explicit `theme:` in `settings.conf`,
 it requires `--keep-theme` or `--use-preset-theme`, which removes that line.
-`--keep-theme` requires an explicit `theme:`. The namespace remains
-`layouts/<id>/<version>/` in a catalogue and
-`templates/layouts/<id>/<version>/` once vendored.
-`LWP_PRESENTATION_PACKAGES_DIR` replaces the user catalogue location; an
-id/version collision shadows the entire package. See `specifications.md`
+`--keep-theme` requires an explicit `theme:`. Kits live under
+`kits/<id>/<version>/` in a catalogue and
+`templates/kits/<id>/<version>/` once vendored.
+`LWP_IDENTITY_KITS_DIR` replaces the user catalogue location; an
+id/version collision shadows the entire kit. See `specifications.md`
 §9.9 for manifest, validation and security details.
 
-`init --preset` validates and vendors the complete package, writes the
+For a kit preset, `init --preset` validates and vendors the complete kit, writes the
 selector and generates settings from its theme. It applies the declared
 starter unless `--no-starter` is passed. Neither option changes the meaning
-of the `template` commands. Replace angle-bracket placeholders above with a
-selector from `preset list`; `corporate@1.0.0/brief` is an illustrative name,
-not a promise that such a package is installed.
+of the `template` commands. Choose an installed selector from `preset list`;
+`corporate@1.0.0/brief` is illustrative, not a supplied kit. Native selection
+needs no files. Both `init` and `series preset set` vendor a Commons descriptor
+and its selected external theme snapshot, if any; a native or embedded theme
+needs no snapshot copy. An identical local dependency is reused, while a
+conflicting file is refused.
 
-The guide itself uses the tracked package
-`examples/layouts/lightwebpres-docs/0.1.0/`. `tools/build_guide.py` vendors it
+The guide itself uses the tracked kit
+`examples/kits/lightwebpres-docs/0.1.0/`. `tools/build_guide.py` vendors it
 into a temporary series and publishes its assets with the guide. It is an
-inspectable package example, not another source of this manual.
+inspectable kit example, not another source of this manual.
+
+### Add a Commons preset
+
+Commons themes use the global `themes/` catalogue, `LWP_THEMES_DIR` and a
+series' `templates/themes/`. Preset descriptors use a separate Commons root:
+installed `commons/presets/` beside the executable or below
+`<prefix>/share/lightwebpres/`, then the user root `LWP_COMMONS_DIR`, then
+`templates/commons/presets/` in the series. User defaults are
+`$XDG_DATA_HOME/lightwebpres/commons/` (normally under `~/.local/share`) or
+`%APPDATA%/lightwebpres/commons/`. A nearer descriptor replaces the whole entry.
+
+For example, `templates/commons/presets/reading.json` contains:
+
+```json
+{
+  "schema": "lightwebpres.commons-preset/1",
+  "id": "reading",
+  "label": "Reading",
+  "description": "Native layouts with a light reading theme.",
+  "theme": "builtin:light"
+}
+```
+
+All five keys are required; no other key is accepted, including `starters`.
+The `id` matches the filename; `theme` is a global theme slug or `builtin:light`.
+Select it with `./lightwebpres series preset set my-series --preset commons/reading`.
+If the series has an explicit theme, also choose `--keep-theme` or
+`--use-preset-theme`.
+
+### Compose a kit
+
+`kit compose` builds an autonomous kit from an explicit recipe. This complete
+`recipe.json` needs no source files:
+
+```json
+{
+  "schema": "lightwebpres.kit-composition/1",
+  "sources": {},
+  "manifest": {
+    "schema": "lightwebpres.identity-kit/1",
+    "id": "brief",
+    "version": "1.0.0",
+    "label": "Brief",
+    "default_preset": "reading",
+    "layouts": {
+      "cover": {"default": "builtin:standard"},
+      "standard": {"default": "builtin:standard"},
+      "series-nav": {"default": "builtin:standard"},
+      "full-article": {"default": "builtin:standard"},
+      "index": "builtin:standard"
+    },
+    "themes": {"light": "builtin:light"},
+    "structure_css": "structure.css",
+    "presets": {
+      "reading": {
+        "label": "Reading",
+        "description": "Native layouts with a fixed editorial footer.",
+        "theme": "light",
+        "slide_layouts": {
+          "cover": "default",
+          "standard": "default",
+          "series-nav": "default",
+          "full-article": "default"
+        },
+        "slide_chrome": {"all": {"footer": "Brief"}}
+      }
+    }
+  },
+  "files": {
+    "structure.css": {"text": ".lwp-presentation--brief { gap: 1rem; }\n"}
+  }
+}
+```
+
+```bash
+./lightwebpres kit compose recipe.json --output kits --dry-run
+./lightwebpres kit compose recipe.json --output kits
+LWP_IDENTITY_KITS_DIR="$PWD/kits" ./lightwebpres init my-brief --preset brief@1.0.0/reading
+```
+
+The result is `kits/brief/1.0.0/`. The recipe requires exactly `schema`,
+`sources`, `manifest` and `files`. To reuse declared source files, `sources`
+maps an alias to a relative kit path contained below the recipe directory;
+`files` maps a destination to `{"source":"alias","path":"local/path"}`,
+`{"file":"local/path"}` or `{"text":"content"}`. A `.css` destination also
+accepts `{"parts":[...]}` with a non-empty list of those descriptors; files
+read by `parts` must also have a `.css` extension. A source kit's declared
+`structure_css` file is recognized by its manifest role regardless of suffix.
+Only matching class tokens in its selectors are rebound to the target kit's
+scope, including escaped tokens; comments, strings, attribute values and
+declarations are preserved. Other copied files are not rebound.
+The full final manifest must name all final local references explicitly:
+there is no guessed remapping or dependency closure.
+
+Publication is staged outside the output catalogue on the same filesystem;
+`--dry-run` validates in disposable system temporary storage and creates no output.
+An output catalogue at a filesystem or mount root is refused: choose a
+subdirectory within that filesystem. Existing kit destinations are refused.
+The composed kit needs no source kit at build time and carries no provenance record.
 
 ### Keep alternate presentations available
 
 A series has one primary presentation, but a build can carry other named
-presets for the reader to choose without rebuilding. Put the alternatives at
-the root of `series.json`, or pass them for one build:
+presets for the reader to choose without rebuilding. A kit or Commons primary
+also makes the compatible native `builtin/standard` available automatically, after
+the declared alternatives. Put other alternatives at the root of
+`series.json`, or pass them for one build:
 
 ```json
 {
@@ -473,27 +590,39 @@ the root of `series.json`, or pass them for one build:
     "presentation_preset": "lightwebpres-docs@0.1.0/docs"
   },
   "presentation_presets": [
-    "default"
+    "builtin/standard"
   ]
 }
 ```
 
 ```bash
-./lightwebpres build my-series --presentation-presets default
+./lightwebpres build my-series --presentation-presets builtin/standard
 ```
 
 The primary preset is always emitted first and remains the no-JavaScript
 fallback. The CLI list overrides the JSON list; it adds alternatives rather
 than replacing the primary. Duplicate selectors are removed, and an unknown
 selector fails before output is written. The preset must be available in the
-effective package catalogue.
+effective catalogue. Listing `builtin/standard` explicitly is optional for a
+kit or Commons preset. If a slide uses a kit-only `slide-layout`, `slide-header` or
+`slide-footer`, the implicit default is omitted with a warning; explicitly
+requesting `builtin/standard` keeps the normal validation error.
 
-When alternatives exist, **C** opens the Appearance picker with separate
-Presentation and Theme axes. The selected presentation changes the whole deck,
+When alternatives exist, **C** opens the Appearance picker with
+**Identity**, **Preset** and **Theme** controls. The selected preset changes the whole deck,
 including the index, and lasts across pages in the current browser session. It
 does not edit the series. If `settings.conf` names an explicit `theme:`, that
 theme remains fixed; otherwise the preset's typed theme follows the selected
-presentation until the reader chooses an explicit theme.
+presentation until the reader chooses an explicit theme. **Follow preset**
+resets that explicit runtime choice. All themes of every selected kit are
+published under kit-qualified names, even if no selected preset uses them.
+
+The **Applicable**, **Current identity** and **All** filters only narrow
+published choices. Applicable means typed compatibility, not brand matching;
+Current identity means resource ownership. Identity labels stay fixed when
+the preset or theme changes. The initial/default marker describes a selection,
+not another identity. The picker does not invent a cross-product of presets
+and themes or fetch additional catalogue entries.
 
 For color and typography changes, choose the smallest value override that
 does the job before adding CSS rules.
@@ -511,7 +640,7 @@ background is light or dark, and what hue that background carries.
 ./lightwebpres theme gallery                             # every theme, rendered
 ```
 
-The global catalogue combines the embedded themes with complete UTF-8 `.conf`
+The Commons theme catalogue combines the embedded themes with complete UTF-8 `.conf`
 snapshots from the installed and user roots; a series can add its own
 `templates/themes/` snapshots on top. `LWP_THEMES_DIR` replaces the user root.
 The order is embedded, installed, user, series, and a collision replaces the
@@ -1278,7 +1407,7 @@ keeps a marker without either and takes precedence. `status: draft` and
 | `LWP_SOURCES_DIR`, `LWP_TEMPLATES_DIR`, `LWP_OUTPUT_DIR` | Source, customization and output roots |
 | `LWP_INTERFACE_DIR`, `LWP_TYPOGRAPHY_DIR`, `LWP_LANGUAGE_DIR` | Split or legacy language roots |
 | `LWP_LANG` | Build language fallback and explicit interface language |
-| `LWP_THEMES_DIR`, `LWP_PRESENTATION_PACKAGES_DIR` | User catalogues |
+| `LWP_THEMES_DIR`, `LWP_IDENTITY_KITS_DIR`, `LWP_COMMONS_DIR` | User theme, Identity Kit and Commons preset catalogues |
 
 Default series subdirectories live under the selected series root.
 An explicit relative `--output path` is relative to the current working

@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.55.0"
+VERSION = "0.56.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1280,10 +1280,19 @@ LANG_FR = r'''{
     "menu_pause_theme": "Écran du thème",
     "theme_menu_title": "Choisir un thème",
     "appearance_menu_title": "Choisir une apparence",
-    "appearance_menu_help": "Choisissez une présentation et un thème.",
-    "appearance_presentation": "Présentation",
+    "appearance_menu_help": "Choisissez une identité, un preset et un thème.",
+    "appearance_identity": "Identité",
+    "appearance_presentation": "Preset",
     "appearance_theme": "Thème",
-    "appearance_preset_default": "Par défaut de la présentation",
+    "presentation_standard": "Standard",
+    "presentation_standard_description": "Présentation native de LightWebPres.",
+    "appearance_preset_default": "Suivre le preset",
+    "theme_source": "Source des thèmes",
+    "theme_source_applicable": "Applicables",
+    "theme_source_identity": "Identité actuelle",
+    "theme_source_all": "Tous",
+    "theme_default": "Par défaut",
+    "theme_custom": "Personnalisé",
     "theme_menu_help": "Le thème principal est sélectionné par défaut.",
     "theme_menu_filter": "Rechercher un thème",
     "theme_menu_close": "Échap pour fermer · Entrée pour appliquer",
@@ -1448,10 +1457,19 @@ LANG_EN = r'''{
     "menu_pause_theme": "Theme screen",
     "theme_menu_title": "Choose a theme",
     "appearance_menu_title": "Choose an appearance",
-    "appearance_menu_help": "Choose a presentation and a theme.",
-    "appearance_presentation": "Presentation",
+    "appearance_menu_help": "Choose an identity, a preset and a theme.",
+    "appearance_identity": "Identity",
+    "appearance_presentation": "Preset",
     "appearance_theme": "Theme",
-    "appearance_preset_default": "Preset default",
+    "presentation_standard": "Standard",
+    "presentation_standard_description": "LightWebPres's native presentation.",
+    "appearance_preset_default": "Follow preset",
+    "theme_source": "Theme source",
+    "theme_source_applicable": "Applicable",
+    "theme_source_identity": "Current identity",
+    "theme_source_all": "All",
+    "theme_default": "Default",
+    "theme_custom": "Custom",
     "theme_menu_help": "The primary theme is selected by default.",
     "theme_menu_filter": "Search themes",
     "theme_menu_close": "Escape to close · Enter to apply",
@@ -4130,7 +4148,8 @@ def theme_file_text(slug, entry, resolved):
 # Keeping selection series-wide means the index and every article always share
 # one shell, and settings.conf remains the only normal visual control surface.
 
-PRESENTATION_PACKAGE_SCHEMA = 'lightwebpres.presentation-package/1'
+PRESENTATION_PACKAGE_SCHEMA = 'lightwebpres.identity-kit/1'
+COMMONS_PRESET_SCHEMA = 'lightwebpres.commons-preset/1'
 _PRESENTATION_ID_RE = re.compile(r'^[a-z][a-z0-9-]*$')
 _PRESENTATION_VERSION_RE = re.compile(r'^\d+\.\d+\.\d+$')
 _PRESENTATION_SLIDE_TYPES = (
@@ -4151,13 +4170,17 @@ _PRESENTATION_SLOT_RE = re.compile(r'\{\{(\w+)\}\}')
 
 
 class PresentationPackage:
-    """One validated presentation package, containing named presets."""
+    """One identity kit, containing its own resources and named presets."""
 
     def __init__(self, package_id, version, root=None, layouts=None,
                  index_layout=None, structure_css='', themes=None, assets=None,
                  chrome_models=None, starters=None, presets=None,
-                 dependency_paths=None, digest='', default=False):
+                 dependency_paths=None, digest='', default=False, label='',
+                 default_preset=None, scope='builtin'):
         self.id = package_id
+        self.label = label
+        self.default_preset = default_preset
+        self.scope = scope
         self.version = version
         self.root = Path(root) if root is not None else None
         self.layouts = layouts or {}
@@ -4174,6 +4197,8 @@ class PresentationPackage:
 
     @property
     def selector(self):
+        if self.id == 'builtin':
+            return 'builtin'
         return f'{self.id}@{self.version}'
 
     def layout(self, slide_type, variant='default'):
@@ -4181,7 +4206,7 @@ class PresentationPackage:
         if variant not in variants:
             known = ', '.join(sorted(variants)) or '(none)'
             raise PropertyError(
-                f'presentation package {self.selector}: {slide_type} has no '
+                f'identity kit {self.selector}: {slide_type} has no '
                 f'layout variant {variant!r} (known: {known})')
         return variants[variant]
 
@@ -4199,11 +4224,13 @@ class PresentationStarter:
 
 
 class PresentationPreset:
-    """A coherent, series-wide binding supplied by a presentation package."""
+    """A series-wide binding supplied by the native identity, a kit or Commons."""
 
     def __init__(self, package, preset_id, label, description, theme_id=None,
                  theme_props=None, theme_meta=None, slide_layouts=None,
-                 slide_chrome=None, starter=None, default=False):
+                 slide_chrome=None, starter=None, default=False,
+                 resource_collection=None, scope=None,
+                 dependency_paths=None, digest=None):
         self.package = package
         self.id = preset_id
         self.label = label
@@ -4214,12 +4241,28 @@ class PresentationPreset:
         self.slide_layouts = dict(slide_layouts or {})
         self.slide_chrome = dict(slide_chrome or {})
         self.starter = starter
+        # This selects the native renderer, not the selected/default preset.
         self.default = default
+        self.resource_collection = resource_collection or (
+            'builtin' if package.id == 'builtin' else 'kit')
+        self.scope = scope if scope is not None else package.scope
+        self._dependency_paths = (tuple(dependency_paths)
+                                  if dependency_paths is not None else None)
+        self._digest = digest
+
+    @property
+    def dependency_paths(self):
+        return (self.package.dependency_paths if self._dependency_paths is None
+                else self._dependency_paths)
+
+    @property
+    def digest(self):
+        return self.package.digest if self._digest is None else self._digest
 
     @property
     def selector(self):
-        if self.default:
-            return None
+        if self.resource_collection == 'commons':
+            return f'commons/{self.id}'
         return f'{self.package.selector}/{self.id}'
 
 
@@ -4235,13 +4278,6 @@ def _wrap_presentation_content(content, preset):
     return f'<div class="{scope}">\n{content}\n</div>'
 
 
-DEFAULT_PRESENTATION_PACKAGE = PresentationPackage(
-    'default', '0.0.0', default=True)
-DEFAULT_PRESENTATION_PRESET = PresentationPreset(
-    DEFAULT_PRESENTATION_PACKAGE, 'default', 'Built-in default',
-    'The historical LightWebPres structure and registry defaults.', default=True)
-
-
 def _presentation_error(path, message):
     raise PropertyError(f'{path}: {message}')
 
@@ -4250,7 +4286,7 @@ def _presentation_relative_path(value, label):
     """Validate a POSIX-relative path stored in an untrusted manifest."""
     if not isinstance(value, str) or not value:
         raise PropertyError(f'{label} must be a non-empty relative path')
-    if '\x00' in value or '\\' in value or value.startswith('/'):
+    if '\x00' in value or '\\' in value or ':' in value or value.startswith('/'):
         raise PropertyError(f'{label} must be a contained POSIX relative path')
     parts = PurePosixPath(value).parts
     if (not parts or any(part in ('', '.', '..') for part in parts)
@@ -4270,7 +4306,7 @@ def _presentation_file(root, value, label):
     except OSError as exc:
         raise PropertyError(f'{label} cannot resolve {value!r} ({exc})')
     if resolved_path != resolved_root and resolved_root not in resolved_path.parents:
-        raise PropertyError(f'{label} escapes its presentation package through a symlink')
+        raise PropertyError(f'{label} escapes its identity kit through a symlink')
     return path, relative.as_posix()
 
 
@@ -4281,14 +4317,14 @@ def _validate_presentation_tree(root, label):
         resolved_root = root.resolve()
         entries = list(root.rglob('*'))
     except OSError as exc:
-        raise PropertyError(f'{label}: cannot inspect package tree ({exc})')
+        raise PropertyError(f'{label}: cannot inspect resource tree ({exc})')
     for entry in entries:
         try:
             resolved = entry.resolve()
         except OSError as exc:
-            raise PropertyError(f'{entry}: cannot resolve package entry ({exc})')
+            raise PropertyError(f'{entry}: cannot resolve resource entry ({exc})')
         if resolved != resolved_root and resolved_root not in resolved.parents:
-            raise PropertyError(f'{entry}: escapes its presentation package through a symlink')
+            raise PropertyError(f'{entry}: escapes its resource root through a symlink')
 
 
 def _read_presentation_text(path):
@@ -4449,7 +4485,7 @@ def _presentation_asset_reference(reference, package, origin):
     name = reference[len('presentation:'):]
     if name not in package.assets:
         raise PropertyError(
-            f'{origin}: package {package.selector} has no asset {name!r}')
+            f'{origin}: identity kit {package.selector} has no asset {name!r}')
     return package.assets[name]
 
 
@@ -4467,7 +4503,7 @@ def _validate_presentation_chrome_value(value, slot, package, origin):
     model = package.chrome_models.get(model_name)
     if model is None:
         raise PropertyError(
-            f'{origin}: package {package.selector} has no chrome model '
+            f'{origin}: identity kit {package.selector} has no chrome model '
             f'{model_name!r}')
     if model['slot'] != slot:
         raise PropertyError(
@@ -4514,7 +4550,7 @@ def validate_article_presentation(entry, preset, slides=()):
             if package_fields:
                 raise PropertyError(
                     f'{entry["page_source"]}: slide {slide.slug or slide.slide_type} '
-                    'layout/chrome requires a non-default presentation package')
+                    'layout/chrome requires an identity kit')
         return
     for slide_type, variant in layouts.items():
         package.layout(slide_type, variant)
@@ -4738,7 +4774,7 @@ def _validate_presentation_structure_selector(selector, scope, path):
                 path, f'structure_css selector {item!r} must start with {scope!r}')
         if re.match(r'\s*[+~]', item[len(scope):]):
             _presentation_error(
-                path, 'structure_css cannot select siblings of its package scope')
+                path, 'structure_css cannot select siblings of its kit scope')
 
 
 def _validate_presentation_structure_declarations(body, path):
@@ -4815,16 +4851,13 @@ def _validate_presentation_starter_entries(entries, starter_manifest):
         for legacy, renamed in _LEGACY_SERIES_FIELDS.items():
             if legacy in entry:
                 _presentation_error(origin, f'{legacy} is retired; use {renamed}')
-        if 'presentation_template' in entry:
-            _presentation_error(
-                origin, 'presentation_template is retired; presets are series-wide')
         if 'presentation_preset' in entry:
             _presentation_error(
                 origin, 'presentation_preset is series-wide and belongs in series_meta')
         for field in ('slide_layouts', 'slide_chrome'):
             if field in entry:
                 _presentation_error(
-                    origin, f'{field} is retired; a preset owns layouts and chrome')
+                    origin, f'{field} belongs in a kit preset, not a starter article')
         page_dest = entry.get('page_dest')
         if page_dest is not None:
             if not _is_safe_relative_filename(page_dest):
@@ -4934,12 +4967,12 @@ def _load_presentation_starter(starter_manifest, starter_id):
 
 def _load_presentation_package(root, scope):
     root = Path(root)
-    _validate_presentation_tree(root, f'presentation package {root}')
+    _validate_presentation_tree(root, f'identity kit {root}')
     manifest_path = root / 'manifest.json'
     manifest_text, manifest = _presentation_json(manifest_path, 'manifest')
     allowed = {
         'schema', 'id', 'version', 'layouts', 'structure_css', 'chrome',
-        'assets', 'themes', 'starters', 'presets',
+        'assets', 'themes', 'starters', 'presets', 'label', 'default_preset',
     }
     unknown = sorted(set(manifest) - allowed)
     if unknown:
@@ -4952,8 +4985,11 @@ def _load_presentation_package(root, scope):
     version = manifest.get('version')
     if not isinstance(package_id, str) or not _PRESENTATION_ID_RE.fullmatch(package_id):
         _presentation_error(manifest_path, 'id must use lowercase letters, digits and hyphens')
-    if package_id == 'default':
-        _presentation_error(manifest_path, 'id "default" is reserved for the virtual built-in package')
+    if package_id in ('builtin', 'commons'):
+        _presentation_error(manifest_path, f'id {package_id!r} is reserved')
+    label = manifest.get('label')
+    if not isinstance(label, str) or not label.strip():
+        _presentation_error(manifest_path, 'label must be a non-empty string')
     if not isinstance(version, str) or not _PRESENTATION_VERSION_RE.fullmatch(version):
         _presentation_error(manifest_path, 'version must have the form MAJOR.MINOR.PATCH')
     if root.name != version or root.parent.name != package_id:
@@ -4991,7 +5027,8 @@ def _load_presentation_package(root, scope):
         dependency_paths.append(path)
         digest_parts.append((relative, content))
 
-    package = PresentationPackage(package_id, version, root=root, assets=assets)
+    package = PresentationPackage(package_id, version, root=root, assets=assets,
+                                  label=label, scope=scope)
     layouts = {}
     raw_layouts = manifest.get('layouts')
     if not isinstance(raw_layouts, dict):
@@ -5005,6 +5042,9 @@ def _load_presentation_package(root, scope):
         rendered = {}
         for variant, relative_path in variants.items():
             _presentation_variant(variant, f'{manifest_path}: layouts.{slide_type} variant')
+            if relative_path == 'builtin:standard':
+                rendered[variant] = DEFAULT_PRESENTATION_PACKAGE.layout(slide_type)
+                continue
             path, relative = _presentation_file(
                 root, relative_path,
                 f'{manifest_path}: layouts.{slide_type}.{variant}')
@@ -5019,7 +5059,9 @@ def _load_presentation_package(root, scope):
     if extra_layout_types:
         _presentation_error(manifest_path, f'unknown layout type(s): {", ".join(extra_layout_types)}')
     index_layout = None
-    if 'index' in raw_layouts:
+    if raw_layouts.get('index') == 'builtin:standard':
+        index_layout = DEFAULT_PRESENTATION_PACKAGE.index_layout
+    elif 'index' in raw_layouts:
         path, relative = _presentation_file(
             root, raw_layouts['index'], f'{manifest_path}: layouts.index')
         index_layout = _read_presentation_text(path)
@@ -5035,6 +5077,9 @@ def _load_presentation_package(root, scope):
         if not isinstance(name, str) or not _PRESENTATION_ID_RE.fullmatch(name):
             _presentation_error(manifest_path,
                                 'theme names use lowercase letters, digits and hyphens')
+        if relative_path == 'builtin:light':
+            themes[name] = dict(DEFAULT_PRESENTATION_PACKAGE.themes['light'])
+            continue
         theme_path, relative = _presentation_file(
             root, relative_path, f'{manifest_path}: themes.{name}')
         parts = PurePosixPath(relative).parts
@@ -5042,7 +5087,8 @@ def _load_presentation_package(root, scope):
             _presentation_error(manifest_path,
                                 f'themes.{name} must live below themes/')
         theme_text, theme_meta, _theme_props, resolved = parse_theme_file(theme_path)
-        themes[name] = {'props': resolved, 'meta': theme_meta}
+        themes[name] = {'props': resolved, 'meta': theme_meta,
+                        'origin': package.selector, 'scope': scope}
         dependency_paths.append(theme_path)
         digest_parts.append((relative, theme_text))
 
@@ -5130,7 +5176,7 @@ def _load_presentation_package(root, scope):
             known = ', '.join(sorted(themes)) or '(none)'
             _presentation_error(
                 manifest_path,
-                f'presets.{preset_id}.theme must name one package theme '
+                f'presets.{preset_id}.theme must name one kit theme '
                 f'(known: {known})')
         if 'slide_layouts' not in descriptor:
             _presentation_error(manifest_path,
@@ -5164,7 +5210,7 @@ def _load_presentation_package(root, scope):
                 known = ', '.join(sorted(starters)) or '(none)'
                 _presentation_error(
                     manifest_path,
-                    f'presets.{preset_id}.starter must name one package starter '
+                    f'presets.{preset_id}.starter must name one kit starter '
                     f'(known: {known})')
             starter = starters[starter_id]
         theme = themes[theme_id]
@@ -5175,17 +5221,94 @@ def _load_presentation_package(root, scope):
             slide_chrome=chrome_defaults, starter=starter)
 
     package.presets = presets
+    default_preset = manifest.get('default_preset', next(iter(presets)))
+    if not isinstance(default_preset, str) or default_preset not in presets:
+        _presentation_error(manifest_path, 'default_preset must name one kit preset')
+    package.default_preset = default_preset
     package.dependency_paths = tuple(dependency_paths)
     package.digest = _presentation_digest(digest_parts)
     package.scope = scope
     return package
 
 
+def _commons_roots(templates_dir=None):
+    """Commons roots in precedence order; scopes are assigned by the loader."""
+    roots = [(root.parent / 'commons', 'installed')
+             for root in _installed_presentation_roots()]
+    explicit = os.environ.get('LWP_COMMONS_DIR')
+    if explicit:
+        user_root = Path(explicit)
+    else:
+        if os.name == 'nt':
+            base = Path(os.environ.get('APPDATA',
+                                       str(Path.home() / 'AppData' / 'Roaming')))
+        else:
+            base = Path(os.environ.get('XDG_DATA_HOME',
+                                       str(Path.home() / '.local' / 'share')))
+        user_root = base / 'lightwebpres' / 'commons'
+    roots.append((user_root, 'user'))
+    if templates_dir is not None:
+        series_root = _resolve_contained(templates_dir, 'commons')
+        if series_root is not None:
+            roots.append((series_root, 'series'))
+    return roots
+
+
+def _load_commons_preset(path, scope, theme_catalog):
+    """Bind one Commons theme to native layouts, independently of any kit."""
+    path = Path(path)
+    text, descriptor = _presentation_json(path, 'Commons preset')
+    allowed = {'schema', 'id', 'label', 'description', 'theme'}
+    unknown = sorted(set(descriptor) - allowed)
+    if unknown:
+        _presentation_error(path, f'unknown Commons preset key(s): {", ".join(unknown)}')
+    if descriptor.get('schema') != COMMONS_PRESET_SCHEMA:
+        _presentation_error(path, f'expected schema {COMMONS_PRESET_SCHEMA!r}')
+    preset_id = descriptor.get('id')
+    if (not isinstance(preset_id, str)
+            or not _PRESENTATION_ID_RE.fullmatch(preset_id)
+            or path.stem != preset_id):
+        _presentation_error(path, 'id must match the filename and use lowercase letters, digits and hyphens')
+    for key in ('label', 'description'):
+        value = descriptor.get(key)
+        if not isinstance(value, str) or not value.strip():
+            _presentation_error(path, f'{key} must be a non-empty string')
+    theme_id = descriptor.get('theme')
+    dependencies = [path]
+    if theme_id == 'builtin:light':
+        theme = DEFAULT_PRESENTATION_PACKAGE.themes['light']
+        props, meta = DEFAULT_PRESENTATION_PRESET.theme_props, theme['meta']
+    else:
+        if (not isinstance(theme_id, str)
+                or not _THEME_SLUG_RE.fullmatch(theme_id)
+                or not theme_catalog.has(theme_id)):
+            _presentation_error(path, 'theme must name a Commons theme slug or builtin:light')
+        props = theme_catalog.layer(theme_id)
+        entry = theme_catalog.entry(theme_id)
+        meta = {key: entry[key] for key in ('label', 'family')}
+        if theme_id in theme_catalog.sources:
+            dependencies.append(Path(theme_catalog.sources[theme_id]))
+    digest = _presentation_digest([
+        ('descriptor', text), ('scope', scope),
+        ('theme', json.dumps(props, sort_keys=True)),
+        ('resolved_theme', json.dumps(resolve_theme_properties(props), sort_keys=True)),
+        ('theme_meta', json.dumps(meta, sort_keys=True)),
+    ])
+    return PresentationPreset(
+        DEFAULT_PRESENTATION_PACKAGE, preset_id,
+        descriptor['label'], descriptor['description'], theme_id=theme_id,
+        theme_props=props, theme_meta=meta,
+        slide_layouts=DEFAULT_PRESENTATION_PRESET.slide_layouts,
+        default=True, resource_collection='commons', scope=scope,
+        dependency_paths=dependencies, digest=digest)
+
+
 class PresentationCatalog:
     """Complete packages visible to one build, lower roots loaded first."""
 
     def __init__(self):
-        self.packages = {}
+        self.packages = {('builtin', VERSION): DEFAULT_PRESENTATION_PACKAGE}
+        self.commons_presets = {}
         self.roots = []
 
     def add(self, package):
@@ -5196,52 +5319,66 @@ class PresentationCatalog:
             return DEFAULT_PRESENTATION_PRESET
         package_id, version, preset_id = parse_presentation_preset_selector(
             selector, origin)
+        if package_id == 'commons':
+            preset = self.commons_presets.get(preset_id)
+            if preset is None:
+                raise PropertyError(
+                    f'{origin}: Commons preset commons/{preset_id} was not found')
+            return preset
         package = self.packages.get((package_id, version))
         if package is None:
             available = ', '.join(
-                f'{item.id}@{item.version}'
+                item.selector
                 for _key, item in sorted(self.packages.items())) or '(none)'
             raise PropertyError(
-                f'{origin}: presentation package {package_id}@{version} was not found '
+                f'{origin}: identity kit {package_id}@{version} was not found '
                 f'(available: {available})')
         preset = package.presets.get(preset_id)
         if preset is None:
             available = ', '.join(sorted(package.presets)) or '(none)'
             raise PropertyError(
-                f'{origin}: presentation package {package.selector} has no preset '
+                f'{origin}: identity kit {package.selector} has no preset '
                 f'{preset_id!r} (available: {available})')
         return preset
 
     def presets(self):
+        yield DEFAULT_PRESENTATION_PRESET
+        yield from (preset for _name, preset in sorted(self.commons_presets.items()))
         for _key, package in sorted(self.packages.items()):
+            if package.id == 'builtin':
+                continue
             for _name, preset in sorted(package.presets.items()):
                 yield preset
 
 
 def parse_presentation_preset_selector(value, origin):
+    grammar = 'builtin/standard, commons/id or id@version/preset'
     if not isinstance(value, str) or not value.strip():
         raise PropertyError(
-            f'{origin}: presentation_preset must be id@version/preset')
+            f'{origin}: presentation_preset must be {grammar}')
     value = value.strip()
+    if value == 'builtin/standard':
+        return 'builtin', VERSION, 'standard'
+    if value.startswith('commons/') and _PRESENTATION_ID_RE.fullmatch(value[8:]):
+        return 'commons', None, value[8:]
     if value.count('@') != 1 or value.count('/') != 1:
         raise PropertyError(
-            f'{origin}: presentation_preset must be id@version/preset')
+            f'{origin}: presentation_preset must be {grammar}')
     package_id, remainder = value.split('@')
     version, preset_id = remainder.split('/')
     if not _PRESENTATION_ID_RE.fullmatch(package_id):
-        raise PropertyError(f'{origin}: invalid presentation package id {package_id!r}')
-    if package_id == 'default':
-        raise PropertyError(
-            f'{origin}: omit presentation_preset to use the built-in default')
+        raise PropertyError(f'{origin}: invalid identity kit id {package_id!r}')
+    if package_id in ('builtin', 'commons'):
+        raise PropertyError(f'{origin}: identity kit id {package_id!r} is reserved')
     if not _PRESENTATION_VERSION_RE.fullmatch(version):
-        raise PropertyError(f'{origin}: invalid presentation package version {version!r}')
+        raise PropertyError(f'{origin}: invalid identity kit version {version!r}')
     if not _PRESENTATION_ID_RE.fullmatch(preset_id):
         raise PropertyError(f'{origin}: invalid presentation preset id {preset_id!r}')
     return package_id, version, preset_id
 
 
 def _presentation_user_roots():
-    explicit = os.environ.get('LWP_PRESENTATION_PACKAGES_DIR')
+    explicit = os.environ.get('LWP_IDENTITY_KITS_DIR')
     if explicit:
         return [Path(explicit)]
     if os.name == 'nt':
@@ -5250,7 +5387,7 @@ def _presentation_user_roots():
     else:
         base = Path(os.environ.get('XDG_DATA_HOME',
                                    str(Path.home() / '.local' / 'share')))
-    return [base / 'lightwebpres' / 'presentations']
+    return [base / 'lightwebpres' / 'kits']
 
 
 def _installed_presentation_roots():
@@ -5264,8 +5401,8 @@ def _installed_presentation_roots():
     if executable.name != 'lightwebpres':
         return []
     if executable.parent.name == 'bin':
-        return [executable.parent.parent / 'share' / 'lightwebpres' / 'layouts']
-    return [executable.parent / 'layouts']
+        return [executable.parent.parent / 'share' / 'lightwebpres' / 'kits']
+    return [executable.parent / 'kits']
 
 
 def _presentation_library_roots():
@@ -5289,10 +5426,10 @@ def _load_presentation_root(catalog, root, scope, label):
         identifiers = sorted((child for child in root.iterdir() if child.is_dir()),
                              key=lambda child: child.name)
     except OSError as exc:
-        raise PropertyError(f'{label} {root}: cannot list packages ({exc})')
+        raise PropertyError(f'{label} {root}: cannot list identity kits ({exc})')
     for identifier in identifiers:
         if not _PRESENTATION_ID_RE.fullmatch(identifier.name):
-            raise PropertyError(f'{identifier}: invalid presentation package id')
+            raise PropertyError(f'{identifier}: invalid identity kit id')
         try:
             versions = sorted((child for child in identifier.iterdir() if child.is_dir()),
                               key=lambda child: child.name)
@@ -5300,15 +5437,15 @@ def _load_presentation_root(catalog, root, scope, label):
             raise PropertyError(f'{identifier}: cannot list versions ({exc})')
         for version in versions:
             if not _PRESENTATION_VERSION_RE.fullmatch(version.name):
-                raise PropertyError(f'{version}: invalid presentation package version')
+                raise PropertyError(f'{version}: invalid identity kit version')
             try:
                 resolved_version = version.resolve()
             except OSError as exc:
-                raise PropertyError(f'{version}: cannot resolve presentation package ({exc})')
+                raise PropertyError(f'{version}: cannot resolve identity kit ({exc})')
             if (resolved_version != resolved_root
                     and resolved_root not in resolved_version.parents):
                 raise PropertyError(
-                    f'{version}: escapes its presentation package catalogue '
+                    f'{version}: escapes its identity kit catalogue '
                     'through a symlink')
             package = _load_presentation_package(version, scope)
             catalog.add(package)
@@ -5316,20 +5453,38 @@ def _load_presentation_root(catalog, root, scope, label):
 
 
 def load_presentation_catalog(templates_dir=None):
-    """Built-in virtual default < installed < user < series packages."""
+    """Native identity, then installed < user < series kits and Commons."""
     catalog = PresentationCatalog()
     installed = {str(Path(root).resolve()) for root in _installed_presentation_roots()}
     for root in _presentation_library_roots():
         scope = 'installed' if str(Path(root).resolve()) in installed else 'user'
         _load_presentation_root(
             catalog, root, scope,
-            'installed presentation package directory' if scope == 'installed'
-            else 'user presentation package directory')
+            'installed identity kit directory' if scope == 'installed'
+            else 'user identity kit directory')
     if templates_dir is not None:
-        series_root = _resolve_contained(templates_dir, 'layouts')
+        series_root = _resolve_contained(templates_dir, 'kits')
         if series_root is not None:
             _load_presentation_root(catalog, series_root, 'series',
-                                    'series presentation package directory')
+                                    'series identity kit directory')
+    theme_catalog = None
+    for root, scope in _commons_roots(templates_dir):
+        if not root.exists():
+            continue
+        if not root.is_dir():
+            raise PropertyError(f'Commons directory {root} is not a real directory')
+        presets_root = root / 'presets'
+        if not presets_root.exists():
+            continue
+        if not presets_root.is_dir():
+            raise PropertyError(f'{presets_root} is not a real directory')
+        _validate_presentation_tree(root, 'Commons')
+        if theme_catalog is None:
+            theme_catalog = load_theme_catalog(templates_dir=templates_dir)
+        for path in sorted(presets_root.glob('*.json')):
+            preset = _load_commons_preset(path, scope, theme_catalog)
+            catalog.commons_presets[preset.id] = preset
+        catalog.roots.append(root)
     return catalog
 
 
@@ -5342,9 +5497,7 @@ def _presentation_preset_or_die(selector, origin, templates_dir=None):
 
 
 def _requested_presentation_preset(catalog, selector, origin):
-    """Resolve a CLI choice, where only the literal `default` is virtual."""
-    if isinstance(selector, str) and selector.strip() == 'default':
-        return DEFAULT_PRESENTATION_PRESET
+    """CLI and persisted choices use the same selector grammar."""
     return catalog.resolve_preset(selector, origin)
 
 
@@ -5378,12 +5531,17 @@ def _presentation_runtime_parts(option, source):
 
 
 def _presentation_runtime_presets(catalog, primary, option, source):
-    """Return the primary preset followed by ordered runtime alternatives."""
+    """Return the primary preset followed by ordered runtime alternatives.
+
+    Native Standard follows the author's choices without reordering them.
+    The caller discards this implicit candidate when a slide requires kit
+    resources, but an explicitly requested incompatible preset is an error.
+    """
     selected = []
     seen = set()
 
     def add(preset):
-        selector = preset.selector or 'default'
+        selector = preset.selector
         if selector in seen:
             return
         seen.add(selector)
@@ -5393,29 +5551,31 @@ def _presentation_runtime_presets(catalog, primary, option, source):
     if option is not None:
         for selector in _presentation_runtime_parts(option, source):
             add(_requested_presentation_preset(catalog, selector, source))
+    if primary.selector != 'builtin/standard':
+        add(DEFAULT_PRESENTATION_PRESET)
     return selected
 
 
 def vendor_presentation_package(package, layouts_dir, force=False):
     """Copy one complete external package into a series-local catalogue."""
     if package.default or package.root is None:
-        raise PropertyError('the virtual default presentation package cannot be vendored')
+        raise PropertyError('the native builtin identity cannot be vendored')
     destination = Path(layouts_dir) / package.id / package.version
     try:
         if destination.exists() and destination.resolve() == package.root.resolve():
             return destination, False
     except OSError as exc:
-        raise PropertyError(f'cannot resolve package destination {destination} ({exc})')
+        raise PropertyError(f'cannot resolve identity kit destination {destination} ({exc})')
     if destination.exists() and not force:
         raise PropertyError(
             f'{destination} already exists. Pass --force to replace it.')
     if destination.exists() and not destination.is_dir():
-        raise PropertyError(f'{destination} exists but is not a package directory')
+        raise PropertyError(f'{destination} exists but is not an identity kit directory')
     if destination.exists():
         try:
             _remove_tree(destination)
         except OSError as exc:
-            raise PropertyError(f'cannot replace package destination {destination} ({exc})')
+            raise PropertyError(f'cannot replace identity kit destination {destination} ({exc})')
     _mkdir(destination.parent, parents=True, exist_ok=True)
     _copytree(package.root, destination)
     return destination, True
@@ -6375,7 +6535,7 @@ def _theme_runtime_variables():
 def build_theme_runtime(option, primary, source='--themes', catalog=None,
                         settings_props=None, preset_props=None,
                         preset_label=None, preset_family=None,
-                        preset_selector=None):
+                        preset_selector=None, strings=None, presets=None):
     """Builds the compact, page-independent part of the theme switch data.
 
     Variable names are emitted once and each alternative carries only the
@@ -6387,28 +6547,52 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
     the primary variant's fully composed sheet, so the browser can remove the
     previous inline overrides and restore that sheet before applying another
     alternative.
+
+    ``presets`` is the final validated publication list, primary first. All
+    themes of those identities are published once, independently of presets;
+    no other kit or preset is discovered here.
     """
-    if option is None:
+    presets = list(presets or ())
+    if option is None and not any(p.package.id != 'builtin' for p in presets):
         return None
+    kit_themes = {}
+    for preset in presets:
+        package = preset.package
+        for name, theme in package.themes.items():
+            kit_themes['kit:' + package.selector + '/' + name] = (package, theme)
+    strings = strings or {}
     if primary:
         base_id = primary
         base_values = None
     elif preset_props:
-        base_id = 'presentation:' + (preset_selector or 'preset')
-        base_values = resolve_theme_properties(preset_props)
+        selected = presets[0] if presets else None
+        if selected and selected.resource_collection == 'commons':
+            base_id = ('kit:builtin/light' if selected.theme_id == 'builtin:light'
+                       else selected.theme_id)
+        elif selected:
+            base_id = 'kit:' + selected.package.selector + '/' + selected.theme_id
+        else:
+            base_id = 'presentation:' + (preset_selector or 'preset')
+        base_values = dict(preset_props)
     else:
         base_id = _THEME_RUNTIME_DEFAULT
         base_values = None
     settings_props = dict(settings_props or {})
-    ids = _theme_runtime_ids(option, base_id, source, catalog)
+    ids = ([base_id] if option is None else
+           _theme_runtime_ids(option, base_id, source, catalog))
+    ids.extend(theme_id for theme_id in kit_themes if theme_id not in ids)
     custom_id = f'custom({base_id})' if settings_props else None
     if custom_id:
         ids.insert(0, custom_id)
     variables, keys = _theme_runtime_variables()
     def resolve_runtime_theme(theme_id, overrides=None):
         if theme_id == base_id and base_values is not None:
-            return resolve_theme_properties(base_values, *( [overrides]
-                                                             if overrides else []))
+            # Match the static cascade: pins precede reference resolution.
+            # A real kit's full snapshot remains literal without special cases.
+            return resolve_theme_properties(base_values, overrides or {})
+        if theme_id in kit_themes:
+            return resolve_theme_properties(kit_themes[theme_id][1]['props'],
+                                            overrides or {})
         return _theme_runtime_resolved(theme_id, catalog, overrides)
 
     primary_values = resolve_runtime_theme(
@@ -6425,29 +6609,59 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
         values = [resolved[key] for key in keys]
         changes = [[i, value] for i, (old, value)
                    in enumerate(zip(primary_values, values)) if old != value]
-        if metadata_id == base_id and base_values is not None:
-            label = (f'Custom ({preset_label or "Presentation"})'
-                     if theme_id == custom_id else preset_label or 'Presentation')
+        label_key = None
+        label_base = None
+        label_base_key = None
+        family_key = None
+        if metadata_id in kit_themes:
+            package, theme = kit_themes[metadata_id]
+            label, family = theme['meta']['label'], theme['meta']['family']
+            if theme_id == custom_id:
+                label_base = label
+                label = f'{strings.get("theme_custom", "Custom")} ({label})'
+                label_key = 'theme_custom'
+        elif (metadata_id == base_id and base_values is not None
+              and not (presets and presets[0].resource_collection == 'commons')):
+            if theme_id == custom_id:
+                label_base = preset_label or strings.get(
+                    'appearance_presentation', 'Presentation')
+                label_base_key = (None if preset_label
+                                  else 'appearance_presentation')
+                label = f'{strings.get("theme_custom", "Custom")} ({label_base})'
+                label_key = 'theme_custom'
+            else:
+                label = preset_label or strings.get(
+                    'appearance_presentation', 'Presentation')
+                if not preset_label:
+                    label_key = 'appearance_presentation'
             family = preset_family or 'presentation'
+            if not preset_family:
+                family_key = 'appearance_presentation'
         elif theme_id == _THEME_RUNTIME_DEFAULT:
-            label, family = 'Default', 'default'
+            label, family = strings.get('theme_default', 'Default'), 'default'
+            label_key = 'theme_default'
+            family_key = 'theme_default'
         elif theme_id == custom_id:
             if metadata_id == _THEME_RUNTIME_DEFAULT:
-                base_label, family = 'Default', 'default'
+                base_label, family = strings.get('theme_default', 'Default'), 'default'
+                label_base_key = 'theme_default'
+                family_key = 'theme_default'
             else:
                 if catalog is not None:
                     base_theme = catalog.entry(metadata_id)
                 else:
                     base_theme = THEMES[metadata_id]
                 base_label, family = base_theme['label'], base_theme['family']
-            label = f'Custom ({base_label})'
+            label_base = base_label
+            label = f'{strings.get("theme_custom", "Custom")} ({base_label})'
+            label_key = 'theme_custom'
         else:
             if catalog is not None:
                 theme = catalog.entry(metadata_id)
             else:
                 theme = THEMES[metadata_id]
             label, family = theme['label'], theme['family']
-        themes.append({
+        theme_data = {
             'slug': theme_id, 'label': label, 'family': family,
             'values': changes,
             # The picker is a small gallery, not a list of anonymous names.
@@ -6463,11 +6677,40 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
                 },
                 'foreground': resolved['cover.fg'],
             },
-        })
+        }
+        if metadata_id in kit_themes:
+            package = kit_themes[metadata_id][0]
+            theme_data.update(identity=package.selector,
+                              identity_label=package.label,
+                              collection=('builtin' if package.id == 'builtin'
+                                          else 'kit'), origin=package.scope)
+        elif metadata_id == _THEME_RUNTIME_DEFAULT:
+            theme_data.update(identity='builtin', identity_label='LightWebPres',
+                              collection='builtin', origin='builtin')
+        else:
+            theme_data.update(identity=None, collection='Commons',
+                              origin=(catalog.scopes.get(metadata_id, 'embedded')
+                                      if catalog is not None else 'embedded'))
+        if theme_id == custom_id:
+            theme_data.update(identity=None, collection='custom', origin='series')
+        if label_key:
+            theme_data['label_key'] = label_key
+        if label_base is not None:
+            theme_data['label_base'] = label_base
+        if label_base_key:
+            theme_data['label_base_key'] = label_base_key
+        if family_key:
+            theme_data['family_key'] = family_key
+        themes.append(theme_data)
     data = {'version': 1, 'primary': ids[0], 'vars': variables,
             'themes': themes}
     if catalog is not None and catalog.digest:
         data['catalog_digest'] = catalog.digest
+    if presets:
+        data['catalog_digest'] = _presentation_digest([
+            ('themes', data.get('catalog_digest', '')),
+            *[(preset.selector, preset.digest) for preset in presets],
+        ])
     return data
 
 
@@ -6511,14 +6754,15 @@ def _theme_runtime_markup(runtime, style_context=None, page_props=None):
 
 
 def _presentation_selector(preset):
-    return preset.selector or 'default'
+    return preset.selector
 
 
 def _presentation_runtime_context(presets, style_context, catalog,
-                                  effective_theme):
+                                  effective_theme, strings=None):
     """Build the page-independent runtime catalogue for presentation presets."""
-    if len(presets) < 2:
+    if not presets:
         return None
+    strings = strings or {}
     variables, keys = _theme_runtime_variables()
     layers = list(style_context[0]) if style_context is not None else []
     primary_resolved = resolve_theme_properties(*layers)
@@ -6534,30 +6778,66 @@ def _presentation_runtime_context(presets, style_context, catalog,
         if effective_theme:
             resolved = primary_resolved
         else:
-            preset_layers = ([] if preset.default else [preset.theme_props])
+            preset_layers = [preset.theme_props]
             preset_layers.append(settings_props)
             resolved = resolve_theme_properties(*preset_layers)
         values = [[index, resolved[key]] for index, key in enumerate(keys)
                   if resolved[key] != primary_resolved[key]]
         structure_css = preset.package.structure_css
-        if not primary_has_structure:
+        if len(presets) == 1:
+            structure_css = ''
+        elif not primary_has_structure:
             structure_css = TEMPLATE_SKELETON
             if preset.package.structure_css:
                 structure_css += '\n' + preset.package.structure_css
-        descriptors.append({
+        label_key = None
+        description_key = None
+        family_key = None
+        if preset.selector == 'builtin/standard':
+            label = strings.get('presentation_standard', preset.label)
+            description = strings.get('presentation_standard_description',
+                                      preset.description)
+            family = 'LightWebPres'
+            label_key = 'presentation_standard'
+            description_key = 'presentation_standard_description'
+        else:
+            label = preset.label
+            description = preset.description
+            family = preset.theme_meta.get('family', 'presentation')
+        descriptor = {
             'selector': _presentation_selector(preset),
-            'label': preset.label,
-            'description': preset.description,
-            'family': preset.theme_meta.get('family', 'presentation'),
+            'label': label,
+            'description': description,
+            'family': family,
+            'identity': preset.package.selector,
+            'identity_label': preset.package.label,
+            'collection': preset.resource_collection,
+            'origin': preset.scope,
             'structure_css': structure_css,
             'theme_values': values,
-        })
+            'preview': {
+                'background': resolved['page.bg'],
+                'gradient': {
+                    'angle': resolved['cover.bg.angle'],
+                    'from': resolved['cover.bg.from'],
+                    'to': resolved['cover.bg.to'],
+                },
+                'foreground': resolved['cover.fg'],
+            },
+        }
+        if label_key:
+            descriptor['label_key'] = label_key
+        if description_key:
+            descriptor['description_key'] = description_key
+        if family_key:
+            descriptor['family_key'] = family_key
+        descriptors.append(descriptor)
 
     digest_parts = []
     for preset in presets:
         digest_parts.extend((
             ('selector', _presentation_selector(preset)),
-            ('package_digest', preset.package.digest),
+            ('preset_digest', preset.digest),
         ))
     return {
         'version': 1,
@@ -6566,6 +6846,11 @@ def _presentation_runtime_context(presets, style_context, catalog,
         'vars': variables,
         'pinned': sorted(indices[key] for key in pinned if key in indices),
         'presets': descriptors,
+        'identities': list({preset.package.selector: {
+            'selector': preset.package.selector,
+            'label': preset.package.label,
+            'origin': preset.package.scope,
+        } for preset in presets}.values()),
         'variants': {},
     }
 
@@ -6575,6 +6860,9 @@ def _presentation_runtime_markup(runtime, style_context=None, page_props=None):
     if runtime is None:
         return ''
     data = dict(runtime)
+    if len(data['presets']) < 2:
+        # One preset needs metadata, not a second copy of all page content.
+        data['variants'] = {}
     pinned = set(data.get('pinned', ()))
     if style_context is not None:
         _layers, custom_css = style_context
@@ -6596,7 +6884,8 @@ def _presentation_runtime_markup(runtime, style_context=None, page_props=None):
 def _page_css_markup(css, style_context=None, page_props=None,
                      presentation_preset=None, presentation_runtime=None):
     """Emit either the historical sheet or toggleable runtime CSS layers."""
-    if presentation_runtime is None or style_context is None:
+    if (presentation_runtime is None or style_context is None
+            or len(presentation_runtime['presets']) < 2):
         return '<style>\n' + css + '\n</style>'
     before, structure, after = compose_with_parts(
         style_context, page_props,
@@ -6613,16 +6902,27 @@ def _page_css_markup(css, style_context=None, page_props=None,
 
 
 def _presentation_picker_markup(strings, runtime):
-    """Return the extra appearance axis only when presets can be switched."""
+    """Publish all three axes, even when only one preset is available."""
     if runtime is None:
         return ''
     markup = '''<div class="theme-menu-title appearance-axis-title"
+     id="identityAxisTitle" data-lwp-i18n="appearance_identity">{{str_appearance_identity}}</div>
+<div class="theme-options" id="identityOptions" role="listbox"
+     aria-label="{{str_appearance_identity}}"
+     data-lwp-i18n-aria-label="appearance_identity"></div>
+<div class="theme-menu-title appearance-axis-title"
      id="presentationAxisTitle" data-lwp-i18n="appearance_presentation">{{str_appearance_presentation}}</div>
 <div class="theme-options" id="presentationOptions" role="listbox"
      aria-label="{{str_appearance_presentation}}"
      data-lwp-i18n-aria-label="appearance_presentation"></div>
 <div class="theme-menu-title appearance-axis-title" id="themeAxisTitle"
      data-lwp-i18n="appearance_theme" hidden>{{str_appearance_theme}}</div>
+<label for="themeSource" data-lwp-i18n="theme_source">{{str_theme_source}}</label>
+<select class="theme-filter" id="themeSource">
+  <option value="applicable" data-lwp-i18n="theme_source_applicable">{{str_theme_source_applicable}}</option>
+  <option value="identity" data-lwp-i18n="theme_source_identity">{{str_theme_source_identity}}</option>
+  <option value="all" data-lwp-i18n="theme_source_all">{{str_theme_source_all}}</option>
+</select>
 '''
     return '\n' + apply_strings(markup, strings, html_context=True)
 
@@ -6724,6 +7024,26 @@ def resolve_theme_properties(*layers):
             value = raw[target]
         out[key] = prop.type.check(key, value)
     return out
+
+
+DEFAULT_PRESENTATION_PACKAGE = PresentationPackage(
+    'builtin', VERSION, default=True, label='LightWebPres',
+    default_preset='standard',
+    layouts={slide_type: {'default': '{{slide_header}}\n{{content}}\n{{slide_footer}}'}
+             for slide_type in _PRESENTATION_SLIDE_TYPES},
+    index_layout='{{content}}',
+    themes={'light': {'props': resolve_theme_properties(),
+                      'meta': {'label': 'Light', 'family': 'desk'},
+                      'origin': 'builtin', 'scope': 'builtin'}})
+DEFAULT_PRESENTATION_PRESET = PresentationPreset(
+    DEFAULT_PRESENTATION_PACKAGE, 'standard', 'Standard',
+    'Native LightWebPres layouts and Light theme.', theme_id='light',
+    # Native defaults remain reference-aware when authors pin shared roles.
+    theme_props={key: prop.default for key, prop in PROPERTY_REGISTRY.items()},
+    theme_meta=DEFAULT_PRESENTATION_PACKAGE.themes['light']['meta'],
+    slide_layouts={slide_type: 'default' for slide_type in _PRESENTATION_SLIDE_TYPES},
+    default=True)
+DEFAULT_PRESENTATION_PACKAGE.presets['standard'] = DEFAULT_PRESENTATION_PRESET
 
 
 _RESOLVED_DEFAULTS = None
@@ -9590,6 +9910,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (e) { presentationData = null; }
   }
   var presentationOptionsBox = document.getElementById('presentationOptions');
+  var identityOptionsBox = document.getElementById('identityOptions');
   var presentationStyleNode = document.getElementById('lwp-presentation-structure');
   var presentationIndexNode = document.getElementById('lwp-presentation-index');
   var presentationCurrent = presentationData ? presentationData.primary : null;
@@ -9615,6 +9936,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var themeMenu = document.getElementById('themeMenu');
   var themeOptionsBox = document.getElementById('themeOptions');
   var themeFilter = document.getElementById('themeFilter');
+  var themeSource = document.getElementById('themeSource');
   var themeApplied = [];
   var themeCurrent = themeData ? themeData.primary : null;
   var themeExplicit = false;
@@ -9678,7 +10000,7 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       var stored = window.sessionStorage.getItem(themeStorageKey);
       if (!themeBySlug(stored)) return false;
-      return presentationAlternatives() ? true : stored !== themeData.primary;
+      return presentationData ? true : stored !== themeData.primary;
     } catch (e) {
       return false;
     }
@@ -9761,6 +10083,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var focusedHref = null;
     var focusedWasActive = false;
+    var returnContainer = isIndex && presentationIndexNode.contains(themeReturnFocus)
+      ? presentationIndexNode : (themeReturnFocus && themeReturnFocus.closest
+        ? themeReturnFocus.closest('section.slide') : null);
+    var returnHref = returnContainer ? themeReturnFocus.getAttribute('href') : null;
     var buildStamp = (!isIndex && allSlides.length)
       ? allSlides[0].querySelector('.build-stamp') : null;
     if (isIndex && focusedCard >= 0 && indexCards[focusedCard]) {
@@ -9777,6 +10103,12 @@ document.addEventListener('DOMContentLoaded', function() {
         allSlides[0].insertBefore(buildStamp, allSlides[0].firstChild);
       }
     }
+    if (returnContainer && returnHref !== null) {
+      themeReturnFocus = Array.prototype.find.call(
+        returnContainer.querySelectorAll('[href]'), function (link) {
+          return link.getAttribute('href') === returnHref;
+        }) || btnMenu;
+    }
     refreshPresentationLanguage();
     refreshPresentationCards(focusedHref, focusedWasActive);
     return true;
@@ -9784,7 +10116,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function applyPresentation(selector, persist) {
     var preset = presentationBySelector(selector);
-    if (!preset || !replacePresentationLayer(preset)) return false;
+    if (!preset || (presentationAlternatives() && !replacePresentationLayer(preset))) return false;
     if (presentationStyleNode) {
       presentationStyleNode.textContent = preset.structure_css || '';
     }
@@ -9798,7 +10130,9 @@ document.addEventListener('DOMContentLoaded', function() {
       applyPresentationTheme(preset);
     }
     if (persist) writeStoredPresentation(preset.selector);
+    renderIdentityOptions();
     renderPresentationOptions();
+    renderThemeOptions();
     rebuildDots();
     applyTagFilter(false);
     updatePresenter();
@@ -9821,7 +10155,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!theme) return false;
     clearRuntimeVariables();
     themeExplicit = explicit === undefined
-      ? (presentationAlternatives() ? true : slug !== themeData.primary)
+      ? (presentationData ? true : slug !== themeData.primary)
       : explicit;
     themeCurrent = theme.slug;
     if (themeExplicit) {
@@ -10258,7 +10592,39 @@ document.addEventListener('DOMContentLoaded', function() {
   var jumpTimer = null;
 
   function themeText(theme) {
-    return theme.label || theme.slug;
+    var label = theme.label || theme.slug;
+    if (theme.label_key === 'theme_default') {
+      label = lwpString('theme_default') || label;
+    } else if (theme.label_key === 'appearance_presentation') {
+      label = lwpString('appearance_presentation') || label;
+    } else if (theme.label_key === 'theme_custom') {
+      var prefix = lwpString('theme_custom');
+      var base = theme.label_base || '';
+      if (theme.label_base_key === 'theme_default') {
+        base = lwpString('theme_default') || base;
+      } else if (theme.label_base_key === 'appearance_presentation') {
+        base = lwpString('appearance_presentation') || base;
+      }
+      if (prefix) label = prefix + (base ? ' (' + base + ')' : '');
+    }
+    return label;
+  }
+
+  function themeFamily(theme) {
+    if (theme.family_key === 'theme_default') {
+      return lwpString('theme_default') || theme.family || '';
+    }
+    if (theme.family_key === 'appearance_presentation') {
+      return lwpString('appearance_presentation') || theme.family || '';
+    }
+    return theme.family || '';
+  }
+
+  function presentationText(preset, field) {
+    var key = field === 'label' ? preset.label_key
+      : field === 'description' ? preset.description_key : preset.family_key;
+    if (key) return lwpString(key) || preset[field] || '';
+    return preset[field] || '';
   }
 
   function updateScrollMenu() {
@@ -10286,7 +10652,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var active = presetDefault
         ? !themeExplicit
         : !!themeExplicit && button.getAttribute('data-theme') === themeCurrent;
-      if (!presentationAlternatives() && !presetDefault) {
+      if (!presentationData && !presetDefault) {
         active = button.getAttribute('data-theme') === themeCurrent;
       }
       button.classList.toggle('active', active);
@@ -10307,7 +10673,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function updateAppearanceLabels() {
-    var multiple = presentationAlternatives();
+    var multiple = !!presentationData;
     if (menuThemeLabel) {
       var menuKey = multiple ? 'menu_appearance' : 'menu_theme';
       menuThemeLabel.setAttribute('data-lwp-i18n', menuKey);
@@ -10337,22 +10703,66 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  function renderIdentityOptions() {
+    if (!identityOptionsBox || !presentationData) return;
+    identityOptionsBox.innerHTML = '';
+    var selected = presentationBySelector(presentationCurrent);
+    presentationData.identities.forEach(function (identity) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'theme-option identity-option';
+      button.setAttribute('data-identity', identity.selector);
+      button.setAttribute('role', 'option');
+      button.textContent = identity.label;
+      var active = !!selected && selected.identity === identity.selector;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+      button.addEventListener('click', function () {
+        var first = presentationData.presets.find(function (preset) {
+          return preset.identity === identity.selector;
+        });
+        if (!first || !applyPresentation(first.selector, true)) return;
+        // Applying a preset recreates the options; restore the initiating axis.
+        var replacement = Array.prototype.find.call(
+          identityOptionsBox.querySelectorAll('.identity-option'), function (item) {
+            return item.getAttribute('data-identity') === identity.selector;
+          });
+        focusIfVisible(replacement);
+      });
+      identityOptionsBox.appendChild(button);
+    });
+  }
+
   function renderPresentationOptions() {
     if (!presentationOptionsBox) return;
     presentationOptionsBox.innerHTML = '';
     if (!presentationData || !presentationData.presets) return;
+    var selected = presentationBySelector(presentationCurrent);
     presentationData.presets.forEach(function (preset) {
+      if (selected && preset.identity !== selected.identity) return;
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'theme-option presentation-option';
       button.setAttribute('data-presentation', preset.selector);
       button.setAttribute('role', 'option');
+      var preview = preset.preview || {};
+      if (preview.background) button.style.backgroundColor = preview.background;
+      if (preview.foreground) button.style.color = preview.foreground;
+      if (preview.gradient && preview.gradient.from && preview.gradient.to) {
+        var gradient = preview.gradient;
+        var angle = gradient.angle || '180deg';
+        button.style.backgroundImage =
+          'linear-gradient(' + angle + ', ' + gradient.from + ', ' + gradient.to + ')';
+      }
       var label = document.createElement('span');
-      label.textContent = preset.label || preset.selector;
+      label.textContent = presentationText(preset, 'label') || preset.selector;
       button.appendChild(label);
-      if (preset.family || preset.description) {
+      var detailText = preset.family_key
+        ? presentationText(preset, 'family')
+        : (preset.family || presentationText(preset, 'description'));
+      if (detailText) {
         var detail = document.createElement('small');
-        detail.textContent = preset.family || preset.description;
+        detail.textContent = detailText;
         button.appendChild(detail);
       }
       button.addEventListener('click', function () {
@@ -10367,7 +10777,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function renderThemeOptions() {
     if (!themeOptionsBox) return;
     themeOptionsBox.innerHTML = '';
-    if (presentationAlternatives()) {
+    if (presentationData) {
       var presetDefault = document.createElement('button');
       presetDefault.type = 'button';
       presetDefault.className = 'theme-option';
@@ -10385,7 +10795,11 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     var query = themeFilter ? themeFilter.value.trim().toLowerCase() : '';
+    var selected = presentationBySelector(presentationCurrent);
     themeData.themes.forEach(function (theme) {
+      // Every published typed theme is applicable; this is not brand approval.
+      if (themeSource && themeSource.value === 'identity'
+          && (!selected || theme.identity !== selected.identity)) return;
       var haystack = (theme.slug + ' ' + themeText(theme) + ' ' + (theme.family || '')).toLowerCase();
       if (query && haystack.indexOf(query) === -1) return;
       var button = document.createElement('button');
@@ -10407,7 +10821,8 @@ document.addEventListener('DOMContentLoaded', function() {
       button.appendChild(label);
       if (theme.family) {
         var family = document.createElement('small');
-        family.textContent = theme.family;
+        family.textContent = [themeFamily(theme),
+          theme.identity_label || theme.collection, theme.origin].filter(Boolean).join(' / ');
         button.appendChild(family);
       }
       button.addEventListener('click', function () {
@@ -10470,8 +10885,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!container) return [];
     return Array.prototype.slice.call(container.querySelectorAll(
       'button:not([disabled]):not([hidden]), input:not([disabled]):not([hidden]), ' +
+      'select:not([disabled]):not([hidden]), ' +
       '[href]:not([hidden]), [tabindex]:not([tabindex="-1"]):not([hidden])'
-    ));
+    )).filter(function (element) { return element.getClientRects().length > 0; });
   }
 
   function focusIfVisible(element) {
@@ -10546,7 +10962,10 @@ document.addEventListener('DOMContentLoaded', function() {
   function closeThemeMenu(restoreFocus) {
     var wasOpen = themeMenu && themeMenu.classList.contains('open');
     if (themeMenu) themeMenu.classList.remove('open');
-    if (wasOpen && restoreFocus !== false) focusIfVisible(themeReturnFocus);
+    if (wasOpen && restoreFocus !== false) {
+      focusIfVisible(themeReturnFocus);
+      if (themeMenu.contains(document.activeElement)) focusIfVisible(btnMenu);
+    }
     themeReturnFocus = null;
   }
 
@@ -10561,6 +10980,7 @@ document.addEventListener('DOMContentLoaded', function() {
     closeQrModal(false);
     if (themeFilter) themeFilter.value = '';
     updateAppearanceLabels();
+    renderIdentityOptions();
     renderPresentationOptions();
     renderThemeOptions();
     themeMenu.classList.add('open');
@@ -10658,6 +11078,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   if (themeFilter) themeFilter.addEventListener('input', renderThemeOptions);
+  if (themeSource) themeSource.addEventListener('change', renderThemeOptions);
 
   // Help overlay (key H): every keyboard shortcut and gesture, built once.
   var helpEntries = [
@@ -11380,6 +11801,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
           e.preventDefault();
           closeThemeMenu();
+        } else if (e.target === themeSource && e.key !== 'Tab') {
+          return;
+        } else if (e.target && e.target.closest
+                   && e.target.closest('.identity-option')
+                   && ['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight',
+                       'Home', 'End'].indexOf(e.key) !== -1) {
+          e.preventDefault();
+          if (e.key === 'Home' || e.key === 'End') {
+            focusGridEdge(identityOptionsBox, e.key === 'End');
+          } else {
+            moveGridFocus(identityOptionsBox, e.key.slice(5).toLowerCase());
+          }
         } else if (e.target === themeFilter
                    && (e.key === 'ArrowLeft' || e.key === 'ArrowRight'
                        || e.key === 'Home' || e.key === 'End')) {
@@ -11421,11 +11854,12 @@ document.addEventListener('DOMContentLoaded', function() {
             focusThemeEdge(true);
           }
         } else if (e.key === 'Enter' && e.target === themeFilter) {
-         var firstThemeOption = themeOptionsBox
-           ? themeOptionsBox.querySelector('.theme-option') : null;
-         if (firstThemeOption) {
-           e.preventDefault();
-           firstThemeOption.click();
+          e.preventDefault();
+          var firstThemeOption = themeOptionsBox
+            ? themeOptionsBox.querySelector(themeFilter.value.trim()
+              ? '.theme-option[data-theme]' : '.theme-option') : null;
+          if (firstThemeOption) {
+            firstThemeOption.click();
          }
        } else if (e.key === 'Tab') {
          var themeFocus = focusablesWithin(themeMenu);
@@ -16531,7 +16965,7 @@ def _presentation_asset_url(asset, package, inline_images):
             content = asset['path'].read_bytes()
         except OSError as exc:
             raise PropertyError(
-                f'presentation package {package.selector}: cannot read asset '
+                f'identity kit {package.selector}: cannot read asset '
                 f'{asset["relative"]!r} ({exc})')
         mime = (mimetypes.guess_type(asset['relative'])[0]
                 or 'application/octet-stream')
@@ -16561,7 +16995,7 @@ def _presentation_chrome_html(value, slot, package, typo_engine, disabled,
     model = package.chrome_models.get(model_name)
     if model is None:
         raise PropertyError(
-            f'{origin}: package {package.selector} has no chrome model '
+            f'{origin}: identity kit {package.selector} has no chrome model '
             f'{model_name!r}')
     if model['slot'] != slot:
         raise PropertyError(
@@ -16641,7 +17075,7 @@ def _wrap_presentation_slide(default_html, slide, preset, layout_variants,
         if package_fields:
             raise PropertyError(
                 f'slide {slide.slug or slide.slide_type}: slide layout/chrome '
-                'requires a non-default presentation preset')
+                'requires an identity kit layout')
         return default_html
 
     fragment = package.layout(slide.slide_type, requested_layout)
@@ -16650,7 +17084,7 @@ def _wrap_presentation_slide(default_html, slide, preset, layout_variants,
     if not separator or not remainder.endswith(closing):
         raise PropertyError(
             f'slide {slide.slug or slide.slide_type}: internal slide shell '
-            'cannot be wrapped by a presentation package')
+            'cannot be wrapped by an identity kit')
     content = remainder[:-len(closing)]
     chrome = _resolve_presentation_chrome(
         slide, preset, chrome_layers, typo_engine, disabled, inline_images)
@@ -18183,7 +18617,7 @@ def copy_presentation_assets(packages, output_dir):
                 _copy(asset['path'], destination)
             except OSError as exc:
                 raise PropertyError(
-                    f'presentation package {package.selector}: cannot publish '
+                    f'identity kit {package.selector}: cannot publish '
                     f'asset {name!r} ({exc})')
             published.append(public_path)
     if published:
@@ -18252,11 +18686,7 @@ def series_presentation_presets_of(series_data):
 # mapped to their replacements — recognized only to produce a clear
 # migration error instead of a mystifying "missing required field".
 _LEGACY_SERIES_FIELDS = {'source': 'page_source', 'file': 'page_dest'}
-_RETIRED_PRESENTATION_FIELDS = {
-    'presentation_template': 'presentation_preset',
-    'slide_layouts': None,
-    'slide_chrome': None,
-}
+_PRESENTATION_MANIFEST_FIELDS = ('slide_layouts', 'slide_chrome')
 
 
 # series_meta string leaves used by build_index / resolve_article_fields.
@@ -18359,19 +18789,13 @@ def series_meta_of(series_data, tolerate_invalid=False, errors=None):
                     f'(got {type(meta[field]).__name__}).')
             if tolerate_invalid:
                 meta.pop(field, None)
-    for retired, replacement in _RETIRED_PRESENTATION_FIELDS.items():
-        if retired not in meta:
+    for field in _PRESENTATION_MANIFEST_FIELDS:
+        if field not in meta:
             continue
-        if replacement:
-            invalid(f'series.json: "series_meta.{retired}" is retired. '
-                    f'Use "{replacement}" once at series level; there is no '
-                    'automatic migration.')
-        else:
-            invalid(f'series.json: "series_meta.{retired}" is retired. '
-                    'A presentation preset owns layouts and chrome; there is '
-                    'no author override or automatic migration.')
+        invalid(f'series.json: "series_meta.{field}" belongs in a kit preset. '
+                'Select it with series_meta.presentation_preset.')
         if tolerate_invalid:
-            meta.pop(retired, None)
+            meta.pop(field, None)
     if 'default_tag' in meta:
         try:
             meta['default_tag'] = normalize_default_tag(
@@ -18527,11 +18951,6 @@ def validate_series(articles, tolerate_invalid=False, errors=None):
                 break
         if bad_entry:
             continue
-        if 'presentation_template' in entry:
-            invalid(f'series.json: entry {i} uses retired "presentation_template". '
-                    'Use series_meta.presentation_preset once for the series; '
-                    'there is no automatic migration.')
-            continue
         if 'presentation_preset' in entry:
             invalid(f'series.json: entry {i} puts "presentation_preset" on an '
                     'article. It is series-wide and belongs only in series_meta.')
@@ -18539,9 +18958,8 @@ def validate_series(articles, tolerate_invalid=False, errors=None):
         for field in ('slide_layouts', 'slide_chrome'):
             if field not in entry:
                 continue
-            invalid(f'series.json: entry {i} uses retired "{field}". '
-                    'A presentation preset owns layouts and chrome; there is '
-                    'no author override or automatic migration.')
+            invalid(f'series.json: entry {i} uses "{field}", which belongs '
+                    'in a kit preset, not an article.')
             bad_entry = True
             break
         if bad_entry:
@@ -18668,17 +19086,12 @@ def _read_article_source(path):
 
 
 def _resolve_article_presentation(entry, meta, series_meta, source_name):
-    """Reject retired article-level presentation selection surfaces."""
+    """Keep preset selection at series scope and resource bindings in the kit."""
     article_sources = (
         (entry, f'series.json: entry for {source_name}'),
         (meta, source_name),
     )
     for source, origin in article_sources:
-        if 'presentation_template' in source:
-            raise PropertyError(
-                f'{origin}: presentation_template is retired. '
-                'Use presentation_preset once in series_meta; there is no '
-                'automatic migration.')
         if 'presentation_preset' in source:
             raise PropertyError(
                 f'{origin}: presentation_preset is series-wide and belongs '
@@ -18686,9 +19099,7 @@ def _resolve_article_presentation(entry, meta, series_meta, source_name):
         for field in ('slide_layouts', 'slide_chrome'):
             if field in source:
                 raise PropertyError(
-                    f'{origin}: {field} is retired. A presentation preset '
-                    'owns layouts and chrome; there is no author override or '
-                    'automatic migration.')
+                    f'{origin}: {field} belongs in a kit preset, not an article.')
 
 
 def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=True):
@@ -19185,9 +19596,12 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
         presentation_presets = _presentation_runtime_presets(
             presentation_catalog, series_preset, presentation_option,
             presentation_source)
-        presentation_runtime = _presentation_runtime_context(
-            presentation_presets, style_context, theme_catalog,
-            effective_theme)
+        requested_default = bool(
+            presentation_option is not None
+            and 'builtin/standard' in _presentation_runtime_parts(
+                presentation_option, presentation_source))
+        implicit_default = (series_preset.selector != 'builtin/standard'
+                            and not requested_default)
         series_json_themes = series_themes_of(series_data)
         runtime_option = args.get('--themes')
         runtime_source = '--themes'
@@ -19206,16 +19620,6 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
                 runtime_option = ['essential'] + runtime_option
             else:
                 runtime_option = 'essential,' + runtime_option
-        theme_runtime = build_theme_runtime(
-            runtime_option, effective_theme, runtime_source,
-            catalog=theme_catalog,
-            settings_props=(style_context[0][-1] if style_context[0]
-                            else {}),
-            preset_props=(series_preset.theme_props
-                          if effective_theme is None else None),
-            preset_label=series_preset.theme_meta.get('label'),
-            preset_family=series_preset.theme_meta.get('family'),
-            preset_selector=series_preset.selector)
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
@@ -19296,13 +19700,33 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
                            else None)
             source_slides = (parse_markdown_extended(source_text)[1]
                               if source_text is not None else ())
-            for preset in presentation_presets:
+            for preset in tuple(presentation_presets):
                 try:
                     validate_article_presentation(entry, preset, source_slides)
                 except PropertyError as exc:
+                    if preset.selector == 'builtin/standard' and implicit_default:
+                        log('warn', f'{entry["page_source"]}: the implicit '
+                            f'builtin/standard presentation is unavailable ({exc}); '
+                            'it will not be published as a runtime alternative')
+                        presentation_presets.remove(preset)
+                        continue
                     selector = _presentation_selector(preset)
                     raise PropertyError(
                         f'{entry["page_source"]} -> slide -> {selector} -> {exc}')
+        presentation_runtime = _presentation_runtime_context(
+            presentation_presets, style_context, theme_catalog,
+            effective_theme, strings=strings)
+        theme_runtime = build_theme_runtime(
+            runtime_option, effective_theme, runtime_source,
+            catalog=theme_catalog,
+            settings_props=(style_context[0][-1] if style_context[0]
+                            else {}),
+            preset_props=(series_preset.theme_props
+                          if effective_theme is None else None),
+            preset_label=series_preset.theme_meta.get('label'),
+            preset_family=series_preset.theme_meta.get('family'),
+            preset_selector=series_preset.selector,
+            strings=strings, presets=presentation_presets)
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
@@ -19733,7 +20157,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
 def cmd_completion(args):
     """completion --shell bash|zsh — prints a shell completion script.
 
-    The script completes subcommands (series, theme, preset, template),
+    The script completes subcommands (series, theme, preset, kit, template),
     root shortcuts (init, build, verify, ...), and options (--lang,
     --output, --theme, ...). Install with:
 
@@ -19755,6 +20179,7 @@ def cmd_completion(args):
     series_verbs = sorted(_SERIES_VERBS)
     theme_verbs = sorted(_THEME_VERBS)
     preset_verbs = sorted(_PRESET_VERBS)
+    kit_verbs = sorted(_KIT_VERBS)
     template_verbs = sorted(_TEMPLATE_VERBS)
     # Before a command has been named, the ONLY options the tool reads are
     # the globals: `lightwebpres --polarity dark verify` does not reach
@@ -19770,11 +20195,12 @@ def cmd_completion(args):
     # where _SERIES_VERBS already has it. A completion that offers a
     # refused command is worse than one that offers nothing: it is the
     # program telling you to type what the program will reject.
-    root_list = ' '.join(root_cmds + ['series', 'theme', 'preset',
+    root_list = ' '.join(root_cmds + ['series', 'theme', 'preset', 'kit',
                                        'template'])
     series_list = ' '.join(series_verbs)
     theme_list = ' '.join(theme_verbs)
     preset_list = ' '.join(preset_verbs)
+    kit_list = ' '.join(kit_verbs)
     template_list = ' '.join(template_verbs)
     # The closed set `template show`/`write` accept, offered where the
     # shell would otherwise offer every file in the directory.
@@ -19798,7 +20224,7 @@ def cmd_completion(args):
     for token, key in _SHORTCUTS.items():
         per_command[token] = offers(key)
     for node, verbs in (('series', _SERIES_VERBS), ('theme', _THEME_VERBS),
-                        ('preset', _PRESET_VERBS),
+                        ('preset', _PRESET_VERBS), ('kit', _KIT_VERBS),
                         ('template', _TEMPLATE_VERBS)):
         for verb, key in verbs.items():
             per_command[f'{node} {verb}'] = offers(key)
@@ -19824,7 +20250,7 @@ def cmd_completion(args):
     # _resolve_command reads the second word as the verb and answers
     # "Unknown series verb: `series --quiet`" -- so the only option a bare
     # node takes is the one it answers: --help.
-    for _node in ('series', 'theme', 'preset', 'template'):
+    for _node in ('series', 'theme', 'preset', 'kit', 'template'):
         per_command[_node] = '--help'
     # Longest path first, so `series build` is matched before `series`.
     cases = '\n'.join(
@@ -19894,6 +20320,13 @@ _lightwebpres_completion() {{
         return 0
     fi
 
+    # kit <verb>
+    if [ "${{COMP_WORDS[1]}}" = "kit" ] && [ "$COMP_CWORD" -eq 2 ] \
+       && [[ "$cur" != --* ]]; then
+        COMPREPLY=($(compgen -W "{kit_list}" -- "$cur"))
+        return 0
+    fi
+
     # template show|write <file>: a closed set of three, not the filesystem
     if [ "${{COMP_WORDS[1]}}" = "template" ] && [ "$COMP_CWORD" -eq 3 ] \
        && [[ "$cur" != --* ]] \
@@ -19922,7 +20355,7 @@ _lightwebpres_completion() {{
         local path="${{COMP_WORDS[1]}}"
         if [ "$COMP_CWORD" -gt 2 ]; then
             case "$path" in
-                series|theme|preset|template) path="${{COMP_WORDS[1]}} ${{COMP_WORDS[2]}}" ;;
+                series|theme|preset|kit|template) path="${{COMP_WORDS[1]}} ${{COMP_WORDS[2]}}" ;;
             esac
         fi
         if [ "$path" = "series theme" ] \
@@ -20027,7 +20460,8 @@ def _write_manifest(output_dir, articles_built, include_index=True,
     if len(presentation_presets) > 1:
         manifest['presentation_presets'] = [
             {'selector': _presentation_selector(preset),
-             'package_digest': preset.package.digest}
+             'package_digest': preset.package.digest,
+             'preset_digest': preset.digest}
             for preset in presentation_presets]
     _write_file(output_dir / _MANIFEST_NAME,
                 json.dumps(manifest, indent=2, ensure_ascii=False))
@@ -20183,6 +20617,10 @@ def _watch_paths(series_dir, args):
         if root.is_dir():
             paths.add(root)
             paths.update(root.rglob('*'))
+    for root, _scope in _commons_roots():
+        paths.add(root)
+        if root.is_dir():
+            paths.update(root.rglob('*'))
     installed = _installed_language_root()
     if installed is not None:
         for root in (installed / 'interface', installed / 'typography'):
@@ -20305,11 +20743,13 @@ def cmd_build(series_dir, args):
         'presentation_preset': {
             'selector': ctx.series_presentation_preset.selector,
             'package_digest': ctx.series_presentation_preset.package.digest,
+            'preset_digest': ctx.series_presentation_preset.digest,
         },
         'presentation_presets': [
             {
                 'selector': _presentation_selector(preset),
                 'package_digest': preset.package.digest,
+                'preset_digest': preset.digest,
             }
             for preset in ctx.presentation_presets
         ],
@@ -21970,11 +22410,11 @@ def audit_presentation(templates_dir, catalog=None, presentation_catalog=None,
         else:
             m = re.search(r'^# scaffold-for: (\S+)$', text, re.MULTILINE)
             scaffold_for = m.group(1) if m else None
-            declared_name = (declared
-                             or (presentation_preset.selector
-                                 if presentation_preset is not None
-                                 and not presentation_preset.default else 'default'))
-            if scaffold_for and scaffold_for != declared_name:
+            declared_name = (declared or (presentation_preset.selector
+                              if presentation_preset is not None else 'builtin/standard'))
+            # Older or unselected scaffolds call the same native base "default".
+            scaffold_name = 'builtin/standard' if scaffold_for == 'default' else scaffold_for
+            if scaffold_for and scaffold_name != declared_name:
                 warnings += 1
                 log('warn', f'templates/{SETTINGS_FILENAME}: the commented '
                             f'values were generated for theme {scaffold_for!r} but '
@@ -22004,7 +22444,7 @@ def audit_presentation(templates_dir, catalog=None, presentation_catalog=None,
             load_presentation_catalog(templates_dir)
         except PropertyError as exc:
             warnings += 1
-            log('warn', f'presentation package catalogue: {exc}')
+            log('warn', f'identity kit catalogue: {exc}')
 
     return warnings
 
@@ -22012,6 +22452,33 @@ def audit_presentation(templates_dir, catalog=None, presentation_catalog=None,
 # ============================================================================
 # INSTALL COMMAND
 # ============================================================================
+
+def _plan_commons_preset_vendor(preset, templates_dir):
+    """Plan the selected Commons descriptor and its external theme, nothing else."""
+    if preset.resource_collection != 'commons':
+        return ()
+    templates_dir = Path(templates_dir)
+    destinations = [templates_dir / 'commons' / 'presets' / f'{preset.id}.json']
+    if len(preset.dependency_paths) > 1:
+        destinations.append(templates_dir / 'themes' / f'{preset.theme_id}.conf')
+    planned = []
+    for source, destination in zip(preset.dependency_paths, destinations):
+        for parent in destination.parents:
+            if parent == templates_dir:
+                break
+            if _presentation_path_exists(parent) and (
+                    not parent.is_dir() or parent.is_symlink()):
+                raise PropertyError(f'{parent} must be a real directory to vendor a Commons preset')
+        text = _read_presentation_text(source)
+        if _presentation_path_exists(destination):
+            if (destination.is_symlink() or not destination.is_file()
+                    or _read_presentation_text(destination) != text):
+                raise PropertyError(
+                    f'{destination} already exists; refusing to replace a Commons dependency')
+        else:
+            planned.append((destination, text))
+    return tuple(planned)
+
 
 def cmd_install(target_dir, args):
     """init command — creates the directory structure."""
@@ -22030,7 +22497,8 @@ def cmd_install(target_dir, args):
         sys.exit(1)
 
     if no_starter and preset_selector is None:
-        log('error', '`init --no-starter` needs --preset id@version/preset.')
+        log('error', '`init --no-starter` needs --preset '
+            'id@version/preset|commons/id|builtin/standard.')
         sys.exit(1)
     presentation_preset = DEFAULT_PRESENTATION_PRESET
     if preset_selector is not None:
@@ -22060,6 +22528,12 @@ def cmd_install(target_dir, args):
             f'{", ".join(sorted(theme_catalog.themes))}')
         sys.exit(1)
 
+    try:
+        commons_plan = _plan_commons_preset_vendor(presentation_preset, td / 'templates')
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
+
     # Create the directories
     _mkdir(td / 'sources', parents=True, exist_ok=True)
     _mkdir(td / 'templates', exist_ok=True)
@@ -22067,13 +22541,16 @@ def cmd_install(target_dir, args):
     _mkdir(td / 'interface', exist_ok=True)
     _mkdir(td / 'typography', exist_ok=True)
     _mkdir(td / 'public', exist_ok=True)
-    if not presentation_preset.default:
+    if presentation_preset.resource_collection == 'kit':
         try:
             vendor_presentation_package(
-                presentation_preset.package, td / 'templates' / 'layouts', force=force)
+                presentation_preset.package, td / 'templates' / 'kits', force=force)
         except PropertyError as exc:
             log('error', str(exc))
             sys.exit(1)
+    for destination, text in commons_plan:
+        _mkdir(destination.parent, parents=True, exist_ok=True)
+        _write_file(destination, text)
 
     # The author's surface (§9 rewrite), and ONLY the author's surface:
     # settings.conf, every property commented at its value under the
@@ -22098,7 +22575,7 @@ def cmd_install(target_dir, args):
                     base_props=(presentation_preset.theme_props
                                 if theme_key is None else None),
                     scaffold_for=(presentation_preset.selector
-                                  if not presentation_preset.default else None)))
+                                  if preset_selector is not None else None)))
     _write_file(td / 'templates' / CUSTOM_CSS_FILENAME, CUSTOM_CSS_STUB)
 
     # Empty series.json
@@ -22113,7 +22590,7 @@ def cmd_install(target_dir, args):
         },
         "articles": []
     }
-    if not presentation_preset.default:
+    if preset_selector is not None:
         series_json['series_meta']['presentation_preset'] = (
             presentation_preset.selector)
     if starter_entries:
@@ -22155,7 +22632,7 @@ def cmd_install(target_dir, args):
     progress(f'Installed: {td}')
     if theme_key:
         progress(f'  theme: {theme_catalog.entry(theme_key)["label"]}')
-    elif not presentation_preset.default:
+    elif preset_selector is not None:
         progress(f'  preset: {presentation_preset.selector}')
     progress(f'  sources/   — your .md files')
     progress(f'  templates/  — {SETTINGS_FILENAME} (uncomment a value to pin it),')
@@ -22394,8 +22871,9 @@ def cmd_refresh_templates(target_dir, args):
         theme_key, _ = parse_settings_text(old, catalog=theme_catalog)
         pins = pinned_settings(old)
         try:
+            series_data = load_series_data(_sd)
             presentation_preset = _series_preset_or_die(
-                load_series_data(_sd), templates_dir)
+                series_data, templates_dir)
         except PropertyError as exc:
             log('error', str(exc))
             sys.exit(1)
@@ -22403,8 +22881,7 @@ def cmd_refresh_templates(target_dir, args):
             theme_key, pinned=pins, catalog=theme_catalog,
             base_props=(presentation_preset.theme_props
                         if theme_key is None else None),
-            scaffold_for=(presentation_preset.selector
-                          if not presentation_preset.default else None))
+            scaffold_for=series_meta_of(series_data).get('presentation_preset'))
         if new == old:
             progress(f'templates/{SETTINGS_FILENAME} is already current. '
                   f'Nothing written.')
@@ -22432,12 +22909,16 @@ def cmd_refresh_templates(target_dir, args):
               f'run audit for the variable renames, then delete it.')
 
     if not settings_path.exists():
-        # A series scaffolded before the rewrite: give it the new surface,
-        # default theme — writing a file that does not exist breaks no
-        # ownership promise.
-        _write_file(settings_path, build_settings_scaffold(None,
-                                                           catalog=theme_catalog))
-        refreshed.append(f'templates/{SETTINGS_FILENAME} (new, default theme)')
+        try:
+            series_data = load_series_data(_sd)
+            presentation_preset = _series_preset_or_die(series_data, templates_dir)
+        except PropertyError as exc:
+            log('error', str(exc))
+            sys.exit(1)
+        _write_file(settings_path, build_settings_scaffold(
+            None, catalog=theme_catalog, base_props=presentation_preset.theme_props,
+            scaffold_for=series_meta_of(series_data).get('presentation_preset')))
+        refreshed.append(f'templates/{SETTINGS_FILENAME} (new, {presentation_preset.selector})')
     custom_path = templates_dir / CUSTOM_CSS_FILENAME
     contained_custom = _optional_contained_file(
         templates_dir, CUSTOM_CSS_FILENAME, f'templates/{CUSTOM_CSS_FILENAME}')
@@ -22777,6 +23258,244 @@ PRESET_LIST_SCHEMA = 'lightwebpres.preset-list/1'
 SERIES_PRESET_SCHEMA = 'lightwebpres.series-preset/1'
 
 
+def _kit_composition_object(pairs):
+    """Reject duplicate JSON keys at every depth of a composition recipe."""
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise PropertyError(f'kit compose: duplicate JSON key {key!r}')
+        result[key] = value
+    return result
+
+
+def _kit_composition_path(value, origin):
+    relative = _presentation_relative_path(value, origin)
+    if relative.as_posix() != value:
+        raise PropertyError(f'{origin}: use a canonical relative path without ./ or empty segments')
+    return relative
+
+
+def _kit_composition_css(text, source_id, target_id, path):
+    """Rebind class tokens in validated selectors, preserving all literal text."""
+    identifier = r'(?:[-\w\x80-\U0010ffff]|' + _PRESENTATION_CSS_ESCAPE_RE.pattern + r')+'
+    tokens = re.compile(
+        r'/\*.*?\*/|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|\.?'
+        + identifier + r'|.', re.DOTALL)
+    # Mask comments without shifting offsets; the existing scanners handle strings.
+    scan = ''.join(' ' * len(match[0]) if match[0].startswith('/*') else match[0]
+                   for match in tokens.finditer(text))
+    scope = _presentation_scope(source_id)
+    edits = []
+
+    def selectors(start, end):
+        position = start
+        while position < end:
+            while position < end and scan[position].isspace():
+                position += 1
+            if position == end:
+                break
+            opening = _presentation_css_header_end(scan, position, path)
+            closing = _presentation_css_matching_brace(scan, opening, path)
+            header = _presentation_css_unescape(scan[position:opening]).strip()
+            if header.startswith('@'):
+                selectors(opening + 1, closing)
+            else:
+                brackets = 0
+                for match in tokens.finditer(text, position, opening):
+                    token = match[0]
+                    if token == '[':
+                        brackets += 1
+                    elif token == ']':
+                        brackets -= 1
+                    elif (not brackets and token.startswith('.')
+                          and _presentation_css_unescape(token) == scope):
+                        edits.append((match.start(), match.end()))
+            position = closing + 1
+
+    selectors(0, len(scan))
+    pieces, position = [], 0
+    for start, end in edits:
+        pieces.extend((text[position:start], _presentation_scope(target_id)))
+        position = end
+    pieces.append(text[position:])
+    return ''.join(pieces)
+
+
+def cmd_kit_compose(recipe_path, args):
+    """Publish an explicit file selection as a complete, independent Identity Kit."""
+    import tempfile
+
+    if not args.get('--output'):
+        log('error', 'kit compose requires --output <directory>.')
+        sys.exit(1)
+    try:
+        recipe_path = Path(recipe_path).resolve()
+        base = recipe_path.parent
+        try:
+            recipe = json.loads(
+                _read_presentation_text(recipe_path),
+                object_pairs_hook=_kit_composition_object,
+                parse_constant=lambda value: _presentation_error(
+                    recipe_path, f'invalid JSON constant {value}'))
+        except (ValueError, RecursionError) as exc:
+            raise PropertyError(f'{recipe_path}: invalid composition JSON ({exc})')
+        if (not isinstance(recipe, dict)
+                or set(recipe) != {'schema', 'sources', 'manifest', 'files'}):
+            raise PropertyError('kit compose: recipe requires only schema, sources, manifest and files')
+        if recipe['schema'] != 'lightwebpres.kit-composition/1':
+            raise PropertyError('kit compose: expected schema lightwebpres.kit-composition/1')
+        if any(not isinstance(recipe[key], dict)
+               for key in ('sources', 'manifest', 'files')):
+            raise PropertyError('kit compose: sources, manifest and files must be objects')
+        manifest = recipe['manifest']
+        kit_id, version = manifest.get('id'), manifest.get('version')
+        _presentation_variant(kit_id, 'kit compose: manifest.id')
+        if kit_id in ('builtin', 'commons'):
+            raise PropertyError(f'kit compose: id {kit_id!r} is reserved')
+        if not isinstance(version, str) or not _PRESENTATION_VERSION_RE.fullmatch(version):
+            raise PropertyError('kit compose: version must have the form MAJOR.MINOR.PATCH')
+
+        sources, source_css = {}, {}
+        for alias, relative in recipe['sources'].items():
+            if not alias.strip():
+                raise PropertyError('kit compose: source alias must be a non-empty string')
+            relative = _kit_composition_path(relative, f'sources.{alias}')
+            root = base.joinpath(*relative.parts)
+            resolved = root.resolve()
+            if base not in resolved.parents:
+                raise PropertyError(f'sources.{alias}: escapes the recipe directory')
+            if not root.is_dir():
+                raise PropertyError(f'sources.{alias}: not a kit directory: {root}')
+            sources[alias] = _load_presentation_package(root, 'composition')
+            _text, source_manifest = _presentation_json(root / 'manifest.json', 'manifest')
+            structural_path = source_manifest.get('structure_css')
+            source_css[alias] = ((root / structural_path).resolve()
+                                 if structural_path is not None else None)
+
+        output = Path(args['--output']).absolute()
+        for parent in (output, *output.parents):
+            if parent.is_symlink():
+                raise PropertyError(f'kit compose: output cannot traverse a symlink: {parent}')
+        destination = output / kit_id / version
+        for parent in (destination, destination.parent):
+            if parent.is_symlink():
+                raise PropertyError(f'kit compose: output cannot traverse a symlink: {parent}')
+        if _presentation_path_exists(destination):
+            raise PropertyError(f'kit compose: output already exists: {destination}')
+        destination = destination.resolve()
+        for source in sources.values():
+            root = source.root.resolve()
+            if root == destination or root in destination.parents:
+                raise PropertyError('kit compose: output cannot be inside a source kit')
+
+        def read_part(descriptor, css=False):
+            if not isinstance(descriptor, dict):
+                raise PropertyError('kit compose: each file descriptor must be an object')
+            keys = set(descriptor)
+            source = None
+            if keys == {'text'}:
+                text = descriptor['text']
+                if not isinstance(text, str):
+                    raise PropertyError('kit compose: text must be a UTF-8 string')
+                text.encode('utf-8')
+                return text
+            if keys == {'file'}:
+                relative = _kit_composition_path(descriptor['file'], 'local file')
+                path, _relative = _presentation_file(base, relative.as_posix(), 'local file')
+            elif keys == {'source', 'path'}:
+                alias = descriptor['source']
+                if not isinstance(alias, str) or alias not in sources:
+                    raise PropertyError(f'kit compose: unknown source alias {alias!r}')
+                source = sources[alias]
+                relative = _kit_composition_path(descriptor['path'], 'source path')
+                path, _relative = _presentation_file(source.root, relative.as_posix(), 'source path')
+                declared = {p.relative_to(source.root).as_posix()
+                            for p in source.dependency_paths}
+                if relative.as_posix() not in declared:
+                    raise PropertyError(f'kit compose: source file is not declared: {relative}')
+            else:
+                raise PropertyError('kit compose: descriptor must contain source/path, file, or text only')
+            if css and path.suffix != '.css':
+                raise PropertyError('kit compose: parts can read only textual .css files')
+            if source is not None and path.resolve() == source_css[descriptor['source']]:
+                text = _read_presentation_text(path)
+                _validate_presentation_structure_css(path, text, source.id)
+                return _kit_composition_css(text, source.id, kit_id, path)
+            return _read_presentation_text(path) if css else path
+
+        planned = {}
+        for name, descriptor in recipe['files'].items():
+            relative = _kit_composition_path(name, 'destination file')
+            if relative.parts[0] == 'manifest.json':
+                raise PropertyError('kit compose: destination manifest.json is reserved')
+            if isinstance(descriptor, dict) and set(descriptor) == {'parts'}:
+                parts = descriptor['parts']
+                if relative.suffix != '.css' or not isinstance(parts, list) or not parts:
+                    raise PropertyError('kit compose: parts requires a .css destination and a non-empty array')
+                planned[relative] = '\n'.join(read_part(part, css=True) for part in parts)
+            else:
+                planned[relative] = read_part(descriptor)
+        for relative in planned:
+            if any(parent in planned for parent in relative.parents):
+                raise PropertyError(f'kit compose: file/directory destination conflict: {relative}')
+
+        # Keep the transaction outside the scanned catalogue, on its filesystem.
+        # A catalogue at a mount root needs an output subdirectory for safe staging.
+        dry_run = _LOG_STATE['dry_run']
+        output = output.resolve()
+        publication_parent = destination.parent
+        while not publication_parent.exists():
+            publication_parent = publication_parent.parent
+        stage_parent = output.parent
+        while not stage_parent.exists():
+            stage_parent = stage_parent.parent
+        if not publication_parent.is_dir() or not stage_parent.is_dir():
+            raise PropertyError('kit compose: output parent is not a directory')
+        if (stage_parent == output
+                or stage_parent.stat().st_dev != publication_parent.stat().st_dev):
+            raise PropertyError(
+                'kit compose: cannot stage outside the output catalogue on the same filesystem; '
+                'choose an output subdirectory within the mounted filesystem')
+        with tempfile.TemporaryDirectory(
+                prefix='.lwp-kit-compose-', dir=None if dry_run else str(stage_parent)) as temp:
+            stage = Path(temp) / kit_id / version
+            try:
+                # The only real writes in dry-run are disposable validation inputs.
+                _LOG_STATE['dry_run'] = False
+                _mkdir(stage, parents=True)
+                _write_file(stage / 'manifest.json', json.dumps(manifest, indent=2) + '\n')
+                for relative, payload in planned.items():
+                    target = stage.joinpath(*relative.parts)
+                    _mkdir(target.parent, parents=True, exist_ok=True)
+                    if isinstance(payload, Path):
+                        _copy(payload, target)
+                    else:
+                        _write_file(target, payload)
+                _load_presentation_package(stage, 'composition')
+            finally:
+                _LOG_STATE['dry_run'] = dry_run
+            missing_dirs = []
+            parent = destination.parent
+            while not parent.exists():
+                missing_dirs.append(parent)
+                parent = parent.parent
+            try:
+                _mkdir(destination.parent, parents=True, exist_ok=True)
+                _replace_tree(stage, destination)
+            except (OSError, PropertyError):
+                for directory in missing_dirs:
+                    try:
+                        _remove_empty_dir(directory)
+                    except OSError:
+                        pass
+                raise
+        progress(f'{"Would compose" if dry_run else "Composed"} Identity Kit '
+                 f'{kit_id}@{version} -> {destination}')
+    except (PropertyError, OSError, UnicodeError, RuntimeError) as exc:
+        log('error', f'kit compose: {exc}')
+        sys.exit(1)
+
+
 def _presentation_preset_report(preset):
     """The stable public shape of one author-selectable preset."""
     package = preset.package
@@ -22788,11 +23507,15 @@ def _presentation_preset_report(preset):
         'label': preset.label,
         'description': preset.description,
         'default': preset.default,
+        'resource_collection': preset.resource_collection,
+        'scope': preset.scope,
         'package': {
             'selector': package.selector,
             'id': package.id,
             'version': package.version,
-            'scope': getattr(package, 'scope', 'built-in' if package.default else None),
+            'label': package.label,
+            'default_preset': package.default_preset,
+            'scope': package.scope,
             'path': str(package.root) if package.root is not None else None,
         },
         'theme': {
@@ -22817,8 +23540,8 @@ def _print_presentation_preset(report, fmt):
         print(json.dumps(report, indent=2, ensure_ascii=False))
         return
     package = report['package']
-    selector = report['selector'] or '(built-in default)'
-    print(f'{selector} [{package["scope"]}]')
+    selector = report['selector']
+    print(f'{selector} [{report["scope"]}]')
     print(f'  {report["label"]}: {report["description"]}')
     print(f'  theme: {report["theme"]["label"] or "registry defaults"}')
     starter = report['starter']
@@ -22836,16 +23559,14 @@ def cmd_preset_list(args):
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
-    reports = [_presentation_preset_report(DEFAULT_PRESENTATION_PRESET)]
-    reports.extend(_presentation_preset_report(preset)
-                   for preset in catalog.presets())
+    reports = [_presentation_preset_report(preset) for preset in catalog.presets()]
     if fmt == 'json':
         print(json.dumps({'schema': PRESET_LIST_SCHEMA, 'presets': reports},
                          indent=2, ensure_ascii=False))
         return
     print('Presentation presets:')
     for report in reports:
-        selector = report['selector'] or '(built-in default)'
+        selector = report['selector']
         print(f'  {selector}  {report["label"]}')
 
 
@@ -22928,7 +23649,8 @@ def cmd_set_presentation_preset(series_dir, args):
     """Select and vendor one preset without applying its starter."""
     selector = args.get('--preset')
     if selector is None:
-        log('error', '`series preset set` needs --preset id@version/preset.')
+        log('error', '`series preset set` needs --preset '
+            'id@version/preset|commons/id|builtin/standard.')
         sys.exit(1)
     keep_theme = bool(args.get('--keep-theme'))
     use_preset_theme = bool(args.get('--use-preset-theme'))
@@ -22975,10 +23697,7 @@ def cmd_set_presentation_preset(series_dir, args):
         resolve_theme_properties(base_props, selected_pins)
 
         updated = json.loads(json.dumps(series_data))
-        if preset.default:
-            updated.get('series_meta', {}).pop('presentation_preset', None)
-        else:
-            updated.setdefault('series_meta', {})['presentation_preset'] = preset.selector
+        updated.setdefault('series_meta', {})['presentation_preset'] = preset.selector
         proposed_meta = series_meta_of(updated)
         catalog.resolve_preset(
             proposed_meta.get('presentation_preset'),
@@ -23002,30 +23721,31 @@ def cmd_set_presentation_preset(series_dir, args):
 
         destination = None
         needs_vendor = False
-        layouts_dir = templates_dir / 'layouts'
+        kits_dir = templates_dir / 'kits'
         package_parent = None
-        if not preset.default:
-            if _presentation_path_exists(layouts_dir):
-                if not layouts_dir.is_dir() or layouts_dir.is_symlink():
+        if preset.resource_collection == 'kit':
+            if _presentation_path_exists(kits_dir):
+                if not kits_dir.is_dir() or kits_dir.is_symlink():
                     raise PropertyError(
-                        f'{layouts_dir} must be a real directory to vendor a preset')
-            destination = layouts_dir / preset.package.id / preset.package.version
+                        f'{kits_dir} must be a real directory to vendor a preset')
+            destination = kits_dir / preset.package.id / preset.package.version
             package_parent = destination.parent
             if _presentation_path_exists(destination):
                 if (not destination.is_dir() or destination.is_symlink()
                         or destination.resolve() != preset.package.root.resolve()):
                     raise PropertyError(
                         f'{destination} already exists; refusing to replace a vendored '
-                        'package while changing a series preset.')
+                        'identity kit while changing a series preset.')
             else:
                 needs_vendor = True
+        commons_plan = _plan_commons_preset_vendor(preset, templates_dir)
     except (OSError, PropertyError) as exc:
         log('error', str(exc))
         sys.exit(1)
 
-    if not (needs_vendor or settings_changed or series_changed):
+    if not (needs_vendor or commons_plan or settings_changed or series_changed):
         progress(f'Presentation preset unchanged: '
-                 f'{preset.selector or "built-in default"}. Nothing written.')
+                 f'{preset.selector}. Nothing written.')
         return
 
     stage = None
@@ -23033,11 +23753,12 @@ def cmd_set_presentation_preset(series_dir, args):
     settings_committed = False
     series_committed = False
     created_dirs = []
+    commons_committed = []
     try:
         if needs_vendor:
-            if not _presentation_path_exists(layouts_dir):
-                _mkdir(layouts_dir)
-                created_dirs.append(layouts_dir)
+            if not _presentation_path_exists(kits_dir):
+                _mkdir(kits_dir)
+                created_dirs.append(kits_dir)
             if not _presentation_path_exists(package_parent):
                 _mkdir(package_parent)
                 created_dirs.append(package_parent)
@@ -23046,6 +23767,18 @@ def cmd_set_presentation_preset(series_dir, args):
             _replace_tree(stage, destination)
             stage = None
             package_committed = True
+        for commons_path, text in commons_plan:
+            missing_dirs = []
+            parent = commons_path.parent
+            while not _presentation_path_exists(parent):
+                missing_dirs.append(parent)
+                parent = parent.parent
+            for directory in reversed(missing_dirs):
+                _mkdir(directory, exist_ok=True)
+                if directory not in created_dirs:
+                    created_dirs.append(directory)
+            _write_file(commons_path, text)
+            commons_committed.append(commons_path)
         if settings_changed:
             _write_file(settings_path, updated_settings)
             settings_committed = True
@@ -23074,6 +23807,11 @@ def cmd_set_presentation_preset(series_dir, args):
                 _remove_tree(destination)
             except OSError as rollback_error:
                 rollback_errors.append(str(rollback_error))
+        for commons_path in reversed(commons_committed):
+            try:
+                _remove(commons_path)
+            except OSError as rollback_error:
+                rollback_errors.append(str(rollback_error))
         for directory in reversed(created_dirs):
             if not _presentation_path_exists(directory):
                 continue
@@ -23086,7 +23824,7 @@ def cmd_set_presentation_preset(series_dir, args):
             log('error', 'Could not fully roll back preset selection: '
                 + '; '.join(rollback_errors))
         sys.exit(1)
-    progress(f'Presentation preset set: {preset.selector or "built-in default"}')
+    progress(f'Presentation preset set: {preset.selector}')
     if explicit_theme and keep_theme:
         progress(f'  kept explicit theme: {explicit_theme}')
     elif explicit_theme and use_preset_theme:
@@ -23217,9 +23955,16 @@ def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False
     resolved = resolve_theme_properties(*layers)
     entry = (catalog.entry(slug) if catalog is not None and slug
              else (THEMES[slug] if slug else
-                   (presentation_preset.theme_meta
-                    if presentation_preset is not None
-                    and not presentation_preset.default else None)))
+                    (presentation_preset.theme_meta
+                     if presentation_preset is not None else None)))
+    source = entry.get('source') if entry else None
+    if not slug and presentation_preset is not None:
+        if (presentation_preset.resource_collection == 'builtin'
+                or presentation_preset.theme_id == 'builtin:light'
+                or (presentation_preset.resource_collection == 'kit'
+                    and presentation_preset.package.themes.get(
+                        presentation_preset.theme_id, {}).get('origin') == 'builtin')):
+            source = 'builtin'
     return {
         'schema': THEME_INFO_SCHEMA,
         'lightwebpres_version': VERSION,
@@ -23233,8 +23978,8 @@ def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False
             'custom_css': custom_css,
         },
         'label': entry['label'] if entry else None,
-        'note': entry['note'] if entry else None,
-        'source': entry.get('source') if entry else None,
+        'note': entry.get('note') if entry else None,
+        'source': source,
         'facets': _theme_info_facets(kind, slug, resolved, catalog, entry),
         'palette': {p.key[len('color.'):]: resolved[p.key]
                     for p in THEME_SHARED_PROPS if p.key.startswith('color.')},
@@ -24061,9 +24806,8 @@ _ARTICLE_LEVEL_NAMES = frozenset(
 # mistake. Read by audit_meta_keys(), which is defined earlier in the file
 # and resolves this at call time.
 ARTICLE_META_KEYS = (frozenset(_ARTICLE_LEVEL_NAMES)
-                      | {'comment', 'presentation_template',
-                         'presentation_preset', 'slide_layouts',
-                         'slide_chrome'})
+                      | {'comment', 'presentation_preset', 'slide_layouts',
+                          'slide_chrome'})
 
 
 def _chain_link(level, value, note=None):
@@ -25168,7 +25912,7 @@ def print_help():
     help_text = f'''LightWebPres v{VERSION} — framework for generating self-contained web pages.
 
 COMMANDS
-  lightwebpres init [directory] [--lang fr] [--force] [--theme name] [--preset id@version/preset] [--no-starter] [--gitlab-ci]
+  lightwebpres init [directory] [--lang fr] [--force] [--theme name] [--preset id@version/preset|commons/id|builtin/standard] [--no-starter] [--gitlab-ci]
     Creates the directory structure
   lightwebpres demo [directory] [--lang fr] [--output public/]
     Creates a demo site (or journals its files and build plan with --dry-run)
@@ -25230,14 +25974,18 @@ COMMANDS
   lightwebpres series theme set [directory] --theme name
     Changes an existing series' theme (see §11.10)
   lightwebpres preset list [--format text|json]
-    Lists complete presentation choices: package structure, typed theme,
+    Lists complete presentation choices: Identity Kit structure, typed theme,
     chrome and optional creation starter
-  lightwebpres preset show <id@version/preset|default> [--format text|json]
+  lightwebpres preset show <id@version/preset|commons/id|builtin/standard> [--format text|json]
     Describes one presentation preset without changing a series
   lightwebpres series preset [directory] [--format text|json]
     Shows the series-wide presentation preset a build resolves
-  lightwebpres series preset set [directory] --preset id@version/preset|default [--keep-theme|--use-preset-theme]
+  lightwebpres series preset set [directory] --preset id@version/preset|commons/id|builtin/standard [--keep-theme|--use-preset-theme]
     Vendors and selects a preset without applying its starter
+  lightwebpres kit compose <recipe.json> --output <directory>
+    Creates directory/id/version as a complete independent Identity Kit.
+    The recipe explicitly names source kits, a full target manifest, and files;
+    no merging or inferred dependency selection. Existing output is refused.
   lightwebpres theme gallery [path] [--all] [--output path]
     Generates a self-contained HTML page documenting every catalogue
     color theme — one row per theme, four panels across: cover, card
@@ -25285,13 +26033,15 @@ OPTIONS
   --timestamp
     Global: prefix each log line with an RFC 3339 timestamp
   --dry-run
-    Global: journal writes and planned build steps without touching the disk
+    Global: journal writes and planned build steps without changing inputs or
+    outputs. kit compose validates disposable files in the system temp area.
   --version
     Print the version and exit. Head of the line only: it replaces the
     command rather than modifying one, so it is refused after a command
   --output public/
     demo/build/verify/watch/clean: output directory (default: public/).
     theme create: destination .conf file (default: the user catalogue).
+    kit compose: required catalogue directory; writes id/version below it.
     A relative path is resolved against the directory you run from,
     not against [directory]. For theme gallery: the output file path.
   --force
@@ -25319,7 +26069,8 @@ OPTIONS
     build/verify/watch: include comma-separated presentation selectors in the
     runtime Appearance picker. The series-wide primary preset is always first;
     without this option, build uses the root series.json "presentation_presets"
-    list when present.
+    list when present. Native Standard (builtin/standard) is appended when
+    compatible; an incompatible implicit alternative is omitted with a warning.
   --no-essential-theme
     build/verify/watch: do not embed the essential bundle by default.
     Every build otherwise ships Monochrome, Monochrome Night and Print Ink
@@ -25344,11 +26095,12 @@ OPTIONS
     series tags: restrict the inventory to one canonical tag
   --gitlab-ci
     init: also write a .gitlab-ci.yml pipeline (opt-in)
-  --preset id@version/preset|default
+  --preset id@version/preset|commons/id|builtin/standard
     init: vendor and select one coherent presentation preset, then apply its
     declared starter unless --no-starter. series preset set: change an
-    existing series without applying a starter. `default` selects the
-    built-in historical rendering and is persisted by omitting the field.
+    existing series without applying a starter. `builtin/standard` selects
+    native Standard with the Light theme; `commons/id` selects a shared preset.
+    Omitting the series preset also resolves to builtin/standard.
   --no-starter
     init --preset: skip that preset's optional starter
   --language-file path
@@ -25450,6 +26202,36 @@ THEMES ({theme_count} embedded entries before external layers, see specification
   complete settings scaffold while preserving pins, and `theme vendor` copies
   selected complete snapshots into a series.
 
+IDENTITY KITS
+  Complete kits use schema lightwebpres.identity-kit/1 and live at
+  kits/<id>/<version>, or templates/kits/<id>/<version> in a series.
+  FHS installations use <prefix>/share/lightwebpres/kits/<id>/<version>.
+  LWP_IDENTITY_KITS_DIR selects the user kit catalogue.
+  Each manifest requires a non-empty identity label. Resource collection and
+  scope come from the loader, not from theme source metadata. Kits use their
+  own resources or native builtin:standard fragments and builtin:light theme.
+  kit compose reads schema lightwebpres.kit-composition/1 with four keys:
+  schema, sources (alias -> recipe-relative kit root), manifest (the complete
+  target kit manifest), and files (destination path -> descriptor).
+  A descriptor is {{"source":"alias","path":"kit-relative-file"}},
+  {{"file":"recipe-relative-file"}}, or {{"text":"UTF-8 content"}}.
+  A .css destination may instead use {{"parts":[descriptors]}} to concatenate
+  text with newline separators. Copied source CSS rebinds only its exact
+  validated kit scope. All recipe paths are contained, canonical relative
+  paths; selected source files must be declared kit dependencies. Author the
+  final local names, chrome references and presets explicitly. No recipe,
+  source catalogue, lineage or origin metadata is added to the result.
+
+COMMONS PRESETS
+  commons/<id> selects a shared preset under the native LightWebPres identity.
+  A descriptor uses schema lightwebpres.commons-preset/1 with id, label,
+  description and theme (a global Commons theme slug or builtin:light).
+  Layouts are native Standard, chrome is empty, and no starter is supported.
+  Installed descriptors live at commons/presets/<id>.json beside the executable
+  or <prefix>/share/lightwebpres/commons/presets/<id>.json.
+  LWP_COMMONS_DIR selects the user Commons root; a series adds
+  templates/commons/presets/<id>.json. Precedence is installed, user, series.
+
 SETTINGS (templates/settings.conf, see specifications.md §9)
   Every visual decision is a typed property, `component.axis: value`, and
   settings.conf lists ALL of them, commented out at the current theme's
@@ -25492,9 +26274,11 @@ ENVIRONMENT VARIABLES
   LWP_LANGUAGE_DIR    Legacy unified packs (default: $LWP_SERIES_DIR/language)
   LWP_THEMES_DIR      User theme catalogue override (otherwise the platform
                        data directory is used)
-  LWP_PRESENTATION_PACKAGES_DIR
-                      User presentation-package catalogue override (otherwise
-                       the platform data directory is used)
+  LWP_IDENTITY_KITS_DIR
+                      User identity kit catalogue override (default:
+                       <platform-data>/lightwebpres/kits)
+  LWP_COMMONS_DIR     User Commons root override (default:
+                       <platform-data>/lightwebpres/commons; presets in presets/)
 
 SERIES DIRECTORY
   Written by `init`:
@@ -25505,8 +26289,10 @@ SERIES DIRECTORY
   templates/            settings.conf (your pinned values) and custom.css
                           (your rules) — those two are yours, and nothing but
                           you ever writes them
-                        layouts/<id>/<version>/ is an optional vendored
-                          presentation package: structure, chrome and assets
+                        kits/<id>/<version>/ is an optional vendored identity
+                          kit: layouts, themes, chrome, assets and presets
+                        commons/presets/<id>.json holds optional shared presets;
+                          vendored Commons themes live in themes/<slug>.conf
   interface/            Created empty. Interface strings live in this
                          executable; `template write interface/fr.json .`
                          puts a split copy here to start from
@@ -25681,6 +26467,7 @@ _COMMAND_OPTIONS = {
     'theme-path': set(),
     'preset-list': {'--format'},
     'preset-show': {'--format'},
+    'kit-compose': {'--output'},
     'series-preset': {'--format'},
     'set-preset': {'--preset', '--keep-theme', '--use-preset-theme'},
     # --output because cmd_clean has always read it: a site built with
@@ -25795,6 +26582,7 @@ _THEME_VERBS = {
     'vendor': 'theme-vendor', 'path': 'theme-path',
 }
 _PRESET_VERBS = {'list': 'preset-list', 'show': 'preset-show'}
+_KIT_VERBS = {'compose': 'kit-compose'}
 # `template` is the node for the files the EXECUTABLE owns, which is why
 # `show` and `write` live here rather than under `series`: neither needs a
 # series to answer (show needs none at all), and what they hand over comes
@@ -25822,6 +26610,8 @@ for _verb, _key in _THEME_VERBS.items():
     _CANONICAL_NAME[_key] = f'theme {_verb}'
 for _verb, _key in _PRESET_VERBS.items():
     _CANONICAL_NAME[_key] = f'preset {_verb}'
+for _verb, _key in _KIT_VERBS.items():
+    _CANONICAL_NAME[_key] = f'kit {_verb}'
 _CANONICAL_NAME.update({
     'set-theme': 'series theme set',
     'series-slug': 'series slug',
@@ -25874,6 +26664,7 @@ _MAX_POSITIONAL = {
     'theme-create': 1, 'theme-migrate': 1, 'theme-vendor': 1,
     'theme-path': 0,
     'preset-list': 0, 'preset-show': 1, 'series-preset': 1,
+    'kit-compose': 1,
     'set-preset': 1,
 }
 
@@ -25887,6 +26678,7 @@ _POSITIONAL_SHAPE = {
     'template-write': ' <nav.js|fr.json|en.json> [directory]',
     'theme-create': ' <slug>',
     'preset-show': ' <id@version/preset>',
+    'kit-compose': ' <recipe.json>',
 }
 
 
@@ -26038,6 +26830,15 @@ def _resolve_command(args):
             return _PRESET_VERBS[verb], args[2:]
         log('error', f"Unknown preset verb: `preset {verb}`. "
             f"Run `lightwebpres --help` for the command list.")
+        sys.exit(1)
+
+    if head == 'kit':
+        if len(args) >= 2 and args[1] in ('--help', '-h'):
+            _node_help('kit', _KIT_VERBS)
+            sys.exit(0)
+        if len(args) >= 2 and args[1] in _KIT_VERBS:
+            return _KIT_VERBS[args[1]], args[2:]
+        log('error', 'Use `lightwebpres kit compose <recipe.json> --output <directory>`.')
         sys.exit(1)
 
     # `template --help` describes the node, just like `series --help` and
@@ -26413,6 +27214,11 @@ def main():
         cmd_theme_path(opts)
     elif command == 'preset-list':
         cmd_preset_list(opts)
+    elif command == 'kit-compose':
+        if not positional:
+            log('error', 'kit compose: name a recipe.json file.')
+            sys.exit(1)
+        cmd_kit_compose(positional[0], opts)
     elif command == 'preset-show':
         if not positional:
             log('error', 'preset show: name a preset as id@version/preset.')

@@ -167,7 +167,7 @@ gets its own entry and its own state**, however small.
 - **B55** — Les symlinks composent ; le traversal reste refusé
 - **B56** — Images dimensionnables et zoom de présentation
 - **B57** — Une fiche adjacente partielle doit être alignée avant la suivante
-- **B58** — Les préréglages de présentation restent des enveloppes confinées
+- **B58** — Les kits d'identité sont autonomes et leurs layouts restent confinés
 - **B59** — La dernière cible de navigation reste visible
 - **B60** — Le zoom de présentation ne grandit pas le cadre des fiches
 - **B61** — Le redimensionnement repositionne la fiche courante
@@ -2717,26 +2717,40 @@ les limites d'un incrément vers le haut et les trois entrées de progression
 vers une fiche partiellement visible. La batterie complète est verte : 1159
 tests dans 204 classes.
 
-## B58 — Les préréglages de présentation restent des enveloppes confinées
+## B58 — Les kits d'identité sont autonomes et leurs layouts restent confinés
 
 **État :** terminé · **Depuis :** 2026-09-03
 **Voir :** specifications.md §9.9, §13.7, §20.5.3 et §11.18 ; `lightwebpres` ;
-`tests/test_lightwebpres.py` (`PresentationPackages`)
+`tests/test_lightwebpres.py`, `tests/test_identity_kits.py`, `tests/test_kit_compose.py`
 
-Un paquet de présentation versionné possède la structure, les layouts, le
+Un kit d'identité versionné possède la structure, les layouts, le
 chrome, les assets et le CSS structurel contraint de ses fiches, mais il ne peut
 pas devenir un second moteur de page. LWP conserve le shell HTML, la navigation,
 le JavaScript et la `<section>` de chaque fiche; les fragments ne reçoivent que
 le contenu et les slots de chrome nécessaires.
 
-Un préréglage est la seule sélection auteur :
-`series_meta.presentation_preset`, de forme exacte
-`id@MAJOR.MINOR.PATCH/preset`. Il vaut pour toute la série et son index, sans
-sélecteur par article ni meta. Le rendu intégré virtuel `default` s'exprime par
-l'omission du champ; le sélecteur CLI littéral `default` fait cette omission.
-Les anciens champs auteur `presentation_template`, `slide_layouts` et
-`slide_chrome` sont rejetés, non ignorés. Les deux derniers restent toutefois
-des clés internes de manifeste, pour les défauts du préréglage.
+Un préréglage est la seule sélection initiale persistée :
+`series_meta.presentation_preset`, sous la forme `builtin/standard`,
+`commons/id` ou `id@MAJOR.MINOR.PATCH/preset`. Il vaut pour toute la série et
+son index, sans sélection par article ni meta. L'identité est déduite de cette
+référence. L'omission sélectionne implicitement `builtin/standard`. `init --preset`
+et `series preset set` persistent le choix explicite, y compris `builtin/standard` ;
+`init` sans preset laisse le champ absent. `slide_layouts` et `slide_chrome` déclarent les défauts
+du préréglage dans le manifeste du kit uniquement.
+
+Le schéma `lightwebpres.identity-kit/1` exige `label`, `id` et `version`.
+`default_preset` nomme un preset local ; absent, le premier dans l'ordre du
+manifeste est choisi. Le label d'identité reste fixe : le défaut est une
+sélection, pas une identité. Les références sont locales ou natives
+(`builtin:standard` pour les layouts, `builtin:light` pour les thèmes).
+Un layout natif conserve le chrome du kit. `builtin` et `commons` sont réservés.
+
+Commons contient le catalogue global de thèmes (`themes/`, `LWP_THEMES_DIR`)
+et des presets à layouts natifs (`commons/presets/`, `LWP_COMMONS_DIR`,
+`templates/commons/presets/`). Le schéma `lightwebpres.commons-preset/1`
+contient exactement `schema`, `id`, `label`, `description`, `theme`, sans starter.
+Le thème est un slug global ou `builtin:light`. Les chargeurs calculent les
+origines ; aucun manifeste ne déclare provenance, filiation ou authenticité.
 
 Les champs Markdown `slide-layout`, `slide-header` et `slide-footer` restent
 des overrides par fiche des défauts possédés par ce préréglage, et non une
@@ -2749,20 +2763,32 @@ Le manifeste, les chemins et l'arbre de liens symboliques sont validés avant le
 rendu. Les fragments ne peuvent pas prendre le contrôle du shell ni charger un
 script; les assets déclarés sont les seules ressources que le chrome peut
 publier ou inline. `init --preset` valide et vendorise sous
-`templates/layouts/<id>/<version>/`, écrit le sélecteur et applique le starter
+`templates/kits/<id>/<version>/`, écrit le sélecteur et applique le starter
 déclaré sauf `--no-starter`. `series preset set` vendorise et sélectionne sans
 starter, en préservant pins et `custom.css`; un `theme:` explicite exige
-`--keep-theme` ou `--use-preset-theme`, qui retire cette ligne.
+`--keep-theme` ou `--use-preset-theme`, qui retire cette ligne. Pour Commons,
+ces commandes vendorisent le descripteur et son thème externe sélectionné ;
+un thème natif ou intégré ne demande aucune copie. Le choix natif ne vendorise rien.
 
-Le namespace reste `layouts/<id>/<version>/` dans un catalogue et
-`templates/layouts/<id>/<version>/` une fois vendorisé; une collision
-id/version remplace toujours le paquet entier.
+Les kits vivent sous `kits/<id>/<version>/` et `templates/kits/<id>/<version>/`,
+avec `LWP_IDENTITY_KITS_DIR` pour la racine utilisateur. Une collision remplace
+le kit entier. Il n'existe ni extension ni dépendance entre kits.
+`kit compose recipe.json --output directory` produit un kit autonome dans
+`directory/id/version/`, à partir des quatre clés strictes `schema`, `sources`,
+`manifest`, `files` de `lightwebpres.kit-composition/1`. Le manifeste final
+nomme toutes ses références locales ; aucun renommage ni fermeture de dépendances
+n'est déduit. Les fichiers sont copiés explicitement, les parties CSS assemblées
+et les tokens de classe du scope structurel source reliés au scope cible dans
+les sélecteurs, sans modifier les textes littéraux. Le rôle `structure_css`
+du manifeste identifie ce fichier, indépendamment de son suffixe ; `parts`
+exige en revanche des fichiers et une destination `.css`. La publication est
+préparée hors du catalogue de sortie, sur le même système de fichiers, sans
+écrasement ; un catalogue à la racine d'un montage exige un sous-répertoire.
+`--dry-run` valide en stockage temporaire jetable sans créer de sortie.
 
-**Ce qui est vérifié.** Les tests couvrent le sélecteur de série, le défaut
-virtuel, le rejet des anciens champs auteur, les fragments, le chrome, le thème,
-les assets inlinés ou publiés, l'index, le vendor, les starters et les décisions
-de thème. La documentation permanente décrit désormais la même frontière, les
-mêmes priorités et les mêmes commandes.
+**Gardes.** Sélecteurs, confinement des fragments et chemins, chrome natif dans
+un kit, thèmes, assets, index, vendor, starters, décisions de thème, schémas et
+composition autonome font partie du contrat à vérifier.
 
 ## B59 — La dernière cible de navigation reste visible
 
@@ -2861,28 +2887,34 @@ déterministes.
 
 **État :** terminé · **Depuis :** 2026-09-08
 **Voir :** specifications.md §9.3.8, §20.5.4 ; `lightwebpres` ;
-`tests/test_lightwebpres.py` (`PresentationPackages`) ;
+`tests/test_lightwebpres.py`, `tests/test_identity_kits.py` ;
 `tests/runtime_themes_e2e.cjs`
 
-Une série peut publier plusieurs presets de présentation versionnés dans une
+Une série peut publier plusieurs presets natifs, Commons ou de kit dans une
 même page. Le preset choisi par `series_meta.presentation_preset` reste le
 primaire, donc le HTML statique et le repli sans JavaScript ; la clé racine
 `presentation_presets` ou l'option `--presentation-presets` ajoute des
-alternatives ordonnées. Chaque article et l'index portent alors des fragments
-inertes pour les alternatives, et les assets de tous les paquets retenus sont
-comptabilisés dans le manifeste.
+alternatives ordonnées. Avec un primaire de kit ou Commons, le preset natif `builtin/standard`
+est aussi ajouté quand les métadonnées des fiches sont compatibles ; un ajout
+implicite qui rencontrerait un layout ou un chrome réservé à un kit est
+retiré avec avertissement, tandis qu'une demande explicite conserve l'erreur.
+Chaque article et l'index portent alors des fragments inertes pour les
+alternatives, et les assets de tous les kits retenus sont comptabilisés dans
+le manifeste.
 
 Le choix du lecteur est une décision de lecture, pas une écriture auteur : **C**
-ouvre l'axe de présentation du dialogue d'apparence, le choix est partagé par
+ouvre les contrôles Identity, Preset et Theme du dialogue d'apparence, le choix est partagé par
 les pages du même deck dans la session du navigateur, et il n'est jamais écrit
 dans `series.json`. L'axe des thèmes reste indépendant ; sans `theme:` explicite,
-le thème typé suit le preset, et avec une telle ligne il reste fixe.
+le thème typé suit le preset, et avec une telle ligne il reste fixe. Un thème
+runtime explicite persiste jusqu'à **Follow preset**. Tous les thèmes de chaque
+kit sélectionné sont publiés avec qualification du kit, sans produit cartésien.
+Applicable / Current identity / All filtrent les choix publiés par compatibilité
+typée ou appartenance, jamais par approbation de marque. Le label d'identité
+reste fixe ; le marqueur initial décrit une sélection.
 
-**Ce qui est vérifié.** Les tests unitaires couvrent l'ordre primaire, la
-déduplication, `default`, les erreurs avant écriture, la validation de chaque
-preset, les fragments d'index, les assets publiés ou inlinés et le drift du
-paquet alternatif. Le probe Chromium couvre l'ouverture du sélecteur, le
-changement de deck, la navigation, les thèmes explicites et par défaut, la
-locale du navigateur après remplacement de fragment, ainsi que la persistance
-de session isolée par deck ; les artefacts générés sont régénérés et la batterie
-complète est verte : 1188 tests dans 206 classes.
+**Gardes.** Ordre primaire, déduplication, `builtin/standard`, validation avant
+écriture, omission sûre d'un candidat natif implicite incompatible, fragments
+d'index, aperçus, labels, assets et fraîcheur des alternatives. Le navigateur
+doit conserver la locale et isoler la persistance par deck, avec navigation,
+changement de preset, thème explicite et retour au thème du preset.

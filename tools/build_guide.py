@@ -31,7 +31,7 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-PRESENTATION_PACKAGE_CATALOG = ROOT / 'examples' / 'layouts'
+IDENTITY_KIT_CATALOG = ROOT / 'examples' / 'kits'
 PRESENTATION_PRESET = 'lightwebpres-docs@0.1.0/docs'
 SERIES = {
     'series_meta': {
@@ -59,7 +59,7 @@ def build(output, theme=None, lang='en'):
             sys.exit(f'missing: {f}')
     package_selector, _preset_id = PRESENTATION_PRESET.rsplit('/', 1)
     package_id, package_version = package_selector.split('@', 1)
-    package_manifest = (PRESENTATION_PACKAGE_CATALOG / package_id / package_version
+    package_manifest = (IDENTITY_KIT_CATALOG / package_id / package_version
                         / 'manifest.json')
     if not package_manifest.exists():
         sys.exit(f'missing: {package_manifest}')
@@ -78,7 +78,7 @@ def build(output, theme=None, lang='en'):
         if theme:
             cmd += ['--theme', theme]
         init_env = os.environ.copy()
-        init_env['LWP_PRESENTATION_PACKAGES_DIR'] = str(PRESENTATION_PACKAGE_CATALOG)
+        init_env['LWP_IDENTITY_KITS_DIR'] = str(IDENTITY_KIT_CATALOG)
         subprocess.run(cmd, check=True, capture_output=True, env=init_env)
 
         sources = series / 'sources'
@@ -118,10 +118,10 @@ def build(output, theme=None, lang='en'):
             json.dumps(SERIES, indent=2, ensure_ascii=False), encoding='utf-8')
 
         # The build must resolve the copy vendored by init, not the source
-        # catalogue. This keeps the generated guide a portable-package test.
+        # catalogue. This keeps the generated guide a portable-kit test.
         build_env = os.environ.copy()
-        build_env['LWP_PRESENTATION_PACKAGES_DIR'] = str(
-            pathlib.Path(tmp) / 'no-external-packages')
+        build_env['LWP_IDENTITY_KITS_DIR'] = str(
+            pathlib.Path(tmp) / 'no-external-kits')
         subprocess.run([sys.executable, str(exe), 'build', str(series),
                         '--lang', lang, '--output', str(series / 'public')],
                        check=True, capture_output=True, env=build_env)

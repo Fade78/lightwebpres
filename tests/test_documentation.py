@@ -75,6 +75,123 @@ class TheDocumentationDeliversItsExamples(unittest.TestCase):
                 self.assertIn(demo.get('page_dest', demo['page_source'][:-3] + '.html'),
                               article)
 
+    def test_native_selection_is_implicit_only_when_not_written(self):
+        env = {k: v for k, v in os.environ.items() if not k.startswith('LWP_')}
+        with tempfile.TemporaryDirectory() as tmp:
+            env.update(XDG_DATA_HOME=tmp, APPDATA=tmp)
+
+            def run(*args):
+                result = subprocess.run(
+                    [sys.executable, str(ROOT / 'lightwebpres'), *map(str, args)],
+                    cwd=tmp, env=env, text=True, capture_output=True, timeout=60)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                return result.stdout
+
+            for explicit in (False, True):
+                with self.subTest(explicit=explicit):
+                    series = Path(tmp) / ('explicit' if explicit else 'implicit')
+                    run('init', series, *(['--preset', 'builtin/standard'] if explicit else []))
+                    meta = json.loads((series / 'series.json').read_text())['series_meta']
+                    if explicit:
+                        self.assertEqual(meta['presentation_preset'], 'builtin/standard')
+                    else:
+                        self.assertNotIn('presentation_preset', meta)
+                    report = json.loads(run('series', 'preset', series, '--format', 'json'))
+                    self.assertEqual(report['schema'], 'lightwebpres.series-preset/1')
+                    self.assertEqual(report['preset']['selector'], 'builtin/standard')
+                    self.assertEqual(report['preset']['theme']['id'], 'light')
+                    self.assertEqual(report['preset']['theme']['label'], 'Light')
+                    theme = json.loads(run('series', 'theme', series, '--format', 'json'))
+                    self.assertEqual(theme['schema'], 'lightwebpres.theme-info/5')
+                    self.assertIsNone(theme['target']['theme'])
+                    self.assertEqual(theme['target']['presentation_preset'], 'builtin/standard')
+                    self.assertEqual((theme['label'], theme['source']), ('Light', 'builtin'))
+                    run('series', 'preset', 'set', series, '--preset', 'builtin/standard')
+                    meta = json.loads((series / 'series.json').read_text())['series_meta']
+                    self.assertEqual(meta['presentation_preset'], 'builtin/standard')
+                    for resource in ('kits', 'commons', 'themes'):
+                        self.assertFalse((series / 'templates' / resource).exists())
+
+    def test_documented_composition_and_commons_json_build(self):
+        for document in ('GUIDE.md', 'specifications.md'):
+            with self.subTest(document=document), tempfile.TemporaryDirectory() as tmp:
+                blocks = re.findall(r'```json\n(.*?)\n```',
+                                    (ROOT / document).read_text(encoding='utf-8'), re.S)
+                examples = {}
+                for schema in ('lightwebpres.kit-composition/1',
+                               'lightwebpres.commons-preset/1'):
+                    matches = [json.loads(block) for block in blocks
+                               if re.search(r'"schema"\s*:\s*"' + re.escape(schema) + '"', block)]
+                    self.assertEqual(len(matches), 1, f'{document}: expected one {schema} example')
+                    examples[schema] = matches[0]
+                recipe = examples['lightwebpres.kit-composition/1']
+                commons = examples['lightwebpres.commons-preset/1']
+                root = Path(tmp)
+                env = {k: v for k, v in os.environ.items() if not k.startswith('LWP_')}
+                env.update(XDG_DATA_HOME=tmp, APPDATA=tmp,
+                           LWP_IDENTITY_KITS_DIR=str(root / 'kits'),
+                           LWP_COMMONS_DIR=str(root / 'commons'))
+
+                def run(*args):
+                    result = subprocess.run(
+                        [sys.executable, str(ROOT / 'lightwebpres'), *map(str, args)],
+                        cwd=tmp, env=env, text=True, capture_output=True, timeout=60)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    return result.stdout
+
+                def add_article(target):
+                    config_path = target / 'series.json'
+                    config = json.loads(config_path.read_text())
+                    config['articles'] = [{'page_source': 'first-page.md'}]
+                    config_path.write_text(json.dumps(config), encoding='utf-8')
+                    source = ROOT / 'examples/first-article/sources/first-page.md'
+                    (target / 'sources/first-page.md').write_text(
+                        source.read_text(encoding='utf-8'), encoding='utf-8')
+
+                recipe_path = root / 'recipe.json'
+                recipe_path.write_text(json.dumps(recipe), encoding='utf-8')
+                run('kit', 'compose', recipe_path, '--output', 'kits', '--dry-run')
+                self.assertFalse((root / 'kits').exists())
+                run('kit', 'compose', recipe_path, '--output', 'kits')
+                manifest = recipe['manifest']
+                kit = root / 'kits' / manifest['id'] / manifest['version']
+                self.assertEqual(json.loads((kit / 'manifest.json').read_text()), manifest)
+                selector = f"{manifest['id']}@{manifest['version']}/{manifest['default_preset']}"
+                report = json.loads(run('preset', 'show', selector, '--format', 'json'))
+                self.assertEqual(report['selector'], selector)
+                series = root / 'my-brief'
+                run('init', series, '--preset', selector)
+                add_article(series)
+                run('build', series, '--lang', 'en')
+                run('verify', series, '--lang', 'en')
+                self.assertIn('class="lwp-presentation--brief"',
+                              (series / 'public/first-page.html').read_text())
+
+                descriptor = root / 'commons' / 'presets' / f"{commons['id']}.json"
+                descriptor.parent.mkdir(parents=True)
+                descriptor.write_text(json.dumps(commons), encoding='utf-8')
+                commons_selector = f"commons/{commons['id']}"
+                commons_series = root / 'my-commons'
+                run('init', commons_series, '--preset', commons_selector)
+                run('series', 'preset', 'set', series, '--preset', commons_selector)
+                for target in (commons_series, series):
+                    vendored = target / 'templates/commons/presets' / descriptor.name
+                    self.assertEqual(json.loads(vendored.read_text()), commons)
+                    self.assertFalse((target / 'templates/themes').exists())
+                self.assertFalse((commons_series / 'templates/kits').exists())
+
+                env['LWP_COMMONS_DIR'] = str(root / 'empty-commons')
+                env['LWP_IDENTITY_KITS_DIR'] = str(root / 'empty-kits')
+                add_article(commons_series)
+                run('build', commons_series, '--lang', 'en')
+                run('build', series, '--lang', 'en')
+                for target in (commons_series, series):
+                    report = json.loads(run('series', 'preset', target, '--format', 'json'))
+                    self.assertEqual(report['preset']['selector'], commons_selector)
+                    self.assertEqual(report['preset']['resource_collection'], 'commons')
+                    self.assertIsNone(report['preset']['starter'])
+                    run('verify', target, '--lang', 'en')
+
     def test_product_capture_inputs_and_images_have_not_changed(self):
         manifest = json.loads((ROOT / 'generated/product-captures.json').read_text())
         expected_inputs = {
