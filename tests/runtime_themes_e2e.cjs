@@ -9,7 +9,7 @@ function fail(message) {
 }
 
 async function main() {
-  const [base, staticBase, zeroDurationBase] = process.argv.slice(2);
+  const [base, staticBase, zeroDurationBase, presentationBase] = process.argv.slice(2);
   const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
   const browser = await chromium.launch(executablePath ? { executablePath } : {});
   const context = await browser.newContext({
@@ -683,6 +683,187 @@ async function main() {
       + JSON.stringify(helpFromMenu));
   }
   await page.keyboard.press('x');
+
+  if (presentationBase) {
+    const presentationContext = await browser.newContext({
+      locale: 'fr-FR',
+      viewport: { width: 1280, height: 800 },
+    });
+    const presentationPage = await presentationContext.newPage();
+    const presentationErrors = [];
+    presentationPage.on('pageerror', (error) => presentationErrors.push(String(error)));
+    await presentationPage.goto(presentationBase + '/index.html', { waitUntil: 'load' });
+
+    const presentationInitial = await presentationPage.evaluate(() => {
+      const data = JSON.parse(document.getElementById('lwp-presentation-data').textContent);
+      return {
+        primary: data.primary,
+        selectors: data.presets.map((preset) => preset.selector),
+        indexShell: !!document.querySelector('#lwp-presentation-index .lwp-doc-index-frame'),
+        appearance: document.querySelector('[data-menu-action="theme"] .presenter-menu-label').textContent,
+      };
+    });
+    if (presentationInitial.primary !== 'lightwebpres-docs@0.1.0/docs'
+        || presentationInitial.selectors.join('|')
+          !== 'lightwebpres-docs@0.1.0/docs|lightwebpres-docs@0.1.0/compact'
+        || !presentationInitial.indexShell
+        || presentationInitial.appearance !== 'Changer d’apparence') {
+      fail('runtime presentation catalogue or appearance label is wrong: '
+        + JSON.stringify(presentationInitial));
+    }
+
+    await presentationPage.keyboard.press('c');
+    const presentationPicker = await presentationPage.evaluate(() => ({
+      open: document.getElementById('themeMenu').classList.contains('open'),
+      title: document.getElementById('themeMenuTitle').textContent,
+      presentationTitle: document.getElementById('presentationAxisTitle').textContent,
+      themeTitle: document.getElementById('themeAxisTitle').textContent,
+      options: document.querySelectorAll('#presentationOptions .presentation-option').length,
+      active: document.querySelector('#presentationOptions .presentation-option.active')
+        .getAttribute('data-presentation'),
+    }));
+    if (!presentationPicker.open
+        || presentationPicker.title !== 'Choisir une apparence'
+        || presentationPicker.presentationTitle !== 'Présentation'
+        || presentationPicker.themeTitle !== 'Thème'
+        || presentationPicker.options !== 2
+        || presentationPicker.active !== 'lightwebpres-docs@0.1.0/docs') {
+      fail('C did not expose the presentation and theme axes: '
+        + JSON.stringify(presentationPicker));
+    }
+
+    await presentationPage.locator('#presentationOptions .presentation-option').nth(1).click();
+    const articleHref = await presentationPage.locator('a.article-card').first().getAttribute('href');
+    await presentationPage.goto(new URL(articleHref, presentationBase + '/index.html').href,
+      { waitUntil: 'load' });
+    const compactArticle = await presentationPage.evaluate(() => ({
+      hero: !!document.querySelector('.lwp-doc-cover-hero'),
+      footer: document.querySelector('section.slide').textContent
+        .includes('LIGHTWEBPRES / OFFICIAL DOCUMENTATION'),
+      ink: getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-ink').trim(),
+      slideCount: document.querySelectorAll('section.slide').length,
+    }));
+    if (!compactArticle.hero || compactArticle.footer || compactArticle.slideCount < 2) {
+      fail('the selected presentation did not replace the article layer: '
+        + JSON.stringify(compactArticle));
+    }
+
+    await presentationPage.locator('#navNext').click();
+    const beforeSwitch = await presentationPage.evaluate(() => ({
+      hash: window.location.hash,
+      activeDot: document.querySelector('.nav-dots a.active')
+        ? document.querySelector('.nav-dots a.active').getAttribute('href') : '',
+    }));
+    await presentationPage.keyboard.press('c');
+    await presentationPage.locator('#themeOptions .theme-option[data-theme="print-ink"]').click();
+    const explicitTheme = await presentationPage.evaluate(() => ({
+      ink: getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-ink').trim(),
+    }));
+    await presentationPage.keyboard.press('c');
+    await presentationPage.locator('#presentationOptions .presentation-option').first().click();
+    const afterSwitch = await presentationPage.evaluate(() => ({
+      hash: window.location.hash,
+      activeDot: document.querySelector('.nav-dots a.active')
+        ? document.querySelector('.nav-dots a.active').getAttribute('href') : '',
+      hero: !!document.querySelector('.lwp-doc-cover-hero'),
+      footer: document.querySelector('section.slide').textContent
+        .includes('LIGHTWEBPRES / OFFICIAL DOCUMENTATION'),
+      ink: getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-ink').trim(),
+    }));
+    if (afterSwitch.hash !== beforeSwitch.hash
+        || afterSwitch.activeDot !== beforeSwitch.activeDot
+        || afterSwitch.hero || !afterSwitch.footer
+        || afterSwitch.ink !== explicitTheme.ink) {
+      fail('switching presentation did not preserve the slide or restore the primary layer: '
+        + JSON.stringify({ beforeSwitch, afterSwitch, explicitTheme }));
+    }
+
+    await presentationPage.keyboard.press('c');
+    await presentationPage.locator('#themeOptions .theme-option[data-theme-mode="preset-default"]').click();
+    const primaryDefault = await presentationPage.evaluate(() => ({
+      ink: getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-ink').trim(),
+      hero: !!document.querySelector('.lwp-doc-cover-hero'),
+    }));
+    await presentationPage.keyboard.press('c');
+    await presentationPage.locator('#presentationOptions .presentation-option').nth(1).click();
+    const compactDefault = await presentationPage.evaluate(() => ({
+      ink: getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-ink').trim(),
+      hero: !!document.querySelector('.lwp-doc-cover-hero'),
+    }));
+    if (primaryDefault.hero || !compactDefault.hero
+        || primaryDefault.ink === compactDefault.ink) {
+      fail('Preset default did not follow each presentation base theme: '
+        + JSON.stringify({ primaryDefault, compactDefault, compactArticle }));
+    }
+
+    await presentationPage.goto(presentationBase + '/index.html', { waitUntil: 'load' });
+    await presentationPage.keyboard.press('c');
+    const rememberedPresentation = await presentationPage.evaluate(() => ({
+      active: document.querySelector('#presentationOptions .presentation-option.active')
+        .getAttribute('data-presentation'),
+    }));
+    if (rememberedPresentation.active !== 'lightwebpres-docs@0.1.0/compact') {
+      fail('the alternate presentation selection was not persisted across pages: '
+        + JSON.stringify(rememberedPresentation));
+    }
+    await presentationPage.keyboard.press('Escape');
+
+    await presentationPage.goto(presentationBase + '/other-deck/index.html',
+      { waitUntil: 'load' });
+    await presentationPage.keyboard.press('c');
+    const isolatedPresentation = await presentationPage.evaluate(() => ({
+      active: document.querySelector('#presentationOptions .presentation-option.active')
+        .getAttribute('data-presentation'),
+    }));
+    if (isolatedPresentation.active !== 'lightwebpres-docs@0.1.0/docs') {
+      fail('presentation selection leaked into a different deck on the same origin: '
+        + JSON.stringify(isolatedPresentation));
+    }
+    await presentationPage.keyboard.press('Escape');
+    await presentationPage.goto(presentationBase + '/index.html', { waitUntil: 'load' });
+    await presentationPage.keyboard.press('c');
+    const rememberedAfterIsolation = await presentationPage.evaluate(() => ({
+      active: document.querySelector('#presentationOptions .presentation-option.active')
+        .getAttribute('data-presentation'),
+    }));
+    if (rememberedAfterIsolation.active !== 'lightwebpres-docs@0.1.0/compact') {
+      fail('the original deck lost its persisted presentation after another deck opened: '
+        + JSON.stringify(rememberedAfterIsolation));
+    }
+    await presentationPage.keyboard.press('Escape');
+    await presentationContext.close();
+
+    const englishContext = await browser.newContext({
+      locale: 'en-US',
+      viewport: { width: 1280, height: 800 },
+    });
+    const englishPage = await englishContext.newPage();
+    await englishPage.goto(presentationBase + '/index.html', { waitUntil: 'load' });
+    const englishInitial = await englishPage.evaluate(() => ({
+      read: document.querySelector('.article-cta [data-lwp-i18n="series_read"]')
+        .textContent,
+    }));
+    await englishPage.keyboard.press('c');
+    await englishPage.locator('#presentationOptions .presentation-option').nth(1).click();
+    const englishAlternate = await englishPage.evaluate(() => ({
+      read: document.querySelector('.article-cta [data-lwp-i18n="series_read"]')
+        .textContent,
+    }));
+    if (englishInitial.read !== 'Read the article'
+        || englishAlternate.read !== 'Read the article') {
+      fail('runtime presentation fragments did not retain the browser locale: '
+        + JSON.stringify({ englishInitial, englishAlternate }));
+    }
+    await englishContext.close();
+    if (presentationErrors.length) {
+      fail('Presentation page errors: ' + presentationErrors.join(' | '));
+    }
+  }
 
   if (staticBase) {
     await page.goto(staticBase + '/index.html', { waitUntil: 'load' });

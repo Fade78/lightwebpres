@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.54.1"
+VERSION = "0.55.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1269,6 +1269,7 @@ LANG_FR = r'''{
     "menu_next": "Planche suivante",
     "menu_fullscreen": "Plein écran",
     "menu_theme": "Changer de thème",
+    "menu_appearance": "Changer d’apparence",
     "menu_presenter": "Notes présentateur",
     "menu_tags": "Filtrer par tag",
     "menu_scroll": "Défilement",
@@ -1278,6 +1279,11 @@ LANG_FR = r'''{
     "menu_pause_white": "Écran blanc",
     "menu_pause_theme": "Écran du thème",
     "theme_menu_title": "Choisir un thème",
+    "appearance_menu_title": "Choisir une apparence",
+    "appearance_menu_help": "Choisissez une présentation et un thème.",
+    "appearance_presentation": "Présentation",
+    "appearance_theme": "Thème",
+    "appearance_preset_default": "Par défaut de la présentation",
     "theme_menu_help": "Le thème principal est sélectionné par défaut.",
     "theme_menu_filter": "Rechercher un thème",
     "theme_menu_close": "Échap pour fermer · Entrée pour appliquer",
@@ -1296,6 +1302,7 @@ LANG_FR = r'''{
     "help_scroll": "Basculer entre défilement fluide et instantané (touche I)",
     "help_menu": "Menu du présentateur",
     "help_theme": "Changer de thème pendant la présentation (touche C)",
+    "help_appearance": "Changer d’apparence pendant la présentation (touche C)",
     "help_pause": "Écran de pause : noir (B), blanc (W), thème (T)",
     "help_speaker": "Panneau présentateur : notes + slide suivante",
     "help_share": "Partager le lien courant (touche S)",
@@ -1432,6 +1439,7 @@ LANG_EN = r'''{
     "menu_next": "Next slide",
     "menu_fullscreen": "Fullscreen",
     "menu_theme": "Change theme",
+    "menu_appearance": "Change appearance",
     "menu_presenter": "Presenter notes",
     "menu_tags": "Filter by tag",
     "menu_scroll": "Scroll",
@@ -1441,6 +1449,11 @@ LANG_EN = r'''{
     "menu_pause_white": "White screen",
     "menu_pause_theme": "Theme screen",
     "theme_menu_title": "Choose a theme",
+    "appearance_menu_title": "Choose an appearance",
+    "appearance_menu_help": "Choose a presentation and a theme.",
+    "appearance_presentation": "Presentation",
+    "appearance_theme": "Theme",
+    "appearance_preset_default": "Preset default",
     "theme_menu_help": "The primary theme is selected by default.",
     "theme_menu_filter": "Search themes",
     "theme_menu_close": "Escape to close · Enter to apply",
@@ -1459,6 +1472,7 @@ LANG_EN = r'''{
     "help_scroll": "Toggle smooth and instant scrolling (I key)",
     "help_menu": "Presenter menu",
     "help_theme": "Change theme during the presentation (C key)",
+    "help_appearance": "Change appearance during the presentation (C key)",
     "help_pause": "Pause screen: black (B), white (W), theme (T)",
     "help_speaker": "Speaker panel: notes + next slide",
     "help_share": "Share the current link (S key)",
@@ -5347,6 +5361,45 @@ def _requested_presentation_preset_or_die(selector, origin, templates_dir=None):
         sys.exit(1)
 
 
+def _presentation_runtime_parts(option, source):
+    """Normalize the runtime preset selectors from JSON or the CLI."""
+    if isinstance(option, str):
+        parts = option.split(',')
+    elif isinstance(option, list):
+        parts = []
+        for index, value in enumerate(option):
+            if not isinstance(value, str):
+                raise PropertyError(
+                    f'{source} item {index} must be a string')
+            parts.extend(value.split(','))
+    else:
+        raise PropertyError(
+            f'{source} must be a comma-separated string or a list of strings')
+    parts = [part.strip() for part in parts]
+    if not parts or any(not part for part in parts):
+        raise PropertyError(f'{source} contains an empty presentation preset selector')
+    return parts
+
+
+def _presentation_runtime_presets(catalog, primary, option, source):
+    """Return the primary preset followed by ordered runtime alternatives."""
+    selected = []
+    seen = set()
+
+    def add(preset):
+        selector = preset.selector or 'default'
+        if selector in seen:
+            return
+        seen.add(selector)
+        selected.append(preset)
+
+    add(primary)
+    if option is not None:
+        for selector in _presentation_runtime_parts(option, source):
+            add(_requested_presentation_preset(catalog, selector, source))
+    return selected
+
+
 def vendor_presentation_package(package, layouts_dir, force=False):
     """Copy one complete external package into a series-local catalogue."""
     if package.default or package.root is None:
@@ -6312,6 +6365,17 @@ def _theme_runtime_ids(option, primary, source='--themes', catalog=None):
     return ids
 
 
+def _theme_runtime_variables():
+    """Return the shared typed variable order used by runtime payloads."""
+    variables = [p.var for p in THEME_SHARED_PROPS]
+    keys = [p.key for p in THEME_SHARED_PROPS]
+    for component in THEME_COMPONENTS:
+        for prop in component.props:
+            variables.append(prop.var)
+            keys.append(prop.key)
+    return variables, keys
+
+
 def build_theme_runtime(option, primary, source='--themes', catalog=None,
                         settings_props=None, preset_props=None,
                         preset_label=None, preset_family=None,
@@ -6344,12 +6408,7 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
     custom_id = f'custom({base_id})' if settings_props else None
     if custom_id:
         ids.insert(0, custom_id)
-    variables = [p.var for p in THEME_SHARED_PROPS]
-    keys = [p.key for p in THEME_SHARED_PROPS]
-    for component in THEME_COMPONENTS:
-        for prop in component.props:
-            variables.append(prop.var)
-            keys.append(prop.key)
+    variables, keys = _theme_runtime_variables()
     def resolve_runtime_theme(theme_id, overrides=None):
         if theme_id == base_id and base_values is not None:
             return resolve_theme_properties(base_values, *( [overrides]
@@ -6453,6 +6512,123 @@ def _theme_runtime_markup(runtime, style_context=None, page_props=None):
     payload = payload.replace('<', '\\u003c')
     return ('<script id="lwp-theme-data" type="application/json">' +
             payload + '</script>\n')
+
+
+def _presentation_selector(preset):
+    return preset.selector or 'default'
+
+
+def _presentation_runtime_context(presets, style_context, catalog,
+                                  effective_theme):
+    """Build the page-independent runtime catalogue for presentation presets."""
+    if len(presets) < 2:
+        return None
+    variables, keys = _theme_runtime_variables()
+    layers = list(style_context[0]) if style_context is not None else []
+    primary_resolved = resolve_theme_properties(*layers)
+    settings_props = layers[-1] if layers else {}
+    pinned = set(settings_props)
+    if style_context is not None:
+        pinned.update(_THEME_RUNTIME_CUSTOM_VAR.findall(style_context[1]))
+    indices = {key: index for index, key in enumerate(keys)}
+    primary_has_structure = bool(presets[0].package.structure_css)
+
+    descriptors = []
+    for preset in presets:
+        if effective_theme:
+            resolved = primary_resolved
+        else:
+            preset_layers = ([] if preset.default else [preset.theme_props])
+            preset_layers.append(settings_props)
+            resolved = resolve_theme_properties(*preset_layers)
+        values = [[index, resolved[key]] for index, key in enumerate(keys)
+                  if resolved[key] != primary_resolved[key]]
+        structure_css = preset.package.structure_css
+        if not primary_has_structure:
+            structure_css = TEMPLATE_SKELETON
+            if preset.package.structure_css:
+                structure_css += '\n' + preset.package.structure_css
+        descriptors.append({
+            'selector': _presentation_selector(preset),
+            'label': preset.label,
+            'description': preset.description,
+            'family': preset.theme_meta.get('family', 'presentation'),
+            'structure_css': structure_css,
+            'theme_values': values,
+        })
+
+    digest_parts = []
+    for preset in presets:
+        digest_parts.extend((
+            ('selector', _presentation_selector(preset)),
+            ('package_digest', preset.package.digest),
+        ))
+    return {
+        'version': 1,
+        'primary': _presentation_selector(presets[0]),
+        'catalog_digest': _presentation_digest(digest_parts),
+        'vars': variables,
+        'pinned': sorted(indices[key] for key in pinned if key in indices),
+        'presets': descriptors,
+        'variants': {},
+    }
+
+
+def _presentation_runtime_markup(runtime, style_context=None, page_props=None):
+    """Serialize the pre-rendered presentation catalogue safely."""
+    if runtime is None:
+        return ''
+    data = dict(runtime)
+    pinned = set(data.get('pinned', ()))
+    if style_context is not None:
+        _layers, custom_css = style_context
+        _, keys = _theme_runtime_variables()
+        indices = {key: index for index, key in enumerate(keys)}
+        for var in _THEME_RUNTIME_CUSTOM_VAR.findall(custom_css):
+            key = VAR_TO_KEY.get(var)
+            if key in indices:
+                pinned.add(indices[key])
+        if page_props:
+            pinned.update(indices[key] for key in page_props if key in indices)
+    data['pinned'] = sorted(pinned)
+    payload = json.dumps(data, ensure_ascii=True, separators=(',', ':'))
+    payload = payload.replace('<', '\\u003c')
+    return ('<script id="lwp-presentation-data" type="application/json">' +
+            payload + '</script>\n')
+
+
+def _page_css_markup(css, style_context=None, page_props=None,
+                     presentation_preset=None, presentation_runtime=None):
+    """Emit either the historical sheet or toggleable runtime CSS layers."""
+    if presentation_runtime is None or style_context is None:
+        return '<style>\n' + css + '\n</style>'
+    before, structure, after = compose_with_parts(
+        style_context, page_props,
+        structure_css=(presentation_preset.package.structure_css
+                       if presentation_preset is not None else ''))
+    return (
+        '<style id="lwp-presentation-base">\n' + before +
+        '\n</style>\n'
+        '<style id="lwp-presentation-structure">\n' + structure +
+        '\n</style>\n'
+        '<style id="lwp-presentation-after">\n' + after +
+        '\n</style>'
+    )
+
+
+def _presentation_picker_markup(strings, runtime):
+    """Return the extra appearance axis only when presets can be switched."""
+    if runtime is None:
+        return ''
+    markup = '''<div class="theme-menu-title appearance-axis-title"
+     id="presentationAxisTitle" data-lwp-i18n="appearance_presentation">{{str_appearance_presentation}}</div>
+<div class="theme-options" id="presentationOptions" role="listbox"
+     aria-label="{{str_appearance_presentation}}"
+     data-lwp-i18n-aria-label="appearance_presentation"></div>
+<div class="theme-menu-title appearance-axis-title" id="themeAxisTitle"
+     data-lwp-i18n="appearance_theme" hidden>{{str_appearance_theme}}</div>
+'''
+    return '\n' + apply_strings(markup, strings, html_context=True)
 
 
 def _language_runtime_markup(lang_dir, default_lang, default_pack,
@@ -6863,6 +7039,23 @@ def compose_with(style_context, page_props=None, structure_css=''):
     if custom:
         css += '\n' + custom
     return css
+
+
+def compose_with_parts(style_context, page_props=None, structure_css=''):
+    """Split one composed sheet around its package structural layer."""
+    layers, custom = style_context
+    if page_props:
+        layers = [*layers, page_props]
+    resolved = resolve_theme_properties(*layers)
+    if structure_css:
+        before, structure, after = (
+            TEMPLATE_SKELETON, structure_css, emit_theme_css(resolved))
+    else:
+        before, structure, after = (
+            emit_theme_css(resolved), TEMPLATE_SKELETON, '')
+    if custom:
+        after += '\n' + custom
+    return before, structure, after
 
 
 def page_style_properties(meta, source_name):
@@ -9417,17 +9610,48 @@ document.addEventListener('DOMContentLoaded', function() {
     try { themeData = JSON.parse(themeDataNode.textContent || ''); }
     catch (e) { themeData = null; }
   }
+  var presentationData = null;
+  var presentationDataNode = document.getElementById('lwp-presentation-data');
+  if (presentationDataNode) {
+    try {
+      presentationData = JSON.parse(presentationDataNode.textContent || '');
+    } catch (e) { presentationData = null; }
+  }
+  var presentationOptionsBox = document.getElementById('presentationOptions');
+  var presentationStyleNode = document.getElementById('lwp-presentation-structure');
+  var presentationIndexNode = document.getElementById('lwp-presentation-index');
+  var presentationCurrent = presentationData ? presentationData.primary : null;
+  var presentationApplied = [];
+  var presentationPinned = {};
+  if (presentationData && presentationData.pinned) {
+    presentationData.pinned.forEach(function (index) {
+      presentationPinned[index] = true;
+    });
+  }
+  function lwpDeckStorageIdentity() {
+    var pathname = String(window.location.pathname || '/');
+    var slash = pathname.lastIndexOf('/');
+    return slash < 0 ? '/' : pathname.slice(0, slash + 1);
+  }
+  var presentationStorageKey = presentationData
+    ? 'lwp-presentation:' + lwpDeckStorageIdentity() + ':'
+      + (presentationData.catalog_digest || '') + ':'
+      + presentationData.presets.map(function (preset) {
+        return preset.selector;
+      }).join(',')
+    : '';
   var themeMenu = document.getElementById('themeMenu');
   var themeOptionsBox = document.getElementById('themeOptions');
   var themeFilter = document.getElementById('themeFilter');
   var themeApplied = [];
   var themeCurrent = themeData ? themeData.primary : null;
+  var themeExplicit = false;
   var themePinned = {};
   if (themeData && themeData.pinned) {
     themeData.pinned.forEach(function (index) { themePinned[index] = true; });
   }
   var themeStorageKey = themeData
-    ? 'lwp-theme:' + themeData.primary + ':'
+    ? 'lwp-theme:' + lwpDeckStorageIdentity() + ':' + themeData.primary + ':'
       + (themeData.catalog_digest ? themeData.catalog_digest + ':' : '')
       + themeData.themes.map(function (theme) { return theme.slug; }).join(',')
     : '';
@@ -9436,13 +9660,31 @@ document.addEventListener('DOMContentLoaded', function() {
     return !!(themeData && themeData.themes && themeData.themes.length > 1);
   }
 
+  function presentationAlternatives() {
+    return !!(presentationData && presentationData.presets
+      && presentationData.presets.length > 1);
+  }
+
+  function appearanceAlternatives() {
+    return presentationAlternatives() || themeAlternatives();
+  }
+
+  function presentationBySelector(selector) {
+    if (!presentationData || !presentationData.presets) return null;
+    return presentationData.presets.find(function (preset) {
+      return preset.selector === selector;
+    }) || null;
+  }
+
   function themeBySlug(slug) {
     if (!themeData || !themeData.themes) return null;
     return themeData.themes.find(function (theme) { return theme.slug === slug; }) || null;
   }
 
   function readStoredTheme() {
-    if (!themeAlternatives()) return themeData ? themeData.primary : null;
+    if (!themeAlternatives() && !presentationAlternatives()) {
+      return themeData ? themeData.primary : null;
+    }
     try {
       var stored = window.sessionStorage.getItem(themeStorageKey);
       return themeBySlug(stored) ? stored : themeData.primary;
@@ -9454,31 +9696,171 @@ document.addEventListener('DOMContentLoaded', function() {
   function writeStoredTheme(slug) {
     if (!themeStorageKey) return;
     try {
-      if (slug === themeData.primary) window.sessionStorage.removeItem(themeStorageKey);
+      if (!themeExplicit) window.sessionStorage.removeItem(themeStorageKey);
       else window.sessionStorage.setItem(themeStorageKey, slug);
     } catch (e) {}
   }
 
-  function applyTheme(slug, persist) {
-    var theme = themeBySlug(slug);
-    if (!theme) return false;
-    themeApplied.forEach(function (index) {
-      document.documentElement.style.removeProperty(themeData.vars[index]);
+  function readStoredThemeExplicit() {
+    if (!themeData || !themeStorageKey) return false;
+    try {
+      var stored = window.sessionStorage.getItem(themeStorageKey);
+      if (!themeBySlug(stored)) return false;
+      return presentationAlternatives() ? true : stored !== themeData.primary;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function readStoredPresentation() {
+    if (!presentationAlternatives()) {
+      return presentationData ? presentationData.primary : null;
+    }
+    try {
+      var stored = window.sessionStorage.getItem(presentationStorageKey);
+      return presentationBySelector(stored)
+        ? stored : presentationData.primary;
+    } catch (e) {
+      return presentationData.primary;
+    }
+  }
+
+  function writeStoredPresentation(selector) {
+    if (!presentationStorageKey) return;
+    try {
+      if (selector === presentationData.primary) {
+        window.sessionStorage.removeItem(presentationStorageKey);
+      } else {
+        window.sessionStorage.setItem(presentationStorageKey, selector);
+      }
+    } catch (e) {}
+  }
+
+  function clearRuntimeVariables() {
+    themeApplied.concat(presentationApplied).forEach(function (index) {
+      document.documentElement.style.removeProperty(themeData
+        ? themeData.vars[index] : (presentationData.vars[index] || ''));
     });
     themeApplied = [];
-    theme.values.forEach(function (pair) {
+    presentationApplied = [];
+  }
+
+  function applyVariableValues(values, pinned, target) {
+    if (!values) return;
+    values.forEach(function (pair) {
       var index = pair[0];
-      if (themePinned[index]) return;
-      document.documentElement.style.setProperty(themeData.vars[index], pair[1]);
-      themeApplied.push(index);
+      if (pinned[index]) return;
+      var vars = target === 'theme' ? themeData.vars : presentationData.vars;
+      document.documentElement.style.setProperty(vars[index], pair[1]);
+      if (target === 'theme') themeApplied.push(index);
+      else presentationApplied.push(index);
     });
-    themeCurrent = theme.slug;
-    if (persist) writeStoredTheme(theme.slug);
+  }
+
+  function applyPresentationTheme(preset) {
+    if (themeExplicit || !preset || !presentationData) return;
+    applyVariableValues(preset.theme_values, presentationPinned, 'presentation');
+  }
+
+  function presentationVariant(preset) {
+    if (!presentationData || !presentationData.variants) return null;
+    return presentationData.variants[preset.selector] || null;
+  }
+
+  function refreshPresentationLanguage() {
+    if (!lwpLanguageData || !lwpLanguageData.packs) return;
+    lwpSetLanguage(document.documentElement.getAttribute('lang')
+      || lwpLanguageData.default);
+  }
+
+  function replacePresentationLayer(preset) {
+    var variant = presentationVariant(preset);
+    if (!variant) return false;
+    if (isIndex) {
+      if (!presentationIndexNode || typeof variant.index !== 'string') return false;
+    } else {
+      if (!variant.sections) return false;
+      var valid = allSlides.every(function (slide) {
+        return Object.prototype.hasOwnProperty.call(variant.sections, slide.id)
+          && typeof variant.sections[slide.id] === 'string';
+      });
+      if (!valid) return false;
+    }
+
+    var focusedHref = null;
+    var focusedWasActive = false;
+    var buildStamp = (!isIndex && allSlides.length)
+      ? allSlides[0].querySelector('.build-stamp') : null;
+    if (isIndex && focusedCard >= 0 && indexCards[focusedCard]) {
+      focusedHref = indexCards[focusedCard].getAttribute('href');
+      focusedWasActive = document.activeElement === indexCards[focusedCard];
+    }
+    if (isIndex) {
+      presentationIndexNode.innerHTML = variant.index;
+    } else {
+      allSlides.forEach(function (slide) {
+        slide.innerHTML = variant.sections[slide.id];
+      });
+      if (buildStamp && allSlides.length) {
+        allSlides[0].insertBefore(buildStamp, allSlides[0].firstChild);
+      }
+    }
+    refreshPresentationLanguage();
+    refreshPresentationCards(focusedHref, focusedWasActive);
+    return true;
+  }
+
+  function applyPresentation(selector, persist) {
+    var preset = presentationBySelector(selector);
+    if (!preset || !replacePresentationLayer(preset)) return false;
+    if (presentationStyleNode) {
+      presentationStyleNode.textContent = preset.structure_css || '';
+    }
+    clearRuntimeVariables();
+    presentationCurrent = preset.selector;
+    if (themeExplicit) {
+      var selectedTheme = themeBySlug(themeCurrent);
+      if (selectedTheme) applyVariableValues(
+        selectedTheme.values, themePinned, 'theme');
+    } else {
+      applyPresentationTheme(preset);
+    }
+    if (persist) writeStoredPresentation(preset.selector);
+    renderPresentationOptions();
+    rebuildDots();
+    applyTagFilter(false);
+    updatePresenter();
+    return true;
+  }
+
+  function clearExplicitTheme(persist) {
+    if (!presentationData) return false;
+    clearRuntimeVariables();
+    themeExplicit = false;
+    themeCurrent = themeData ? themeData.primary : null;
+    applyPresentationTheme(presentationBySelector(presentationCurrent));
+    if (persist) writeStoredTheme(themeCurrent);
     updateThemeOptions();
     return true;
   }
 
-  if (themeData) applyTheme(readStoredTheme(), false);
+  function applyTheme(slug, persist, explicit) {
+    var theme = themeBySlug(slug);
+    if (!theme) return false;
+    clearRuntimeVariables();
+    themeExplicit = explicit === undefined
+      ? (presentationAlternatives() ? true : slug !== themeData.primary)
+      : explicit;
+    themeCurrent = theme.slug;
+    if (themeExplicit) {
+      applyVariableValues(theme.values, themePinned, 'theme');
+    } else {
+      applyPresentationTheme(presentationBySelector(presentationCurrent));
+    }
+    if (persist) writeStoredTheme(theme.slug);
+    updateThemeOptions();
+    return true;
+  }
 
   function tagAttribute(element, name) {
     var raw = element ? element.getAttribute(name) : '';
@@ -9807,6 +10189,26 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  function refreshPresentationCards(focusedHref, focusedWasActive) {
+    allIndexCards = isIndex
+      ? Array.prototype.slice.call(document.querySelectorAll('.article-card'))
+      : [];
+    articleCards = Array.prototype.slice.call(
+      document.querySelectorAll('[data-lwp-article-card]'));
+    if (!isIndex) return;
+    indexCards = allIndexCards.filter(function (card) {
+      return articleMatchesTag(card, selectedTag);
+    });
+    focusedCard = focusedHref
+      ? indexCards.findIndex(function (card) {
+          return card.getAttribute('href') === focusedHref;
+        })
+      : -1;
+    if (focusedWasActive && focusedCard >= 0) {
+      indexCards[focusedCard].focus({preventScroll: true});
+    }
+  }
+
   function selectTag(tag, scrollToCurrent) {
     selectedTag = String(tag || 'default').toLowerCase();
     applyTagFilter(scrollToCurrent);
@@ -9864,6 +10266,8 @@ document.addEventListener('DOMContentLoaded', function() {
   var presenterMenu   = document.getElementById('presenterMenu');
   var menuThemeAction = presenterMenu
     ? presenterMenu.querySelector('[data-menu-action="theme"]') : null;
+  var menuThemeLabel = menuThemeAction
+    ? menuThemeAction.querySelector('.presenter-menu-label') : null;
   var menuTagsAction = presenterMenu
     ? presenterMenu.querySelector('[data-menu-action="tags"]') : null;
   var menuScrollAction = presenterMenu
@@ -9871,6 +10275,11 @@ document.addEventListener('DOMContentLoaded', function() {
   var menuShareAction = presenterMenu
     ? presenterMenu.querySelector('[data-menu-action="share"]') : null;
   var menuScrollValue = document.getElementById('menuScrollValue');
+  var themeMenuTitle = document.getElementById('themeMenuTitle');
+  var themeMenuHelp = themeMenu
+    ? themeMenu.querySelector('.theme-menu-help') : null;
+  var presentationAxisTitle = document.getElementById('presentationAxisTitle');
+  var themeAxisTitle = document.getElementById('themeAxisTitle');
   var menuReturnFocus = null;
   var themeReturnFocus = null;
   var jumpBuffer = '';
@@ -9901,16 +10310,108 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateThemeOptions() {
     if (!themeOptionsBox) return;
     Array.prototype.forEach.call(themeOptionsBox.querySelectorAll('.theme-option'), function (button) {
-      var active = button.getAttribute('data-theme') === themeCurrent;
+      var presetDefault = button.getAttribute('data-theme-mode') === 'preset-default';
+      var active = presetDefault
+        ? !themeExplicit
+        : !!themeExplicit && button.getAttribute('data-theme') === themeCurrent;
+      if (!presentationAlternatives() && !presetDefault) {
+        active = button.getAttribute('data-theme') === themeCurrent;
+      }
       button.classList.toggle('active', active);
       button.setAttribute('aria-selected', active ? 'true' : 'false');
     });
   }
 
+  function updatePresentationOptions() {
+    if (!presentationOptionsBox) return;
+    Array.prototype.forEach.call(
+      presentationOptionsBox.querySelectorAll('.presentation-option'),
+      function (button) {
+        var active = button.getAttribute('data-presentation')
+          === presentationCurrent;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+  }
+
+  function updateAppearanceLabels() {
+    var multiple = presentationAlternatives();
+    if (menuThemeLabel) {
+      var menuKey = multiple ? 'menu_appearance' : 'menu_theme';
+      menuThemeLabel.setAttribute('data-lwp-i18n', menuKey);
+      menuThemeLabel.textContent = multiple
+        ? lwpString('menu_appearance') : lwpString('menu_theme');
+    }
+    if (themeMenuTitle) {
+      var titleKey = multiple ? 'appearance_menu_title' : 'theme_menu_title';
+      themeMenuTitle.setAttribute('data-lwp-i18n', titleKey);
+      themeMenuTitle.textContent = multiple
+        ? lwpString('appearance_menu_title') : lwpString('theme_menu_title');
+    }
+    if (themeMenuHelp) {
+      var helpKey = multiple ? 'appearance_menu_help' : 'theme_menu_help';
+      themeMenuHelp.setAttribute('data-lwp-i18n', helpKey);
+      themeMenuHelp.textContent = multiple
+        ? lwpString('appearance_menu_help') : lwpString('theme_menu_help');
+    }
+    if (presentationAxisTitle) presentationAxisTitle.hidden = !multiple;
+    if (themeAxisTitle) {
+      themeAxisTitle.hidden = !(multiple ||
+        !!(themeData && themeData.themes && themeData.themes.length));
+    }
+    if (themeFilter) {
+      themeFilter.hidden = !(themeData && themeData.themes
+        && themeData.themes.length);
+    }
+  }
+
+  function renderPresentationOptions() {
+    if (!presentationOptionsBox) return;
+    presentationOptionsBox.innerHTML = '';
+    if (!presentationData || !presentationData.presets) return;
+    presentationData.presets.forEach(function (preset) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'theme-option presentation-option';
+      button.setAttribute('data-presentation', preset.selector);
+      button.setAttribute('role', 'option');
+      var label = document.createElement('span');
+      label.textContent = preset.label || preset.selector;
+      button.appendChild(label);
+      if (preset.family || preset.description) {
+        var detail = document.createElement('small');
+        detail.textContent = preset.family || preset.description;
+        button.appendChild(detail);
+      }
+      button.addEventListener('click', function () {
+        applyPresentation(preset.selector, true);
+        closeThemeMenu();
+      });
+      presentationOptionsBox.appendChild(button);
+    });
+    updatePresentationOptions();
+  }
+
   function renderThemeOptions() {
     if (!themeOptionsBox) return;
     themeOptionsBox.innerHTML = '';
-    if (!themeData || !themeData.themes) return;
+    if (presentationAlternatives()) {
+      var presetDefault = document.createElement('button');
+      presetDefault.type = 'button';
+      presetDefault.className = 'theme-option';
+      presetDefault.setAttribute('data-theme-mode', 'preset-default');
+      presetDefault.setAttribute('role', 'option');
+      presetDefault.textContent = lwpString('appearance_preset_default');
+      presetDefault.addEventListener('click', function () {
+        clearExplicitTheme(true);
+        closeThemeMenu();
+      });
+      themeOptionsBox.appendChild(presetDefault);
+    }
+    if (!themeData || !themeData.themes) {
+      updateThemeOptions();
+      return;
+    }
     var query = themeFilter ? themeFilter.value.trim().toLowerCase() : '';
     themeData.themes.forEach(function (theme) {
       var haystack = (theme.slug + ' ' + themeText(theme) + ' ' + (theme.family || '')).toLowerCase();
@@ -9952,6 +10453,13 @@ document.addEventListener('DOMContentLoaded', function() {
       : [];
   }
 
+  function presentationOptionButtons() {
+    return presentationOptionsBox
+      ? Array.prototype.slice.call(
+          presentationOptionsBox.querySelectorAll('.presentation-option'))
+      : [];
+  }
+
   function moveThemeFocus(direction) {
     var options = themeOptionButtons();
     if (!options.length) return;
@@ -9966,6 +10474,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function focusThemeEdge(last) {
     var options = themeOptionButtons();
+    if (options.length) options[last ? options.length - 1 : 0].focus();
+  }
+
+  function movePresentationFocus(direction) {
+    var options = presentationOptionButtons();
+    if (!options.length) return;
+    var at = options.indexOf(document.activeElement);
+    if (at < 0) {
+      options[direction === 'up' || direction === 'left'
+        ? options.length - 1 : 0].focus();
+      return;
+    }
+    moveGridFocus(presentationOptionsBox, direction);
+  }
+
+  function focusPresentationEdge(last) {
+    var options = presentationOptionButtons();
     if (options.length) options[last ? options.length - 1 : 0].focus();
   }
 
@@ -10054,7 +10579,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function openThemeMenu(returnFocus) {
-    if (!themeAlternatives() || !themeMenu) return;
+    if (!appearanceAlternatives() || !themeMenu) return;
     themeReturnFocus = returnFocus || document.activeElement;
     closeHelp();
     closeAbout(false);
@@ -10063,10 +10588,16 @@ document.addEventListener('DOMContentLoaded', function() {
     closeSharePopover(false);
     closeQrModal(false);
     if (themeFilter) themeFilter.value = '';
+    updateAppearanceLabels();
+    renderPresentationOptions();
     renderThemeOptions();
     themeMenu.classList.add('open');
-    if (themeFilter) {
+    if (themeFilter && !themeFilter.hidden) {
       themeFilter.focus();
+    } else {
+      var firstAppearanceOption = presentationOptionButtons()[0]
+        || themeOptionButtons()[0];
+      if (firstAppearanceOption) firstAppearanceOption.focus();
     }
   }
 
@@ -10080,6 +10611,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function openPresenterMenu() {
     if (!presenterMenu) return;
+    updateAppearanceLabels();
     menuReturnFocus = document.activeElement;
     closeThemeMenu(false);
     closeHelp();
@@ -10087,7 +10619,7 @@ document.addEventListener('DOMContentLoaded', function() {
     closeTagMenu();
     closeSharePopover(false);
     closeQrModal(false);
-    if (menuThemeAction) menuThemeAction.hidden = !themeAlternatives();
+    if (menuThemeAction) menuThemeAction.hidden = !appearanceAlternatives();
     if (menuTagsAction) menuTagsAction.hidden = tagList().length < 2;
     updateScrollMenu();
     presenterMenu.classList.add('open');
@@ -10174,9 +10706,12 @@ document.addEventListener('DOMContentLoaded', function() {
     ['H', lwpString('help_touch_open'), lwpString('help_open')],
     [lwpString('help_mouse_keys'), lwpString('help_touch_keys'), lwpString('help_mouse'), lwpString('help_touch')]
   ];
-  if (themeAlternatives()) {
-    helpEntries.splice(6, 0, ['C', lwpString('help_touch_theme'), lwpString('help_theme')]);
-  }
+   if (appearanceAlternatives()) {
+     var helpDescription = presentationAlternatives()
+       ? lwpString('help_appearance') : lwpString('help_theme');
+     helpEntries.splice(6, 0, ['C', lwpString('help_touch_theme'),
+       helpDescription]);
+   }
   if (helpList) {
     helpEntries.forEach(function (e) {
       var li = document.createElement('li');
@@ -10879,17 +11414,39 @@ document.addEventListener('DOMContentLoaded', function() {
           // still enter the option list from it.
           return;
         } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-          e.preventDefault();
-          moveThemeFocus(e.key === 'ArrowDown' ? 'down' : 'right');
+           e.preventDefault();
+           var presentationFocus = e.target && e.target.closest
+             && e.target.closest('.presentation-option');
+           if (presentationFocus) {
+             movePresentationFocus(e.key === 'ArrowDown' ? 'down' : 'right');
+           } else {
+             moveThemeFocus(e.key === 'ArrowDown' ? 'down' : 'right');
+           }
         } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-          e.preventDefault();
-          moveThemeFocus(e.key === 'ArrowUp' ? 'up' : 'left');
+           e.preventDefault();
+           var presentationFocus = e.target && e.target.closest
+             && e.target.closest('.presentation-option');
+           if (presentationFocus) {
+             movePresentationFocus(e.key === 'ArrowUp' ? 'up' : 'left');
+           } else {
+             moveThemeFocus(e.key === 'ArrowUp' ? 'up' : 'left');
+           }
         } else if (e.key === 'Home') {
           e.preventDefault();
-          focusThemeEdge(false);
+          if (e.target && e.target.closest
+              && e.target.closest('.presentation-option')) {
+            focusPresentationEdge(false);
+          } else {
+            focusThemeEdge(false);
+          }
         } else if (e.key === 'End') {
           e.preventDefault();
-          focusThemeEdge(true);
+          if (e.target && e.target.closest
+              && e.target.closest('.presentation-option')) {
+            focusPresentationEdge(true);
+          } else {
+            focusThemeEdge(true);
+          }
         } else if (e.key === 'Enter' && e.target === themeFilter) {
          var firstThemeOption = themeOptionsBox
            ? themeOptionsBox.querySelector('.theme-option') : null;
@@ -11182,7 +11739,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else if (e.key === 'f' || e.key === 'F') {
       e.preventDefault(); toggleFullscreen();
     } else if (e.key === 'c' || e.key === 'C') {
-      if (themeAlternatives()) {
+      if (appearanceAlternatives()) {
         e.preventDefault(); openThemeMenu();
       }
     } else if (e.key === 'm' || e.key === 'M') {
@@ -12018,6 +12575,14 @@ document.addEventListener('DOMContentLoaded', function() {
   scheduleHide();
 
   if (btnMenu) btnMenu.addEventListener('click', togglePresenterMenu);
+  presentationCurrent = readStoredPresentation();
+  if (themeData) {
+    applyTheme(readStoredTheme(), false, readStoredThemeExplicit());
+    if (presentationData) applyPresentation(presentationCurrent, false);
+  } else if (presentationData) {
+    applyPresentation(presentationCurrent, false);
+  }
+  updateAppearanceLabels();
   renderTagMenu();
   applyTagFilter(false);
   writeStoredTag(selectedTag);
@@ -12053,9 +12618,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 {{meta_head}}<title>{{title}}</title>
-<style>
-{{css}}
-</style>
+{{page_css}}
 </head>
 <body class="{{body_class}}"
       data-lwp-default-tag="{{default_tag}}"
@@ -12162,7 +12725,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
      aria-labelledby="themeMenuTitle">
   <div class="theme-menu-card">
     <div class="theme-menu-title" id="themeMenuTitle" data-lwp-i18n="theme_menu_title">{{str_theme_menu_title}}</div>
-    <p class="theme-menu-help" data-lwp-i18n="theme_menu_help">{{str_theme_menu_help}}</p>
+    <p class="theme-menu-help" data-lwp-i18n="theme_menu_help">{{str_theme_menu_help}}</p>{{presentation_picker}}
     <input type="search" class="theme-filter" id="themeFilter"
            aria-label="{{str_theme_menu_filter}}"
            data-lwp-i18n-aria-label="theme_menu_filter"
@@ -12234,7 +12797,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 
 {{content}}
 {{page_footer}}
-{{language_runtime}}{{theme_runtime}}<script defer>
+{{language_runtime}}{{theme_runtime}}{{presentation_runtime}}<script defer>
 {{js_nav}}
 </script>
 {{index_extra}}
@@ -16441,7 +17004,8 @@ def _page_footer(author, license_text, date=None):
 def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='',
                   build_stamp='', theme_runtime=None, style_context=None,
                   language_runtime=None, scroll_duration=None,
-                  presentation_preset=None):
+                  presentation_preset=None, presentation_runtime=None,
+                  presentation_capture=None):
     """Generates the index page.
 
     The index is a page of the same site as the articles: it shares
@@ -16532,9 +17096,16 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         content = fill_placeholders(
             presentation_preset.package.index_layout, {'content': content})
     content = _wrap_presentation_content(content, presentation_preset)
+    if presentation_capture is not None:
+        presentation_capture.append(content)
+    if presentation_runtime is not None:
+        content = '<div id="lwp-presentation-index">\n' + content + '\n</div>'
 
     html = fill_placeholders(html, {
         'lang': lang, 'title': title_clean, 'css': css,
+        'page_css': _page_css_markup(
+            css, style_context, None, presentation_preset,
+            presentation_runtime),
         'body_class': _presentation_body_class(presentation_preset, index=True),
         'default_tag': html_escape(meta.get('default_tag', 'default'), quote=True),
         'series_tags': html_escape(' '.join(series_tag_values), quote=True),
@@ -16545,10 +17116,14 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         'js_nav': apply_strings(TEMPLATE_NAV_JS, strings),
         'build_stamp': build_stamp, 'index_extra': index_extra,
         'scroll_duration': str(scroll_duration),
-        'lightwebpres_version': VERSION,
-        'language_runtime': language_runtime or '',
+         'lightwebpres_version': VERSION,
+         'language_runtime': language_runtime or '',
         'theme_runtime': _theme_runtime_markup(theme_runtime, style_context),
-    })
+         'presentation_runtime': _presentation_runtime_markup(
+             presentation_runtime, style_context),
+         'presentation_picker': _presentation_picker_markup(
+             strings, presentation_runtime),
+     })
 
     validate_html(html, 'index.html')
     return html
@@ -16633,9 +17208,66 @@ class _HtmlBalanceChecker(HTMLParser):
 
 _IMG_OPEN_RE = re.compile(r'<img\b', re.IGNORECASE)
 _SECTION_OPEN_RE = re.compile(r'(<section\b[^<>]*>)')
+_PRESENTATION_SECTION_TOKEN_RE = re.compile(
+    r'<!--|</?(?:section|script|style)\b', re.IGNORECASE)
 _ABSOLUTE_SRC_RE = re.compile(r'^(?:data:|https?://|//)', re.IGNORECASE)
 _SRC_BARE_STOP = set(" \t\n\r\f\"'`=<>")
 _SRC_VALUE_QUOTES = ('"', "'")
+
+
+def _presentation_section_interiors(html, origin):
+    """Return top-level slide section interiors keyed by their IDs."""
+    sections = {}
+    stack = []
+    position = 0
+    while True:
+        token = _PRESENTATION_SECTION_TOKEN_RE.search(html, position)
+        if token is None:
+            break
+        start = token.start()
+        if html.startswith('<!--', start):
+            end = html.find('-->', start + 4)
+            if end < 0:
+                raise PropertyError(f'{origin}: unclosed HTML comment')
+            position = end + 3
+            continue
+        opening_end = _tag_open_end(html, token.end())
+        if opening_end is None:
+            raise PropertyError(f'{origin}: incomplete HTML tag')
+        raw = html[start:opening_end]
+        closing = raw.startswith('</')
+        name_match = re.match(r'</?([a-z]+)', raw, re.IGNORECASE)
+        name = name_match.group(1).casefold() if name_match else ''
+        if name in ('script', 'style'):
+            if not closing:
+                close = re.search(
+                    rf'</{name}\s*>', html[opening_end:], re.IGNORECASE)
+                if close is None:
+                    raise PropertyError(f'{origin}: unclosed <{name}> block')
+                position = opening_end + close.end()
+            else:
+                position = opening_end
+            continue
+        if closing:
+            if not stack:
+                raise PropertyError(f'{origin}: unexpected </section>')
+            inner_start, opening = stack.pop()
+            if not stack:
+                match = re.search(r'\bid\s*=\s*(["\'])(.*?)\1',
+                                  opening, re.IGNORECASE | re.DOTALL)
+                section_id = match.group(2) if match else ''
+                if not section_id:
+                    raise PropertyError(f'{origin}: a slide section has no id')
+                if section_id in sections:
+                    raise PropertyError(
+                        f'{origin}: duplicate slide section id {section_id!r}')
+                sections[section_id] = html[inner_start:start]
+        elif not re.search(r'/\s*>$', raw):
+            stack.append((opening_end, raw))
+        position = opening_end
+    if stack:
+        raise PropertyError(f'{origin}: unclosed slide section')
+    return sections
 
 
 def _src_in_attrs(attrs):
@@ -17035,7 +17667,7 @@ def typo_engine_for_slide(slide, fallback, lang_tag_engines=None):
     return fallback
 
 
-def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None, theme_runtime=None, language_runtime=None, scroll_duration=None, presentation_preset=None, slide_layouts=None, slide_chrome_layers=(), structure_css=''):
+def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None, theme_runtime=None, language_runtime=None, scroll_duration=None, presentation_preset=None, slide_layouts=None, slide_chrome_layers=(), structure_css='', presentation_runtime=None, presentation_capture=None):
     """Builds an HTML page for an article."""
     md_text = read_text_file(source_path)
     meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
@@ -17359,6 +17991,12 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
         if moved:
             stamp_in_body = ''
 
+    if presentation_capture is not None:
+        # The stamp is LWP-owned shell furniture, not part of the package
+        # layer being replaced in the browser. Keep it in the live primary
+        # slide and let the runtime preserve that node across swaps.
+        presentation_capture.append(strip_build_stamp(slides_html))
+
     # Assemble the page. Interface strings are applied to the SKELETON
     # (template — nav_js got its own pass at load time) before any
     # author-provided content is injected; then every remaining data
@@ -17376,7 +18014,11 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     series_tag_values = series_tags(series_data)
     html = fill_placeholders(html, {
         'lang': lang, 'title': title_clean, 'meta_head': meta_head,
-        'css': css, 'body_class': _presentation_body_class(presentation_preset),
+         'css': css,
+         'page_css': _page_css_markup(
+             css, style_context, page_props, presentation_preset,
+             presentation_runtime),
+         'body_class': _presentation_body_class(presentation_preset),
         'default_tag': html_escape(series_meta.get('default_tag', 'default'),
                                    quote=True),
         'series_tags': html_escape(' '.join(series_tag_values), quote=True),
@@ -17388,10 +18030,14 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
          'js_nav': nav_js, 'build_stamp': stamp_in_body,
          'draft_banner': draft_banner, 'index_extra': '',
          'scroll_duration': str(scroll_duration),
-         'lightwebpres_version': VERSION,
-         'language_runtime': language_runtime or '',
-         'theme_runtime': theme_runtime_markup,
-    })
+          'lightwebpres_version': VERSION,
+          'language_runtime': language_runtime or '',
+          'theme_runtime': theme_runtime_markup,
+          'presentation_runtime': _presentation_runtime_markup(
+              presentation_runtime, style_context, page_props),
+          'presentation_picker': _presentation_picker_markup(
+              strings, presentation_runtime),
+     })
 
     validate_html(html, current_file)
     if inline_images:
@@ -17596,6 +18242,23 @@ def series_themes_of(series_data):
             raise PropertyError(f'series.json: "themes" item {index} must be '
                                 'a non-empty string')
     return themes
+
+
+def series_presentation_presets_of(series_data):
+    """Returns the optional root runtime-presentation selection."""
+    if not isinstance(series_data, dict) or 'presentation_presets' not in series_data:
+        return None
+    presets = series_data['presentation_presets']
+    if not isinstance(presets, list) or not presets:
+        raise PropertyError(
+            'series.json: "presentation_presets" must be a non-empty list '
+            'of strings')
+    for index, value in enumerate(presets):
+        if not isinstance(value, str) or not value.strip():
+            raise PropertyError(
+                f'series.json: "presentation_presets" item {index} must be '
+                'a non-empty string')
+    return presets
 
 
 # Field names retired in v0.7.0 by the nomenclature freeze that 1.0 will
@@ -18529,6 +19192,17 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
             templates_dir, theme_catalog, series_preset.theme_props)
         css = compose_with(
             style_context, structure_css=series_preset.package.structure_css)
+        presentation_option = args.get('--presentation-presets')
+        presentation_source = '--presentation-presets'
+        if presentation_option is None:
+            presentation_option = series_presentation_presets_of(series_data)
+            presentation_source = 'series.json: "presentation_presets"'
+        presentation_presets = _presentation_runtime_presets(
+            presentation_catalog, series_preset, presentation_option,
+            presentation_source)
+        presentation_runtime = _presentation_runtime_context(
+            presentation_presets, style_context, theme_catalog,
+            effective_theme)
         series_json_themes = series_themes_of(series_data)
         runtime_option = args.get('--themes')
         runtime_source = '--themes'
@@ -18637,8 +19311,13 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
                            else None)
             source_slides = (parse_markdown_extended(source_text)[1]
                               if source_text is not None else ())
-            validate_article_presentation(
-                entry, series_preset, source_slides)
+            for preset in presentation_presets:
+                try:
+                    validate_article_presentation(entry, preset, source_slides)
+                except PropertyError as exc:
+                    selector = _presentation_selector(preset)
+                    raise PropertyError(
+                        f'{entry["page_source"]} -> slide -> {selector} -> {exc}')
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
@@ -18734,9 +19413,11 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
            theme_catalog=theme_catalog,
             language_runtime=language_runtime, scroll_duration=scroll_duration,
             effective_theme=effective_theme,
-           presentation_catalog=presentation_catalog,
-           series_presentation_preset=series_preset,
-    )
+            presentation_catalog=presentation_catalog,
+            series_presentation_preset=series_preset,
+            presentation_presets=tuple(presentation_presets),
+            presentation_runtime=presentation_runtime,
+     )
 
 
 def resolve_index_claim(claim_articles, built_articles=None, index_enabled=True):
@@ -18838,20 +19519,43 @@ def _render_article(ctx, entry, source_path, build_stamp='', include_nav=True,
     """Renders one already-resolved article with the shared build context."""
     if render_args is None:
         render_args = ctx.args
-    preset = ctx.series_presentation_preset
-    return build_article(
-        source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'],
-        ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang,
-        build_stamp, style_context=ctx.style_context,
-        include_nav=include_nav,
-        inline_images=render_args.get('--inline-images', False),
-        args=render_args, lang_tag_engines=ctx.lang_tag_engines,
-        theme_runtime=ctx.theme_runtime,
-        language_runtime=ctx.language_runtime,
-        scroll_duration=ctx.scroll_duration,
-        presentation_preset=preset,
-        slide_layouts=_presentation_layouts(preset),
-        structure_css=preset.package.structure_css)
+
+    def render(preset, capture=None, runtime=None):
+        return build_article(
+            source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'],
+            ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang,
+            build_stamp, style_context=ctx.style_context,
+            include_nav=include_nav,
+            inline_images=render_args.get('--inline-images', False),
+            args=render_args, lang_tag_engines=ctx.lang_tag_engines,
+            theme_runtime=ctx.theme_runtime,
+            language_runtime=ctx.language_runtime,
+            scroll_duration=ctx.scroll_duration,
+            presentation_preset=preset,
+            slide_layouts=_presentation_layouts(preset),
+            structure_css=preset.package.structure_css,
+            presentation_runtime=runtime,
+            presentation_capture=capture)
+
+    if ctx.presentation_runtime is None:
+        return render(ctx.series_presentation_preset)
+
+    variants = {}
+    for preset in ctx.presentation_presets:
+        capture = []
+        render(preset, capture=capture)
+        if len(capture) != 1:
+            raise PropertyError(
+                f'{entry["page_source"]} -> {_presentation_selector(preset)} '
+                'did not produce one presentation layer')
+        variants[_presentation_selector(preset)] = {
+            'sections': _presentation_section_interiors(
+                capture[0],
+                f'{entry["page_source"]} -> {_presentation_selector(preset)}')
+        }
+    runtime = dict(ctx.presentation_runtime)
+    runtime['variants'] = variants
+    return render(ctx.series_presentation_preset, runtime=runtime)
 
 
 def _index_extra(ctx):
@@ -18864,13 +19568,32 @@ def _index_extra(ctx):
 
 def _render_index(ctx, index_extra='', build_stamp='', validate_scripts=False):
     """Renders the index and optionally applies the build JS guard."""
-    index_html = build_index(
-        ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang,
-        index_extra, build_stamp, theme_runtime=ctx.theme_runtime,
-        style_context=ctx.style_context,
-        language_runtime=ctx.language_runtime,
-        scroll_duration=ctx.scroll_duration,
-        presentation_preset=ctx.series_presentation_preset)
+    def render(preset, capture=None, runtime=None):
+        return build_index(
+            ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang,
+            index_extra, build_stamp, theme_runtime=ctx.theme_runtime,
+            style_context=ctx.style_context,
+            language_runtime=ctx.language_runtime,
+            scroll_duration=ctx.scroll_duration,
+            presentation_preset=preset,
+            presentation_runtime=runtime,
+            presentation_capture=capture)
+
+    if ctx.presentation_runtime is None:
+        index_html = render(ctx.series_presentation_preset)
+    else:
+        variants = {}
+        for preset in ctx.presentation_presets:
+            capture = []
+            render(preset, capture=capture)
+            if len(capture) != 1:
+                raise PropertyError(
+                    f'index.html -> {_presentation_selector(preset)} did not '
+                    'produce one presentation layer')
+            variants[_presentation_selector(preset)] = {'index': capture[0]}
+        runtime = dict(ctx.presentation_runtime)
+        runtime['variants'] = variants
+        index_html = render(ctx.series_presentation_preset, runtime=runtime)
     if validate_scripts:
         ok, detail = validate_page_scripts(index_html)
         if not ok:
@@ -18925,8 +19648,17 @@ def _build_image_pages(ctx, articles_to_build, claimant, incremental):
 
 
 def _presentation_packages_for_output(ctx, articles_to_build, incremental):
-    """The one package whose public assets are reachable in this series."""
-    return (ctx.series_presentation_preset.package,)
+    """Packages whose public assets are reachable in this series."""
+    packages = []
+    seen = set()
+    for preset in ctx.presentation_presets:
+        package = preset.package
+        key = (package.id, package.version)
+        if key in seen:
+            continue
+        seen.add(key)
+        packages.append(package)
+    return tuple(packages)
 
 
 def _finish_build(ctx, claimant, articles_to_build, nav_cache_path,
@@ -18961,7 +19693,7 @@ def _finish_build(ctx, claimant, articles_to_build, nav_cache_path,
     _write_manifest(
         ctx.output_dir, ctx.articles,
         include_index=claimant is None and not ctx.args.get('--no-index'),
-        images=images)
+        images=images, presentation_presets=ctx.presentation_presets)
     tail = ' + index' if claimant is None and not ctx.args.get('--no-index') else ''
     if incremental:
         progress(f'Incremental build complete: {articles_to_build[0]["page_dest"]}'
@@ -19276,7 +20008,7 @@ def _manifest_paths(manifest, key, output_dir, manifest_path):
 
 
 def _write_manifest(output_dir, articles_built, include_index=True,
-                    images=()):
+                    images=(), presentation_presets=()):
     """Writes .lwp-manifest.json in public/ listing every file the build
     produced, so `clean` can purge orphans without guessing.
 
@@ -19307,6 +20039,11 @@ def _write_manifest(output_dir, articles_built, include_index=True,
             previous = []
     manifest = {'schema': 'lightwebpres.manifest/1', 'files': files,
                 'previous': previous}
+    if len(presentation_presets) > 1:
+        manifest['presentation_presets'] = [
+            {'selector': _presentation_selector(preset),
+             'package_digest': preset.package.digest}
+            for preset in presentation_presets]
     _write_file(output_dir / _MANIFEST_NAME,
                 json.dumps(manifest, indent=2, ensure_ascii=False))
 
@@ -19584,6 +20321,13 @@ def cmd_build(series_dir, args):
             'selector': ctx.series_presentation_preset.selector,
             'package_digest': ctx.series_presentation_preset.package.digest,
         },
+        'presentation_presets': [
+            {
+                'selector': _presentation_selector(preset),
+                'package_digest': preset.package.digest,
+            }
+            for preset in ctx.presentation_presets
+        ],
         'typography_rules': {
             'default': ctx.language_pack.get('rules', []),
             'tags': {
@@ -19598,7 +20342,8 @@ def cmd_build(series_dir, args):
             for name in ('--no-typography', '--no-nav', '--inline-images',
                          '--include-drafts', '--drafts-only',
                          '--slides-page-numbers', '--scroll-duration',
-                         '--themes', '--no-essential-theme',
+                         '--themes', '--presentation-presets',
+                         '--no-essential-theme',
                          '--lang', '--language-file')
         },
     }
@@ -24442,9 +25187,9 @@ COMMANDS
     Creates the directory structure
   lightwebpres demo [directory] [--lang fr] [--output public/]
     Creates a demo site (or journals its files and build plan with --dry-run)
-  lightwebpres build [directory] [--lang fr] [--output public/] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
+  lightwebpres build [directory] [--lang fr] [--output public/] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
     Builds the site (self-contained HTML)
-  lightwebpres verify [directory] [--lang fr] [--output public/] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
+  lightwebpres verify [directory] [--lang fr] [--output public/] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
     Checks without building (diff)
   lightwebpres audit [directory] [--lang fr] [--strict] [--templates]
     Renders the series in memory and reports everything worth a second
@@ -24523,7 +25268,7 @@ COMMANDS
     Prints the installed and user catalogue roots
   lightwebpres clean [directory] [--output public/] [--force]
     Purges orphan files from public/ using the build manifest
-  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
+  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
     Polls sources, rebuilds on change, optionally serves on 127.0.0.1
   lightwebpres --version
     Prints the version and exits
@@ -24585,6 +25330,11 @@ OPTIONS
     is included before that raw base. Without this option, build uses
     the root series.json "themes" list when present. Built pages expose C
     for the picker and M for the global presenter menu.
+  --presentation-presets selectors
+    build/verify/watch: include comma-separated presentation selectors in the
+    runtime Appearance picker. The series-wide primary preset is always first;
+    without this option, build uses the root series.json "presentation_presets"
+    list when present.
   --no-essential-theme
     build/verify/watch: do not embed the essential bundle by default.
     Every build otherwise ships Monochrome, Monochrome Night and Print Ink
@@ -24902,7 +25652,8 @@ where this tool is published and can be downloaded.'''
 # out-of-place option is a fatal error instead of a silent no-op, and
 # `--opt=value` is accepted as equivalent to `--opt value`.
 _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
-                             '--theme', '--themes', '--only', '--nav-cache',
+                             '--theme', '--themes', '--presentation-presets',
+                             '--only', '--nav-cache',
                              '--polarity', '--hue', '--family',
                              '--from', '--label', '--source', '--note',
                               '--format',
@@ -24914,14 +25665,14 @@ _COMMAND_OPTIONS = {
                 '--no-starter'},
     'demo': {'--lang', '--output'},
     'build': {'--lang', '--output', '--language-file', '--no-typography',
-              '--themes', '--no-essential-theme',
+              '--themes', '--presentation-presets', '--no-essential-theme',
               '--include-drafts', '--only', '--nav-cache',
               '--build-stamp', '--build-stamp-minimal',
               '--no-nav', '--no-index', '--no-readme', '--drafts-only',
               '--open', '--inline-images', '--slides-page-numbers',
               '--scroll-duration'},
     'check': {'--lang', '--output', '--language-file', '--no-typography',
-              '--themes', '--no-essential-theme',
+              '--themes', '--presentation-presets', '--no-essential-theme',
               '--include-drafts', '--no-nav', '--scroll-duration'},
     'audit': {'--lang', '--strict', '--templates'},
     'refresh-templates': {'--scaffold'},
@@ -24953,7 +25704,7 @@ _COMMAND_OPTIONS = {
     # actual output. The env var LWP_OUTPUT_DIR was the sole way in.
     'clean': {'--force', '--dry-run', '--output'},
     'watch': {'--lang', '--output', '--serve', '--port', '--no-typography',
-              '--themes', '--no-essential-theme',
+              '--themes', '--presentation-presets', '--no-essential-theme',
               '--open', '--slides-page-numbers',
               '--no-nav', '--no-index', '--no-readme', '--drafts-only',
               '--scroll-duration'},

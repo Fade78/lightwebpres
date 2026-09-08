@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 7 · **à faire** 0 · **en cours** 1 · **terminé** 54 · **abandonné** 1 · **sans objet** 3
+**à étudier** 7 · **à faire** 0 · **en cours** 1 · **terminé** 55 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -171,6 +171,7 @@ gets its own entry and its own state**, however small.
 - **B59** — La dernière cible de navigation reste visible
 - **B60** — Le zoom de présentation ne grandit pas le cadre des fiches
 - **B61** — Le redimensionnement repositionne la fiche courante
+- **B63** — Le lecteur peut changer d'enveloppe sans changer de source
 
 ### abandonné
 
@@ -2855,3 +2856,33 @@ comparé à sa sauvegarde dans la galerie.
 la palette précédente, le jaune de surlignage adouci et les deux stops du
 dégradé sur `lava-hot`; les gardes de galerie et les rendus générés restent
 déterministes.
+
+## B63 — Le lecteur peut changer d'enveloppe sans changer de source
+
+**État :** terminé · **Depuis :** 2026-09-08
+**Voir :** specifications.md §9.3.8, §20.5.4 ; `lightwebpres` ;
+`tests/test_lightwebpres.py` (`PresentationPackages`) ;
+`tests/runtime_themes_e2e.cjs`
+
+Une série peut publier plusieurs presets de présentation versionnés dans une
+même page. Le preset choisi par `series_meta.presentation_preset` reste le
+primaire, donc le HTML statique et le repli sans JavaScript ; la clé racine
+`presentation_presets` ou l'option `--presentation-presets` ajoute des
+alternatives ordonnées. Chaque article et l'index portent alors des fragments
+inertes pour les alternatives, et les assets de tous les paquets retenus sont
+comptabilisés dans le manifeste.
+
+Le choix du lecteur est une décision de lecture, pas une écriture auteur : **C**
+ouvre l'axe de présentation du dialogue d'apparence, le choix est partagé par
+les pages du même deck dans la session du navigateur, et il n'est jamais écrit
+dans `series.json`. L'axe des thèmes reste indépendant ; sans `theme:` explicite,
+le thème typé suit le preset, et avec une telle ligne il reste fixe.
+
+**Ce qui est vérifié.** Les tests unitaires couvrent l'ordre primaire, la
+déduplication, `default`, les erreurs avant écriture, la validation de chaque
+preset, les fragments d'index, les assets publiés ou inlinés et le drift du
+paquet alternatif. Le probe Chromium couvre l'ouverture du sélecteur, le
+changement de deck, la navigation, les thèmes explicites et par défaut, la
+locale du navigateur après remplacement de fragment, ainsi que la persistance
+de session isolée par deck ; les artefacts générés sont régénérés et la batterie
+complète est verte : 1188 tests dans 206 classes.

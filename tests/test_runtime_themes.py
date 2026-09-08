@@ -99,6 +99,76 @@ class RuntimeThemesBrowser(unittest.TestCase):
         cls.thread = threading.Thread(target=cls.httpd.serve_forever, daemon=True)
         cls.thread.start()
 
+        presentation_root = Path(cls.tmpdir.name) / 'presentation-series'
+        init = subprocess.run(
+            ['python3', str(LWP), 'init', str(presentation_root)],
+            capture_output=True, text=True, timeout=60,
+        )
+        assert init.returncode == 0, init.stdout + init.stderr
+        demo = subprocess.run(
+            ['python3', str(LWP), 'demo', str(presentation_root)],
+            capture_output=True, text=True, timeout=60,
+        )
+        assert demo.returncode == 0, demo.stdout + demo.stderr
+        presentation_package = (presentation_root / 'templates' / 'layouts'
+                                / 'lightwebpres-docs' / '0.1.0')
+        shutil.copytree(package_source, presentation_package)
+        presentation_manifest_path = presentation_package / 'manifest.json'
+        presentation_manifest = json.loads(
+            presentation_manifest_path.read_text(encoding='utf-8'))
+        compact_theme = subprocess.run(
+            ['python3', str(LWP), 'theme', 'create', 'compact', '--from', 'nord',
+             '--output', str(presentation_package / 'themes' / 'compact.conf')],
+            capture_output=True, text=True, timeout=60,
+        )
+        assert compact_theme.returncode == 0, compact_theme.stdout + compact_theme.stderr
+        presentation_manifest['themes']['compact'] = 'themes/compact.conf'
+        presentation_manifest['presets']['compact'] = {
+            'label': 'Compact documentation',
+            'description': 'A denser presentation for the same content.',
+            'theme': 'compact',
+            'slide_layouts': {
+                'cover': 'hero', 'standard': 'default',
+                'series-nav': 'default', 'full-article': 'default',
+            },
+            'slide_chrome': {'all': {'footer': ''}},
+        }
+        presentation_manifest_path.write_text(
+            json.dumps(presentation_manifest), encoding='utf-8')
+        presentation_series_path = presentation_root / 'series.json'
+        presentation_series = json.loads(
+            presentation_series_path.read_text(encoding='utf-8'))
+        presentation_series.setdefault('series_meta', {})[
+            'presentation_preset'] = 'lightwebpres-docs@0.1.0/docs'
+        presentation_series['presentation_presets'] = [
+            'lightwebpres-docs@0.1.0/compact',
+        ]
+        presentation_series_path.write_text(
+            json.dumps(presentation_series), encoding='utf-8')
+        build = subprocess.run(
+            ['python3', str(LWP), 'build', str(presentation_root),
+             '--no-essential-theme', '--themes', 'print-ink'],
+            capture_output=True, text=True, timeout=60,
+        )
+        assert build.returncode == 0, build.stdout + build.stderr
+        presentation_output = presentation_root / 'public'
+        other_output = presentation_output / 'other-deck'
+        build = subprocess.run(
+            ['python3', str(LWP), 'build', str(presentation_root),
+             '--output', str(other_output), '--no-essential-theme',
+             '--themes', 'print-ink'],
+            capture_output=True, text=True, timeout=60,
+        )
+        assert build.returncode == 0, build.stdout + build.stderr
+        cls.presentation_httpd = HTTPServer(
+            ('127.0.0.1', 0),
+            lambda *args: _QuietHandler(*args, directory=str(presentation_output)),
+        )
+        cls.presentation_port = cls.presentation_httpd.server_address[1]
+        cls.presentation_thread = threading.Thread(
+            target=cls.presentation_httpd.serve_forever, daemon=True)
+        cls.presentation_thread.start()
+
         static_root = Path(cls.tmpdir.name) / 'static-series'
         init = subprocess.run(
             ['python3', str(LWP), 'init', str(static_root), '--theme', 'print-oldpress'],
@@ -130,6 +200,8 @@ class RuntimeThemesBrowser(unittest.TestCase):
     def tearDownClass(cls):
         cls.httpd.shutdown()
         cls.thread.join(timeout=5)
+        cls.presentation_httpd.shutdown()
+        cls.presentation_thread.join(timeout=5)
         cls.static_httpd.shutdown()
         cls.static_thread.join(timeout=5)
         cls.tmpdir.cleanup()
@@ -139,7 +211,8 @@ class RuntimeThemesBrowser(unittest.TestCase):
         result = subprocess.run(
             ['node', str(SCRIPT), base,
              'http://127.0.0.1:%d' % self.static_port,
-             base + '/zero-duration'],
+             base + '/zero-duration',
+             'http://127.0.0.1:%d' % self.presentation_port],
             capture_output=True, text=True, timeout=120,
             env={**os.environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
         )

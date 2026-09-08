@@ -37,7 +37,7 @@
 
 **§9. Thèmes et personnalisation : les propriétés typées**
 
-9.1 Le principe et le vocabulaire · 9.2 Les types et les renvois · 9.3 La cascade à cinq couches et les trois fichiers · 9.4 Les commandes · 9.5 Thèmes de couleurs et catalogue externe · 9.6 La couche article, et les balises d'instance · 9.7 Effets et dégradés · 9.8 Migration depuis `templates/style.css` · 9.9 Paquets et presets de présentation
+9.1 Le principe et le vocabulaire · 9.2 Les types et les renvois · 9.3 La cascade à cinq couches et les trois fichiers · 9.3.8 Présentations compilées à la demande · 9.4 Les commandes · 9.5 Thèmes de couleurs et catalogue externe · 9.6 La couche article, et les balises d'instance · 9.7 Effets et dégradés · 9.8 Migration depuis `templates/style.css` · 9.9 Paquets et presets de présentation
 
 **§10. Pipeline GitLab CI**
 
@@ -75,7 +75,7 @@
 
 **§20. Schéma formel de `series.json`**
 
-20.0 Nomenclature : la forme d'un nom dit son niveau · 20.1 Structure · 20.2 Champs des articles · 20.3 Règles de validation · 20.4 Métadonnées de la série (`series_meta`) · 20.5 Champs de `series_meta` · 20.5.1 Typographie par tag de langue · 20.5.2 Tag initial et persistance · 20.5.3 Sélection de preset de présentation · 20.6 Statut d'un article (`status`)
+20.0 Nomenclature : la forme d'un nom dit son niveau · 20.1 Structure · 20.2 Champs des articles · 20.3 Règles de validation · 20.4 Métadonnées de la série (`series_meta`) · 20.5 Champs de `series_meta` · 20.5.1 Typographie par tag de langue · 20.5.2 Tag initial et persistance · 20.5.3 Sélection de preset de présentation · 20.5.4 Alternatives runtime de présentation · 20.6 Statut d'un article (`status`)
 
 **§21. Cas de validation informel (contenu privé, hors dépôt)**
 
@@ -528,9 +528,9 @@ d'une commande vont sur **stdout**. C'est ce qui permet à
 ```bash
 lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--preset id@version/preset|default] [--no-starter] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
-lightwebpres watch [répertoire] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--serve] [--port N] [--themes selectors|all] [--no-essential-theme]
-lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres watch [répertoire] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
 lightwebpres template show <nav.js|fr.json|en.json|interface/...|typography/...>
@@ -582,6 +582,7 @@ lightwebpres --help
 - `--scroll-duration` : `build`/`verify`/`watch` — durée entière non négative en millisecondes du glissé entre fiches ; `0` le désactive. Sans cette option, `series_meta.scroll_duration` s'applique, puis le défaut de `200` ms (§8.4, §20.5)
 - `--include-drafts` : `build`/`verify` seulement — construit aussi les articles marqués `status: draft` (§20.6), avec bandeau « Brouillon ». Sans effet sur `status: ignored`, qui n'est jamais construit
 - `--themes` : `build`/`verify`/`watch`/`theme vendor` — embarque ou vend des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules ; les slugs viennent du catalogue effectif et le thème de base effectif (celui de `settings.conf`, ou celui du preset) reste toujours le premier pour un build, précédé de `custom(<thème>)` si le fichier porte des pins (§9.3.7)
+- `--presentation-presets` : `build`/`verify`/`watch` — publie des alternatives de présentation séparées par des virgules dans le sélecteur runtime ; le preset primaire de la série reste toujours le premier, et l'option CLI prime la liste racine `series.json["presentation_presets"]` (§9.3.8)
 - `--no-essential-theme` : `build`/`verify`/`watch` seulement — ne pas embarquer le lot `essential` par défaut (§9.3.7); une sélection explicite `--themes` reste appliquée
 - `--only` : `build` seulement — ne reconstruit qu'une page (§11.3.1)
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
@@ -3062,6 +3063,50 @@ le papier. `--no-essential-theme` supprime cet embarquement par défaut; la page
 ne porte alors un sélecteur que si `--themes` ou la clé racine `themes` de
 `series.json` en fournit une.
 
+### 9.3.8 Présentations compilées à la demande
+
+La présentation primaire reste celle de `series_meta.presentation_preset`, ou le
+preset virtuel `default` si ce champ est absent. `build`, `verify` et `watch`
+peuvent toutefois publier plusieurs présentations dans la même page. La liste
+vient de `--presentation-presets <selectors>`, ou de la clé racine
+`series.json["presentation_presets"]` lorsqu'il n'y a pas d'option CLI. La CLI
+prime la liste JSON. La valeur CLI est une liste séparée par des virgules ; la
+valeur JSON est une liste non vide de chaînes non vides (chaque chaîne peut aussi
+contenir des sélecteurs séparés par des virgules).
+
+Le primaire est ajouté en tête dans tous les cas, même s'il n'est pas répété dans
+la liste. Les doublons sont supprimés en conservant la première occurrence.
+`default` est le preset virtuel et peut être une alternative ; un sélecteur
+inconnu, vide ou mal typé échoue avant toute écriture. S'il ne reste que le
+primaire après déduplication, aucun payload de présentation ni axe supplémentaire
+du sélecteur n'est publié.
+
+Pour chaque preset retenu, le build rend toutes les fiches et l'index. Le HTML
+statique, la feuille primaire et le repli sans JavaScript restent ceux du preset
+primaire. Les autres enveloppes sont stockées comme fragments inertes dans le
+payload JSON de la page (`sections` par fiche, `index` pour l'index) ; elles ne
+contiennent pas de nouvelle `<section>` et ne peuvent donc pas créer un second
+shell de page. La feuille est séparée en base, structure de présentation et
+sortie auteur : le navigateur ne remplace que la structure, les fragments de
+contenu et les variables typées appartenant au preset. Les assets de tous les
+paquets effectivement retenus sont publiés et fingerprintés dans le manifeste ;
+`--inline-images` les transforme en URI dans chaque fragment sans les copier.
+
+Quand au moins deux présentations sont publiées, **C** ouvre l'axe
+« présentation » du dialogue d'apparence, à côté de l'axe des thèmes lorsqu'il
+existe. Échap ferme le dialogue ; les flèches, Début et Fin parcourent les choix,
+et Entrée applique le choix focalisé. Le choix est mémorisé dans la
+`sessionStorage` du navigateur pour toutes les pages et l'index du même deck ;
+la clé inclut l'identité du deck, du catalogue et l'ordre des sélecteurs. Le primaire
+n'est pas persisté : le sélectionner retire la valeur mémorisée. Rien de cela
+ne modifie `series.json`, les sources ou les templates.
+
+Les deux axes restent indépendants. Avec un `theme:` explicite dans
+`settings.conf`, changer de présentation conserve ce thème explicite. Sans ce
+champ, le thème typé du preset suit le choix de présentation ; choisir un thème
+explicite dans l'axe des thèmes le fige jusqu'à ce que le lecteur le réinitialise
+vers le défaut du preset.
+
 La feuille CSS statique reste celle de la variante primaire : le thème de base
 seul, ou `custom(<thème>)` lorsque `settings.conf` porte des propriétés
 épinglées. Le sélecteur peut remplacer les variables de palette et de
@@ -3071,7 +3116,7 @@ cependant dans la variante `custom(<thème>)`. Il ne remplace jamais une
 propriété `style.*` de la page ni une variable de registre redéclarée dans
 `custom.css`. Le retour au primaire retire seulement les surcharges runtime.
 Le choix est conservé dans la session du navigateur afin de suivre les pages
-du même deck ; la clé inclut l'identité du catalogue externe chargé, de sorte
+du même deck ; la clé inclut l'identité du deck et du catalogue externe chargé, de sorte
 qu'un thème local modifié ou remplacé ne réutilise pas un choix provenant d'un
 payload différent. Le choix ne modifie aucun fichier source.
 
@@ -4390,8 +4435,9 @@ Les assets déclarés sont publiés sous
 `assets/presentations/<id>/<version>/…`. Avec `--inline-images`, ils deviennent
 des URI `data:` et ne sont pas copiés. Ils entrent dans
 `.lwp-manifest.json`, donc `clean` les connaît, et leur changement est une
-dépendance que `watch` surveille. Seul le paquet effectivement résolu fournit
-ces assets à la sortie.
+dépendance que `watch` surveille. Tous les paquets des presets effectivement
+retenus fournissent leurs assets à la sortie, chaque chemin restant isolé par
+`<id>/<version>`.
 
 Un starter est un payload source déclaratif et **additif**, disponible à
 `init` seulement. Son manifeste ne peut lister que des fichiers Markdown sûrs,
@@ -4604,8 +4650,8 @@ Construit le site :
 4. Génère le `README.md` à la racine du répertoire de série (§8.3)
 5. Inventorie les `src` locaux des pages rendues, puis copie de
    `sources/img/` vers `public/img/` les seuls fichiers référencés par ces
-   pages. Il publie aussi les assets du seul paquet effectivement résolu sous
-   `public/assets/presentations/<id>/<version>/`. Les images absentes de la
+   pages. Il publie aussi les assets de tous les paquets effectivement retenus
+   sous `public/assets/presentations/<id>/<version>/`. Les images absentes de la
    source sont ignorées par la copie et signalées par `audit`; les fichiers
    source non référencés ne sont pas publiés. La copie fusionne avec l'existant
    et ne supprime **jamais** un fichier présent dans `public/img/` même si ce
@@ -4636,6 +4682,13 @@ propriétés, sa variante `custom(<thème>)` le précède et le snapshot brut es
 conservé. La sélection n'écrit pas dans les sources. Sans option ni clé
 JSON, le build embarque néanmoins le lot `essential` par défaut (§9.3.7);
 `--no-essential-theme` le désactive.
+
+`--presentation-presets selectors` suit la même priorité entre CLI et
+`series.json.presentation_presets`, mais ne choisit jamais le primaire : il
+ajoute les alternatives au preset résolu par `series_meta.presentation_preset`.
+La sortie primaire reste l'HTML statique ; la présence d'au moins une
+alternative entraîne la génération des fragments et de l'index de chaque preset,
+ainsi que du payload décrit en §9.3.8.
 
 ### 11.3.1 `build --only` : reconstruction d'un seul article
 
@@ -7960,6 +8013,12 @@ cascade locale (§20.5.3).
 - Si `themes` est présent à la racine de la forme objet, il doit être une liste
   non vide dont chaque élément est une chaîne non vide. Une liste vide, un
   élément non textuel ou un sélecteur inconnu est une erreur fatale nommée.
+- Si `presentation_presets` est présent à la racine de la forme objet, il doit
+  être une liste non vide dont chaque élément est une chaîne non vide. Les
+  sélecteurs sont résolus contre le catalogue de présentation effectif, le
+  primaire de `series_meta` est ajouté en tête et les doublons sont supprimés;
+  un sélecteur inconnu ou vide est une erreur fatale nommée.
+  `--presentation-presets` remplace cette liste pour l'invocation concernée.
 - Les anciens noms `source`/`file`, retirés à la **v0.7.0**, produisent
   une **erreur fatale de migration explicite** (« renamed to
   page_source/page_dest in v0.7.0 — just rename the key, the value is
@@ -8085,17 +8144,25 @@ participe au parcours :
 ### 20.4 Métadonnées de la série (`series_meta`)
 
 Le fichier `series.json` peut contenir un objet `series_meta` (optionnel)
-qui décrit la série elle-même (pour l'index et le README), ainsi que la clé
-racine `themes` (optionnelle) qui configure les thèmes runtime (§9.3.7) :
-il porte aussi l'unique sélection de preset de présentation de la série
-(§9.9).
+qui décrit la série elle-même (pour l'index et le README), ainsi que les clés
+racine `themes` et `presentation_presets` (optionnelles) qui configurent les
+alternatives runtime (§9.3.7, §9.3.8) : il porte aussi l'unique sélection de
+preset de présentation de la série (§9.9).
 
 Si la configuration objet est utilisée, `articles` est un tableau, `series_meta`
-est un objet lorsqu'il est présent, et `themes` est une liste de chaînes
-lorsqu'il est présent. Si `series_meta` et `themes` sont absents, le fichier
-peut rester un tableau direct (rétrocompatible avec un format de série déjà
-utilisé). Ce tableau direct n'a pas de place pour `themes` ni pour les réglages
-de présentation de `series_meta`.
+est un objet lorsqu'il est présent, et `themes` ainsi que
+`presentation_presets` sont des listes de chaînes lorsqu'ils sont présents. Si
+`series_meta`, `themes` et `presentation_presets` sont absents, le fichier peut
+rester un tableau direct (rétrocompatible avec un format de série déjà utilisé).
+Ce tableau direct n'a pas de place pour `themes`, `presentation_presets` ni pour
+les réglages de présentation de `series_meta`.
+
+La clé racine `presentation_presets`, lorsqu'elle est présente, est une liste
+non vide de chaînes non vides. Elle ne choisit pas la présentation primaire :
+elle nomme les alternatives que le build rendra avec elle. Le primaire résolu
+par `series_meta.presentation_preset` est toujours ajouté en tête, puis les
+doublons sont supprimés. La liste est ignorée au profit de
+`--presentation-presets` quand cette option est fournie.
 
 ### 20.5 Champs de `series_meta`
 
@@ -8179,6 +8246,26 @@ valeur de chrome est un texte, `""`, ou un objet de modèle avec `model`, `text`
 exige un paquet non-default. `slide-layout: default` seul conserve le rendu
 historique. Tout sélecteur, variante, modèle, slot ou asset mal formé est fatal
 et nomme son origine.
+
+### 20.5.4 Alternatives runtime de présentation
+
+`series.json["presentation_presets"]` est une liste racine, distincte de
+`series_meta.presentation_preset`. Elle contient les sélecteurs que le lecteur
+pourra choisir en plus du primaire. `--presentation-presets` remplace cette
+liste pour un lancement de `build`, `verify` ou `watch`, sans modifier la série.
+Le primaire est toujours le premier élément effectif, même si la liste ne le
+contient pas ; les doublons sont retirés dans l'ordre ; le littéral `default`
+désigne le preset virtuel absent du champ `series_meta`.
+
+Le build valide chaque preset et chaque override de fiche pour chaque article
+avant d'écrire. Un seul primaire ne produit pas de runtime picker. Avec au moins
+une alternative, chaque page porte le rendu primaire puis un payload JSON qui
+contient les fragments complets des présentations alternatives et celui de
+l'index. Le navigateur remplace les fragments et le CSS structurel au changement
+de choix, mais ne relance pas le parseur Markdown et ne lit aucune nouvelle URL.
+Le choix est local à la session du navigateur et partagé entre les pages du
+même deck ; l'identité du deck isole les séries qui partagent un origin. Il
+n'est jamais persisté dans les sources.
 
 ### 20.6 Statut d'un article (`status`)
 

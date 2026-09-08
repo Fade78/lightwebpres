@@ -461,6 +461,40 @@ The guide itself uses the tracked package
 into a temporary series and publishes its assets with the guide. It is an
 inspectable package example, not another source of this manual.
 
+### Keep alternate presentations available
+
+A series has one primary presentation, but a build can carry other named
+presets for the reader to choose without rebuilding. Put the alternatives at
+the root of `series.json`, or pass them for one build:
+
+```json
+{
+  "series_meta": {
+    "presentation_preset": "lightwebpres-docs@0.1.0/docs"
+  },
+  "presentation_presets": [
+    "default"
+  ]
+}
+```
+
+```bash
+./lightwebpres build my-series --presentation-presets default
+```
+
+The primary preset is always emitted first and remains the no-JavaScript
+fallback. The CLI list overrides the JSON list; it adds alternatives rather
+than replacing the primary. Duplicate selectors are removed, and an unknown
+selector fails before output is written. The preset must be available in the
+effective package catalogue.
+
+When alternatives exist, **C** opens the Appearance picker with separate
+Presentation and Theme axes. The selected presentation changes the whole deck,
+including the index, and lasts across pages in the current browser session. It
+does not edit the series. If `settings.conf` names an explicit `theme:`, that
+theme remains fixed; otherwise the preset's typed theme follows the selected
+presentation until the reader chooses an explicit theme.
+
 For color and typography changes, choose the smallest value override that
 does the job before adding CSS rules.
 
@@ -541,12 +575,15 @@ pins, the first runtime choice is named `custom(<theme>)` and the raw base
 theme is also present; those settings pins apply only to the custom choice.
 The setting is read at build time, so an author's edit remains the source of
 truth. `style.*` page properties and theme variables declared in `custom.css`
-are left alone while a reader switches. **C** opens the searchable picker and
+are left alone while a reader switches. **C** opens the searchable Appearance
+picker when the build carries presentation or theme alternatives, and otherwise
+has nothing to open.
 **M** opens the global presenter menu; the same menu is available from the
 bottom-right navigation button. The selection lasts for the other pages of
- the same deck in the current browser session. The session key includes the
- catalogue digest, so changing a local snapshot cannot reuse an old choice.
- Each theme choice previews its
+the same deck in the current browser session. The session key includes the
+deck identity and catalogue digest, so another deck on the same origin or a
+changed local snapshot cannot reuse an old choice.
+Each theme choice previews its
 resolved background, including its gradient, with matching foreground ink.
 The menu actions carry icons and their keyboard shortcuts, including **I** on
 Scroll. In the theme

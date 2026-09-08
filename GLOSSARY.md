@@ -86,6 +86,20 @@ Les anciens champs auteur `presentation_template`, `slide_layouts` et
 `slide_chrome` restent des clés valides dans un manifeste de paquet, où elles
 portent les défauts internes d'un préréglage.
 
+## Series root fields
+
+In the object form of `series.json`, these keys live beside `series_meta` and
+`articles`, not inside either one.
+
+| Field | Default | Description |
+|---|---|---|
+| `themes` | omitted — the essential runtime bundle is still added by default | Ordered runtime theme selectors for `build`, `verify` and `watch`; an explicit `--themes` value overrides this list (§9.3.7) |
+| `presentation_presets` | omitted — only the primary presentation is rendered | Non-empty list of presentation selectors made available to the reader; the primary `series_meta.presentation_preset` is inserted first and duplicates are removed. `--presentation-presets` overrides this list (§9.3.8) |
+
+The list is build configuration, not a persisted reader choice. A reader's
+presentation choice is kept in the browser session and never written back to
+`series.json`.
+
 ## Language pack files
 
 The built-in French and English packs remain one compatibility object inside
@@ -265,6 +279,8 @@ description; the terms are fixed here, in English.
 | **image inventory** | The audit's count of local image references in rendered pages, separated into inline images and standalone figures. It warns about unused source files and references whose source file is missing (§11.5). |
 | **presentation package** | Arbre versionné `layouts/<id>/<version>/` avec `manifest.json`, ou `templates/layouts/<id>/<version>/` une fois vendorisé. Il possède structure, layouts, chrome, assets et CSS structurel contraint, sans remplacer le shell de page; ses assets publiés vivent sous `public/assets/presentations/<id>/<version>/...`. |
 | **presentation preset** | Configuration nommée d'un paquet, adressée par `id@MAJOR.MINOR.PATCH/preset` et persistée uniquement dans `series_meta.presentation_preset`. Ses propres `slide_layouts` et `slide_chrome` sont des défauts de manifeste, non des champs auteur. |
+| **runtime presentation catalogue** | Ordered primary-plus-alternatives payload made by `presentation_presets` or `--presentation-presets`; it carries the rendered fragments, index variants, structure CSS and typed theme differences for the appearance picker. |
+| **appearance picker** | The `C` dialogue's presentation and theme axes. A presentation choice applies to every page and the index in the current browser session; it does not alter source files. |
 | **layout fragment** | Fragment HTML de paquet : `{{content}}`, `{{slide_header}}`, `{{slide_footer}}` exactement une fois pour une fiche; `{{content}}` seul pour l'index. |
 | **chrome model** | Déclaration JSON d'un header ou footer, composée d'items texte, image ou icône et d'assets déclarés. |
 | **furniture** | Descriptive family, not a mechanism: the properties painting the page's apparatus rather than its content or signals — rules, surface veils, sunken and control grounds, the modal scrim. Ordinary properties; the word only lets one speak of them collectively. |

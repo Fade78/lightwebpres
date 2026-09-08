@@ -96,6 +96,12 @@ A presentation package supplies layouts, headers, footers, assets and a typed
 theme. LWP keeps the page shell, navigation and script. Select it through
 `series_meta.presentation_preset`; absence means the built-in `default`.
 
+Keep alternatives at the root of `series.json` with
+`presentation_presets`, or pass `--presentation-presets` to `build`, `verify`
+or `watch`. The primary stays first; **C** then opens the Appearance picker and
+switches the whole deck without changing its sources. The session choice is
+scoped to that deck as well as its catalogue.
+
 Use `preset list`, `preset show` and `series preset set` to inspect or change
 the choice. `init --preset` can also apply the package's starter.
 Per-slide `slide-layout`, `slide-header` and `slide-footer` override defaults.

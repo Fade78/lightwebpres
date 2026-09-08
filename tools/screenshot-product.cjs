@@ -135,8 +135,7 @@ async function main() {
           font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
         img { display: block; background: #fff; border: 1px solid #D7CEE4;
           border-radius: 8px; box-shadow: 0 8px 24px #241A351F; }
-        .landscape img { width: 820px; height: auto; }
-        .mobile img { width: auto; height: 560px; }
+        .landscape img, .mobile img { width: auto; height: 500px; }
         .footer { margin: 22px 0 0; color: #625870; font-size: 13px; }
       </style></head><body><main>
         <h1>One page, two uses</h1>

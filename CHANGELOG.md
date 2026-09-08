@@ -33,6 +33,24 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.55.0
+
+Builds can now publish several versioned presentation presets at once. The
+primary preset remains the static fallback, while **C** lets a reader switch
+the whole deck and its index during the browser session. The root
+`presentation_presets` list and `--presentation-presets` CLI option select the
+ordered alternatives; presentation choice and runtime theme choice remain
+independent.
+
+Runtime fragments now retain the browser's interface locale, and presentation
+and theme choices are scoped to the current deck when several decks share an
+origin. Assets from every selected package are included in the published
+manifest.
+
+The optional `sourced-presentation` method is synced to version 0.18 and now
+ships its evidence, explanation and verification references alongside the
+main checklist.
+
 ## v0.54.1
 
 The presenter menu's Home action now keeps the same text size as its

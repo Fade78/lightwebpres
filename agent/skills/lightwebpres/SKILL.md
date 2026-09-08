@@ -302,6 +302,36 @@ overrides, not an author JSON cascade, and are valid on `cover`, standard,
 base theme < `settings.conf` pins < article `style.*` < instance styles, with
 `templates/custom.css` as advanced final CSS.
 
+### Runtime presentation alternatives
+
+The primary preset still comes from `series_meta.presentation_preset` (or the
+omitted virtual `default`). A series may expose additional presets at the root
+of `series.json`:
+
+```json
+{
+  "series_meta": {
+    "presentation_preset": "corporate@1.0.0/brief"
+  },
+  "presentation_presets": ["default"]
+}
+```
+
+`build`, `verify` and `watch` also accept
+`--presentation-presets selector[,selector...]`; the CLI value overrides the
+root list. It adds alternatives rather than replacing the primary. The primary
+is always first in the effective ordered list, duplicates are removed, and
+`default` is the virtual built-in choice. A missing or unknown selector is a
+build error before output is written. With alternatives, every article and the
+index carries the primary HTML plus inert runtime fragments for each alternative;
+the reader changes the presentation with **C**. The choice applies to the whole
+series, is held in browser session storage, and is not written to source files.
+
+The presentation and theme axes are independent. An explicit `theme:` in
+`settings.conf` stays fixed while the presentation changes. Without one, the
+preset's theme follows the selected presentation until the reader chooses an
+explicit runtime theme.
+
 ## Tags: `tags:`
 
 On a slide header, `tags:` is a slide-level filter field, separate from the
@@ -842,7 +872,10 @@ Any non-string value for one of these fields is fatal as well.
 series rather than to one article: `title`, `subtitle`, `version`, `intro`,
 `author`, `license`, `default_tag`, `scroll_duration`, `lang_tags`,
 `notes_placement`, `notes_tooltip`, `slide_page_numbers`, `slug_prefix`,
-`presentation_preset`.
+`presentation_preset`. The optional root `presentation_presets` list names
+runtime alternatives; it is separate from `series_meta` and is not a reader
+selection. The root `themes` list follows the same build-time pattern for
+runtime themes.
 The first four drive the generated index page and `README.md`; `author` and
 `license` are the fallback for every article's byline and licence line;
 `default_tag` selects the initial tag, and `lang_tags` selects typography

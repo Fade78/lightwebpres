@@ -1,7 +1,7 @@
 {
   "inputs": {
-    "lightwebpres": "51ea1dfb956b47ca69f4c449c91be4aec69afbf886b49470560dd191ad9b908e",
-    "tools/screenshot-product.cjs": "94649691b0bf98e847d006be9d85cb6b7b31a31cd29259c291d8b3029a23b5d8",
+    "lightwebpres": "b2b289487b52c5d415e2cb6f8c057dacb17b3341f325e6a551d0a742467bd9ae",
+    "tools/screenshot-product.cjs": "cd24ed3d7e56e916781ead59ed36ef2dc8369e0475cdb3de8cf0deba1815f82d",
     "examples/first-article/series.json": "381a563a55fdbe2a06662adcab3995ae467a0b1b15fecec977d6c6c505ed6e75",
     "examples/first-article/sources/first-page.md": "2a426775d0e718abb98baa31272a101e1dce074442a5f739b7f67a55c2ebfa66",
     "examples/first-article/templates/settings.conf": "dfa374378eec18180cb460dc458d545d06603e75789e9f0505d6061543a22e29"
@@ -31,7 +31,7 @@
           "deviceScaleFactor": 1
         }
       ],
-      "sha256": "746d3694df2ba234b9c30c8d3022a01f6108d6ac776120b4caf2667699260225"
+      "sha256": "ac0c37608f80442bf3e0cc575fc4e9c79cbcc19f2d399f820471ba1c68047ef0"
     }
   ]
 }

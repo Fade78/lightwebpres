@@ -8807,9 +8807,12 @@ class PresentationPackages(unittest.TestCase):
             f'slug: {slug}-standard\n## {title} details\nsummary: Detail.\n'
         )
 
-    def _write_package(self, catalogue_root, with_starter=False):
-        package = (Path(catalogue_root) / self.PACKAGE_ID
-                   / self.PACKAGE_VERSION)
+    def _write_package(self, catalogue_root, with_starter=False,
+                       package_id=None, version=None, preset_id=None):
+        package_id = package_id or self.PACKAGE_ID
+        version = version or self.PACKAGE_VERSION
+        preset_id = preset_id or self.PRESET_ID
+        package = Path(catalogue_root) / package_id / version
         layouts = package / 'layouts'
         themes = package / 'themes'
         assets = package / 'assets'
@@ -8821,7 +8824,7 @@ class PresentationPackages(unittest.TestCase):
         for slide_type in ('cover', 'standard', 'series-nav', 'full-article'):
             filename = f'{slide_type}.html'
             (layouts / filename).write_text(
-                f'<div class="presentation-{self.PACKAGE_ID}-{slide_type}">\n'
+                f'<div class="presentation-{package_id}-{slide_type}">\n'
                 '  {{slide_header}}\n'
                 '  {{content}}\n'
                 '  {{slide_footer}}\n'
@@ -8830,7 +8833,7 @@ class PresentationPackages(unittest.TestCase):
             )
             layout_paths[slide_type] = {'default': f'layouts/{filename}'}
         (layouts / 'cover-hero.html').write_text(
-            f'<div class="presentation-{self.PACKAGE_ID}-cover-hero">\n'
+            f'<div class="presentation-{package_id}-cover-hero">\n'
             '  {{slide_header}}\n'
             '  {{content}}\n'
             '  {{slide_footer}}\n'
@@ -8839,13 +8842,13 @@ class PresentationPackages(unittest.TestCase):
         )
         layout_paths['cover']['hero'] = 'layouts/cover-hero.html'
         (layouts / 'index.html').write_text(
-            f'<main class="presentation-{self.PACKAGE_ID}-index">{{{{content}}}}</main>\n',
+            f'<main class="presentation-{package_id}-index">{{{{content}}}}</main>\n',
             encoding='utf-8',
         )
         layout_paths['index'] = 'layouts/index.html'
         (package / 'structure.css').write_text(
-            f'.lwp-presentation--{self.PACKAGE_ID} '
-            f'.presentation-{self.PACKAGE_ID}-standard {{ display: grid; }}\n',
+            f'.lwp-presentation--{package_id} '
+            f'.presentation-{package_id}-standard {{ display: grid; }}\n',
             encoding='utf-8',
         )
         (assets / 'mark.svg').write_text(
@@ -8900,8 +8903,8 @@ class PresentationPackages(unittest.TestCase):
 
         (package / 'manifest.json').write_text(json.dumps({
             'schema': 'lightwebpres.presentation-package/1',
-            'id': self.PACKAGE_ID,
-            'version': self.PACKAGE_VERSION,
+            'id': package_id,
+            'version': version,
             'layouts': layout_paths,
             'structure_css': 'structure.css',
             'chrome': 'chrome.json',
@@ -8910,7 +8913,7 @@ class PresentationPackages(unittest.TestCase):
             },
             'themes': {'brand': 'themes/brand.conf'},
             'starters': starters,
-            'presets': {self.PRESET_ID: preset},
+            'presets': {preset_id: preset},
         }), encoding='utf-8')
         return package
 
@@ -8922,6 +8925,55 @@ class PresentationPackages(unittest.TestCase):
         series['series_meta'] = {'presentation_preset': self.SELECTOR}
         series_path.write_text(json.dumps(series), encoding='utf-8')
         return root, package
+
+    def _runtime_series(self, tmp):
+        root = scaffold(tmp, self._article())
+        layouts_root = root / 'templates' / 'layouts'
+        primary = self._write_package(layouts_root)
+
+        # A second preset in the same package exercises preset-level layout
+        # and chrome changes without making package identity do the work.
+        manifest_path = primary / 'manifest.json'
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        created = run(
+            'theme', 'create', 'simple', '--from', 'nord', '--output',
+            str(primary / 'themes' / 'simple.conf'))
+        self.assertEqual(created.returncode, 0, created.stderr)
+        manifest['themes']['simple'] = 'themes/simple.conf'
+        manifest['presets']['simple'] = {
+            'label': 'Simple',
+            'description': 'A compact alternate presentation.',
+            'theme': 'simple',
+            'slide_layouts': {
+                'cover': 'default', 'standard': 'default',
+                'series-nav': 'default', 'full-article': 'default',
+            },
+            'slide_chrome': {'all': {'footer': 'Simple footer'}},
+        }
+        manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+
+        other = self._write_package(
+            layouts_root, package_id='other', version='2.0.0',
+            preset_id='compact')
+        other_selector = 'other@2.0.0/compact'
+        simple_selector = f'{self.SELECTOR.rsplit("/", 1)[0]}/simple'
+        series_path = root / 'series.json'
+        series = json.loads(series_path.read_text(encoding='utf-8'))
+        series['series_meta'] = {'presentation_preset': self.SELECTOR}
+        series['presentation_presets'] = [
+            other_selector, simple_selector, other_selector,
+        ]
+        series_path.write_text(json.dumps(series), encoding='utf-8')
+        return root, primary, other, simple_selector, other_selector
+
+    @staticmethod
+    def _presentation_data(html):
+        match = re.search(
+            r'<script id="lwp-presentation-data" type="application/json">'
+            r'(.*?)</script>', html, re.DOTALL)
+        if match is None:
+            return None
+        return json.loads(match.group(1))
 
     def test_series_preset_uses_local_manifest_structure_chrome_and_assets(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -8954,6 +9006,149 @@ class PresentationPackages(unittest.TestCase):
             self.assertEqual(report['preset']['slide_layouts']['cover'], 'hero')
             self.assertEqual(report['preset']['slide_chrome']['all']['footer'],
                              {'text': 'Package footer'})
+
+    def test_runtime_presentation_presets_render_ordered_layers_and_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, _primary, _other, simple, other = self._runtime_series(tmp)
+            output = root / 'public'
+            built = run('build', str(root), '--output', str(output),
+                        '--no-essential-theme')
+            self.assertEqual(built.returncode, 0, built.stderr)
+
+            article = (output / 'a.html').read_text(encoding='utf-8')
+            index = (output / 'index.html').read_text(encoding='utf-8')
+            data = self._presentation_data(article)
+            index_data = self._presentation_data(index)
+            self.assertIsNotNone(data)
+            self.assertEqual(data['primary'], self.SELECTOR)
+            self.assertEqual(
+                [preset['selector'] for preset in data['presets']],
+                [self.SELECTOR, other, simple])
+            self.assertEqual(set(data['variants']),
+                             {self.SELECTOR, simple, other})
+            self.assertEqual(set(data['variants'][self.SELECTOR]['sections']),
+                             {'a-cover', 'a-standard'})
+
+            # The primary rendering is the live/no-JavaScript fallback.
+            self.assertIn('presentation-studio-cover-hero', article)
+            self.assertIn('Package header', article)
+            self.assertIn('id="presentationOptions"', article)
+            self.assertIn('id="lwp-presentation-structure"', article)
+            self.assertIn('presentation-studio-cover',
+                          data['variants'][simple]['sections']['a-cover'])
+            self.assertIn('Simple footer',
+                          data['variants'][simple]['sections']['a-cover'])
+            self.assertNotIn('<section',
+                             data['variants'][simple]['sections']['a-cover'])
+
+            self.assertEqual(set(index_data['variants']),
+                             {self.SELECTOR, simple, other})
+            self.assertIn('presentation-other-index',
+                          index_data['variants'][other]['index'])
+
+            manifest = json.loads((output / '.lwp-manifest.json').read_text(
+                encoding='utf-8'))
+            self.assertEqual(
+                [preset['selector'] for preset in manifest['presentation_presets']],
+                [self.SELECTOR, other, simple])
+            self.assertTrue((output / 'assets' / 'presentations' / 'studio'
+                             / self.PACKAGE_VERSION / 'mark.svg').is_file())
+            self.assertTrue((output / 'assets' / 'presentations' / 'other'
+                             / '2.0.0' / 'mark.svg').is_file())
+            simple_descriptor = next(
+                preset for preset in data['presets'] if preset['selector'] == simple)
+            self.assertTrue(simple_descriptor['theme_values'])
+
+    def test_cli_runtime_presentation_list_overrides_series_and_supports_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, _primary, _other, _simple, _other_selector = self._runtime_series(tmp)
+            output = root / 'cli-public'
+            built = run('build', str(root), '--output', str(output),
+                        '--no-essential-theme', '--presentation-presets',
+                        'default')
+            self.assertEqual(built.returncode, 0, built.stderr)
+            article = (output / 'a.html').read_text(encoding='utf-8')
+            data = self._presentation_data(article)
+            self.assertEqual([preset['selector'] for preset in data['presets']],
+                             [self.SELECTOR, 'default'])
+            self.assertNotIn('<div class="lwp-presentation--studio">',
+                             data['variants']['default']['sections']['a-cover'])
+
+    def test_runtime_presentation_unknown_selector_fails_before_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, _primary, _other, _simple, _other_selector = self._runtime_series(tmp)
+            series_path = root / 'series.json'
+            series = json.loads(series_path.read_text(encoding='utf-8'))
+            series['presentation_presets'].append('missing@1.0.0/brief')
+            series_path.write_text(json.dumps(series), encoding='utf-8')
+            output = root / 'public'
+            result = run('build', str(root), '--output', str(output),
+                         '--no-essential-theme')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('presentation package missing@1.0.0 was not found',
+                          result.stderr)
+            self.assertFalse(output.exists())
+
+    def test_runtime_presentation_layout_override_is_checked_for_each_preset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, _primary, other, _simple, _other_selector = self._runtime_series(tmp)
+            manifest_path = other / 'manifest.json'
+            manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+            del manifest['layouts']['cover']['hero']
+            manifest['presets']['compact']['slide_layouts']['cover'] = 'default'
+            manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+            source = root / 'sources' / 'a.md'
+            source.write_text(
+                source.read_text(encoding='utf-8').replace(
+                    'slug: a-cover\n', 'slug: a-cover\nslide-layout: hero\n'),
+                encoding='utf-8')
+            output = root / 'public'
+            result = run('build', str(root), '--output', str(output),
+                         '--no-essential-theme')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('other@2.0.0/compact', result.stderr)
+            self.assertIn("has no layout variant 'hero'", result.stderr)
+            self.assertFalse(output.exists())
+
+    def test_inline_images_apply_to_alternate_presentation_fragments(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, _primary, _other, _simple, other = self._runtime_series(tmp)
+            output = root / 'public'
+            built = run('build', str(root), '--output', str(output),
+                        '--no-essential-theme', '--inline-images')
+            self.assertEqual(built.returncode, 0, built.stderr)
+            article = (output / 'a.html').read_text(encoding='utf-8')
+            data = self._presentation_data(article)
+            other_selector = 'other@2.0.0/compact'
+            fragment = data['variants'][other_selector]['sections']['a-cover']
+            self.assertIn('data:image/svg+xml;base64,', fragment)
+            self.assertFalse((output / 'assets' / 'presentations').exists())
+
+    def test_verify_and_only_rebuild_notice_include_alternate_package_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, _primary, other, _simple, _other_selector = self._runtime_series(tmp)
+            output = root / 'public'
+            cache = root / '.lwp-cache' / 'runtime.json'
+            built = run('build', str(root), '--output', str(output),
+                        '--no-essential-theme', '--nav-cache', str(cache))
+            self.assertEqual(built.returncode, 0, built.stderr)
+
+            structure = other / 'structure.css'
+            structure.write_text(
+                structure.read_text(encoding='utf-8').replace(
+                    'display: grid', 'display: flex'),
+                encoding='utf-8')
+            verified = run('verify', str(root), '--output', str(output),
+                           '--no-essential-theme')
+            self.assertNotEqual(verified.returncode, 0)
+            self.assertIn('[DRIFT] a.html', verified.stdout)
+
+            only = run('build', str(root), '--output', str(output),
+                       '--no-essential-theme', '--nav-cache', str(cache),
+                       '--only', 'a.html')
+            self.assertEqual(only.returncode, 0, only.stderr)
+            self.assertIn('--only requested but not safe',
+                          only.stdout + only.stderr)
 
     def test_external_catalogue_preset_commands_and_virtual_default(self):
         with tempfile.TemporaryDirectory() as tmp:
