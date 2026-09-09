@@ -156,10 +156,17 @@ and reset presentation zoom;
 **O** cycles table modes and **A** text modes in the order above. `clip` hides
 overflow visually, not cells in HTML; `scroll` contains navigation gestures
 inside the table. `fixed` keeps native responsive sizes without content fitting.
-`uniform` measures all currently visible slides under the active tag, including
-a visible long-form article, and applies one shared factor; `per-slide`
-measures each separately. Browser layout is remeasured after resize,
-theme/preset/tag changes and font/image loading. Factors never exceed `1`;
+`uniform` measures all tag-visible slides in the current article by default
+and applies one shared factor. Single-page output shows **Uniform fit scope**
+only while this mode is selected: **Current article** (default) or **Entire
+series**. Series scope measures tag-eligible slides across all articles using
+their actual geometry, styles, presets and settings pins, then shares the
+smallest factor. Long-form and series-navigation slides participate even when
+they remain too large at the minimum and can shrink the whole group.
+`per-slide` measures each slide separately without propagating its factor;
+`fixed` performs no content fitting. Multipage output is unaffected by scope.
+Browser layout is remeasured after resize, theme/preset/tag changes and
+font/image loading. Factors never exceed `1`;
 text originally at least 12 CSS pixels also keeps a 12-pixel floor. Smaller
 authored text is not enlarged. An unfit slide remains available to scroll at
 the floor, not hidden.
@@ -182,6 +189,12 @@ controls still work if saving is blocked. Browser storage availability and
 `file:` handling vary; do not promise the same persistence as served HTTP(S).
 This does not change Appearance's session-storage contract. Print clears
 runtime scales and expands table viewports without screen clipping.
+
+Single-page uniform scope stores `article` or `series` separately at
+`readingPreferenceKey + ':fit-scope'`, that is,
+`lwp-reading:<output-directory-path>:fit-scope`. Missing/invalid values or
+blocked reads fall back to `article`; failed writes leave the control usable.
+This is not a new field in the version-1 reading record or `series_meta.reading`.
 See specifications.md §9.3.9 for the complete contract.
 
 ## Identities, Presets And Themes

@@ -75,6 +75,8 @@ ${name === 'a' ? 'Dense text. '.repeat(300) : 'Short readable text.'}
 <img id="static-svg" alt="Static mark" width="40" height="40" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='red'/%3E%3C/svg%3E">
 
 <p id="caf\u00e9 / %">An anchor with encoded punctuation.</p>
+
+${name === 'b' ? '<table id="scroll-table" style="min-width: 1600px"><tr><td>Wide table</td><td>Second cell</td></tr></table>' : ''}
 `);
     }
     cli('build', series, '--themes', 'print-ink,dracula', '--scroll-duration', '200',
@@ -233,9 +235,93 @@ ${name === 'a' ? 'Dense text. '.repeat(300) : 'Short readable text.'}
     assert(Number(denseState.scale) < 1, 'the dense article exercises automatic fitting: ' + JSON.stringify(denseState));
     assert.equal(await page.locator('#detail').getAttribute('data-lwp-text-scale'), '1',
       'a different article must not inherit the dense article uniform factor');
+    assert.equal(await page.locator('#menuFitScope').inputValue(), 'article');
+    assert.equal(await page.locator('#menuFitScopeLabel').evaluate(node => node.hidden), false);
+    assert.equal(await page.locator('#menuFitScopeLabel span').textContent(), 'Port\u00e9e de la r\u00e9duction uniforme');
+    async function scope(value) {
+      await page.evaluate(value => {
+        const control = document.getElementById('menuFitScope');
+        control.value = value;
+        control.dispatchEvent(new Event('change', {bubbles: true}));
+      }, value);
+      await settle();
+    }
+    await page.evaluate(() => {
+      const control = document.getElementById('menuTableMode');
+      control.value = 'scroll'; control.dispatchEvent(new Event('change'));
+    });
+    await settle();
+    await page.evaluate(() => {
+      window.fitOriginalSlide = document.getElementById('intro');
+      window.fitOriginalLink = document.getElementById('other');
+      fitOriginalLink.focus({preventScroll: true});
+      window.fitOriginalHash = location.hash;
+      window.fitOriginalTable = document.getElementById('scroll-table').parentElement;
+      fitOriginalTable.scrollLeft = 120;
+      window.fitLifecycle = {connect: 0, disconnect: 0, focus: 0, blur: 0, iframe: 0};
+      customElements.define('fit-lifecycle-probe', class extends HTMLElement {
+        connectedCallback() { fitLifecycle.connect++; }
+        disconnectedCallback() { fitLifecycle.disconnect++; }
+      });
+      const widget = document.createElement('fit-lifecycle-probe');
+      widget.id = 'active-fit-widget';
+      fitOriginalSlide.appendChild(widget);
+      const frame = document.createElement('iframe');
+      frame.id = 'active-fit-frame'; frame.srcdoc = '<p>Active frame</p>';
+      frame.style.cssText = 'position:absolute;width:20px;height:20px';
+      frame.addEventListener('load', () => fitLifecycle.iframe++);
+      widget.appendChild(frame);
+      fitOriginalLink.addEventListener('focus', () => fitLifecycle.focus++);
+      fitOriginalLink.addEventListener('blur', () => fitLifecycle.blur++);
+      const selection = getSelection();
+      selection.setBaseAndExtent(fitOriginalLink.firstChild, 1, fitOriginalLink.firstChild, 5);
+      window.fitSelection = {anchor: selection.anchorNode, anchorOffset: selection.anchorOffset,
+        focus: selection.focusNode, focusOffset: selection.focusOffset, text: selection.toString()};
+    });
+    await page.waitForFunction(() => fitLifecycle.iframe === 1);
+    await scope('series');
+    async function unchangedLiveView() {
+      assert.deepEqual(await page.evaluate(() => fitLifecycle), {connect: 1, disconnect: 0, focus: 0, blur: 0, iframe: 1});
+      assert.equal(await page.evaluate(() => {
+        const selection = getSelection();
+        return selection.anchorNode === fitSelection.anchor && selection.anchorOffset === fitSelection.anchorOffset
+          && selection.focusNode === fitSelection.focus && selection.focusOffset === fitSelection.focusOffset
+          && selection.toString() === fitSelection.text && document.activeElement === fitOriginalLink;
+      }), true, 'measurement must preserve live selection endpoints and focus without repairing them');
+    }
+    await unchangedLiveView();
+    await page.setViewportSize({width: 1090, height: 710});
+    await settle();
+    await unchangedLiveView();
+    await page.setViewportSize({width: 1100, height: 700});
+    await settle();
+    await unchangedLiveView();
+    await page.evaluate(() => document.getElementById('active-fit-widget').remove());
+    const seriesScale = await page.locator('#detail').getAttribute('data-lwp-text-scale');
+    assert.equal(seriesScale, denseState.scale, 'series fit uses the dense sibling real layout');
+    assert.equal(await page.evaluate(() => document.getElementById('intro') === fitOriginalSlide
+      && document.getElementById('other') === fitOriginalLink && document.activeElement === fitOriginalLink
+      && location.hash === fitOriginalHash), true, 'measurement restores exact active DOM, focus and route');
+    assert.equal(await page.evaluate(() => fitOriginalTable.scrollLeft), 120,
+      'measurement preserves the active table scroll position');
+    assert.equal(await page.locator('section.slide').evaluateAll(nodes =>
+      new Set(nodes.filter(n => !n.hidden).map(n => n.getAttribute('data-lwp-text-scale'))).size), 1);
+    await navigate('a.html');
+    assert.equal(await page.locator('#detail').getAttribute('data-lwp-text-scale'), seriesScale,
+      'all articles in the scope receive exactly the same factor');
+    await navigate('b.html');
+    await scope('article');
+    assert.equal(await page.locator('#detail').getAttribute('data-lwp-text-scale'), '1');
+    await scope('series');
+    await page.reload();
+    await settle();
+    assert.equal(await page.locator('#menuFitScope').inputValue(), 'series');
+    assert.equal(await page.locator('#detail').getAttribute('data-lwp-text-scale'), seriesScale);
     const beforePrint = await page.locator('#lwp-series-view').textContent();
     const beforePrintStyles = await page.locator('#lwp-series-view [style]').evaluateAll(nodes => nodes.map(node => node.getAttribute('style')));
     await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+    assert.equal(await page.locator('[data-lwp-fit-measurement]').evaluateAll(nodes =>
+      nodes.every(node => getComputedStyle(node).display === 'none')), true, 'passive documents are excluded from print');
     await page.emulateMedia({media: 'print'});
     assert.equal(await page.locator('#lwp-series-view').textContent(), beforePrint);
     assert.equal(await page.locator('#lwp-series-view').textContent().then(text => text.includes('Note from A')), false);
@@ -245,6 +331,8 @@ ${name === 'a' ? 'Dense text. '.repeat(300) : 'Short readable text.'}
     await settle();
     assert.equal(await page.locator('#menuZoomValue').textContent(), '110%');
     assert.deepEqual(await page.locator('#lwp-series-view [style]').evaluateAll(nodes => nodes.map(node => node.getAttribute('style'))), beforePrintStyles);
+    await scope('article');
+    assert.equal(await page.locator('#detail').getAttribute('data-lwp-text-scale'), '1');
     await page.evaluate(() => {
       window.dispatchEvent(new Event('beforeprint'));
       location.hash = '#lwp/a/a.html';
@@ -268,6 +356,10 @@ ${name === 'a' ? 'Dense text. '.repeat(300) : 'Short readable text.'}
     await page.locator('#lwp-series-view a.article-card').first().click();
     await settle();
     assert.equal(await page.evaluate(() => document.fullscreenElement === document.documentElement), true);
+    await scope('series');
+    assert.equal(await page.evaluate(() => document.fullscreenElement === document.documentElement), true,
+      'measuring other views preserves real fullscreen');
+    await scope('article');
     await page.keyboard.press('Control+Home');
     await settle();
     assert.equal(await page.evaluate(() => document.fullscreenElement === document.documentElement), true);
@@ -299,12 +391,27 @@ ${name === 'a' ? 'Dense text. '.repeat(300) : 'Short readable text.'}
       await offline.goto(pathToFileURL(path.join(moved, 'series.html')).href + route('b.html', 'detail'));
       assert.equal(await offline.title(), 'Article B');
       assert.equal(await offline.locator('#static-svg').evaluate(img => img.complete && img.naturalWidth > 0), true);
+      await offline.evaluate(() => {
+        for (const [id, value] of [['menuTextFit', 'uniform'], ['menuFitScope', 'series']]) {
+          const n = document.getElementById(id); n.value = value; n.dispatchEvent(new Event('change'));
+        }
+      });
+      await offline.waitForFunction(() => {
+        const value = document.getElementById('detail').getAttribute('data-lwp-text-scale');
+        return value !== null && Number(value) < 1;
+      });
+      assert.equal(await offline.locator('#static-svg').evaluate(img => img.complete && img.naturalWidth > 0), true,
+        'series measurements retain static SVG images even when storage is denied');
       await offline.keyboard.press('Control+Home');
       assert.equal(await offline.locator('section.slide').count(), 0);
+      assert.equal(await offline.locator('#lwp-series-view').evaluate(node => getComputedStyle(node).outlineStyle), 'none',
+        'route focus must not draw a frame around contents');
       const card = offline.locator('#lwp-series-view a.article-card').first();
       if (mobile) await card.tap();
       else await card.click();
       assert.equal(await offline.title(), 'Article A');
+      assert.equal(await offline.locator('section.slide').first().evaluate(node => getComputedStyle(node).outlineStyle), 'none',
+        'route focus must not draw a separator around the first slide');
       await offline.keyboard.press('c');
       const identity = offline.locator('[data-identity="lightwebpres-docs@0.1.0"]');
       if (mobile) await identity.tap();
@@ -320,7 +427,161 @@ ${name === 'a' ? 'Dense text. '.repeat(300) : 'Short readable text.'}
       assert.deepEqual(offlineErrors, []);
       await offline.close();
     }
-    console.log('Single-document runtime: real CLI build, routes/history/tags, notes, presets/pins, isolated fitting, stale events, print, real fullscreen, and moved offline desktop/mobile checks passed.');
+    // A second real build distinguishes slide visibility from article gates,
+    // and a measurable intermediate factor from merely hitting the floor.
+    const fitting = path.join(work, 'fit-scope');
+    cli('init', fitting);
+    fs.writeFileSync(path.join(fitting, 'series.json'), JSON.stringify({
+      series_meta: {title: 'Scope and frame', reading: {text_fit: 'uniform'}},
+      presentation_presets: ['lightwebpres-docs@0.1.0/docs'],
+      articles: ['sparse', 'measured', 'gated'].map(name => ({page_source: name + '.md', page_dest: name + '.html'})),
+    }));
+    fs.writeFileSync(path.join(fitting, 'sources/sparse.md'), `<!-- lwp:meta -->
+page_title: Sparse
+style.page.bg: #ffffff
+---
+<!-- lwp:slide:cover -->
+slug: cover
+# Sparse cover
+summary: Short summary.
+---
+<!-- lwp:slide -->
+slug: short
+## A standard card
+
+Short text. <a id="focus-link" href="#cover">Cover</a>
+`);
+    fs.writeFileSync(path.join(fitting, 'sources/measured.md'), `<!-- lwp:meta -->
+page_title: Measured
+style.page.bg: #eeeeee
+style.page.content-max: 500px
+---
+<!-- lwp:slide -->
+slug: short
+## Short
+
+Short text.
+---
+<!-- lwp:slide -->
+slug: measured
+tags: technical
+## Measured
+
+<p style="font-size: 30px; line-height: 36px">${Array(16).fill('Measured line.').join('<br>')}</p>
+`);
+    fs.writeFileSync(path.join(fitting, 'sources/gated.md'), `<!-- lwp:meta -->
+page_title: Gated
+tags: restricted
+---
+<!-- lwp:slide:full-article -->
+slug: long
+article: long.md
+`);
+    fs.writeFileSync(path.join(fitting, 'sources/long.md'), '# Long form\n\n' + 'Long paragraph.\n\n'.repeat(80));
+    cli('build', fitting, '--lang', 'en', '--themes', 'print-ink,dracula', '--scroll-duration', '0', '--output', path.join(fitting, 'multi'));
+    cli('build', fitting, '--lang', 'en', '--themes', 'print-ink,dracula', '--scroll-duration', '0', '--single-page', 'series.html');
+    for (const mobile of [false, true]) {
+      const probe = await browser.newPage(mobile
+        ? {viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true}
+        : {viewport: {width: 1100, height: 700}});
+      const probeErrors = [];
+      probe.on('pageerror', e => probeErrors.push(e.message));
+      await probe.context().setOffline(true);
+      await probe.route(/^https?:/, r => r.abort());
+      const settled = () => probe.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const setOption = async (name, value) => {
+        await probe.evaluate(({name, value}) => {
+          const n = document.querySelector(`[data-reading-option="${name}"]`);
+          n.value = value; n.dispatchEvent(new Event('change', {bubbles: true}));
+        }, {name, value});
+        await settled();
+      };
+      const go = async key => {
+        await probe.evaluate(key => {location.hash = key ? '#lwp/a/' + key + '.html' : '#lwp/index';}, key);
+        await settled();
+      };
+      const tag = async value => {
+        await probe.locator(`[data-tag="${value}"]`).evaluate(n => n.click());
+        await settled();
+      };
+      const scale = () => probe.locator('section.slide:not([hidden])').first().getAttribute('data-lwp-text-scale').then(Number);
+      await probe.goto(pathToFileURL(path.join(fitting, 'multi/sparse.html')).href);
+      await settled();
+      assert.equal(await probe.locator('#menuFitScopeLabel').evaluate(n => n.hidden), true, 'multipage never offers bundle scope');
+      await probe.goto(pathToFileURL(path.join(fitting, 'public/series.html')).href);
+      await settled();
+      await probe.screenshot({path: path.join(work, `frame-${mobile ? 'mobile' : 'desktop'}-contents.png`)});
+      assert.equal(await probe.locator('#lwp-series-view').evaluate(n => getComputedStyle(n).outlineStyle), 'none');
+      await go('sparse');
+      await probe.waitForTimeout(300);
+      const geometry = await probe.evaluate(() => {
+        const cover = document.getElementById('cover'), short = document.getElementById('short');
+        return {gap: short.getBoundingClientRect().top - cover.getBoundingClientRect().bottom,
+          left: cover.getBoundingClientRect().left, right: cover.getBoundingClientRect().right,
+          width: document.documentElement.clientWidth, outline: getComputedStyle(cover).outlineStyle,
+          top: cover.getBoundingClientRect().top,
+          bodyPadding: getComputedStyle(document.body).padding,
+          background: getComputedStyle(document.body).backgroundColor};
+      });
+      assert.deepEqual(geometry, {gap: 0, left: 0, right: mobile ? 390 : 1100, width: mobile ? 390 : 1100,
+        top: 0, outline: 'none', bodyPadding: '0px', background: 'rgb(255, 255, 255)'});
+      await probe.evaluate(() => scrollTo({top: innerHeight - 150, behavior: 'instant'}));
+      await settled();
+      await probe.screenshot({path: path.join(work, `frame-${mobile ? 'mobile' : 'desktop'}-boundary.png`)});
+      await setOption('fit_scope', 'series');
+      assert.equal(await scale(), 1, 'tag-hidden dense slide and gated long form do not reduce the series');
+      await tag('technical');
+      const technical = await scale();
+      if (!mobile) assert(technical > .75 && technical < 1, 'exercise a real bisection, not just the floor: ' + technical);
+      await go('measured');
+      assert.equal(await scale(), technical, 'the measured view and the sparse view receive exactly the same factor');
+      await setOption('fit_scope', 'article');
+      assert.equal(await scale(), technical, 'series measurement equals the actual mounted view solver');
+      await go('sparse');
+      assert.equal(await scale(), 1);
+      await setOption('fit_scope', 'series');
+      assert.equal(await scale(), technical);
+      await probe.setViewportSize({width: 800, height: 1000});
+      await settled();
+      assert.equal(await scale(), 1, 'viewport changes invalidate the series factor');
+      await probe.setViewportSize(mobile ? {width: 390, height: 844} : {width: 1100, height: 700});
+      await settled();
+      assert.equal(await scale(), technical);
+      await probe.keyboard.press('c');
+      await probe.locator('[data-identity="lightwebpres-docs@0.1.0"]').click();
+      await probe.locator('[data-presentation="lightwebpres-docs@0.1.0/docs"]').click();
+      await settled();
+      const presetScale = await scale();
+      assert.equal(await probe.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(255, 255, 255)',
+        'measuring another page restores active page pins');
+      await go('measured');
+      await setOption('fit_scope', 'article');
+      assert.equal(await scale(), presetScale, 'alternate preset measurement matches its mounted variant and pins');
+      await go('sparse');
+      await setOption('fit_scope', 'series');
+      await tag('restricted');
+      assert.equal(await scale(), .75, 'a tag-visible long form still constrains uniform fitting');
+      await tag('default');
+      assert.equal(await scale(), 1, 'tag changes invalidate earlier factors');
+      await setOption('text_fit', 'per-slide');
+      assert.equal(await probe.locator('#menuFitScopeLabel').evaluate(n => n.hidden), true);
+      await setOption('text_fit', 'uniform');
+      await probe.keyboard.press('m');
+      await probe.locator('#menuReading').click();
+      const scopeControl = probe.getByRole('combobox', {name: 'Uniform fit scope', exact: true});
+      assert.equal(await scopeControl.isVisible(), true);
+      await scopeControl.focus();
+      await scopeControl.selectOption('article');
+      await settled();
+      assert.equal(await probe.locator('#menuFitScope').evaluate(n => document.activeElement === n), true);
+      assert.deepEqual(probeErrors, []);
+      await probe.close();
+    }
+    const passive = spawnSync(process.execPath, [path.join(__dirname, 'single_document_measurement_e2e.cjs')],
+      {env: process.env, cwd: root, encoding: 'utf8', timeout: 120000});
+    assert.equal(passive.status, 0, passive.stdout + passive.stderr);
+    console.log(passive.stdout.trim());
+    console.log('Single-document runtime: real CLI builds, routes/history/tags, notes, presets/pins, article/series fitting, live selection/widget isolation, stale events, print, real fullscreen, and offline desktop/mobile geometry checks passed.');
   } finally {
     if (server) await new Promise(resolve => server.close(resolve));
     await browser.close();

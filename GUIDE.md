@@ -692,9 +692,11 @@ The other table modes are `clip` and `overflow`; the other text modes are
 [reader controls](#adjust-zoom-tables-and-text) explain each choice.
 
 `fixed` retains the theme's native responsive sizes; it disables content-based
-text fitting, not responsiveness. `uniform` measures all slides currently
-visible under the active tag, including a visible long-form article, and uses
-one shared reduction factor. `per-slide` solves each visible slide separately.
+text fitting, not responsiveness. `uniform` measures all tag-visible slides in
+the current article, including long-form and series-navigation slides, and uses
+one shared reduction factor. In single-page output, readers can extend that
+scope to all articles in Display settings. `per-slide` solves each visible
+slide separately without propagating its factor to other slides or articles.
 Fitting measures actual browser layout at the current viewport and repeats
 after resize, theme/preset or tag changes, font loading and image loading.
 It never enlarges content above its chosen baseline.
@@ -1405,6 +1407,7 @@ mouse, keyboard or touch; no source edit or rebuild is needed:
 | Presentation zoom: **-**, **+**, **Reset** | Reduce or enlarge presentation text and images, or return to 100%, without scaling the slide frame or controls; the current percentage is shown. Keyboard equivalents are **-**, **+**, **=**. |
 | Wide tables | **Hide what does not fit** (`clip`, default), **Allow overflow** (`overflow`), or **Scroll inside the table** (`scroll`). **O** cycles in that order. |
 | Text size | **Keep the chosen size** (`fixed`, default), **Reduce all slides together** (`uniform`), or **Reduce each slide as needed** (`per-slide`). **A** cycles in that order. |
+| Uniform fit scope | Single-page output only, while text size is `uniform`: **Current article** (default) or **Entire series**. |
 | Reduce tables as needed | Independently allow bounded table shrinking; off by default. |
 | Reduce images as needed | Independently allow bounded shrinking of supported images/figures; off by default, not a control for arbitrary embedded widgets. |
 
@@ -1421,6 +1424,14 @@ browser storage availability, and `file:` URLs can behave differently from
 served HTTP(S) pages and across browsers. Appearance choices keep their
 separate browser-session contract.
 
+In French, the scope control is **Portée de la réduction uniforme**, with
+**Article courant** and **Série entière** as its choices. In single-page output,
+scope is saved separately from the other reading settings for the same output
+directory. Missing or invalid
+stored scope, or blocked storage reads, starts with **Current article**;
+the control remains usable if saving is blocked. It is a reader preference,
+not a `series_meta.reading` field, and does not affect multipage output.
+
 Choose **Scroll inside the table** to read every column of a wide table within
 its own viewport. Focus that region to use arrow keys, or scroll it horizontally
 with a touch gesture, trackpad or Shift+wheel. Keys and gestures inside the
@@ -1431,13 +1442,25 @@ Allow overflow removes that local clipping but may extend beyond the slide.
 
 Text fitting starts from the chosen theme's responsive sizes. **Keep the chosen
 size** means no content-based reduction, not a fixed pixel size at every
-viewport. Shared reduction considers every currently visible slide under the
-active tag, not just the slide on screen; a visible long-form article can drive
-the whole group to its floor. Independent reduction affects only slides that
-need it. Both use actual browser measurements and recalculate when the viewport,
-theme, preset, tags, fonts or loaded images change. If the minimum size still
+viewport. Shared reduction considers every tag-visible slide in the selected
+scope, not just the slide on screen. **Current article** covers the active
+article; **Entire series** includes tag-eligible slides across all articles,
+even those not currently open. The shared factor is the smallest measured
+factor, respecting each article's styles, preset and settings pins. Long-form
+and series-navigation slides participate even when they remain too large at
+the minimum, so one can drive the whole group to its floor. Independent
+reduction affects only slides that need it; fixed sizing does not fit content.
+Both fitting modes use actual browser measurements and recalculate when the
+viewport, theme, preset, tags, fonts or loaded images change. If the minimum size still
 does not fit, the slide remains readable by scrolling; fitting never removes
 text or table cells to make a slide pass.
+
+Series-wide measurement supports static article content. If an eligible article
+contains executable HTML, embedded media, frames or custom widgets, the control
+returns to **Current article** and names the article that prevents measurement.
+Inactive articles are measured in script-disabled, isolated documents; the
+active article, text selection and media state stay in place. Author CSS that
+depends on the surrounding control shell is not guaranteed to measure identically.
 
 When fitting or shrinking is enabled, Display settings reports how many visible
 slides still need scrolling. It does not put a warning over the presentation itself.
@@ -1729,7 +1752,7 @@ whitespace), exiting non-zero when output differs. Run it before `build` to
 catch a `public/` that was hand-edited or never rebuilt after a source change.
 
 Use the same supported rendering options as the build, including `--lang`,
-`--themes`, `--no-essential-theme`, `--single-page FILE` and `--inline-images`
+`--themes`, `--no-essential-theme`, `--single-page [FILE]` and `--inline-images`
 when used. `verify` reproduces both inline-image and single-page output; no
 separate non-inline build is needed for this CI check.
 
@@ -1823,15 +1846,38 @@ is checked for tag balance before writing; that is not a security sanitizer.
 ### Publish a series in one HTML file
 
 ```bash
+./lightwebpres build my-series --lang en --single-page --inline-images
+./lightwebpres verify my-series --lang en --single-page --inline-images
 ./lightwebpres build my-series --lang en --single-page collection.html --inline-images
 ./lightwebpres verify my-series --lang en --single-page collection.html --inline-images
 ./lightwebpres watch my-series --lang en --single-page collection.html --inline-images --serve --open
 ```
 
-`--single-page FILE` requires a bare `.html` or `.htm` filename, not a path or
-URL. `--output` still selects the output directory, so these commands produce
-`my-series/public/collection.html` by default. Omit `--inline-images` to keep
-supported images and presentation assets as copied files beside the combined
+`--single-page [FILE]` accepts an optional filename on `build`, `verify` and
+`watch`. Without one, it derives a `.html` filename from `series_meta.title`:
+strip HTML, decode entities, lowercase, fold accents and replace punctuation
+with hyphens, retaining Unicode letters. For example, `Café & Climate` becomes
+`cafe-climate.html`. An empty result falls back to the series directory name,
+then `series`, never a translated "untitled" label. Automatic stems are limited
+to 100 characters and 200 UTF-8 bytes; reserved Windows names receive a
+`series-` prefix.
+
+An explicit bare `.html` or `.htm` filename takes precedence; paths, URLs and
+empty values are invalid. `--single-page=collection.html` is also supported.
+Before the positional series directory, the next separate argument is a
+filename only if it ends in `.html` or `.htm`; otherwise it remains the series
+directory. Use `build --single-page -- archive.html` for a series directory
+whose name looks like a filename. After the positional directory, any next
+non-option argument is treated as an explicit filename and validated.
+
+`--output` still selects the output directory. The explicit-name commands
+above produce `my-series/public/collection.html` by default; the first two
+use the title-derived name. Match the automatic or explicit choice in `verify`.
+`watch` rederives an automatic name when the series title changes; choose an
+explicit filename if the published address must stay stable.
+
+Omit `--inline-images` to keep supported images and presentation assets as
+copied files beside the combined
 HTML; include them when distributing it. Image embedding has the portability
 limits described above. Without `--single-page`, output remains multipage.
 
@@ -1861,8 +1907,9 @@ the `introduction` target in `first-page.html`. Encode each component separately
 
 The single-page build manifest records the physical combined HTML file and
 copied images/presentation assets unless inlined, not one file per virtual
-article. Changing publication mode does not automatically remove old multipage
-files or previously copied assets.
+article. Changing publication mode or the combined filename, including an
+automatic name after a title change, does not automatically remove old files
+or previously copied assets. They remain recorded for explicit cleanup.
 
 Removing an article from the array, marking it draft/ignored, or dropping an
 image reference does not erase an old published file. Review the manifest-based
@@ -1938,7 +1985,7 @@ python3 restored-series/lightwebpres build restored-series --lang en --output /t
 ```
 
 Skip the initial `verify` if the backup has no generated output. Match the
-original `--single-page FILE`, `--inline-images`, theme, preset-alternative or
+original `--single-page [FILE]`, `--inline-images`, theme, preset-alternative or
 typography flags rather than assuming the defaults in this example.
 `.lwp-cache/` is rebuildable state; retain output manifests with a published tree if you want
 `clean` to know which files it owns.
@@ -2045,7 +2092,7 @@ schema rather than guessing its meaning.
 | `series preset --format json` | `lightwebpres.series-preset/2`, containing a `lightwebpres.presentation-preset/2` object | Read the nested `preset` selector and resources; `native_renderer` describes rendering, not the initial selection. |
 | `build` | Non-zero on fatal structural/render errors | Read warnings too; exit 0 is not editorial approval. |
 | `audit` | Reports warnings and render failures; normally exits 0 | Read the report, or use `--strict` for a failing gate. |
-| `verify` | Non-zero on drift or failure | Match rendering flags, including `--single-page FILE` and `--inline-images` when used. |
+| `verify` | Non-zero on drift or failure | Match rendering flags, including `--single-page [FILE]` and `--inline-images` when used. |
 
 `status` can succeed with **incomplete source information**. A missing,
 unreadable or non-UTF-8 article stays in the report with `source_read: false`,
@@ -2198,7 +2245,7 @@ check it **before** rebuilding, so build does not erase evidence of drift:
 
 A fresh checkout with no committed output needs a build, not that initial
 drift gate. Match rendering options in `verify`, including language, themes
-and `--no-essential-theme`, plus `--single-page FILE` and `--inline-images`
+and `--no-essential-theme`, plus `--single-page [FILE]` and `--inline-images`
 when used.
 
 ### Target builds and record build stamps
@@ -2213,7 +2260,7 @@ in route 1; it does not reload the browser.
 `--only` targets one article only when the navigation cache is safe. It still
 refreshes derived outputs (index, README and assets according to options,
 manifest and cache); changes affecting index/navigation trigger a full build.
-With `--single-page FILE`, it validates the target and always rebuilds the
+With `--single-page [FILE]`, it validates the target and always rebuilds the
 complete combined document.
 The cache is bound to its output directory. Switching output directories, or
 losing retained pages or declared assets, also triggers a full build rather

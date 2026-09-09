@@ -134,7 +134,7 @@ journals planned effects; it is **not proof of rendered output**. Plain
 `audit` reports warnings and render failures without failing; `audit --strict`
 makes them a CI gate. Read findings, then build and inspect within scope.
 `verify` compares existing output with an in-memory rebuild using matching
-supported flags, including `--single-page FILE` and `--inline-images` when
+supported flags, including `--single-page [FILE]` and `--inline-images` when
 used. Report commands, options, findings and any unperformed visual or deployment
 checks; never call an unbuilt draft verified.
 

@@ -13,6 +13,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 from urllib.parse import quote
 
 if __package__:
@@ -138,9 +139,8 @@ class SingleDocument(unittest.TestCase):
         self.assertEqual({p.name for p in self.output.glob('*.html')}, {'series.html'})
         self.cli('verify', '--single-page', 'series.html')
 
-    def test_required_filename_and_unsupported_combinations_refuse_before_writes(self):
-        invalid = [('--single-page',), ('--single-page', '--inline-images')]
-        invalid += [('--single-page', name) for name in
+    def test_invalid_filename_and_unsupported_combinations_refuse_before_writes(self):
+        invalid = [('--single-page', name) for name in
                     ('', '../escape.html', 'nested/file.html', 'nested\\file.htm',
                      str(self.root / 'absolute.html'), 'series.txt', 'series.html#intro',
                      'series.html?x=1')]
@@ -154,7 +154,62 @@ class SingleDocument(unittest.TestCase):
                     self.assertIn('--single-page', result.stderr)
                     self.assertNotIn('Unknown option', result.stderr)
                     self.assertEqual(self.snapshot(), before)
-                    self.assertFalse(self.output.exists())
+        self.assertFalse(self.output.exists())
+
+    def test_omitted_filename_uses_the_series_title_with_build_verify_parity(self):
+        self.data['series_meta']['title'] = '<b>\u00c9nergie</b> & Soci\u00e9t\u00e9 / 2026'
+        self.save_series()
+        self.cli('build', '--single-page', '--inline-images')
+        filename = 'energie-societe-2026.html'
+        self.assertTrue((self.output / filename).is_file())
+        self.assertIn(filename + '#lwp/a/a.html', (self.root / 'README.md').read_text())
+        manifest = json.loads((self.output / '.lwp-manifest.json').read_text())
+        self.assertEqual(manifest['files'], [filename])
+        self.cli('verify', '--single-page', '--inline-images')
+        self.bundle('--inline-images', filename='explicit.htm')
+        self.cli('verify', '--single-page=explicit.htm', '--inline-images')
+
+    def test_bare_option_does_not_consume_the_series_directory(self):
+        for options in (['--single-page', str(self.root)],
+                        ['--single-page', '--inline-images', str(self.root)],
+                        ['--single-page', '--', str(self.root)]):
+            with self.subTest(options=options):
+                result = fixtures.run('build', *options, env=self.env, cwd=ROOT)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertTrue((self.output / 'bundled-series.html').is_file())
+        result = fixtures.run('build', '--single-page', env=self.env, cwd=self.root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_derived_name_handles_empty_unicode_reserved_and_long_titles(self):
+        lwp = fixtures.load_lightwebpres_module()
+        fallback = re.sub(r'[\W_]+', '-', self.root.name).strip('-') + '.html'
+        for title, expected in (('', fallback),
+                                ('!!!', fallback),
+                                ('\u65e5\u672c\u8a9e', '\u65e5\u672c\u8a9e.html'),
+                                ('\u65e5' * 500, '\u65e5' * 66 + '.html'),
+                                ('CON', 'series-con.html'),
+                                ('A' * 500, 'a' * 100 + '.html')):
+            with self.subTest(title=title):
+                self.data['series_meta']['title'] = title
+                self.save_series()
+                args = {'--single-page': True}
+                ctx = lwp.load_build_context(str(self.root), args)
+                self.assertEqual(ctx.args['--single-page'], expected)
+                self.assertIs(args['--single-page'], True, 'watch must retain automatic naming')
+
+    def test_watch_opens_the_derived_name_and_recomputes_it_after_a_title_change(self):
+        lwp = fixtures.load_lightwebpres_module()
+        def changes(*args, **kwargs):
+            self.data['series_meta']['title'] = 'Renamed series'
+            self.save_series()
+            yield [self.root / 'series.json']
+            raise KeyboardInterrupt
+        with mock.patch.object(lwp, '_cmd_watch_poll', changes), \
+                mock.patch('webbrowser.open') as opened:
+            self.assertEqual(lwp.cmd_watch(str(self.root), {'--single-page': True, '--open': True}), 0)
+        opened.assert_called_once_with((self.output / 'bundled-series.html').as_uri())
+        self.assertTrue((self.output / 'renamed-series.html').is_file())
+        self.cli('verify', '--single-page')
 
     def test_include_drafts_no_nav_no_readme_and_htm_filename(self):
         html, payload = self.bundle('--include-drafts', '--no-nav', '--no-readme',
@@ -303,12 +358,12 @@ class SingleDocument(unittest.TestCase):
         env = {**os.environ, **self.env}
         process = subprocess.Popen(
             [sys.executable, '-u', str(ROOT / 'lightwebpres'), 'watch', str(self.root),
-             '--output', str(self.output), '--single-page', 'series.html', '--inline-images'],
+             '--output', str(self.output), '--single-page', '--inline-images'],
             cwd=ROOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         observed = False
         try:
             deadline = time.monotonic() + 15
-            bundle = self.output / 'series.html'
+            bundle = self.output / 'bundled-series.html'
             while process.poll() is None and time.monotonic() < deadline:
                 if bundle.exists() and PAYLOAD.search(bundle.read_text(encoding='utf-8')):
                     source = self.root / 'sources' / 'b.md'
@@ -333,7 +388,7 @@ class SingleDocument(unittest.TestCase):
                 stdout, stderr = process.communicate()
         self.assertTrue(observed, stdout + stderr)
         self.assertEqual(process.returncode, 0, stdout + stderr)
-        self.cli('verify', '--single-page', 'series.html', '--inline-images')
+        self.cli('verify', '--single-page', '--inline-images')
 
 
 class SingleDocumentBrowser(unittest.TestCase):

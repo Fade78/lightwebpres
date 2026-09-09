@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.58.0"
+VERSION = "0.58.1"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1289,6 +1289,9 @@ LANG_FR = r'''{
     "menu_text_fit": "Taille du texte",
     "menu_text_fixed": "Conserver la taille choisie",
     "menu_text_uniform": "Réduire toutes les slides ensemble",
+    "menu_fit_scope": "Portée de la réduction uniforme",
+    "menu_fit_article": "Article courant",
+    "menu_fit_series": "Série entière",
     "menu_text_per_slide": "Réduire chaque slide si nécessaire",
     "menu_table_shrink": "Réduire les tableaux si nécessaire",
     "menu_object_shrink": "Réduire les images si nécessaire",
@@ -1487,6 +1490,9 @@ LANG_EN = r'''{
     "menu_text_fit": "Text size",
     "menu_text_fixed": "Keep the chosen size",
     "menu_text_uniform": "Reduce all slides together",
+    "menu_fit_scope": "Uniform fit scope",
+    "menu_fit_article": "Current article",
+    "menu_fit_series": "Entire series",
     "menu_text_per_slide": "Reduce each slide as needed",
     "menu_table_shrink": "Reduce tables as needed",
     "menu_object_shrink": "Reduce images as needed",
@@ -8042,6 +8048,10 @@ html.about-open, html.about-open body { overflow: hidden; }
    had for .theme-row, and the same fix. Keep this override beside every
    display on .slide/.nav-btn. */
 .slide[hidden], .nav-btn[hidden] { display: none; }
+.reading-controls label[hidden] { display: none; }
+/* Route focus identifies a reading destination, not an interactive control.
+   Keep link/control focus rings, but do not outline an entire contents view. */
+#lwp-series-view:focus, #lwp-series-view > .slide:focus { outline: none; }
 .article-card[hidden], .series-item[hidden] { display: none; }
 /* The number sits over the COLUMN, not over the card.
 
@@ -9859,32 +9869,33 @@ function lwpBrowserLanguage() {
   var first = String(languages[0] || '').toLowerCase();
   return /^fr(?:[-_]|$)/.test(first) ? 'fr' : 'en';
 }
-function lwpSetLanguage(code) {
+function lwpSetLanguage(code, targetDocument) {
   if (!lwpLanguageData || !lwpLanguageData.packs) return;
   var pack = lwpLanguageData.packs[code];
   if (!pack || !pack.strings) return;
   lwpLanguageStrings = pack.strings;
-  document.documentElement.setAttribute('lang', code);
-  Array.prototype.forEach.call(document.querySelectorAll('[data-lwp-i18n]'), function (element) {
+  var languageDocument = targetDocument || document;
+  languageDocument.documentElement.setAttribute('lang', code);
+  Array.prototype.forEach.call(languageDocument.querySelectorAll('[data-lwp-i18n]'), function (element) {
     var value = lwpString(element.getAttribute('data-lwp-i18n'));
     if (value !== '') element.textContent = value;
   });
   [['title', 'data-lwp-i18n-title'],
    ['aria-label', 'data-lwp-i18n-aria-label'],
    ['placeholder', 'data-lwp-i18n-placeholder']].forEach(function (pair) {
-    Array.prototype.forEach.call(document.querySelectorAll('[' + pair[1] + ']'), function (element) {
+    Array.prototype.forEach.call(languageDocument.querySelectorAll('[' + pair[1] + ']'), function (element) {
       var value = lwpString(element.getAttribute(pair[1]));
       if (value !== '') element.setAttribute(pair[0], value);
     });
   });
-  Array.prototype.forEach.call(document.querySelectorAll('[data-lwp-share-title]'), function (button) {
+  Array.prototype.forEach.call(languageDocument.querySelectorAll('[data-lwp-share-title]'), function (button) {
     var action = lwpString(button.getAttribute('data-lwp-share-title'));
     var scope = lwpString(button.getAttribute('data-lwp-share-scope'));
     if (action && scope) button.title = action + ' — ' + scope;
   });
   // Source labels are followed by authored text, so update only the leading
   // text node and preserve the build's typographic spacing before the colon.
-  Array.prototype.forEach.call(document.querySelectorAll('.source'), function (element) {
+  Array.prototype.forEach.call(languageDocument.querySelectorAll('.source'), function (element) {
     var node = element.firstChild;
     if (!node || node.nodeType !== 3) return;
     var colon = node.nodeValue.indexOf(':');
@@ -10021,6 +10032,15 @@ document.addEventListener('DOMContentLoaded', function() {
   // index pages, including distinct directories opened through file: URLs.
   var readingPreferenceKey = 'lwp-reading:' + location.pathname.slice(
     0, location.pathname.lastIndexOf('/') + 1);
+  // Bundle-only preference: leave the shipped multipage reading record intact.
+  var fitScope = 'article';
+  var fitScopeProblem = '';
+  var fitScopeKey = readingPreferenceKey + ':fit-scope';
+  if (seriesViews) {
+    try {
+      if (window.localStorage.getItem(fitScopeKey) === 'series') fitScope = 'series';
+    } catch (e) {}
+  }
   try {
     var savedReading = JSON.parse(window.localStorage.getItem(readingPreferenceKey));
     if (savedReading && typeof savedReading === 'object' && !Array.isArray(savedReading)
@@ -10054,7 +10074,14 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function setReadingOption(name, value) {
-    if (name === 'table_mode') {
+    if (name === 'fit_scope') {
+      if (!seriesViews || ['article', 'series'].indexOf(value) < 0) return false;
+      fitScopeProblem = '';
+      fitScope = value;
+      try { window.localStorage.setItem(fitScopeKey, value); } catch (e) {}
+      scheduleReadingLayout('scope');
+      return true;
+    } else if (name === 'table_mode') {
       if (['clip', 'overflow', 'scroll'].indexOf(value) < 0) return false;
     } else if (name === 'text_fit') {
       if (['fixed', 'uniform', 'per-slide'].indexOf(value) < 0) return false;
@@ -10078,6 +10105,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var printPosition = null;
     var printScroll = [];
     var viewports = new WeakMap();
+    var seriesFitFactors = new Map();
+    var seriesFitTag = null;
+    var measurementViews = new Map();
 
     function remember(node, property) {
       var properties = originals.get(node);
@@ -10096,12 +10126,12 @@ document.addEventListener('DOMContentLoaded', function() {
         else item.node.style.removeProperty(item.property);
       });
     }
-    function enhanceTables() {
-      allSlides.forEach(function (slide) {
+    function enhanceTables(slideList, root) {
+      slideList.forEach(function (slide) {
         Array.prototype.forEach.call(slide.querySelectorAll('table'), function (table) {
           var viewport = table.parentElement;
           if (!viewport.classList.contains('lwp-table-viewport')) {
-            viewport = document.createElement('div');
+            viewport = table.ownerDocument.createElement('div');
             viewport.className = 'lwp-table-viewport';
             table.parentNode.insertBefore(viewport, table);
             viewport.appendChild(table);
@@ -10127,35 +10157,17 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         });
       });
-      document.documentElement.setAttribute('data-lwp-table-mode', readingSettings.table_mode);
+      (root || document.documentElement).setAttribute('data-lwp-table-mode', readingSettings.table_mode);
     }
 
-    function layout() {
-      frame = null;
-      if (printing) return;
-      // Resize/zoom already own a pending reanchor. Other reading changes use
-      // the same anchor contract, without scheduling another layout loop.
-      var position = !isIndex && !isScrolling && !presentationReanchorFrame
-        ? (pendingPosition || captureReadingPosition()) : null;
-      pendingPosition = null;
-      restore(changed);
-      changed = [];
-      originals = new WeakMap();
-      enhanceTables();
-      allSlides.forEach(function (slide) {
-        slide.removeAttribute('data-lwp-fit-overflow');
-        slide.removeAttribute('data-lwp-text-scale');
-      });
-      // Restore authored styles first: autofit always solves at 100%, then
-      // explicit zoom scales its result without changing frame geometry.
-      document.documentElement.style.setProperty('--lwp-presentation-zoom', String(presentationZoom));
-      var contentRoots = isIndex ? Array.prototype.slice.call(
-        contentRoot().querySelectorAll('.header, .intro, .article-card')) : allSlides;
-      var visible = contentRoots.filter(function (slide) {
+    function collectCandidates(roots) {
+      var getComputedStyle = function (node, pseudo) {
+        return node.ownerDocument.defaultView.getComputedStyle(node, pseudo);
+      };
+      var visible = roots.filter(function (slide) {
         return !slide.hidden && getComputedStyle(slide).display !== 'none';
       });
-      var height = document.documentElement.clientHeight;
-      var candidates = visible.map(function (slide) {
+      return visible.map(function (slide) {
         var cs = getComputedStyle(slide);
         var text = [];
         var textByNode = new Map();
@@ -10166,7 +10178,7 @@ document.addEventListener('DOMContentLoaded', function() {
           var ranges = [];
           Array.prototype.forEach.call(node.childNodes, function (child) {
             if (child.nodeType !== 3 || !child.textContent.trim()) return;
-            var range = document.createRange();
+            var range = node.ownerDocument.createRange();
             range.selectNodeContents(child);
             ranges.push(range);
           });
@@ -10239,6 +10251,79 @@ document.addEventListener('DOMContentLoaded', function() {
         return {slide: slide, text: text, objects: objects, objectFloor: objectFloor,
           left: parseFloat(cs.paddingLeft), right: parseFloat(cs.paddingRight)};
       });
+    }
+
+    function seriesSnapshot(view) {
+      var cached = measurementViews.get(view.key);
+      var language = document.documentElement.lang;
+      if (cached && cached.preset === presentationCurrent && cached.language === language
+          && cached.tag === selectedTag) return cached;
+      if (cached && cached.frame) cached.frame.remove();
+      // No browsing context or custom-element registry: parsing cannot run a
+      // widget, upgrade a custom element, or start its subdocument/media load.
+      var snapshot = document.implementation.createHTMLDocument('');
+      snapshot.body.innerHTML = view.content;
+      snapshot.head.innerHTML = view.pageCss;
+      var variant = view.variants && view.variants[presentationCurrent];
+      // Preserve hidden siblings for selector fidelity. Widget-bearing eligible
+      // articles are conservatively refused even when a widget is hidden.
+      Array.prototype.forEach.call(snapshot.querySelectorAll('section.slide'), function (slide) {
+        slide.hidden = !slideMatchesTag(slide, selectedTag);
+        slide.setAttribute('aria-hidden', slide.hidden ? 'true' : 'false');
+        if (presentationAlternatives() && variant && variant.sections
+            && typeof variant.sections[slide.id] === 'string') slide.innerHTML = variant.sections[slide.id];
+      });
+      Array.prototype.forEach.call(snapshot.querySelectorAll('[data-lwp-article-card]'), function (card) {
+        card.hidden = !articleMatchesTag(card, selectedTag);
+        card.setAttribute('aria-hidden', card.hidden ? 'true' : 'false');
+      });
+      var unsupported = Array.prototype.some.call(snapshot.querySelectorAll('*'), function (node) {
+        var name = node.localName.toLowerCase();
+        return name.indexOf('-') !== -1 || node.hasAttribute('is')
+          || /^(script|iframe|frame|object|embed|audio|video|track|canvas|foreignobject|animate|animatemotion|animatetransform|set|link|meta|base)$/.test(name)
+          || (name === 'source' && node.parentElement.localName !== 'picture')
+          || (name === 'input' && node.hasAttribute('src'))
+          || ((name === 'use' || name === 'image') && Array.prototype.some.call(node.attributes, function (attribute) {
+            return /^(href|xlink:href)$/.test(attribute.name) && attribute.value.charAt(0) !== '#';
+          }))
+          || Array.prototype.some.call(node.attributes, function (attribute) { return /^on/i.test(attribute.name); });
+      });
+      // Autofocus must not transfer focus into even a script-free document.
+      Array.prototype.forEach.call(snapshot.querySelectorAll('[autofocus]'), function (node) { node.removeAttribute('autofocus'); });
+      cached = {snapshot: snapshot, unsupported: unsupported, preset: presentationCurrent,
+        language: language, tag: selectedTag, frame: null};
+      measurementViews.set(view.key, cached);
+      return cached;
+    }
+
+    function layout() {
+      frame = null;
+      if (printing) return;
+      // Activating an article can select its first publishable tag while
+      // scheduling is suspended. Do not reuse measurements of the old tag.
+      if (seriesFitTag !== selectedTag) {
+        seriesFitFactors.clear();
+        seriesFitTag = selectedTag;
+      }
+      // Resize/zoom already own a pending reanchor. Other reading changes use
+      // the same anchor contract, without scheduling another layout loop.
+      var position = !isIndex && !isScrolling && !presentationReanchorFrame
+        ? (pendingPosition || captureReadingPosition()) : null;
+      pendingPosition = null;
+      restore(changed);
+      changed = [];
+      originals = new WeakMap();
+      enhanceTables(allSlides);
+      allSlides.forEach(function (slide) {
+        slide.removeAttribute('data-lwp-fit-overflow');
+        slide.removeAttribute('data-lwp-text-scale');
+      });
+      // Restore authored styles first: autofit always solves at 100%, then
+      // explicit zoom scales its result without changing frame geometry.
+      document.documentElement.style.setProperty('--lwp-presentation-zoom', String(presentationZoom));
+      var contentRoots = isIndex ? Array.prototype.slice.call(
+        contentRoot().querySelectorAll('.header, .intro, .article-card')) : allSlides;
+      var height = document.documentElement.clientHeight;
 
       function apply(candidate, scale) {
         candidate.slide.setAttribute('data-lwp-text-scale', String(scale));
@@ -10280,9 +10365,9 @@ document.addEventListener('DOMContentLoaded', function() {
           group.forEach(function (candidate) { applyScale(candidate, scale); });
           return group.every(fits);
         }
-        if (test(1)) return;
+        if (test(1)) return 1;
         var high = 1;
-        if (!test(low)) return;
+        if (!test(low)) return low;
         // Nine bisections bound the factor error below 0.001. Failed
         // floor candidates remain readable and scroll, never disappear.
         for (var i = 0; i < 9; i++) {
@@ -10291,15 +10376,128 @@ document.addEventListener('DOMContentLoaded', function() {
           else high = mid;
         }
         test(low);
+        return low;
+      }
+      function fitObjects(group) {
+        group.forEach(function (candidate) {
+          if (candidate.objects.length) solve([candidate], candidate.objectFloor, applyObjects);
+        });
+      }
+      function measureSeriesView(view) {
+        var cached = seriesSnapshot(view);
+        if (!cached.frame) {
+          var surface = document.createElement('iframe');
+          surface.setAttribute('sandbox', 'allow-same-origin');
+          surface.setAttribute('aria-hidden', 'true');
+          surface.setAttribute('tabindex', '-1');
+          surface.setAttribute('data-lwp-fit-measurement', '');
+          surface.inert = true;
+          surface.style.cssText = 'all:initial!important;display:block!important;position:fixed!important;left:0!important;top:0!important;'
+            + 'border:0!important;opacity:0!important;pointer-events:none!important;z-index:-2147483648!important;';
+          document.body.appendChild(surface);
+          cached.frame = surface;
+          var doc = surface.contentDocument;
+          // Only a constant standards-mode shell is parsed in a browsing
+          // context. Authored content has already passed inert preflight.
+          doc.open();
+          doc.write('<!doctype html><html><head></head><body></body></html>');
+          doc.close();
+          var policy = doc.createElement('meta');
+          policy.httpEquiv = 'Content-Security-Policy';
+          policy.content = "script-src 'none'; object-src 'none'; frame-src 'none'; media-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'";
+          doc.head.appendChild(policy);
+          Array.prototype.forEach.call(cached.snapshot.head.querySelectorAll('style'), function (style) {
+            var copy = doc.importNode(style, true);
+            copy.addEventListener('load', function () { schedule('measurement-style'); });
+            doc.head.appendChild(copy);
+          });
+          var host = doc.createElement('div');
+          host.id = 'lwp-series-view';
+          Array.prototype.forEach.call(cached.snapshot.body.childNodes, function (node) {
+            host.appendChild(doc.importNode(node, true));
+          });
+          Array.prototype.forEach.call(host.querySelectorAll('img'), function (image) {
+            image.loading = 'eager';
+            image.addEventListener('load', function () { schedule('image'); });
+            image.addEventListener('error', function () { schedule('image'); });
+          });
+          Array.prototype.forEach.call(document.body.attributes, function (attribute) {
+            if (attribute.name.indexOf('data-lwp-') === 0) doc.body.setAttribute(attribute.name, attribute.value);
+          });
+          doc.body.className = view.bodyClass || '';
+          doc.body.setAttribute('data-lwp-article-tags', view.articleTags || '');
+          doc.body.appendChild(host);
+          lwpSetLanguage(cached.language, doc);
+          if (doc.fonts) doc.fonts.addEventListener('loadingdone', function () { schedule('measurement-fonts'); });
+        }
+        cached.frame.style.setProperty('width', document.documentElement.clientWidth + 'px', 'important');
+        cached.frame.style.setProperty('height', height + 'px', 'important');
+        var doc = cached.frame.contentDocument;
+        var root = doc.documentElement;
+        root.style.cssText = document.documentElement.style.cssText;
+        // The parent width already excludes its scrollbar. Do not subtract a
+        // second scrollbar from the snapshot's content width.
+        root.style.setProperty('overflow', 'hidden', 'important');
+        clearRuntimeVariables(root);
+        var preset = presentationBySelector(presentationCurrent);
+        var structure = doc.getElementById('lwp-presentation-structure');
+        if (structure && preset) structure.textContent = preset.structure_css || '';
+        var pins = {};
+        (themeExplicit ? view.themePins || [] : view.presentationPins || []).forEach(function (index) { pins[index] = true; });
+        if (themeExplicit) {
+          var theme = themeBySlug(themeCurrent);
+          if (theme) applyVariableValues(theme.values, pins, 'theme', root);
+        } else if (preset) applyVariableValues(preset.theme_values, pins, 'presentation', root);
+        var start = changed.length;
+        try {
+          var measuring = Array.prototype.slice.call(doc.querySelectorAll('section.slide'));
+          measuring.forEach(function (slide) {
+            slide.removeAttribute('data-lwp-text-scale');
+            slide.removeAttribute('data-lwp-fit-overflow');
+          });
+          enhanceTables(measuring, root);
+          var group = collectCandidates(measuring);
+          fitObjects(group);
+          return solve(group, readingSettings.min_text_scale, apply);
+        } finally {
+          restore(changed.splice(start));
+        }
       }
       // Object bounds are individual; the shared factor is searched against
       // the entire slide, so several individually small images can fit too.
       // Spend the permitted object reduction before reducing any text.
-      candidates.forEach(function (candidate) {
-        if (candidate.objects.length) solve([candidate], candidate.objectFloor, applyObjects);
-      });
-      if (!isIndex && readingSettings.text_fit === 'uniform') solve(candidates, readingSettings.min_text_scale, apply);
-      else if (!isIndex && readingSettings.text_fit === 'per-slide') {
+      var seriesFactor = 1;
+      if (!isIndex && seriesViews && fitScope === 'series' && readingSettings.text_fit === 'uniform') {
+        var relevant = [];
+        // Check every relevant view before loading even a passive snapshot.
+        // Hitting the text floor must not hide an unsupported later widget.
+        seriesViews.forEach(function (view, key) {
+          if (!key) return;
+          var tags = String(view.articleTags || '').toLowerCase().split(/\s+/).filter(Boolean);
+          if (tags.length && tags.indexOf(selectedTag) === -1) return;
+          if (seriesSnapshot(view).unsupported) fitScopeProblem = view.title || key;
+          relevant.push(view);
+        });
+        if (fitScopeProblem) {
+          fitScope = 'article';
+          try { window.localStorage.setItem(fitScopeKey, fitScope); } catch (e) {}
+        } else relevant.forEach(function (view) {
+          var key = view.key;
+          if (key === seriesCurrentKey || seriesFactor === readingSettings.min_text_scale) return;
+          if (!seriesFitFactors.has(key)) seriesFitFactors.set(key, measureSeriesView(view));
+          seriesFactor = Math.min(seriesFactor, seriesFitFactors.get(key));
+        });
+      }
+      var candidates = collectCandidates(contentRoots);
+      fitObjects(candidates);
+      if (!isIndex && readingSettings.text_fit === 'uniform') {
+        var factor = solve(candidates, readingSettings.min_text_scale, apply);
+        if (seriesViews && fitScope === 'series') {
+          seriesFitFactors.set(seriesCurrentKey, factor);
+          factor = Math.min(factor, seriesFactor);
+          candidates.forEach(function (candidate) { apply(candidate, factor); });
+        }
+      } else if (!isIndex && readingSettings.text_fit === 'per-slide') {
         candidates.forEach(function (candidate) { solve([candidate], readingSettings.min_text_scale, apply); });
       }
       candidates.forEach(function (candidate) {
@@ -10355,12 +10553,16 @@ document.addEventListener('DOMContentLoaded', function() {
           ? captureReadingPosition() : null;
         frame = requestAnimationFrame(layout);
       }
+      if (!seriesActivating && reason !== 'series' && reason !== 'afterprint') seriesFitFactors.clear();
     }
     window.addEventListener('beforeprint', function () {
       if (printing) return;
       printing = true;
       // A bundle prints its mounted view: one article, or contents alone.
       seriesPrinting = true;
+      measurementViews.forEach(function (cached) {
+        if (cached.frame) cached.frame.style.setProperty('display', 'none', 'important');
+      });
       printPosition = isIndex ? null : captureReadingPosition();
       printScroll = Array.prototype.map.call(contentRoot().querySelectorAll('.lwp-table-viewport'),
         function (node) { return {node: node, left: node.scrollLeft, top: node.scrollTop}; });
@@ -10376,6 +10578,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!printing) return;
       printing = false;
       seriesPrinting = false;
+      measurementViews.forEach(function (cached) {
+        if (cached.frame) cached.frame.style.setProperty('display', 'block', 'important');
+      });
       restore(printStyles);
       printStyles = [];
       printScroll.forEach(function (item) {
@@ -10639,24 +10844,29 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (e) {}
   }
 
-  function clearRuntimeVariables() {
+  function clearRuntimeVariables(root) {
+    var destination = root || document.documentElement;
     themeApplied.concat(presentationApplied).forEach(function (index) {
-      document.documentElement.style.removeProperty(themeData
+      destination.style.removeProperty(themeData
         ? themeData.vars[index] : (presentationData.vars[index] || ''));
     });
-    themeApplied = [];
-    presentationApplied = [];
+    if (!root) {
+      themeApplied = [];
+      presentationApplied = [];
+    }
   }
 
-  function applyVariableValues(values, pinned, target) {
+  function applyVariableValues(values, pinned, target, root) {
     if (!values) return;
     values.forEach(function (pair) {
       var index = pair[0];
       if (pinned[index]) return;
       var vars = target === 'theme' ? themeData.vars : presentationData.vars;
-      document.documentElement.style.setProperty(vars[index], pair[1]);
-      if (target === 'theme') themeApplied.push(index);
-      else presentationApplied.push(index);
+      (root || document.documentElement).style.setProperty(vars[index], pair[1]);
+      if (!root) {
+        if (target === 'theme') themeApplied.push(index);
+        else presentationApplied.push(index);
+      }
     });
   }
 
@@ -11763,10 +11973,28 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!readingSettings) return;
     Array.prototype.forEach.call(readingMenu.querySelectorAll('[data-reading-option]'),
       function (control) {
-        var value = readingSettings[control.getAttribute('data-reading-option')];
+        var name = control.getAttribute('data-reading-option');
+        var value = name === 'fit_scope' ? fitScope : readingSettings[name];
         if (control.type === 'checkbox') control.checked = !!value;
         else control.value = value;
       });
+    var scope = document.getElementById('menuFitScopeLabel');
+    if (scope) scope.hidden = !seriesViews || readingSettings.text_fit !== 'uniform';
+    if (scope && seriesViews) {
+      var scopeStatus = document.getElementById('menuFitScopeStatus');
+      if (!scopeStatus) {
+        scopeStatus = document.createElement('p');
+        scopeStatus.id = 'menuFitScopeStatus';
+        scopeStatus.setAttribute('role', 'status');
+        scope.insertAdjacentElement('afterend', scopeStatus);
+        document.getElementById('menuFitScope').setAttribute('aria-describedby', scopeStatus.id);
+      }
+      var scopeMessage = fitScopeProblem ? (document.documentElement.lang === 'fr'
+        ? 'La réduction de série est indisponible : « ' + fitScopeProblem + ' » contient des widgets ou du HTML exécutable. Réduction de l’article courant utilisée.'
+        : 'Entire-series fit is unavailable: "' + fitScopeProblem + '" contains widgets or executable HTML. Using current-article fit.') : '';
+      if (scopeStatus.textContent !== scopeMessage) scopeStatus.textContent = scopeMessage;
+      scopeStatus.hidden = scope.hidden || !scopeMessage;
+    }
     var status = document.getElementById('menuReadingStatus');
     if (status) {
       var automatic = readingSettings.text_fit !== 'fixed'
@@ -14162,6 +14390,12 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
           <option value="fixed" data-lwp-i18n="menu_text_fixed">{{str_menu_text_fixed}}</option>
           <option value="uniform" data-lwp-i18n="menu_text_uniform">{{str_menu_text_uniform}}</option>
           <option value="per-slide" data-lwp-i18n="menu_text_per_slide">{{str_menu_text_per_slide}}</option>
+        </select>
+      </label>
+      <label id="menuFitScopeLabel" hidden><span data-lwp-i18n="menu_fit_scope">{{str_menu_fit_scope}}</span>
+        <select id="menuFitScope" data-reading-option="fit_scope">
+          <option value="article" data-lwp-i18n="menu_fit_article">{{str_menu_fit_article}}</option>
+          <option value="series" data-lwp-i18n="menu_fit_series">{{str_menu_fit_series}}</option>
         </select>
       </label>
       <label><input type="checkbox" data-reading-option="table_shrink"> <span data-lwp-i18n="menu_table_shrink">{{str_menu_table_shrink}}</span></label>
@@ -20919,9 +21153,10 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     guarantee that a source's existing spacing (including any
     non-breaking space already in it) reaches the output completely
     unchanged, not just that the new rules stay quiet."""
+    args = dict(args)
     if '--single-page' in args:
         filename = args['--single-page']
-        if (not _is_safe_relative_filename(filename)
+        if filename is not True and (not _is_safe_relative_filename(filename)
                 or not filename.lower().endswith(('.html', '.htm'))
                 or '#' in filename or '?' in filename):
             log('error', '--single-page requires a plain .html or .htm filename, not a path or URL.')
@@ -20952,8 +21187,22 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
         typography_dir=typography_dir, series_dir=sd)
 
     series_data = (series_data_override if series_data_override is not None
-                   else load_series_data(sd))
+                    else load_series_data(sd))
     series_meta = series_meta_of(series_data)
+    if args.get('--single-page') is True:
+        import unicodedata
+        title = html_unescape(re.sub(r'<[^<>]+>', ' ', str(series_meta.get('title') or '')))
+        stem = ''
+        for candidate in (title, sd.name, 'series'):
+            normalized = unicodedata.normalize('NFKD', candidate.casefold())
+            normalized = ''.join(char for char in normalized if not unicodedata.combining(char))
+            stem = re.sub(r'[\W_]+', '-', normalized).strip('-')[:100]
+            stem = stem.encode('utf-8')[:200].decode('utf-8', errors='ignore').rstrip('-')
+            if stem:
+                break
+        if stem in {'con', 'prn', 'aux', 'nul'} or re.fullmatch(r'(?:com|lpt)[1-9]', stem):
+            stem = 'series-' + stem
+        args['--single-page'] = stem + '.html'
     try:
         presentation_catalog = load_presentation_catalog(templates_dir)
         series_preset = presentation_catalog.resolve_preset(
@@ -22104,7 +22353,7 @@ def cmd_watch(series_dir, args):
     build_args.pop('--port', None)
     build_args.pop('--open', None)
     progress(f'[watch] initial build of {sd}')
-    cmd_build(str(sd), build_args)
+    entry_name = cmd_build(str(sd), build_args) or 'index.html'
 
     # Start the HTTP server if --serve.
     if args.get('--serve'):
@@ -22114,13 +22363,13 @@ def cmd_watch(series_dir, args):
         httpd = http.server.HTTPServer(('127.0.0.1', port), handler)
         threading.Thread(target=httpd.serve_forever, daemon=True).start()
         from urllib.parse import quote
-        url = f'http://127.0.0.1:{port}/' + quote(args.get('--single-page', ''))
+        url = f'http://127.0.0.1:{port}/' + (quote(entry_name) if args.get('--single-page') else '')
         progress(f'[watch] serving {output_dir} at {url}')
         if args.get('--open'):
             webbrowser.open(url)
     elif args.get('--open'):
         # No serve, but --open: open the file directly.
-        index = output_dir.resolve() / args.get('--single-page', 'index.html')
+        index = output_dir.resolve() / entry_name
         if index.exists():
             webbrowser.open(index.resolve().as_uri())
 
@@ -22150,6 +22399,7 @@ def cmd_watch(series_dir, args):
 def cmd_build(series_dir, args):
     """build command."""
     ctx = load_build_context(series_dir, args)
+    args = ctx.args
     # Validate the one <script> every article page embeds (the nav script) once,
     # before writing anything. We check the raw, un-escaped string we generate
     # — not the page body — so author content (e.g. a <script> written in
@@ -22197,7 +22447,7 @@ def cmd_build(series_dir, args):
         if args.get('--open'):
             import webbrowser
             webbrowser.open((ctx.output_dir / args['--single-page']).resolve().as_uri())
-        return
+        return args['--single-page']
 
     # §11.3.3, decided before anything is written and before the --only
     # fast path (which writes the index too): when an index is requested, more
@@ -22345,6 +22595,7 @@ def cmd_check(series_dir, args):
     series_meta change (title, intro, article order) alters only the
     index/README, and check stayed green over a stale publication."""
     ctx = load_build_context(series_dir, args)
+    args = ctx.args
     if args.get('--drafts-only'):
         log('error', 'verify does not support --drafts-only previews; use --include-drafts for a complete publication.')
         sys.exit(1)
@@ -27798,10 +28049,14 @@ OPTIONS
   --inline-images
     build/verify/watch: embed local Markdown and kit images, including SVG,
     as data URIs (no img/ directory copied). External dependencies may remain.
-  --single-page filename.html
+  --single-page [filename.html]
     build/verify/watch: publish the series in one HTML, with deliberate
     article switching and printing of the active article. Combine with
     --inline-images to embed supported images. --output remains a directory.
+    Without a filename, derive it from series_meta.title (directory name
+    fallback): lowercase, accent-folded, hyphen-separated, with .html appended.
+    Before the series directory, a separate filename must end in .html/.htm;
+    use --single-page=filename.html or -- to disambiguate.
     Requires native navigation; excludes --no-index and --drafts-only.
   --strict
     audit: exit non-zero if any warnings are emitted — the complete CI
@@ -28549,7 +28804,7 @@ def parse_cli_options(command, rest, global_opts=None):
     """Parses `rest` into (opts, positional) against _COMMAND_OPTIONS.
 
     Fatal errors (exit 1): an option the command doesn't accept (whether
-    it exists elsewhere or not), and a value option with no value.
+    it exists elsewhere or not), and a required-value option with no value.
 
     `global_opts` (optional) is the dict of options already consumed before
     the command. They are merged in, with the per-command option winning on
@@ -28585,7 +28840,13 @@ def parse_cli_options(command, rest, global_opts=None):
                       f'Run `lightwebpres --help` for the option list.')
                 sys.exit(1)
             if name in _VALUE_OPTIONS:
-                if eq:
+                if (name == '--single-page' and not eq
+                        and (i + 1 == len(rest) or rest[i + 1].startswith('--')
+                             or (not positional and not rest[i + 1].lower().endswith(('.html', '.htm'))))):
+                    # A bare switch must not consume the following series directory.
+                    opts[name] = True
+                    i += 1
+                elif eq:
                     if inline_value.startswith('--'):
                         # One rule for both value forms: `--opt --value` is
                         # refused as a missing value, so `--opt=--value` is

@@ -33,6 +33,32 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.58.1
+
+`--single-page` now accepts an optional filename on `build`, `verify` and
+`watch`. Without one, the name comes from the series title: HTML is stripped,
+entities decoded, accents folded and punctuation replaced by hyphens. Unicode
+letters remain supported, empty titles fall back to the series directory then
+`series`, and automatic names have bounded character and UTF-8 byte lengths
+and protection against reserved Windows names. An explicit `.html` or `.htm`
+filename takes precedence. `watch` derives the name again after title changes;
+old output remains recorded for explicit cleanup with `clean`.
+
+Single-page readers using **Reduce all slides together** can now choose
+**Current article** (the default) or **Entire series** in Display settings.
+Series scope shares the most restrictive measured factor across all
+tag-eligible article slides, respecting their styles, presets and settings
+pins. Long-form and series-navigation slides participate even if they still
+overflow at the minimum. The scope preference is saved separately; independent
+per-slide fitting, fixed sizing and multipage output keep their own behavior.
+Inactive static content is measured in script-disabled isolated documents,
+preserving active selection, focus and media. Unsupported widgets or executable
+HTML return the control to article scope with an explanation.
+
+Remove the unwanted focus outline around programmatically focused reading
+containers that appeared as a white contents frame or cover separator. Links
+and controls retain visible keyboard focus.
+
 ## Unreleased — 0.58.0
 
 `build`, `verify` and `watch` accept `--single-page FILE` to publish a series

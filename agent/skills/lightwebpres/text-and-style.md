@@ -67,10 +67,17 @@ screen clipping or local scroll limits; check physical paper width separately.
 
 Text fitting is a reader setting, not a Markdown conversion or an article
 `style.*` key. `fixed` keeps the native responsive sizes without content fitting;
-`uniform` fits all currently visible slides together, including a visible
-full-article, and `per-slide` fits each independently. A long-form article may
-still require scrolling at the reduction floor. Optional shrinking applies
-separately to tables and supported images/figures, not arbitrary iframes or
+`uniform` fits all tag-visible slides in the current article together by
+default. In single-page output only, **Uniform fit scope** in Display settings
+can extend that group to tag-eligible slides across the entire series, using
+the smallest measured factor. Long-form and series-navigation slides participate
+even if they still overflow at the floor. `per-slide` fits each independently,
+without propagating reductions; `fixed` does not fit content. Scope is a
+separate saved reader preference, defaulting to the current article, not a
+source style or reading field; multipage output is unaffected. See
+[Series and Appearance](series-and-appearance.md) for its storage contract.
+Optional shrinking applies separately to tables and supported images/figures,
+not arbitrary iframes or
 buttons. Runtime scales are cleared for print. Exact author defaults and
 limits belong to `series_meta.reading` in
 [Series and Appearance](series-and-appearance.md); do not shorten source data

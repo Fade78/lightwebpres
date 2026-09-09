@@ -43,7 +43,7 @@
 
 **§11. Commandes de l'exécutable**
 
-11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --only` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.3.8 `--single-page FILE`: one document per series · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.9.2 Le catalogue externe · 11.10 `series theme set` · 11.11 `status` et `series status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy · 11.17 `contract` · 11.18 `preset` et `series preset` · 11.19 `kit compose`
+11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --only` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.3.8 `--single-page [FILE]`: one document per series · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.9.2 Le catalogue externe · 11.10 `series theme set` · 11.11 `status` et `series status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy · 11.17 `contract` · 11.18 `preset` et `series preset` · 11.19 `kit compose`
 
 **§12. Algorithme du build**
 
@@ -96,7 +96,7 @@ scrollable cards of several types, optionally followed by long-form text,
 with navigation between articles. Long-form text need not be a sourced article:
 the format began with documented presentations but is not limited to them.
 Default output is a set of HTML files with embedded CSS and JavaScript,
-deployable on a static server. `--single-page FILE` combines a series into one
+deployable on a static server. `--single-page [FILE]` combines a series into one
 document with deliberate article switching (§11.3.8). Referenced images and
 author-supplied external resources still need to be distributed or reachable;
 image embedding is not a complete dependency bundle (§11.3.7, §13.2).
@@ -543,9 +543,9 @@ d'une commande vont sur **stdout**. C'est ce qui permet à
 ```bash
 lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--preset builtin/standard|commons/id|id@version/preset] [--no-starter] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--single-page FILE] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
-lightwebpres watch [répertoire] [--lang fr] [--output public/] [--single-page FILE] [--inline-images] [--include-drafts] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
-lightwebpres verify [répertoire] [--lang fr] [--output public/] [--single-page FILE] [--inline-images] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--single-page [FILE]] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres watch [répertoire] [--lang fr] [--output public/] [--single-page [FILE]] [--inline-images] [--include-drafts] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres verify [répertoire] [--lang fr] [--output public/] [--single-page [FILE]] [--inline-images] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
 lightwebpres template show <nav.js|fr.json|en.json|interface/...|typography/...>
@@ -581,7 +581,7 @@ lightwebpres --help
   `theme gallery` takes an HTML destination, `theme create` a `.conf` filename,
   and `kit compose` the output root for `directory/id/version/`. A relative
   path is resolved from the working directory, not the series directory.
-- `--single-page FILE`: `build` / `verify` / `watch` publish or compare one combined HTML file with deliberate article switching (§11.3.8). The filename value is required.
+- `--single-page [FILE]`: `build` / `verify` / `watch` publish or compare one combined HTML file with deliberate article switching (§11.3.8). The optional filename overrides the automatic name derived from the series title.
 - `--inline-images`: `build` / `verify` / `watch` embed supported local Markdown and kit images as data URIs, not a complete dependency bundle (§11.3.7).
 - `--scaffold` : `template update` seulement — régénère la surface
   commentée de `settings.conf` aux valeurs du thème de base résolu, en
@@ -2450,7 +2450,7 @@ image, mais un gzip de servage récupère ce surcoût sur le wire.
 original vector bytes inside `<img>` data URIs, not interactive SVG DOM.
 Nested resources are blocked by SVG-as-image rendering even online; diagnostics
 and the limits of image embedding are specified in §11.3.7. This option alone
-does not combine a series: use `--single-page FILE` for that (§11.3.8).
+does not combine a series: use `--single-page [FILE]` for that (§11.3.8).
 
 L'option couvre aussi les images d'un fichier inclus par une fiche
 `full-article` (§5.1). Elle ne le faisait pas jusqu'à la v0.37.0 :
@@ -3216,6 +3216,12 @@ Keyboard **-**, **+**, **=** reduce, enlarge and reset presentation zoom;
 `per-slide`. These shortcuts remain available without opening the submenu.
 These are reader controls, not source edits.
 
+Single-page output also shows **Uniform fit scope** (`menu_fit_scope`) in this
+submenu, only while `text_fit` is `uniform`. Its choices are **Current article**
+(`menu_fit_article`, value `article`, default) and **Entire series**
+(`menu_fit_series`, value `series`). The control is not shown in multipage output
+and hidden for `fixed` or `per-slide` fitting.
+
 **Reader persistence.** Reading preferences use browser `localStorage` with
 the key `lwp-reading:<output-directory-path>`, where the path is
 `location.pathname` through its final slash. Storage is scoped by origin;
@@ -3230,6 +3236,14 @@ limits. Missing, malformed, unsupported or invalid records, or blocked reads,
 leave author defaults and 100% zoom in effect. Failed writes do not disable
 controls in the loaded page. Nothing writes back to `series.json` or other
 source files. This does not change theme/preset session persistence.
+
+Single-page uniform scope is a separate preference at
+`readingPreferenceKey + ':fit-scope'`, that is,
+`lwp-reading:<output-directory-path>:fit-scope`, storing `article` or `series`.
+It does not extend the version-1 reading record or `series_meta.reading`.
+Missing or invalid values and blocked storage reads fall back to `article`;
+failed writes leave the current control usable. Multipage output does not use
+this preference.
 
 Persistence depends on browser storage availability and policy. In particular,
 `file:` URL storage and sharing between files can differ from served HTTP(S)
@@ -3276,11 +3290,26 @@ limits; it does not promise that every table fits a sheet of paper.
 
 **Text fitting.** `fixed` (**Keep the chosen size**) preserves native responsive
 CSS sizing with no content-based fit. `uniform` (**Reduce all slides together**)
-uses one shared factor for all slides currently visible under the active tag,
-not just the slide on screen. A visible `full-article` participates too.
+uses one shared factor for all tag-visible slides in the current article by
+default, not just the slide on screen. In single-page output, `series` scope
+extends the group to tag-eligible slides across all articles, including those
+not currently open. The shared factor is the minimum of the measured factors,
+using each article's actual geometry, styles, preset and settings pins.
+Eligible `full-article` and `series-nav` slides participate even when they
+remain too large at the minimum; they can reduce the whole group to its floor.
 `per-slide` (**Reduce each slide as needed**) computes a factor independently
-for each visible slide. The browser measures actual layout at its current
-viewport, starting from the selected presentation/theme and authored styles.
+for each visible slide without propagating it to other slides or articles.
+`fixed` performs no content fitting, regardless of a saved scope preference.
+
+Series-wide measurement is limited to static content. Eligible articles are
+checked before creating passive measurement documents. Executable HTML, frames,
+embedded media and custom widgets cause a return to article scope, with an
+accessible explanation identifying the article. Measurements use script-disabled
+isolated documents and must not detach the active article, collapse its text
+selection, change focus or reload active media. Arbitrary author CSS that relies
+on surrounding control-shell elements is outside this measurement guarantee.
+The browser measures actual layout at its current viewport, starting from the
+selected presentation/theme and authored styles.
 It recalculates after viewport resize, theme/preset or tag changes, font
 loading and image loading. This is not the audit's estimate.
 
@@ -4921,11 +4950,11 @@ série :
 ### 11.3 `build`
 
 ```bash
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--single-page FILE] [--inline-images] [--no-typography] [--include-drafts] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--single-page [FILE]] [--inline-images] [--no-typography] [--include-drafts] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
 ```
 
 Builds the site. The file layout below is the default multipage mode;
-`--single-page FILE` instead writes the combined document specified in §11.3.8.
+`--single-page [FILE]` instead writes the combined document specified in §11.3.8.
 
 1. Lit `series.json` dans `[répertoire]` et résout
    `series_meta.presentation_preset` avant toute source : identité, preset,
@@ -5007,7 +5036,7 @@ ainsi que du payload décrit en §9.3.8.
 ### 11.3.1 `build --only` : reconstruction d'un seul article
 
 The incremental behavior below applies to multipage output. With
-`--single-page FILE`, `--only` validates its target but rebuilds the complete
+`--single-page [FILE]`, `--only` validates its target but rebuilds the complete
 combined document (§11.3.8).
 
 ```bash
@@ -5278,8 +5307,8 @@ lightwebpres build [répertoire] --open
 ```
 
 Opens the result after the build: `index.html` in the output directory by
-default, or the requested `FILE` with `--single-page FILE`. Without `--serve`,
-the URL uses `file://`. Opening uses the standard-library `webbrowser` module;
+default, or the resolved combined filename with `--single-page [FILE]`.
+Without `--serve`, the URL uses `file://`. Opening uses the standard-library `webbrowser` module;
 in CI, `BROWSER` can point to `/bin/true` for a no-op.
 
 #### 11.3.7 `--inline-images`
@@ -5314,7 +5343,7 @@ shapes when required.
 Raw HTML `<img>` elements are not auto-inlined. A remaining relative image
 `src` fails inline validation (§8.4). CSS, fonts, scripts, media and arbitrary
 HTML dependencies are not bundled transitively: image embedding is not a
-promise of a fully portable document. `--single-page FILE` combines articles
+promise of a fully portable document. `--single-page [FILE]` combines articles
 but does not extend that dependency scope (§11.3.8).
 
 Base64 adds roughly one third to image bytes before serving compression; local
@@ -5323,15 +5352,37 @@ builds copy only referenced files from `sources/img/` into `public/img/`.
 Unreferenced source images are not published; existing output files are not
 deleted automatically and may become orphans for `clean` (§11.13).
 
-### 11.3.8 `--single-page FILE`: one document per series
+### 11.3.8 `--single-page [FILE]`: one document per series
 
 ```bash
-lightwebpres build [directory] --single-page collection.html [--inline-images]
-lightwebpres verify [directory] --single-page collection.html [--inline-images]
-lightwebpres watch [directory] --single-page collection.html [--inline-images]
+lightwebpres build [directory] --single-page [collection.html] [--inline-images]
+lightwebpres verify [directory] --single-page [collection.html] [--inline-images]
+lightwebpres watch [directory] --single-page [collection.html] [--inline-images]
 ```
 
-`--single-page` requires a bare `.html` or `.htm` filename, not a path or URL.
+`--single-page` accepts an optional bare `.html` or `.htm` filename, not a path
+or URL. An explicit filename always takes precedence, including the
+`--single-page=filename.html` form; an explicit empty value is invalid.
+
+**Automatic filename.** With no value, the parser retains an automatic-name
+sentinel (`True`). Each build resolves it from `series_meta.title`, stripping
+HTML tags and decoding entities before lowercasing, folding accents and
+replacing punctuation with hyphens. Unicode letters remain supported. If the
+result is empty, try the series directory name, then `series`; do not use a
+translated "untitled" display label. Bound the automatic stem to 100 characters
+and 200 UTF-8 bytes, without splitting a character, and append `.html`.
+Reserved Windows device names receive a `series-` prefix. These rules apply
+to automatic names, not to rewriting an explicit filename.
+
+Before the positional series directory, a next separate value is a filename
+only if it ends in `.html` or `.htm`; otherwise it remains the series directory.
+Use the `--` terminator for a directory that looks like a filename, for example
+`lightwebpres build --single-page -- archive.html`. After the positional series
+directory, any next non-option value is an explicit filename and is validated
+as such. `watch` preserves the automatic-name sentinel in its original options
+and resolves the name again after title changes rather than reusing the first
+resolved filename.
+
 `--output` remains the output directory. This opt-in mode writes one combined
 HTML document containing series contents and the selected articles. Without
 the option, default multipage behavior is unchanged; the shared built-in
@@ -5344,6 +5395,11 @@ fragments are inert data, not hidden live articles. Styles, notes and IDs remain
 article-local. One root runtime persists across view changes, preserving
 fullscreen. Printing includes only the active article under its current tag
 filter; when the contents view is active, only series contents print.
+
+Programmatically focused reading containers do not draw an outline around the
+contents view or a separator at the cover. This exception does not suppress
+visible keyboard focus on links or controls. Uniform text fitting can use
+current-article or entire-series scope through Display settings (§9.3.9).
 
 **Extensions and flags.** Any `templates/nav.js` must match the built-in
 navigation. Nonempty `templates/index_extra.html` is rejected in this initial
@@ -5366,26 +5422,28 @@ a separate physical file.
 presentation assets are copied and must accompany the HTML. With the option,
 supported images are embedded under §11.3.7, not a complete resource closure.
 Build manifests record the physical combined HTML and copied images/assets
-unless inlined, not virtual article files. Changing modes does not delete old
-multipage output or copied assets automatically; cleanup remains an explicit,
-reviewable `clean` operation (§11.13).
+unless inlined, not virtual article files. Changing modes or the combined
+filename, including a title-derived name, does not delete old output or copied
+assets automatically. Old files remain in manifest ownership until cleanup,
+which remains an explicit, reviewable `clean` operation (§11.13).
 
-**Verification.** Use the same `--single-page FILE`, `--inline-images` choice,
-rendering options and environment as the build. `verify` compares the combined
+**Verification.** Use the same automatic or explicit `--single-page [FILE]`
+filename choice, image embedding, rendering options and environment as the
+build. `verify` compares the combined
 HTML, the generated series README unless suppressed, and applicable copied
 assets, not nonexistent per-article files (§11.4).
 
 ### 11.4 `verify`
 
 ```bash
-lightwebpres verify [directory] [--lang fr] [--output public/] [--single-page FILE] [--inline-images] [--language-file path.json] [--no-typography] [--include-drafts] [--no-nav] [--no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres verify [directory] [--lang fr] [--output public/] [--single-page [FILE]] [--inline-images] [--language-file path.json] [--no-typography] [--include-drafts] [--no-nav] [--no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 ```
 
 Vérifie sans modifier :
 
-`verify` supports `--inline-images` and `--single-page FILE`. Match both the
-embedding choice and combined filename used by the build; no separate non-inline
-output is needed. With single-page output, it compares the physical combined
+`verify` supports `--inline-images` and `--single-page [FILE]`. Match both the
+embedding choice and automatic or explicit filename used by the build; no
+separate non-inline output is needed. With single-page output, it compares the physical combined
 HTML instead of per-article pages and a separate index (§11.3.8). `--no-index`
 and `--no-readme` reproduce output suppression where allowed; `--no-index`
 remains incompatible with single-page mode.
@@ -6752,7 +6810,7 @@ build a déclaré, et le manifeste est la déclaration.
 ### 11.14 `watch`
 
 ```
-lightwebpres watch [directory] [--lang fr] [--output public/] [--single-page FILE] [--inline-images] [--include-drafts] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port 8000] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres watch [directory] [--lang fr] [--output public/] [--single-page [FILE]] [--inline-images] [--include-drafts] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port 8000] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 ```
 
 Surveille les sources (articles, `series.json`, `templates/`, y compris les
@@ -6774,7 +6832,7 @@ afin que le mode watch ne fasse pas disparaître le sélecteur du résultat.
 comme `--themes`. Sans cette option, toute modification de `series.json`,
 y compris de sa liste `themes`, est relue au prochain build.
 
-`--single-page FILE` and `--inline-images` are retained on the initial build
+`--single-page [FILE]` and `--inline-images` are retained on the initial build
 and every rebuild, with the same restrictions as `build` (§11.3.7, §11.3.8).
 With single-page output, `--open` targets the combined filename rather than
 `index.html`; `--output` still selects the directory served.

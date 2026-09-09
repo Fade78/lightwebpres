@@ -124,7 +124,7 @@ alternatives. Read warnings even when build exits zero.
 
 `verify` needs the same supported rendering flags and environment as the
 build, including language, themes, presentation alternatives, typography,
-draft inclusion, navigation, scroll duration, `--single-page FILE` and
+draft inclusion, navigation, scroll duration, `--single-page [FILE]` and
 `--inline-images` where applicable. Both image embedding and single-page output
 are reproducible by `verify`; consult `verify --help` for its accepted options.
 Build-stamp differences and surrounding whitespace are ignored, not arbitrary
@@ -154,9 +154,21 @@ an outside click closes the submenu. **O** cycles
 `clip`, `overflow`, `scroll`; **A** cycles `fixed`, `uniform`, `per-slide`.
 Use local table scrolling to reach clipped columns without navigating the
 deck. `fixed` keeps responsive theme sizes without content fitting; uniform
-reduction measures all currently visible slides, including long-form content,
-while per-slide reduction measures each independently. Author limits live in
-`series_meta.reading`; use [Series and Appearance](series-and-appearance.md)
+reduction measures all tag-visible slides in the current article by default.
+Series-wide measurement supports static content. Executable HTML, media, frames
+or custom widgets in an eligible article return the control to article scope
+with an explanation. Inactive measurement must not disturb active selection,
+focus or media. Shell-dependent author CSS may not measure identically in the
+isolated measurement documents.
+
+In single-page output only, **Uniform fit scope** appears while `uniform` is
+selected: choose **Current article** or **Entire series**. Series scope uses
+the smallest measured factor across all tag-eligible article slides, respecting
+each article's styles, preset and settings pins. Long-form and series-navigation
+slides participate even if they remain too large at the minimum. Per-slide
+reduction measures each slide independently without propagating its factor.
+Author limits live in `series_meta.reading`; use
+[Series and Appearance](series-and-appearance.md)
 for exact keys, defaults and validation. Content that still does not fit at
 the floor stays available to scroll rather than being removed.
 
@@ -168,6 +180,11 @@ it never writes `series.json`. Invalid or inaccessible stored data falls back
 to author defaults and 100% zoom; controls remain usable if saving is blocked.
 Check storage availability, and distinguish `file:` URLs from HTTP(S): browser
 policies can prevent persistence or sharing between pages.
+
+Single-page uniform scope is saved separately at
+`readingPreferenceKey + ':fit-scope'`, with `article` as the fallback for
+missing/invalid values or blocked reads. Blocked saving leaves the control
+usable. It is not an author reading field and does not affect multipage output.
 
 Zoom scales content fonts, line heights and images, not frame widths, padding,
 borders, minimum heights or controls; it does not use root CSS zoom. Native
@@ -200,13 +217,32 @@ CSS, fonts, scripts and media are not a complete portable bundle. See the
 ### Publish A Series In One HTML File
 
 ```bash
+lightwebpres build my-series --single-page --inline-images
+lightwebpres verify my-series --single-page --inline-images
 lightwebpres build my-series --single-page collection.html --inline-images
 lightwebpres verify my-series --single-page collection.html --inline-images
 ```
 
-`--single-page FILE` requires a bare `.html` or `.htm` filename on `build`,
-`verify` or `watch`; `--output` remains a directory. Without `--inline-images`,
-distribute copied images and presentation assets too. Default output remains
+`--single-page [FILE]` accepts an optional filename on `build`, `verify` and
+`watch`; `--output` remains a directory. Without a filename, it derives one
+from `series_meta.title`: strip HTML, decode entities, lowercase, fold accents
+and replace punctuation with hyphens, retaining Unicode letters. An empty
+result falls back to the series directory name, then `series`, not a translated
+"untitled" label. Automatic stems are bounded to 100 characters and 200 UTF-8
+bytes, reserved Windows names receive `series-`, and `.html` is appended.
+
+An explicit bare `.html` or `.htm` filename always wins; paths, URLs and empty
+values are invalid. `--single-page=collection.html` also works. Before the
+positional series directory, a next separate value is a filename only when it
+ends in `.html` or `.htm`; otherwise it remains the directory. For a directory
+that looks like a filename, use `build --single-page -- archive.html`. After
+the positional directory, any next non-option value is an explicit filename
+and is validated. Match the automatic or explicit choice in `verify`. `watch`
+rederives automatic names after title changes; use an explicit name for a
+stable published address.
+
+Without `--inline-images`, distribute copied images and presentation assets
+too. Default output remains
 multipage. Only the active contents/article view is mounted; switching articles
 is deliberate, not continuous scrolling. Article styles, notes and IDs remain
 local, and one root runtime preserves fullscreen across switches. Print uses
@@ -224,8 +260,9 @@ Source `page_dest` values do not change. Generated README links use
 `/<encoded local id>`, and series contents use `collection.html#lwp/index`.
 Encode each component separately. The build manifest records the physical
 combined file and copied images/assets unless inlined, not virtual article
-files. Old multipage files are not deleted when changing modes; review `clean`
-explicitly before authorized removal.
+files. Changing modes or the combined filename, including after a title change,
+leaves old files recorded for cleanup; review `clean` explicitly before
+authorized removal.
 
 ## Publish And Maintain
 
