@@ -146,10 +146,10 @@ when theme alternatives are available; **L** selects tags when available,
 **N** toggles the speaker panel and **I** toggles scrolling duration.
 Check the active tag and browser-persisted choices when reproducing a view.
 
-**Menu > Size and tables** (**Taille et tableaux** in French) opens the
+**Menu > Display settings** (**Affichage** in French) opens the
 `readingMenu` submenu with presentation zoom **-**, **+**, **Reset**, wide-table
 handling, text fitting and independent table/image shrink switches. Back or
-Escape returns to the main menu's Size and tables item with focus restored;
+Escape returns to the main menu's Display settings item with focus restored;
 an outside click closes the submenu. **O** cycles
 `clip`, `overflow`, `scroll`; **A** cycles `fixed`, `uniform`, `per-slide`.
 Use local table scrolling to reach clipped columns without navigating the

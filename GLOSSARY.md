@@ -108,7 +108,7 @@ they declare preset defaults; they are not author metadata fields.
 ### Reading fields
 
 Only inside `series_meta.reading`. All fields are optional; unknown keys and
-invalid values are fatal. **Menu > Size and tables** exposes reader controls.
+invalid values are fatal. **Menu > Display settings** exposes reader controls.
 Its Back button or Escape returns focus to that item in the main menu;
 clicking outside closes the submenu. The complete behavior is in §9.3.9.
 

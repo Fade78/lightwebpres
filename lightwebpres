@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.57.1"
+VERSION = "0.57.2"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1275,7 +1275,7 @@ LANG_FR = r'''{
     "menu_scroll": "Défilement",
     "menu_share": "Partager",
     "menu_help": "Aide",
-    "menu_reading": "Taille et tableaux",
+    "menu_reading": "Affichage",
     "menu_reading_back": "Retour au menu principal",
     "menu_zoom": "Zoom de présentation",
     "menu_zoom_out": "Réduire le zoom de présentation",
@@ -1473,7 +1473,7 @@ LANG_EN = r'''{
     "menu_scroll": "Scroll",
     "menu_share": "Share",
     "menu_help": "Help",
-    "menu_reading": "Size and tables",
+    "menu_reading": "Display settings",
     "menu_reading_back": "Back to main menu",
     "menu_zoom": "Presentation zoom",
     "menu_zoom_out": "Reduce presentation zoom",
@@ -2988,8 +2988,12 @@ THEME_SHARED_PROPS = [
 THEME_COMPONENTS = [
     ThemeComponent('page', 'body', [
         ThemeProp('page.font',        PROP_FONT,   'text',       css='font-family'),
-        ThemeProp('page.bg',          PROP_COLOR,  'page',       css='background'),
-        ThemeProp('page.fg',          PROP_COLOR,  'ink',        css='color'),
+        ThemeProp('page.bg',          PROP_COLOR,  'page',       css='background',
+                  selector='body, .reading-controls select, .reading-controls option, '
+                           '.theme-filter, .theme-filter option'),
+        ThemeProp('page.fg',          PROP_COLOR,  'ink',        css='color',
+                  selector='body, .reading-controls select, .reading-controls option, '
+                           '.theme-filter, .theme-filter option'),
         ThemeProp('page.leading',     PROP_RATIO,  '1.6',        css='line-height'),
         ThemeProp('page.shadow.fg',   PROP_COLOR,  'transparent'),
         ThemeProp('page.shadow.blur', PROP_LENGTH, '0'),
@@ -8801,8 +8805,6 @@ body.fs-noselect {
   margin-top: 4px;
   padding: 8px;
   font: inherit;
-  color: inherit;
-  background: inherit;
 }
 .reading-zoom {
   display: flex;
@@ -8834,6 +8836,12 @@ body.fs-noselect {
   gap: 10px;
 }
 .presenter-menu-action[hidden] { display: none; }
+#readingMenuBack {
+  display: block;
+  max-width: 100%;
+  min-height: 44px;
+  margin-bottom: 16px;
+}
 .presenter-menu-action > svg {
   width: 1.25em;
   height: 1.25em;
@@ -8867,8 +8875,6 @@ body.fs-noselect {
   border-style: solid;
   border-width: 1px;
   border-radius: 8px;
-  background: inherit;
-  color: inherit;
   font: inherit;
 }
 .theme-options {

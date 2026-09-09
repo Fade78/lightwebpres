@@ -161,7 +161,7 @@ async function run() {
       const zoomReset = '[data-menu-action="zoom-reset"]';
       await openMenu();
       assert.equal(await page.locator('#readingMenuTitle').textContent(),
-        mobile ? 'Taille et tableaux' : 'Size and tables');
+        mobile ? 'Affichage' : 'Display settings');
       assert.equal(await page.locator('#presenterMenu .reading-controls').count(), 0);
       assert.equal(await page.locator('#presenterMenu [data-menu-action="reading"]').count(), 1);
       assert.equal(await page.locator('#presenterMenu [data-menu-action^="zoom-"]').count(), 0);
@@ -672,6 +672,52 @@ async function run() {
             await page.keyboard.press('Escape');
           }
         }
+      }
+      for (const theme of ['kit:lightwebpres-docs@0.1.0/docs', 'monochrome-night', 'print-ink']) {
+        await openMainMenu();
+        await activate('[data-menu-action="theme"]');
+        await page.locator('#themeSource').selectOption('all');
+        await page.locator('#themeFilter').fill('');
+        await activate(`#themeOptions [data-theme="${theme}"]`);
+        await settle();
+        await openMenu();
+        const surfaces = await page.evaluate(() => {
+          const panel = getComputedStyle(document.querySelector('#readingMenu .presenter-menu-card'));
+          return [...document.querySelectorAll('#readingMenu select, #readingMenu option')].map(node => {
+            const style = getComputedStyle(node);
+            return {element: node.id || node.textContent, background: style.backgroundColor,
+              color: style.color, expectedBackground: panel.backgroundColor, expectedColor: panel.color};
+          });
+        });
+        for (const surface of surfaces) {
+          assert.equal(surface.background, surface.expectedBackground, `${theme}: ${surface.element} background`);
+          assert.equal(surface.color, surface.expectedColor, `${theme}: ${surface.element} text`);
+          assert.notEqual(surface.background, 'rgba(0, 0, 0, 0)');
+          assert.notEqual(surface.background, surface.color);
+        }
+        const back = await page.locator('#readingMenuBack').evaluate(button => {
+          const range = document.createRange();
+          range.selectNodeContents(button);
+          const rect = button.getBoundingClientRect();
+          return {lines: range.getClientRects().length, left: rect.left, right: rect.right,
+            height: rect.height, viewport: innerWidth};
+        });
+        assert.equal(back.lines, 1, `${theme}: Back must not wrap inside an icon-sized column`);
+        assert(back.left >= 0 && back.right <= back.viewport && back.height >= 44);
+        await activate('#readingMenuBack');
+        assert.equal(await page.evaluate(() => document.activeElement.id), 'menuReading');
+        await activate('[data-menu-action="theme"]');
+        const source = await page.locator('#themeSource').evaluate(select => {
+          const panel = getComputedStyle(select.closest('.theme-menu-card'));
+          return [...select.options].map(option => ({background: getComputedStyle(option).backgroundColor,
+            color: getComputedStyle(option).color, expectedBackground: panel.backgroundColor,
+            expectedColor: panel.color}));
+        });
+        for (const option of source) {
+          assert.equal(option.background, option.expectedBackground);
+          assert.equal(option.color, option.expectedColor);
+        }
+        await page.keyboard.press('Escape');
       }
       assert.deepEqual(errors, []);
       console.log(`${width} ${mobile ? 'mobile' : 'desktop'}: controls, gestures and reading anchors passed`);

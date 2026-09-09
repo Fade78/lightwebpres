@@ -33,6 +33,17 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.57.2
+
+Display settings (**Affichage** in French) names the submenu that controls
+zoom, text fitting, table overflow and optional table/image shrinking. Its
+Back button uses a normal text layout rather than an icon-sized grid column.
+
+Reading and theme-source selectors explicitly receive the theme's page
+background and foreground, including their option lists. Dark themes no
+longer leave pale option text on a browser-default white popup. Table clicks
+remain isolated from slide navigation while horizontal scrolling is enabled.
+
 ## Unreleased — 0.57.1
 
 The **C** picker's Current identity filter includes all published Commons/global

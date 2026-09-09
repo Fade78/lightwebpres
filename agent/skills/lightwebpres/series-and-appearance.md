@@ -148,9 +148,9 @@ omitted keys. Unknown keys and invalid values are fatal.
 | `min_table_scale` | Finite JSON number from `0.5` to `1`, inclusive | `0.85` |
 | `min_object_scale` | Finite JSON number from `0.5` to `1`, inclusive | `0.85` |
 
-**Menu > Size and tables** (**Taille et tableaux** in French) opens the dedicated
+**Menu > Display settings** (**Affichage** in French) opens the dedicated
 `readingMenu` submenu with zoom, modes and independent table/image shrink
-switches. Back or Escape returns focus to the main menu's Size and tables
+switches. Back or Escape returns focus to the main menu's Display settings
 item; clicking outside closes the submenu. **-**, **+**, **=** reduce, enlarge
 and reset presentation zoom;
 **O** cycles table modes and **A** text modes in the order above. `clip` hides

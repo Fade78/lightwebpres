@@ -664,7 +664,7 @@ themes or a complete Identity Kit.
 
 ### Set initial reading choices
 
-Readers can change table handling and text fitting in **Menu > Size and tables**,
+Readers can change table handling and text fitting in **Menu > Display settings**,
 alongside presentation zoom. Set their starting choices in `series.json`, not
 in a theme or article style. This complete `series_meta` fragment shows the
 defaults; merge it into the existing object rather than replacing other metadata:
@@ -1395,7 +1395,7 @@ a theme or preset the author did not publish.
 ### Adjust zoom, tables and text
 
 Open **Menu** with **M** or the bottom-right Menu button, then choose
-**Size and tables** (**Taille et tableaux** in French). This opens a dedicated
+**Display settings** (**Affichage** in French). This opens a dedicated
 submenu; **Back to main menu** or **Escape** returns to the main menu with focus on that
 item, while clicking outside closes the submenu. These controls work with a
 mouse, keyboard or touch; no source edit or rebuild is needed:
@@ -1439,7 +1439,7 @@ theme, preset, tags, fonts or loaded images change. If the minimum size still
 does not fit, the slide remains readable by scrolling; fitting never removes
 text or table cells to make a slide pass.
 
-When fitting or shrinking is enabled, Size and tables reports how many visible
+When fitting or shrinking is enabled, Display settings reports how many visible
 slides still need scrolling. It does not put a warning over the presentation itself.
 
 Presentation zoom changes content font sizes, line heights and images, not
@@ -1665,8 +1665,8 @@ switches between that configured duration and `0` and shows the active value.
 |---|---|
 | The controls vanished | Move the mouse or double-tap on touch; idle controls fade intentionally. |
 | The text is hard to read | Open Theme or Appearance and try Monochrome, Monochrome Night or Print Ink if supplied; use presentation or browser zoom. |
-| A table loses its rightmost columns | Open **Menu > Size and tables** and choose **Scroll inside the table**, or press **O** until that mode is selected; the HTML still contains every cell. |
-| A slide is too tall | Try **Reduce each slide as needed** in **Menu > Size and tables**; optionally enable table/image shrinking. Scroll any content that still exceeds the author's reduction floor. |
+| A table loses its rightmost columns | Open **Menu > Display settings** and choose **Scroll inside the table**, or press **O** until that mode is selected; the HTML still contains every cell. |
+| A slide is too tall | Try **Reduce each slide as needed** in **Menu > Display settings**; optionally enable table/image shrinking. Scroll any content that still exceeds the author's reduction floor. |
 | Every slide became smaller | **Reduce all slides together** includes all visible slides, even a long-form article. Choose independent reduction or **Keep the chosen size** instead. |
 | Enlarging presentation content causes overflow | Zoom is independent of fitting. Use **Reset** to return presentation zoom to 100%, or keep magnification and scroll. |
 | A language or article seems missing | Open the variant menu; a saved selection may differ from the author's initial choice. |

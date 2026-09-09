@@ -3186,12 +3186,12 @@ absente du menu M.
 
 ### 9.3.9 Reader controls and bounded fitting
 
-The presenter menu (**M**, or the Menu button) has one **Size and tables**
-item (**Taille et tableaux** in French), which opens the dedicated `readingMenu`
+The presenter menu (**M**, or the Menu button) has one **Display settings**
+item (**Affichage** in French), which opens the dedicated `readingMenu`
 submenu. It contains presentation zoom **-**, **+**, **Reset** and the current
 percentage, **Wide tables**, **Text size**, **Reduce tables as needed** and
 **Reduce images as needed**. Back or Escape returns to the main menu with
-focus on its Size and tables item; clicking outside closes the submenu.
+focus on its Display settings item; clicking outside closes the submenu.
 Keyboard **-**, **+**, **=** reduce, enlarge and reset presentation zoom;
 **O** cycles `clip`, `overflow`, `scroll`; **A** cycles `fixed`, `uniform`,
 `per-slide`. These shortcuts remain available without opening the submenu.

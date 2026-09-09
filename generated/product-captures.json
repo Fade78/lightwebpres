@@ -1,6 +1,6 @@
 {
   "inputs": {
-    "lightwebpres": "bdbb84bc6fee5e27927ddc3d65bcd1d963adcff6350b0c1b16fdc36a9771b974",
+    "lightwebpres": "fce8101a273a6c8979cad4bbd0f1f0f6004bbb83680b15ee8d01fea7f8e6d4eb",
     "tools/screenshot-product.cjs": "cd24ed3d7e56e916781ead59ed36ef2dc8369e0475cdb3de8cf0deba1815f82d",
     "examples/first-article/series.json": "381a563a55fdbe2a06662adcab3995ae467a0b1b15fecec977d6c6c505ed6e75",
     "examples/first-article/sources/first-page.md": "2a426775d0e718abb98baa31272a101e1dce074442a5f739b7f67a55c2ebfa66",

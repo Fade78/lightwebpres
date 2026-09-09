@@ -3028,7 +3028,7 @@ Reading preferences use a separate versioned localStorage record, scoped by
 output-directory path within the browser origin. Zoom, table/text modes and
 shrink switches follow the reader across articles, index and reloads; author
 minimum scales remain in source configuration. Invalid or unavailable storage
-falls back to author defaults. A Size and tables submenu keeps those controls
+falls back to author defaults. A Display settings submenu keeps those controls
 out of the main menu while preserving Back/Escape focus navigation.
 
 **Gardes.** Ordre primaire, déduplication, `builtin/standard`, validation avant

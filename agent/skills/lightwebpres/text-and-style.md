@@ -58,7 +58,7 @@ start a blockquote and needs no escape.
 
 The build keeps every table cell in HTML. Wide tables are visually clipped by
 default, not shortened or summarized. Readers can use
-**Menu > Size and tables > Wide tables** or **O** to choose clipping, overflow
+**Menu > Display settings > Wide tables** or **O** to choose clipping, overflow
 or local scrolling. Back or Escape returns from the sizing submenu to its
 main-menu item with focus restored; clicking outside closes it. In scroll mode,
 focused keys, wheel and touch interactions stay inside the table viewport
