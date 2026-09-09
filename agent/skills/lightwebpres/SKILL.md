@@ -134,9 +134,9 @@ journals planned effects; it is **not proof of rendered output**. Plain
 `audit` reports warnings and render failures without failing; `audit --strict`
 makes them a CI gate. Read findings, then build and inspect within scope.
 `verify` compares existing output with an in-memory rebuild using matching
-supported flags. It cannot reproduce `--inline-images`; use a separate
-non-inline output for that check. Report commands, options, findings and any
-unperformed visual or deployment checks; never call an unbuilt draft verified.
+supported flags, including `--single-page FILE` and `--inline-images` when
+used. Report commands, options, findings and any unperformed visual or deployment
+checks; never call an unbuilt draft verified.
 
 If a checkout is available, use its local `GUIDE.md` for the mission routes
 above and `specifications.md` for normative details. Otherwise use the linked

@@ -43,7 +43,7 @@
 
 **§11. Commandes de l'exécutable**
 
-11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --only` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.9.2 Le catalogue externe · 11.10 `series theme set` · 11.11 `status` et `series status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy · 11.17 `contract` · 11.18 `preset` et `series preset` · 11.19 `kit compose`
+11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --only` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.3.8 `--single-page FILE`: one document per series · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.9.2 Le catalogue externe · 11.10 `series theme set` · 11.11 `status` et `series status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy · 11.17 `contract` · 11.18 `preset` et `series preset` · 11.19 `kit compose`
 
 **§12. Algorithme du build**
 
@@ -91,14 +91,15 @@
 
 ## 1. Objectif
 
-LightWebPres est un framework de génération de pages web autonomes à partir de
-fichiers Markdown étendus. Il produit des pages HTML contenant une suite de
-fiches (slides) scrollables de différents types, optionnellement suivies d'un
-texte long (qui n'est pas forcément un article sourcé — le format est né d'un
-besoin de fiches documentées mais ne s'y cantonne pas), avec une navigation
-inter-articles. Le résultat est un ensemble de fichiers HTML **autonomes**
-(CSS inline, JS inline, aucune dépendance externe), déployables sur n'importe
-quel serveur statique.
+LightWebPres generates web pages from extended Markdown. Articles contain
+scrollable cards of several types, optionally followed by long-form text,
+with navigation between articles. Long-form text need not be a sourced article:
+the format began with documented presentations but is not limited to them.
+Default output is a set of HTML files with embedded CSS and JavaScript,
+deployable on a static server. `--single-page FILE` combines a series into one
+document with deliberate article switching (§11.3.8). Referenced images and
+author-supplied external resources still need to be distributed or reachable;
+image embedding is not a complete dependency bundle (§11.3.7, §13.2).
 
 Le framework est conçu pour un public rédacteur (auteur d'une série
 d'articles). Il n'y a pas de public lecteur cible : les utilisateurs
@@ -542,9 +543,9 @@ d'une commande vont sur **stdout**. C'est ce qui permet à
 ```bash
 lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--preset builtin/standard|commons/id|id@version/preset] [--no-starter] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
-lightwebpres watch [répertoire] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
-lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--single-page FILE] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres watch [répertoire] [--lang fr] [--output public/] [--single-page FILE] [--inline-images] [--include-drafts] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres verify [répertoire] [--lang fr] [--output public/] [--single-page FILE] [--inline-images] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
 lightwebpres template show <nav.js|fr.json|en.json|interface/...|typography/...>
@@ -575,11 +576,13 @@ lightwebpres --help
 
 - `[répertoire]` : le chemin du répertoire de série (défaut : `.`, ou `$LWP_SERIES_DIR`). `theme show` sans slug lit la série courante de la même façon ; avec un slug, il lit le catalogue global intégré/ installé/ utilisateur.
 - `--lang` : la langue — règles typographiques et chaînes d'interface (défaut : `fr`, ou `$LWP_LANG`)
-- `--output` : `demo` / `build` / `verify` — le répertoire de sortie
-  (défaut : `public/`, ou `$LWP_OUTPUT_DIR`) ; `theme gallery` reçoit le
-  chemin de son HTML et `theme create` celui de son fichier `.conf` ;
-  `kit compose` exige la racine de sortie du kit (`directory/id/version/`). Un chemin
-  **relatif** est résolu depuis le répertoire courant, pas depuis `[répertoire]`
+- `--output`: `demo` / `build` / `verify` / `watch` output directory (default:
+  `public/`, or `$LWP_OUTPUT_DIR`); it remains a directory with `--single-page`.
+  `theme gallery` takes an HTML destination, `theme create` a `.conf` filename,
+  and `kit compose` the output root for `directory/id/version/`. A relative
+  path is resolved from the working directory, not the series directory.
+- `--single-page FILE`: `build` / `verify` / `watch` publish or compare one combined HTML file with deliberate article switching (§11.3.8). The filename value is required.
+- `--inline-images`: `build` / `verify` / `watch` embed supported local Markdown and kit images as data URIs, not a complete dependency bundle (§11.3.7).
 - `--scaffold` : `template update` seulement — régénère la surface
   commentée de `settings.conf` aux valeurs du thème de base résolu, en
   conservant les lignes épinglées (§9.4.3)
@@ -596,11 +599,11 @@ lightwebpres --help
 - `--gitlab-ci` : `init` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
 - `--no-typography` : `build`/`verify`/`watch` — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
 - `--scroll-duration` : `build`/`verify`/`watch` — durée entière non négative en millisecondes du glissé entre fiches ; `0` le désactive. Sans cette option, `series_meta.scroll_duration` s'applique, puis le défaut de `200` ms (§8.4, §20.5)
-- `--include-drafts` : `build`/`verify` seulement — construit aussi les articles marqués `status: draft` (§20.6), avec bandeau « Brouillon ». Sans effet sur `status: ignored`, qui n'est jamais construit
+- `--include-drafts`: `build`/`verify`/`watch` also include articles marked `status: draft` (§20.6), with a draft banner. Articles marked `status: ignored` are never built.
 - `--themes` : `build`/`verify`/`watch`/`theme vendor` — embarque ou vend des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules ; les slugs viennent du catalogue effectif et le thème de base effectif (celui de `settings.conf`, ou celui du preset) reste toujours le premier pour un build, précédé de `custom(<thème>)` si le fichier porte des pins (§9.3.7)
 - `--presentation-presets` : `build`/`verify`/`watch` — publie des alternatives de présentation séparées par des virgules dans le sélecteur runtime ; le preset primaire de la série reste toujours le premier, et l'option CLI prime la liste racine `series.json["presentation_presets"]` (§9.3.8)
 - `--no-essential-theme` : `build`/`verify`/`watch` seulement — ne pas embarquer le lot `essential` par défaut (§9.3.7); une sélection explicite `--themes` reste appliquée
-- `--only` : `build` seulement — ne reconstruit qu'une page (§11.3.1)
+- `--only`: `build` rebuilds one article (§11.3.1); with `--single-page`, it validates the target then rebuilds the complete combined file (§11.3.8).
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
 - `--format text|json` : `status`, `series status`, `series tags`, `resolve`,
@@ -2415,6 +2418,9 @@ régler d'autre — ce que la garde vérifie sur une seconde construction à
 colonne épinglée, la valeur par défaut rendant la promesse intestable
 (`8vw` et `max(8vw, (100% - 84vw) / 2)` sont le même nombre).
 
+The fragment rules below describe multipage URLs. Single-page series use the
+article-qualified `#lwp/a/...` and contents `#lwp/index` routes in §11.3.8.
+
 **Fragment d'URL** : la barre d'adresse nomme la fiche courante, que le
 lecteur y soit arrivé par un saut ou **par un simple défilement** — la
 détection de fiche courante (80 ms après le dernier évènement de scroll)
@@ -2439,6 +2445,12 @@ et peut toujours nommer une fiche en première position.
 Markdown **d'une fiche** est embarquée comme un data URI base64, et le
 répertoire `img/` n'est pas copié. L'HTML grossit d'environ un tiers par
 image, mais un gzip de servage récupère ce surcoût sur le wire.
+
+`build`, `verify` and `watch` support this option. SVG images retain their
+original vector bytes inside `<img>` data URIs, not interactive SVG DOM.
+Nested resources are blocked by SVG-as-image rendering even online; diagnostics
+and the limits of image embedding are specified in §11.3.7. This option alone
+does not combine a series: use `--single-page FILE` for that (§11.3.8).
 
 L'option couvre aussi les images d'un fichier inclus par une fiche
 `full-article` (§5.1). Elle ne le faisait pas jusqu'à la v0.37.0 :
@@ -2847,6 +2859,9 @@ plus de garder `custom.css`.
 
 #### 9.3.3 JS (`nav.js`)
 
+The override mechanism below applies to multipage output. Single-page mode
+requires any local `templates/nav.js` to match the built-in runtime (§11.3.8).
+
 Le JavaScript de navigation gère :
 - Le scroll entre slides (flèches, PageUp/PageDown)
 - Les boutons prev/next/home
@@ -3016,6 +3031,10 @@ focus nettoyé), saut réel vers l'article via Entrée sur une carte
 focalisée, et non-régression du cooldown sous rafale de pressions.
 
 #### 9.3.6 Extension de la page d'index (`index_extra.html`)
+
+This extension applies to default multipage output. Single-page mode rejects
+nonempty `templates/index_extra.html`; arbitrary extension script lifecycles
+are unsupported there (§11.3.8).
 
 La structure de la page d'index reste fixe, mais un site migré ou une
 fonctionnalité maison (bouton, modale, script tiers...) peut avoir besoin
@@ -4902,10 +4921,11 @@ série :
 ### 11.3 `build`
 
 ```bash
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--single-page FILE] [--inline-images] [--no-typography] [--include-drafts] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
 ```
 
-Construit le site :
+Builds the site. The file layout below is the default multipage mode;
+`--single-page FILE` instead writes the combined document specified in §11.3.8.
 
 1. Lit `series.json` dans `[répertoire]` et résout
    `series_meta.presentation_preset` avant toute source : identité, preset,
@@ -4985,6 +5005,10 @@ alternative entraîne la génération des fragments et de l'index de chaque pres
 ainsi que du payload décrit en §9.3.8.
 
 ### 11.3.1 `build --only` : reconstruction d'un seul article
+
+The incremental behavior below applies to multipage output. With
+`--single-page FILE`, `--only` validates its target but rebuilds the complete
+combined document (§11.3.8).
 
 ```bash
 lightwebpres build [répertoire] --only fichier.html [--nav-cache chemin]
@@ -5179,13 +5203,14 @@ exactement 1,00:1.
 
 ### 11.3.3 Un article qui réclame `index.html`
 
-`build` écrit toujours un index de série, à `index.html`. Un article dont
-le `page_dest` vaut ce même nom entre donc en collision avec lui, et
-jusqu'ici la page de l'article était écrite puis **écrasée par l'index,
-en silence, avec un code de sortie 0** : une série déclarant trois
-articles en livrait deux, et `verify` n'y voyait rien. C'est la classe de
-défaut que §22.8 interdit déjà pour un fichier d'article manquant — une
-page corrompue livrée en vert — appliquée à une collision de noms.
+Default multipage builds generate series contents at `index.html`, unless
+`--no-index` suppresses it or the single-article rule below applies. An article
+claiming the same filename would otherwise collide with that index. Earlier
+builds silently overwrote the article with the index and exited zero, leaving
+a three-article series with only two articles without `verify` noticing.
+This was the missing-output failure prohibited by §22.8, caused by a filename
+collision. Single-page mode has no separate index file and therefore does not
+apply this index-ownership rule (§11.3.8).
 
 La règle dépend du **nombre d'articles**, et ce n'est pas un cas
 particulier concédé : c'est la reconnaissance de ce que l'index vaut dans
@@ -5209,6 +5234,10 @@ déclaration d'intention**, et l'outil n'a pas à la deviner autrement.
 
 #### 11.3.4 `--no-nav`, `--no-index`, `--no-readme`
 
+`build`, `verify` and `watch` accept these flags. In single-page mode,
+`--no-nav` and `--no-readme` remain supported, but `--no-index` is refused:
+the series contents view is part of the combined document (§11.3.8).
+
 Trois drapeaux qui suppriment des sorties générées :
 
 - `--no-nav` : le bloc de navigation de série (les cartes pointant vers
@@ -5229,6 +5258,9 @@ tient lui-même.
 
 #### 11.3.5 `--drafts-only`
 
+This option is refused with `--single-page`; use `--include-drafts` to include
+drafts alongside active articles in the combined document (§11.3.8).
+
 ```
 lightwebpres build [répertoire] --drafts-only
 ```
@@ -5245,55 +5277,118 @@ une erreur (`No draft articles found`).
 lightwebpres build [répertoire] --open
 ```
 
-Ouvre le navigateur sur le résultat après le build. L'URL est
-`index.html` dans le répertoire de sortie (ouvert via `file://` si
-`--serve` n'est pas actif). L'ouverture utilise le module `webbrowser`
-de la stdlib ; en CI, le BROWSER env var peut pointer vers `/bin/true`
-pour un no-op.
+Opens the result after the build: `index.html` in the output directory by
+default, or the requested `FILE` with `--single-page FILE`. Without `--serve`,
+the URL uses `file://`. Opening uses the standard-library `webbrowser` module;
+in CI, `BROWSER` can point to `/bin/true` for a no-op.
 
 #### 11.3.7 `--inline-images`
 
-Ce mode n'est pas reproductible par `verify`, qui n'accepte pas cette
-option. Sa porte de CI nécessite une sortie non inline distincte (§11.4).
-
+```bash
+lightwebpres build [directory] --inline-images
+lightwebpres verify [directory] --inline-images
+lightwebpres watch [directory] --inline-images
 ```
-lightwebpres build [répertoire] --inline-images
+
+All three commands support this mode. `verify` reproduces the same embedding
+in memory; a separate non-inline output is not required (§11.4).
+
+Supported local Markdown images, both inline `![alt](src)` and standalone
+figures, are embedded as base64 data URIs. This includes images in included
+`full-article` files. The build does not copy `img/`. Declared image assets of
+the resolved presentation kits follow the same rule: without the option they
+are copied under `public/assets/presentations/<id>/<version>/`; with it their
+URLs become data URIs and no new copy of that asset directory is written.
+
+SVG uses an `<img>` data URI containing the original vector bytes, not
+rasterization or interactive SVG DOM. SVG-as-image rendering blocks nested
+resource loading even when the parent SVG is online. Referenced local SVGs
+are inspected in both inline and non-inline modes. A normal warning summarizes
+blocked resources or unsupported active content; `--verbose` adds the source,
+line and remediation. `--quiet` retains warnings; `audit --strict` may fail on
+them. The engine does not fetch resources, follow their dependency graph or
+rewrite the SVG. The inspection is bounded, not an offline-completeness proof.
+Re-export a self-contained static SVG or replace nested references with SVG
+shapes when required.
+
+Raw HTML `<img>` elements are not auto-inlined. A remaining relative image
+`src` fails inline validation (§8.4). CSS, fonts, scripts, media and arbitrary
+HTML dependencies are not bundled transitively: image embedding is not a
+promise of a fully portable document. `--single-page FILE` combines articles
+but does not extend that dependency scope (§11.3.8).
+
+Base64 adds roughly one third to image bytes before serving compression; local
+`file://` delivery pays the full disk cost. Embedding is off by default. Normal
+builds copy only referenced files from `sources/img/` into `public/img/`.
+Unreferenced source images are not published; existing output files are not
+deleted automatically and may become orphans for `clean` (§11.13).
+
+### 11.3.8 `--single-page FILE`: one document per series
+
+```bash
+lightwebpres build [directory] --single-page collection.html [--inline-images]
+lightwebpres verify [directory] --single-page collection.html [--inline-images]
+lightwebpres watch [directory] --single-page collection.html [--inline-images]
 ```
 
-Embarque les images référencées dans le Markdown (images inline
-`![alt](src)` et figures standalone) comme des data URIs base64 dans le
-HTML. Le répertoire `img/` n'est pas copié vers `public/` : chaque page
-est alors un seul fichier HTML autonome, distribuable sans dépendance
-externe.
+`--single-page` requires a bare `.html` or `.htm` filename, not a path or URL.
+`--output` remains the output directory. This opt-in mode writes one combined
+HTML document containing series contents and the selected articles. Without
+the option, default multipage behavior is unchanged; the shared built-in
+runtime bytes are intentionally updated to support both modes.
 
-Les assets déclarés par le kit d'identité résolu suivent la même
-règle : sans l'option, ils sont copiés sous
-`public/assets/presentations/<id>/<version>/`; avec `--inline-images`, leurs
-URLs deviennent aussi des data URIs et ce répertoire n'est pas créé.
+**Views and lifecycle.** The initial view is series contents. Article changes
+are deliberate navigation actions, not continuous scrolling through the whole
+series. Only the active contents/article view is mounted in the DOM; inactive
+fragments are inert data, not hidden live articles. Styles, notes and IDs remain
+article-local. One root runtime persists across view changes, preserving
+fullscreen. Printing includes only the active article under its current tag
+filter; when the contents view is active, only series contents print.
 
-L'HTML grossit d'environ 33 % par image (l'encodage base64 ajoute 4
-octets pour 3). Un gzip de servage récupère ce surcoût sur le wire
-(l'alphabet de 64 caractères compresse bien). En ouverture locale
-(`file://`), le coût plein est payé sur disque.
+**Extensions and flags.** Any `templates/nav.js` must match the built-in
+navigation. Nonempty `templates/index_extra.html` is rejected in this initial
+mode. Arbitrary widget script lifecycles are unsupported; use default multipage
+output for those extensions. `--no-index` and `--drafts-only` are refused.
+`--include-drafts`, `--no-nav` and `--no-readme` remain supported. `build --only`
+validates its article target, then rebuilds the complete combined file rather
+than an incremental fragment. `--open` opens the combined file, including
+through the local server when used with `watch --serve`.
 
-Désactivé par défaut : le build standard référence les images par chemin
-relatif et copie uniquement les fichiers correspondants présents sous
-`sources/img/` vers `public/img/`. Un fichier source non référencé n'est pas
-publié; un fichier déjà présent dans `public/img/` n'est pas supprimé par le
-build, mais peut devenir orphelin pour `clean` (§11.13).
+**Addresses.** Source `page_dest` values remain unchanged. Generated series
+README links use `FILE#lwp/a/<encoded page_dest>`; an article-local target adds
+`/<encoded local id>`. Each component is percent-encoded separately. Series
+contents use `FILE#lwp/index`. For example,
+`collection.html#lwp/a/first-page.html/introduction` addresses the local
+`introduction` target in `first-page.html`, without publishing that article as
+a separate physical file.
+
+**Assets and ownership.** Without `--inline-images`, referenced images and
+presentation assets are copied and must accompany the HTML. With the option,
+supported images are embedded under §11.3.7, not a complete resource closure.
+Build manifests record the physical combined HTML and copied images/assets
+unless inlined, not virtual article files. Changing modes does not delete old
+multipage output or copied assets automatically; cleanup remains an explicit,
+reviewable `clean` operation (§11.13).
+
+**Verification.** Use the same `--single-page FILE`, `--inline-images` choice,
+rendering options and environment as the build. `verify` compares the combined
+HTML, the generated series README unless suppressed, and applicable copied
+assets, not nonexistent per-article files (§11.4).
 
 ### 11.4 `verify`
 
 ```bash
-lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--themes selectors|all] [--no-essential-theme]
+lightwebpres verify [directory] [--lang fr] [--output public/] [--single-page FILE] [--inline-images] [--language-file path.json] [--no-typography] [--include-drafts] [--no-nav] [--no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 ```
 
 Vérifie sans modifier :
 
-`verify` ne prend pas en charge `--inline-images` et ne peut pas reproduire
-ce mode de build. Les images ou assets de présentation embarqués peuvent
-donc provoquer un `[DRIFT]` même sans changement des sources. Pour cette
-porte de CI, utiliser une sortie distincte construite sans cette option.
+`verify` supports `--inline-images` and `--single-page FILE`. Match both the
+embedding choice and combined filename used by the build; no separate non-inline
+output is needed. With single-page output, it compares the physical combined
+HTML instead of per-article pages and a separate index (§11.3.8). `--no-index`
+and `--no-readme` reproduce output suppression where allowed; `--no-index`
+remains incompatible with single-page mode.
 
 Comme `build`, `verify` résout le preset de `series_meta` avant le rendu en
 mémoire. Articles, index, enveloppes, chrome, thème de base et CSS structurel
@@ -5330,9 +5425,10 @@ payloads différents et signale un `[DRIFT]` correct, pas un faux positif.
 3. Pour chaque fichier différent, affiche `[DRIFT] fichier` suivi d'un diff ;
    pour chaque fichier absent, affiche `[NEW] fichier` ; pour
    chaque fichier identique, affiche `[OK] fichier`
-4. Affiche un résumé chiffré : « N file(s) OK, M file(s) different. »
-   (N + M = nombre d'articles + 2 — **moins** 1 quand aucun index de
-   série n'est produit, §11.3.3)
+4. Reports a count: "N file(s) OK, M file(s) different." The total counts
+   physical files checked, including applicable presentation assets and the
+   series README unless suppressed. Single-page mode counts one combined
+   HTML file, not its virtual articles and contents as separate files.
 5. Code de sortie non nul (1) si au moins un fichier diffère ou est absent —
    c'est ce qui permet d'utiliser `verify` comme porte de vérification dans un
    script ou une CI (§10) ; code de sortie 0 et « All files are up to
@@ -6656,7 +6752,7 @@ build a déclaré, et le manifeste est la déclaration.
 ### 11.14 `watch`
 
 ```
-lightwebpres watch [répertoire] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port 8000] [--themes selectors|all] [--no-essential-theme]
+lightwebpres watch [directory] [--lang fr] [--output public/] [--single-page FILE] [--inline-images] [--include-drafts] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port 8000] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 ```
 
 Surveille les sources (articles, `series.json`, `templates/`, y compris les
@@ -6677,6 +6773,11 @@ afin que le mode watch ne fasse pas disparaître le sélecteur du résultat.
 `--no-essential-theme` est transmis de la même façon à chaque reconstruction,
 comme `--themes`. Sans cette option, toute modification de `series.json`,
 y compris de sa liste `themes`, est relue au prochain build.
+
+`--single-page FILE` and `--inline-images` are retained on the initial build
+and every rebuild, with the same restrictions as `build` (§11.3.7, §11.3.8).
+With single-page output, `--open` targets the combined filename rather than
+`index.html`; `--output` still selects the directory served.
 
 ### 11.15 `completion`
 
@@ -7097,11 +7198,18 @@ Deux comportements de lecture, valables pour **toutes** les sources
 
 ### 13.2 HTML autonome
 
-Chaque fichier HTML généré est **autonome** :
-- Le CSS est inline dans `<style>`
-- Le JS est inline dans `<script>`
-- Pas de lien vers des fichiers externes (sauf images en chemin relatif)
-- Pas de CDN, pas de dépendance réseau
+Generated HTML embeds the engine's CSS in `<style>` and its JavaScript in
+`<script>`, with no engine CDN or application-server dependency. Default
+multipage output references copied images and presentation assets; single-page
+output combines views but keeps the same asset policy unless `--inline-images`
+is selected (§11.3.7, §11.3.8).
+
+This is not a transitive offline bundle. Author CSS, fonts, scripts, media and
+raw HTML may still depend on external resources. Raw HTML images are not
+auto-inlined; SVG-as-image blocks nested resources even online. The engine
+does not fetch or rewrite those dependencies. Distribute required assets and
+check the intended viewing environment rather than assuming that one HTML
+file contains everything it needs.
 
 ### 13.3 Idempotence
 

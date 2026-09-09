@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.57.2"
+VERSION = "0.58.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -9904,7 +9904,77 @@ function lwpChooseInitialLanguage() {
 document.addEventListener('DOMContentLoaded', function() {
   lwpChooseInitialLanguage();
 (function(){
-  var allSlides = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
+  var seriesViewHost = document.getElementById('lwp-series-view');
+  var seriesDataNode = document.getElementById('lwp-series-data');
+  var seriesViews = null;
+  if (seriesViewHost && seriesDataNode) {
+    try {
+      var bundle = JSON.parse(seriesDataNode.textContent || '');
+      if (bundle.version === 1 && Array.isArray(bundle.views)) {
+        var views = new Map();
+        bundle.views.forEach(function (view) {
+          if (typeof view.key !== 'string' || typeof view.content !== 'string'
+              || typeof view.pageCss !== 'string' || views.has(view.key)) {
+            throw new Error('Invalid series view');
+          }
+          views.set(view.key, view);
+        });
+        if (views.has('')) seriesViews = views;
+      }
+    } catch (e) {}
+  }
+  var seriesCurrentKey = '';
+  var seriesActiveView = null;
+  var seriesGeneration = 0;
+  var seriesActivating = false;
+  var seriesPrinting = false;
+  var seriesPendingRoute = null;
+  var seriesTarget = null;
+  var seriesLastHash = null;
+  function contentRoot() { return seriesViews ? seriesViewHost : document; }
+  function seriesFragment(key, target) {
+    return key === '' ? '#lwp/index' : '#lwp/a/' + encodeURIComponent(key)
+      + (target ? '/' + encodeURIComponent(target) : '');
+  }
+  function parseSeriesRoute(hash) {
+    if (!hash || hash === '#lwp/index') return {key: '', target: ''};
+    var parts = hash.split('/');
+    if (parts[0] !== '#lwp' || parts[1] !== 'a'
+        || parts.length < 3 || parts.length > 4) return null;
+    try {
+      var key = decodeURIComponent(parts[2]);
+      var target = parts.length === 4 ? decodeURIComponent(parts[3]) : '';
+      return key && seriesViews.has(key) ? {key: key, target: target} : null;
+    } catch (e) { return null; }
+  }
+  function remapSeriesLinks() {
+    if (!seriesViews) return;
+    Array.prototype.forEach.call(seriesViewHost.querySelectorAll('a[href]'), function (link) {
+      var href = link.getAttribute('href');
+      if (!href || href.indexOf('#lwp/') === 0 || link.hasAttribute('download')) return;
+      if (href.charAt(0) === '#') {
+        if (!seriesCurrentKey) return;
+        try {
+          link.setAttribute('href', seriesFragment(seriesCurrentKey, decodeURIComponent(href.slice(1))));
+        } catch (e) {}
+        return;
+      }
+      // Only known relative page destinations are publication links. External
+      // documentary links and resource downloads retain their authored URLs.
+      if (/^(?:[a-z][a-z0-9+.-]*:|\/|\?)/i.test(href)) return;
+      try {
+        var url = new URL(href, location.href);
+        if (url.search) return;
+        var key = null;
+        seriesViews.forEach(function (_view, candidate) {
+          if (candidate && new URL(candidate, location.href).pathname === url.pathname) key = candidate;
+        });
+        if (key === null && new URL('index.html', location.href).pathname === url.pathname) key = '';
+        if (key !== null) link.setAttribute('href', seriesFragment(key, decodeURIComponent(url.hash.slice(1))));
+      } catch (e) {}
+    });
+  }
+  var allSlides = Array.prototype.slice.call(contentRoot().querySelectorAll('section.slide'));
   var isIndex = document.body.classList.contains('index-page');
   var hasFinePointer = !!(window.matchMedia
                            && window.matchMedia('(pointer: fine)').matches);
@@ -10080,7 +10150,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // explicit zoom scales its result without changing frame geometry.
       document.documentElement.style.setProperty('--lwp-presentation-zoom', String(presentationZoom));
       var contentRoots = isIndex ? Array.prototype.slice.call(
-        document.querySelectorAll('.header, .intro, .article-card')) : allSlides;
+        contentRoot().querySelectorAll('.header, .intro, .article-card')) : allSlides;
       var visible = contentRoots.filter(function (slide) {
         return !slide.hidden && getComputedStyle(slide).display !== 'none';
       });
@@ -10280,7 +10350,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function schedule(reason) {
-      if (!printing && frame === null) {
+      if (!seriesActivating && !printing && frame === null) {
         pendingPosition = ready && !isIndex && reason !== 'resize' && reason !== 'zoom'
           ? captureReadingPosition() : null;
         frame = requestAnimationFrame(layout);
@@ -10289,8 +10359,10 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('beforeprint', function () {
       if (printing) return;
       printing = true;
+      // A bundle prints its mounted view: one article, or contents alone.
+      seriesPrinting = true;
       printPosition = isIndex ? null : captureReadingPosition();
-      printScroll = Array.prototype.map.call(document.querySelectorAll('.lwp-table-viewport'),
+      printScroll = Array.prototype.map.call(contentRoot().querySelectorAll('.lwp-table-viewport'),
         function (node) { return {node: node, left: node.scrollLeft, top: node.scrollTop}; });
       if (frame !== null) { cancelAnimationFrame(frame); frame = null; }
       printStyles = changed.map(function (item) {
@@ -10303,6 +10375,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('afterprint', function () {
       if (!printing) return;
       printing = false;
+      seriesPrinting = false;
       restore(printStyles);
       printStyles = [];
       printScroll.forEach(function (item) {
@@ -10313,9 +10386,15 @@ document.addEventListener('DOMContentLoaded', function() {
       if (printPosition && !printPosition.slide.hidden) reanchorPresentation(printPosition);
       printPosition = null;
       schedule('afterprint');
+      if (seriesPendingRoute) {
+        var pending = seriesPendingRoute;
+        seriesPendingRoute = null;
+        activateSeriesView(pending.route, pending.push);
+      }
     });
     document.addEventListener('load', function (event) {
-      if (event.target.tagName === 'IMG') schedule('image');
+      if (event.target.tagName === 'IMG'
+          && (!seriesViews || seriesViewHost.contains(event.target))) schedule('image');
     }, true);
     if (document.fonts) {
       document.fonts.ready.then(function () { schedule('fonts'); });
@@ -10323,7 +10402,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     window.addEventListener('resize', function () { schedule('resize'); });
     schedule('initial');
-    return {schedule: schedule};
+    return {schedule: schedule, reset: function () {
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;
+      pendingPosition = null;
+      ready = false;
+      restore(changed);
+      changed = [];
+      originals = new WeakMap();
+    }};
   })();
 
   function scheduleReadingLayout(reason) {
@@ -10381,10 +10468,10 @@ document.addEventListener('DOMContentLoaded', function() {
   // is underneath the breathing room wanted by the navigation selector.
   var focusedCard = -1;
   var allIndexCards = isIndex
-    ? Array.prototype.slice.call(document.querySelectorAll('.article-card')) : [];
+    ? Array.prototype.slice.call(contentRoot().querySelectorAll('.article-card')) : [];
   var indexCards = allIndexCards.slice();
   var articleCards = Array.prototype.slice.call(
-    document.querySelectorAll('[data-lwp-article-card]'));
+    contentRoot().querySelectorAll('[data-lwp-article-card]'));
   var btnPrev    = document.getElementById('navPrev');
   var btnNext    = document.getElementById('navNext');
   var navDots    = document.querySelector('.nav-dots');
@@ -10625,6 +10712,7 @@ document.addEventListener('DOMContentLoaded', function() {
         allSlides[0].insertBefore(buildStamp, allSlides[0].firstChild);
       }
     }
+    remapSeriesLinks();
     if (returnContainer && returnHref !== null) {
       themeReturnFocus = Array.prototype.find.call(
         returnContainer.querySelectorAll('[href]'), function (link) {
@@ -10638,6 +10726,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function applyPresentation(selector, persist) {
+    if (seriesViews && seriesPrinting) return false;
     var preset = presentationBySelector(selector);
     if (!preset) return false;
     scheduleReadingLayout('presentation');
@@ -10666,6 +10755,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function clearExplicitTheme(persist) {
+    if (seriesViews && seriesPrinting) return false;
     if (!presentationData) return false;
     scheduleReadingLayout('theme-default');
     clearRuntimeVariables();
@@ -10679,6 +10769,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function applyTheme(slug, persist, explicit) {
+    if (seriesViews && seriesPrinting) return false;
     var theme = themeBySlug(slug);
     if (!theme) return false;
     scheduleReadingLayout('theme');
@@ -10953,7 +11044,8 @@ document.addEventListener('DOMContentLoaded', function() {
     navDots.innerHTML = '';
     slides.forEach(function (slide, i) {
       var a = document.createElement('a');
-      a.href = '#' + (slide.id || ('s' + (i + 1)));
+      a.href = seriesViews ? seriesFragment(seriesCurrentKey, slide.id)
+        : '#' + (slide.id || ('s' + (i + 1)));
       var kickerEl = slide.querySelector('.slide-kicker');
       var headEl = slide.querySelector('h2, h1');
       var label = kickerEl ? kickerEl.textContent :
@@ -11029,10 +11121,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function refreshPresentationCards(focusedHref, focusedWasActive) {
     allIndexCards = isIndex
-      ? Array.prototype.slice.call(document.querySelectorAll('.article-card'))
+      ? Array.prototype.slice.call(contentRoot().querySelectorAll('.article-card'))
       : [];
     articleCards = Array.prototype.slice.call(
-      document.querySelectorAll('[data-lwp-article-card]'));
+      contentRoot().querySelectorAll('[data-lwp-article-card]'));
     if (!isIndex) return;
     indexCards = allIndexCards.filter(function (card) {
       return articleMatchesTag(card, selectedTag);
@@ -11054,10 +11146,20 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function applyHash() {
+    if (seriesViews) {
+      if (seriesLastHash === location.hash) return;
+      var route = parseSeriesRoute(location.hash);
+      if (route) activateSeriesView(route, false);
+      return;
+    }
     // The index has no fiche and no fragment: nothing to follow.
     if (isIndex) return;
     var id = window.location.hash ? window.location.hash.slice(1) : '';
     try { id = decodeURIComponent(id); } catch (e) {}
+    applyHashTarget(id);
+  }
+
+  function applyHashTarget(id) {
     if (!id) return;
     var target = allSlides.find(function (slide) { return slide.id === id; });
     if (!target) {
@@ -11071,7 +11173,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var anchor = document.getElementById(id);
       target = anchor && anchor.closest ? anchor.closest('section.slide') : null;
     }
-    if (!target) return;
+    if (!target || allSlides.indexOf(target) < 0) return;
     if (!articleGateMatches(document.body, selectedTag)
         || !slideMatchesTag(target, selectedTag)) {
       var candidates = articleTags(document.body).concat(slideTags(target),
@@ -11085,7 +11187,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     var index = slides.indexOf(target);
     if (index >= 0) {
-      goTo(index, !!anchor);
+      if (seriesViews) seriesTarget = id;
+      goTo(index, !!anchor || !!seriesViews, true);
       if (anchor) {
         // Reveal the owning slide first, then keep the inner destination,
         // rather than replacing a footnote link with the section's top.
@@ -11098,7 +11201,9 @@ document.addEventListener('DOMContentLoaded', function() {
         anchor.scrollIntoView({block: 'start', behavior: 'instant'});
         jumpScrollTo(window.pageYOffset + anchor.getBoundingClientRect().top
           - navigableCardViewportMargin, window.pageXOffset);
-        window.history.replaceState(null, '', '#' + encodeURIComponent(id));
+        var fragment = seriesViews ? seriesFragment(seriesCurrentKey, id) : '#' + encodeURIComponent(id);
+        window.history.replaceState(null, '', fragment);
+        if (seriesViews) seriesLastHash = location.hash;
         readingPosition = captureReadingPosition();
       }
     }
@@ -11936,6 +12041,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function updatePresenter() {
     if (!presenterPanel || !presenterPanel.classList.contains('open')) return;
     if (!slides.length) {
+      if (seriesViews) {
+        if (presenterHead) presenterHead.textContent = '';
+        if (presenterNotes) presenterNotes.textContent = '';
+        if (presenterNext) presenterNext.textContent = '';
+      }
       // The presenter panel exists on the index too (one skeleton), but
       // it is a deck's furniture: without slides there is nothing to
       // present, so the panel says nothing.
@@ -12004,6 +12114,15 @@ document.addEventListener('DOMContentLoaded', function() {
     var slide = slides[idx];
     if (!slide || !slide.id) return;
     if (!window.history || !window.history.replaceState) return;
+    if (seriesViews) {
+      if (seriesActivating || seriesPrinting) return;
+      var target = seriesTarget && document.getElementById(seriesTarget);
+      if (!target || target.closest('section.slide') !== slide) seriesTarget = null;
+      var fragment = seriesFragment(seriesCurrentKey, seriesTarget || (idx ? slide.id : ''));
+      if (location.hash !== fragment) window.history.replaceState(null, '', fragment);
+      seriesLastHash = location.hash;
+      return;
+    }
     if (idx === 0) {
       // Top of the page: the article's own URL, no fragment. Only when
       // one is actually present — the freshly opened page already has
@@ -12065,6 +12184,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return {slide: slide, ratio: isScrolling ? 0 : Math.max(0, -rect.top / rect.height)};
   }
   function reanchorPresentation(position) {
+    if (seriesViews && (seriesActivating || seriesPrinting)) return;
     if (isIndex) {
       if (focusedCard >= 0 && indexCards[focusedCard]) {
         focusNavigableCard(indexCards[focusedCard]);
@@ -12090,6 +12210,13 @@ document.addEventListener('DOMContentLoaded', function() {
     var rect = slide.getBoundingClientRect();
     var targetY = rect.top + (window.pageYOffset || document.documentElement.scrollTop)
       + (position ? position.ratio * rect.height : 0);
+    if (seriesViews && seriesTarget) {
+      var anchor = document.getElementById(seriesTarget);
+      if (anchor && anchor !== slide && anchor.closest('section.slide') === slide) {
+        targetY = window.pageYOffset + anchor.getBoundingClientRect().top
+          - navigableCardViewportMargin;
+      }
+    }
     jumpScrollTo(targetY);
     isScrolling = false;
     readingPosition = captureReadingPosition();
@@ -12104,7 +12231,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  function goTo(idx, instant) {
+  function goTo(idx, instant, preserveTarget) {
+    if (seriesViews && seriesPrinting) return;
+    if (seriesViews && !preserveTarget) seriesTarget = null;
     if (isIndex) {
       // On the index there is no slide to go to — the URL keeps no
       // fragment, the focus is the position (stepIndexCards), and the
@@ -12134,7 +12263,10 @@ document.addEventListener('DOMContentLoaded', function() {
       animateScrollTo(targetY, duration);
       // The safety net: a frame dropped by the compositor must not leave
       // the deck locked forever.
-      setTimeout(function(){ isScrolling = false; }, duration + 60);
+      var generation = seriesGeneration;
+      setTimeout(function(){
+        if (generation === seriesGeneration) isScrolling = false;
+      }, duration + 60);
     }
     updateUI();
   }
@@ -12370,7 +12502,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // and the menu action mean the top of the page, where the journey starts.
   function goHome() {
     if (!isIndex) {
-      window.location.href = 'index.html';
+      if (seriesViews) activateSeriesView({key: '', target: ''}, true);
+      else window.location.href = 'index.html';
     } else {
       clearIndexFocus();
       scrollToTop();
@@ -12417,7 +12550,10 @@ document.addEventListener('DOMContentLoaded', function() {
      if (stepCooldownActive) return;
      stepCooldownActive = true;
      fn();
-     setTimeout(function () { stepCooldownActive = false; }, STEP_COOLDOWN_MS);
+     var generation = seriesGeneration;
+     setTimeout(function () {
+       if (generation === seriesGeneration) stepCooldownActive = false;
+     }, STEP_COOLDOWN_MS);
    }
 
    function isForegroundScrollKey(key) {
@@ -12862,6 +12998,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   function detectCurrent() {
+    if (seriesViews && (seriesActivating || seriesPrinting)) return;
     // On the index there are no slides, and the focus is the source of
     // truth for the position — the scroll observer has nothing to
     // detect, so it does nothing.
@@ -12885,6 +13022,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   var scrollTimer = null;
   window.addEventListener('scroll', function() {
+    if (seriesViews && (seriesActivating || seriesPrinting)) return;
     if (helpIsOpen()) return;
     readingPosition = captureReadingPosition();
     if (scrollTimer) clearTimeout(scrollTimer);
@@ -12930,6 +13068,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function shareUrl(scope) {
     if (location.protocol !== 'http:' && location.protocol !== 'https:') return null;
+    if (seriesViews) {
+      var base = location.origin + location.pathname + location.search;
+      if (scope === 'series') return base + seriesFragment('', '');
+      if (scope === 'article') return base + seriesFragment(seriesCurrentKey, '');
+      var slideId = scope === 'fiche' ? currentSlideId() : null;
+      return slideId ? base + seriesFragment(seriesCurrentKey, slideId) : null;
+    }
     if (scope === 'series') {
       return location.origin + location.pathname.replace(/[^\/]*$/, '') + 'index.html';
     }
@@ -13517,7 +13662,8 @@ document.addEventListener('DOMContentLoaded', function() {
       // the intent window too).
       e.preventDefault();
       fsIntentUntil = 0;
-      window.location.href = 'index.html';
+      if (seriesViews) goHome();
+      else window.location.href = 'index.html';
     }
   }, true);
   document.addEventListener('click', function (e) {
@@ -13547,6 +13693,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var touchPairScrollX = 0, touchPairScrollY = 0;
   var touchPairCurrent = 0, touchPairFocusedCard = -1;
   var touchPairHref = '';
+  var touchPairGeneration = 0;
   function discardMultiTouch(e) {
     if (e.touches.length > 1) multiTouchActive = true;
     if (!multiTouchActive && e.type !== 'touchcancel') return false;
@@ -13654,6 +13801,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return document.documentElement.classList.contains('nav-idle');
   }
   function rememberTouchPosition() {
+    touchPairGeneration = seriesGeneration;
     touchPairScrollX = window.pageXOffset
       || document.documentElement.scrollLeft || 0;
     touchPairScrollY = window.pageYOffset
@@ -13663,6 +13811,7 @@ document.addEventListener('DOMContentLoaded', function() {
     touchPairHref = window.location.href;
   }
   function restoreTouchPosition() {
+    if (touchPairGeneration !== seriesGeneration) return;
     if (scrollTimer) { clearTimeout(scrollTimer); scrollTimer = null; }
     if (isIndex) {
       if (focusedCard >= 0 && indexCards[focusedCard]) {
@@ -13680,6 +13829,7 @@ document.addEventListener('DOMContentLoaded', function() {
     isScrolling = false;
     if (touchPairHref && window.history && window.history.replaceState) {
       window.history.replaceState(null, '', touchPairHref);
+      if (seriesViews) seriesLastHash = location.hash;
     }
     updateUI();
   }
@@ -13749,8 +13899,145 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   scheduleHide();
 
+  function activateSeriesView(route, push) {
+    if (!seriesViews || !seriesViews.has(route.key)) return false;
+    if (seriesPrinting) {
+      seriesPendingRoute = {route: route, push: push};
+      return false;
+    }
+    var view = seriesViews.get(route.key);
+    var changing = view !== seriesActiveView;
+    var marker = document.getElementById('lwp-series-css-marker');
+    var css = null;
+    if (changing) {
+      if (!marker || marker.parentNode !== document.head) return false;
+      css = document.createElement('template');
+      css.innerHTML = view.pageCss;
+      if (!css.content.querySelector('style')) return false;
+    }
+    seriesActivating = true;
+    seriesGeneration++;
+    if (scrollRAF) cancelAnimationFrame(scrollRAF);
+    scrollRAF = null;
+    if (presentationReanchorFrame) cancelAnimationFrame(presentationReanchorFrame);
+    presentationReanchorFrame = null;
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = null;
+    if (jumpTimer) clearTimeout(jumpTimer);
+    jumpTimer = null;
+    jumpBuffer = '';
+    isScrolling = false;
+    stepCooldownActive = false;
+    readingPosition = null;
+    seriesTarget = null;
+    focusedCard = -1;
+    touchStartX = touchStartY = null;
+    lastTapT = 0;
+    fsIntentUntil = 0;
+    fsEntryPending = false;
+    closeReadingMenu(false);
+    closePresenterMenu(false);
+    closeThemeMenu(false);
+    closeTagMenu(false);
+    closeSharePopover(false);
+    closeQrModal(false);
+    closeHelp(false);
+    closeAbout(false);
+    closePause();
+    readingRuntime.reset();
+    if (changing) {
+      // Clear patches against the outgoing catalogue before installing the
+      // incoming page's baseline and pins. Unrelated root styles stay intact.
+      clearRuntimeVariables();
+      Array.prototype.forEach.call(document.querySelectorAll('style[data-lwp-series-css]'),
+        function (node) { node.parentNode.removeChild(node); });
+      Array.prototype.forEach.call(css.content.querySelectorAll('style'), function (node) {
+        node.setAttribute('data-lwp-series-css', '');
+        document.head.insertBefore(node, marker);
+      });
+      var previous = seriesActiveView || seriesViews.get('');
+      String(previous.bodyClass || '').split(/\s+/).filter(Boolean).forEach(function (name) {
+        document.body.classList.remove(name);
+      });
+      String(view.bodyClass || '').split(/\s+/).filter(Boolean).forEach(function (name) {
+        document.body.classList.add(name);
+      });
+      document.body.classList.toggle('index-page', route.key === '');
+      document.body.setAttribute('data-lwp-article-tags', view.articleTags || '');
+      document.title = view.title || '';
+      seriesCurrentKey = route.key;
+      seriesActiveView = view;
+      seriesViewHost.innerHTML = view.content;
+      isIndex = route.key === '';
+      allSlides = Array.prototype.slice.call(seriesViewHost.querySelectorAll('section.slide'));
+      slides = allSlides.slice();
+      current = 0;
+      presentationStyleNode = document.getElementById('lwp-presentation-structure');
+      presentationIndexNode = document.getElementById('lwp-presentation-index');
+      themePinned = {};
+      (view.themePins || []).forEach(function (index) { themePinned[index] = true; });
+      presentationPinned = {};
+      (view.presentationPins || []).forEach(function (index) { presentationPinned[index] = true; });
+      if (presentationData) presentationData.variants = view.variants || {};
+      refreshPresentationCards();
+      if (themeData) applyTheme(themeCurrent, false, themeExplicit);
+      if (presentationData) applyPresentation(presentationCurrent, false);
+      refreshPresentationLanguage();
+      remapSeriesLinks();
+    }
+    renderTagMenu();
+    applyTagFilter(false);
+    writeStoredTag(selectedTag);
+    var hash = seriesFragment(route.key, route.target);
+    if (location.hash !== hash) {
+      window.history[push ? 'pushState' : 'replaceState'](null, '', hash);
+    }
+    seriesLastHash = location.hash;
+    seriesActivating = false;
+    if (isIndex || !slides.length) jumpScrollTo(0);
+    else if (route.target) applyHashTarget(route.target);
+    else goTo(0, true);
+    scheduleReadingLayout('series');
+    updateUI();
+    // A replaced link must not strand keyboard focus on the document body.
+    var destination = route.target && document.getElementById(route.target);
+    if (!destination || !seriesViewHost.contains(destination) || destination.closest('[hidden]')) {
+      destination = slides[current] || seriesViewHost;
+    }
+    if (!destination.hasAttribute('tabindex')) destination.setAttribute('tabindex', '-1');
+    destination.focus({preventScroll: true});
+    return true;
+  }
+
+  if (seriesViews) {
+    document.addEventListener('click', function (event) {
+      if (event.defaultPrevented || event.button !== 0 || event.ctrlKey
+          || event.metaKey || event.shiftKey || event.altKey) return;
+      var link = event.target.closest && event.target.closest('a[href]');
+      if (!link || link.hasAttribute('download')
+          || (link.target && link.target.toLowerCase() !== '_self')) return;
+      var href = link.getAttribute('href');
+      if (href.indexOf('#lwp/') !== 0) return;
+      var route = parseSeriesRoute(href);
+      if (!route) return;
+      event.preventDefault();
+      activateSeriesView(route, true);
+    });
+    window.addEventListener('popstate', applyHash);
+  }
+
   if (btnMenu) btnMenu.addEventListener('click', togglePresenterMenu);
   presentationCurrent = readStoredPresentation();
+  if (seriesViews) {
+    if (themeData) {
+      themeCurrent = readStoredTheme();
+      themeExplicit = readStoredThemeExplicit();
+    }
+    updateAppearanceLabels();
+    window.addEventListener('hashchange', applyHash);
+    activateSeriesView(parseSeriesRoute(location.hash) || {key: '', target: ''}, false);
+    return;
+  }
   if (themeData) {
     applyTheme(readStoredTheme(), false, readStoredThemeExplicit());
     if (presentationData) applyPresentation(presentationCurrent, false);
@@ -14107,7 +14394,7 @@ TEMPLATE_SERIES_NAV_ITEM_CURRENT = '''    <div class="series-item series-current
       <div class="series-status">&#9656; <span data-lwp-i18n="series_current_status">{status}</span></div>
     </div>'''
 
-TEMPLATE_SERIES_NAV_BACK = '''    <a href="index.html" class="series-item series-link" style="text-align: center; margin-top: 24px;">
+TEMPLATE_SERIES_NAV_BACK = '''    <a href="{file}" class="series-item series-link" style="text-align: center; margin-top: 24px;">
       <div class="series-title">&larr; <span data-lwp-i18n="series_back_to_index">{back}</span></div>
     </a>'''
 
@@ -15794,8 +16081,8 @@ def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
         # page is fully self-contained. If the file cannot be read, the
         # original src stays — a broken link is better than a silent
         # missing image (nothing inlined as nothing would hide the error).
-        if inline_images and sources_dir is not None:
-            encoded = _encode_inline_image(src, sources_dir)
+        if sources_dir is not None:
+            encoded = _encode_inline_image(src, sources_dir, inspect_only=not inline_images)
             if encoded is not None:
                 src = encoded
         image_style, _ = _image_render_attributes(m.group(4), standalone=False)
@@ -16328,8 +16615,8 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             src = html_escape(m_fig.group(2), quote=True)
             caption = m_fig.group(3)
             # --inline-images: same as mid-paragraph images above.
-            if inline_images and sources_dir is not None:
-                encoded = _encode_inline_image(src, sources_dir)
+            if sources_dir is not None:
+                encoded = _encode_inline_image(src, sources_dir, inspect_only=not inline_images)
                 if encoded is not None:
                     src = encoded
             image_style, alignment = _image_render_attributes(
@@ -17765,13 +18052,26 @@ def _render_slide_default(slide, slide_num, total_slides, typo_engine, strings,
 
 def _presentation_asset_url(asset, package, inline_images):
     """Return one package asset as either a public URL or a data URI."""
-    if inline_images:
+    is_svg = str(asset['relative']).lower().endswith('.svg')
+    if inline_images or is_svg:
         try:
-            content = asset['path'].read_bytes()
+            if inline_images:
+                content = asset['path'].read_bytes()
+            else:
+                with asset['path'].open('rb') as image:
+                    content = image.read(2 * 1024 * 1024 + 1)
         except OSError as exc:
+            if not inline_images:
+                log('warn', f'{asset["path"]}: SVG-as-image inspection unavailable '
+                    f'({exc}); check that the image is readable.')
+                return ('assets/presentations/' + package.id + '/'
+                        + package.version + '/' + asset['public_relative'])
             raise PropertyError(
                 f'identity kit {package.selector}: cannot read asset '
                 f'{asset["relative"]!r} ({exc})')
+        if is_svg:
+            _diagnose_svg_image(content, asset['path'])
+    if inline_images:
         mime = (mimetypes.guess_type(asset['relative'])[0]
                 or 'application/octet-stream')
         return ('data:' + mime + ';base64,'
@@ -18159,7 +18459,7 @@ def tag_preview_data(series_data):
                       separators=(',', ':'))
 
 
-def build_series_nav(current_file, series_data, strings, typo_engine):
+def build_series_nav(current_file, series_data, strings, typo_engine, contents_href='index.html'):
     """Generates the navigation block HTML for the current article.
 
     typo_engine here is always the *build's* engine, never the hosting
@@ -18196,7 +18496,7 @@ def build_series_nav(current_file, series_data, strings, typo_engine):
                 title=title,
                 desc=desc,
                 read=read))
-    parts.append(TEMPLATE_SERIES_NAV_BACK.format(back=back))
+    parts.append(TEMPLATE_SERIES_NAV_BACK.format(back=back, file=html_escape(contents_href, quote=True)))
     return '\n'.join(parts)
 
 
@@ -18229,7 +18529,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
                   build_stamp='', theme_runtime=None, style_context=None,
                   language_runtime=None, scroll_duration=None,
                   presentation_preset=None, presentation_runtime=None,
-                  presentation_capture=None):
+                  presentation_capture=None, fragment_only=False):
     """Generates the index page.
 
     The index is a page of the same site as the articles: it shares
@@ -18326,7 +18626,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     if presentation_runtime is not None:
         content = '<div id="lwp-presentation-index">\n' + content + '\n</div>'
 
-    html = fill_placeholders(html, {
+    values = {
         'lang': lang, 'title': title_clean, 'css': css,
         'page_css': _page_css_markup(
             css, style_context, None, presentation_preset,
@@ -18350,13 +18650,17 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
              presentation_runtime, style_context),
          'presentation_picker': _presentation_picker_markup(
              strings, presentation_runtime),
-     })
+     }
+    if fragment_only:
+        validate_html(content + index_footer + index_extra, 'series contents')
+        return values
+    html = fill_placeholders(html, values)
 
     validate_html(html, 'index.html')
     return html
 
 
-def build_readme(series_data, sd, output_dir, strings):
+def build_readme(series_data, sd, output_dir, strings, single_page=None):
     """Generates README.md content: series title/subtitle/intro from
     series_meta, then a numbered list of articles linking to their built
     HTML file (spec §8.3)."""
@@ -18382,7 +18686,10 @@ def build_readme(series_data, sd, output_dir, strings):
         article_desc = entry.get('nav_desc', '')
         # as_posix(): os.path.relpath yields backslashes on Windows,
         # which are broken Markdown link separators.
-        link = Path(os.path.relpath(output_dir / entry['page_dest'], start=sd)).as_posix()
+        link = Path(os.path.relpath(output_dir / (single_page or entry['page_dest']), start=sd)).as_posix()
+        if single_page:
+            from urllib.parse import quote
+            link += '#lwp/a/' + quote(entry['page_dest'], safe='')
         if article_desc:
             lines.append(f'{i}. [{article_title}]({link}) — {article_desc}')
         else:
@@ -18894,7 +19201,7 @@ def typo_engine_for_slide(slide, fallback, lang_tag_engines=None):
     return fallback
 
 
-def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None, theme_runtime=None, language_runtime=None, scroll_duration=None, presentation_preset=None, slide_layouts=None, slide_chrome_layers=(), structure_css='', presentation_runtime=None, presentation_capture=None):
+def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None, theme_runtime=None, language_runtime=None, scroll_duration=None, presentation_preset=None, slide_layouts=None, slide_chrome_layers=(), structure_css='', presentation_runtime=None, presentation_capture=None, fragment_only=False):
     """Builds an HTML page for an article."""
     md_text = read_text_file(source_path)
     meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
@@ -19029,7 +19336,9 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # leaving the container (<h2> + <div class="series-list">) in the HTML,
     # empty but not an error.
     if include_nav:
-        series_nav_html = build_series_nav(current_file, series_data, strings, typo_engine)
+        series_nav_html = build_series_nav(
+            current_file, series_data, strings, typo_engine,
+            contents_href='#lwp/index' if args and args.get('--single-page') else 'index.html')
     else:
         series_nav_html = ''
     slides_html = slides_html.replace('{SERIES_NAV_PLACEHOLDER}', series_nav_html)
@@ -19240,7 +19549,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
         scroll_duration = resolve_scroll_duration(series_meta, args)
     reading = resolve_reading_settings(series_meta)
     series_tag_values = series_tags(series_data)
-    html = fill_placeholders(html, {
+    values = {
         'lang': lang, 'title': title_clean, 'meta_head': meta_head,
          'css': css,
          'page_css': _page_css_markup(
@@ -19267,7 +19576,13 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
               presentation_runtime, style_context, page_props),
           'presentation_picker': _presentation_picker_markup(
               strings, presentation_runtime),
-     })
+     }
+    if fragment_only:
+        validate_html(slides_html + page_footer, current_file)
+        if inline_images:
+            validate_self_contained(slides_html + page_footer, current_file)
+        return values
+    html = fill_placeholders(html, values)
 
     validate_html(html, current_file)
     if inline_images:
@@ -19275,11 +19590,154 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     return html
 
 
-def _encode_inline_image(src, sources_dir):
+def _diagnose_svg_image(data, source_path):
+    """Report common SVG-as-image restrictions without changing any bytes.
+
+    This bounded inspection is not an SVG/CSS validator or an offline proof:
+    it does not follow resources, expand DTDs, inspect nested data URIs, or
+    interpret CSS escapes. XML supplies element lines; attribute lines refer
+    to the opening element. Stop at 2 MiB or 32 distinct findings.
+
+    An explicit warning-collection scope (audit's render pass) memoizes at
+    most 128 source/content keys and 64 KiB of key payload, never image bytes.
+    Without that scope every call diagnoses independently. Reading and hashing
+    the current bytes avoids stat-only staleness when timestamps are restored.
+    """
+    from xml.parsers import expat
+
+    if _WARN_SINK is not None and len(data) <= 2 * 1024 * 1024:
+        cache = getattr(_WARN_SINK, '_svg_diagnostics', None)
+        if cache is None:
+            cache = {'keys': set(), 'bytes': 0}
+            _WARN_SINK._svg_diagnostics = cache
+        source = os.fspath(source_path)
+        key = (source, hashlib.sha256(data).digest(), _LOG_STATE['verbose'])
+        if key in cache['keys']:
+            return
+        size = len(source.encode('utf-8', errors='replace')) + 32
+        if len(cache['keys']) < 128 and cache['bytes'] + size <= 64 * 1024:
+            cache['keys'].add(key)
+            cache['bytes'] += size
+
+    findings = []
+    seen = set()
+
+    def record(line, kind, resource):
+        key = (line, kind, resource)
+        if key in seen:
+            return
+        if len(findings) >= 32:
+            raise ValueError('32-finding inspection limit reached')
+        seen.add(key)
+        findings.append(key)
+
+    def dependency(line, resource):
+        resource = resource.strip()
+        if (resource and not resource.startswith('#')
+                and not resource.lower().startswith('data:')):
+            record(line, 'dependency', resource)
+
+    # Skip comments and ordinary strings rather than finding documentary
+    # examples inside them. Only literal url() and @import forms are covered.
+    css_tokens = re.compile(
+        r'''/\*.*?(?:\*/|$)|\burl\s*\(\s*'''
+        r'''(?P<url>"[^"]*"|'[^']*'|[^()'"\s]+)\s*\)|'''
+        r'''@import\s+(?P<import>"[^"]*"|'[^']*')|"[^"]*"|'[^']*' ''',
+        re.IGNORECASE | re.DOTALL | re.VERBOSE)
+
+    def css(text, line):
+        previous = 0
+        for match in css_tokens.finditer(text):
+            line += text.count('\n', previous, match.start())
+            resource = match.group('url') or match.group('import')
+            if resource:
+                dependency(line, resource.strip().strip('\"\''))
+            line += text.count('\n', match.start(), match.end())
+            previous = match.end()
+
+    parser = expat.ParserCreate(namespace_separator='}')
+    stack = []
+    style_text = []
+    style_line = [1]
+
+    def start(name, attrs):
+        tag = name.rsplit('}', 1)[-1].lower()
+        stack.append(tag)
+        line = parser.CurrentLineNumber
+        if tag == 'script':
+            record(line, 'script', '<script>')
+        if tag == 'style':
+            style_text.clear()
+            style_line[0] = line
+        for name, value in attrs.items():
+            attr = name.rsplit('}', 1)[-1].lower()
+            if attr in ('href', 'src') and tag != 'a':
+                dependency(line, value)
+            elif attr.startswith('on'):
+                record(line, 'script', attr)
+            elif attr == 'style' or re.search(r'\burl\s*\(', value, re.IGNORECASE):
+                css(value, line)
+
+    def text(value):
+        if stack and stack[-1] == 'style':
+            style_text.append(value)
+
+    def end(name):
+        if stack.pop() == 'style':
+            css(''.join(style_text), style_line[0])
+            style_text.clear()
+
+    def doctype(*unused):
+        raise ValueError('DTD inspection is not supported (entities are not expanded)')
+
+    def processing_instruction(target, value):
+        if target == 'xml-stylesheet':
+            # Parse pseudo-attributes, not arbitrary PI text or strings inside
+            # other attributes. This also decodes XML character references.
+            attributes = expat.ParserCreate()
+            attributes.StartElementHandler = lambda name, attrs: dependency(
+                parser.CurrentLineNumber, attrs.get('href', ''))
+            attributes.Parse('<stylesheet ' + value + '/>', True)
+
+    parser.StartElementHandler = start
+    parser.EndElementHandler = end
+    parser.CharacterDataHandler = text
+    parser.StartDoctypeDeclHandler = doctype
+    parser.ProcessingInstructionHandler = processing_instruction
+    incomplete = None
+    if len(data) > 2 * 1024 * 1024:
+        incomplete = '2 MiB inspection limit exceeded'
+    else:
+        try:
+            parser.Parse(data, True)
+        except (expat.ExpatError, ValueError, LookupError) as exc:
+            incomplete = str(exc)
+    if not findings and incomplete is None:
+        return
+    summary = ('not self-contained; external subresources are blocked even online'
+               if any(kind == 'dependency' for _, kind, _ in findings)
+               else 'static-image renderability restrictions or incomplete inspection')
+    log('warn', f'{source_path}: SVG-as-image: {summary}. '
+        'Original bytes preserved; use --verbose for details.')
+    for line, kind, resource in findings:
+        detail = (f'blocked subresource {resource[:500]!r}; embed it as a data URI '
+                  'or replace the reference with self-contained SVG shapes. '
+                  'Serving the parent SVG online does not enable subresource loading.'
+                  if kind == 'dependency' else
+                  f'{resource!r} cannot execute in SVG-as-image; export a static '
+                  'logo/diagram that does not depend on scripts or event handlers.')
+        log('verbose', f'{source_path}:{line}: {detail}')
+    if incomplete is not None:
+        log('verbose', f'{source_path}:{parser.CurrentLineNumber}: '
+            f'inspection incomplete: {incomplete}. Check the SVG in an image '
+            'viewer or re-export a self-contained static SVG; no offline proof is made.')
+
+
+def _encode_inline_image(src, sources_dir, inspect_only=False):
     """Encodes an image file as a base64 data URI for --inline-images.
 
-    `src` is the path as written in the Markdown (`img/foo.png`), resolved
-    against `sources_dir` (where the img/ directory lives). Returns the
+    `src` is the HTML-escaped image URL from the renderer, resolved against
+    `sources_dir` (where the img/ directory lives). Returns the
     data URI string, or None if the file cannot be read — in which case
     the caller leaves the original `src` in place so the broken link is
     visible (a missing image inlined as nothing would hide the error).
@@ -19288,17 +19746,53 @@ def _encode_inline_image(src, sources_dir):
     cloned series repo — and it is NOT a bare filename, so the name-shape
     check does not apply: `img/foo.png` is the ordinary case. The lexical
     barrier still rejects an absolute path or `..` in the value itself;
-    symlinks are followed so shared image trees work as expected."""
-    contained = _resolve_contained(sources_dir, src)
+    symlinks are followed so shared image trees work as expected.
+
+    `inspect_only` lets non-inline renderers diagnose referenced local SVGs
+    without encoding other image formats or changing their URLs.
+    """
+    from urllib.parse import quote, unquote, urlsplit
+
+    try:
+        raw = html_unescape(src)
+        # urlsplit silently strips some controls; do not let that turn an
+        # invalid or nonlocal URL into a filename we would read.
+        if any(ord(char) < 32 or ord(char) == 127 for char in raw):
+            raise ValueError('control character in image URL')
+        url = urlsplit(raw)
+        if url.scheme or url.netloc or not url.path:
+            return None
+        filename = unquote(url.path, errors='strict')
+        fragment = unquote(url.fragment, errors='strict')
+        if any(ord(char) < 32 or ord(char) == 127 for char in filename + fragment):
+            raise ValueError('decoded control character in image URL')
+        if '\\' in filename or ':' in filename.split('/', 1)[0]:
+            raise ValueError('nonlocal image filename')
+        fragment = '#' + quote(fragment, safe='()/:,;=') if fragment else ''
+    except (ValueError, UnicodeError) as exc:
+        log('warn', f'skipped invalid image URL {src!r}: {exc}')
+        return None
+    is_svg = filename.lower().endswith('.svg')
+    if inspect_only and not is_svg:
+        return None
+    contained = _resolve_contained(sources_dir, filename)
     if contained is None:
         log('warn', f'skipped image path traversal: {src}')
         return None
     try:
-        data = contained.read_bytes()
+        if inspect_only:
+            with contained.open('rb') as image:
+                data = image.read(2 * 1024 * 1024 + 1)
+        else:
+            data = contained.read_bytes()
     except (OSError, ValueError):
         return None
-    mime = mimetypes.guess_type(src)[0] or 'application/octet-stream'
-    return f'data:{mime};base64,{base64.b64encode(data).decode("ascii")}'
+    if is_svg:
+        _diagnose_svg_image(data, contained)
+    if inspect_only:
+        return None
+    mime = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+    return f'data:{mime};base64,{base64.b64encode(data).decode("ascii")}{fragment}'
 
 
 def symlink_escapes(entry, root):
@@ -20369,7 +20863,20 @@ def build_stamp_html(version, minimal=False):
 
 
 def strip_build_stamp(html):
-    return _BUILD_STAMP_RE.sub('', html)
+    html = _BUILD_STAMP_RE.sub('', html)
+    def strip_bundle(match):
+        try:
+            data = json.loads(match.group(2))
+            if data.get('version') != 1:
+                return match.group(0)
+            for view in data['views']:
+                view['content'] = _BUILD_STAMP_RE.sub('', view['content'])
+            payload = json.dumps(data, ensure_ascii=True, separators=(',', ':')).replace('<', '\\u003c')
+            return match.group(1) + payload + match.group(3)
+        except (ValueError, TypeError, KeyError, AttributeError):
+            return match.group(0)
+    return re.sub(r'(<script id="lwp-series-data" type="application/json">)(.*?)(</script>)',
+                  strip_bundle, html, flags=re.S)
 
 
 def load_lang_tag_engines(series_meta, lang_dir, default_lang,
@@ -20412,6 +20919,17 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     guarantee that a source's existing spacing (including any
     non-breaking space already in it) reaches the output completely
     unchanged, not just that the new rules stay quiet."""
+    if '--single-page' in args:
+        filename = args['--single-page']
+        if (not _is_safe_relative_filename(filename)
+                or not filename.lower().endswith(('.html', '.htm'))
+                or '#' in filename or '?' in filename):
+            log('error', '--single-page requires a plain .html or .htm filename, not a path or URL.')
+            sys.exit(1)
+        for option in ('--drafts-only', '--no-index'):
+            if args.get(option):
+                log('error', f'--single-page cannot be combined with {option}.')
+                sys.exit(1)
     (sd, sources_dir, templates_dir, lang_dir, interface_dir,
      typography_dir, output_dir, lang, language_file) = resolve_paths(
         series_dir, args)
@@ -20787,7 +21305,7 @@ def _resolve_only_entry(ctx, only_file):
 
 
 def _render_article(ctx, entry, source_path, build_stamp='', include_nav=True,
-                    render_args=None):
+                    render_args=None, fragment_only=False):
     """Renders one already-resolved article with the shared build context."""
     if render_args is None:
         render_args = ctx.args
@@ -20807,7 +21325,7 @@ def _render_article(ctx, entry, source_path, build_stamp='', include_nav=True,
             slide_layouts=_presentation_layouts(preset),
             structure_css=preset.package.structure_css,
             presentation_runtime=runtime,
-            presentation_capture=capture)
+            presentation_capture=capture, fragment_only=fragment_only)
 
     if ctx.presentation_runtime is None:
         return render(ctx.series_presentation_preset)
@@ -20838,7 +21356,8 @@ def _index_extra(ctx):
             if index_extra_file is not None else '')
 
 
-def _render_index(ctx, index_extra='', build_stamp='', validate_scripts=False):
+def _render_index(ctx, index_extra='', build_stamp='', validate_scripts=False,
+                  fragment_only=False):
     """Renders the index and optionally applies the build JS guard."""
     def render(preset, capture=None, runtime=None):
         return build_index(
@@ -20849,7 +21368,7 @@ def _render_index(ctx, index_extra='', build_stamp='', validate_scripts=False):
             scroll_duration=ctx.scroll_duration,
             presentation_preset=preset,
             presentation_runtime=runtime,
-            presentation_capture=capture)
+            presentation_capture=capture, fragment_only=fragment_only)
 
     if ctx.presentation_runtime is None:
         index_html = render(ctx.series_presentation_preset)
@@ -20873,6 +21392,75 @@ def _render_index(ctx, index_extra='', build_stamp='', validate_scripts=False):
                 % detail)
             sys.exit(1)
     return index_html
+
+
+def _render_single_page(ctx, build_stamp=''):
+    """Assemble one shell from render fragments, with only one mounted view.
+
+    Inactive fragments are inert JSON, not hidden DOM. Local author IDs and CSS
+    therefore keep their article scope without rewriting arbitrary markup/CSS.
+    """
+    if ctx.nav_js != apply_strings(TEMPLATE_NAV_JS, ctx.strings):
+        log('error', '--single-page requires the built-in navigation: templates/nav.js differs. '
+            'Use `template update` to preserve it as a backup and restore the native runtime.')
+        sys.exit(1)
+    if _index_extra(ctx).strip():
+        log('error', '--single-page does not support templates/index_extra.html yet; '
+            'its script lifecycle requires multipage publication. Keep the default build for this extension.')
+        sys.exit(1)
+    contents = _render_index(ctx, build_stamp=build_stamp, fragment_only=True)
+    rendered = [('', contents)]
+    for entry in ctx.articles:
+        rendered.append((entry['page_dest'], _render_article(
+            ctx, entry, _resolve_contained(ctx.sources_dir, entry['page_source']),
+            build_stamp, include_nav=not ctx.args.get('--no-nav'), fragment_only=True)))
+
+    views, image_pages = [], []
+    for key, values in rendered:
+        content = (values['draft_banner'] + values['build_stamp'] + values['content']
+                   + values['page_footer'] + values['index_extra'])
+        theme, presentation = {}, {}
+        for field, data in (('theme_runtime', theme), ('presentation_runtime', presentation)):
+            markup = values[field]
+            if markup:
+                data.update(json.loads(markup[markup.index('>') + 1:markup.rindex('</script>')]))
+        variants = presentation.get('variants', {})
+        fragments = [content]
+        for variant in variants.values():
+            fragments.extend(variant.get('sections', {}).values())
+            if 'index' in variant:
+                fragments.append(variant['index'])
+        for fragment in fragments:
+            if ctx.args.get('--inline-images'):
+                validate_self_contained(fragment, key or 'series contents')
+        image_pages.extend(fragments)
+        views.append({
+            'key': key, 'title': html_unescape(values['title']),
+            'bodyClass': values['body_class'],
+            'articleTags': html_unescape(values['article_tags']),
+            'content': content, 'pageCss': values['page_css'],
+            'themePins': theme.get('pinned', []),
+            'presentationPins': presentation.get('pinned', []), 'variants': variants,
+        })
+    payload = json.dumps({'version': 1, 'views': views,
+                          'order': [entry['page_dest'] for entry in ctx.articles]},
+                         ensure_ascii=True, separators=(',', ':')).replace('<', '\\u003c')
+    shell = dict(contents)
+    shell.update({
+        'content': '<div id="lwp-series-view">' + views[0]['content'] + '</div>',
+        'draft_banner': '', 'build_stamp': '', 'page_footer': '', 'index_extra': '',
+        'page_css': contents['page_css'].replace('<style', '<style data-lwp-series-css')
+                    + '\n<template id="lwp-series-css-marker"></template>',
+        'language_runtime': contents['language_runtime']
+            + '<script id="lwp-series-data" type="application/json">' + payload + '</script>\n',
+    })
+    html = fill_placeholders(apply_strings(TEMPLATE_PAGE, ctx.strings, html_context=True), shell)
+    validate_html(html, ctx.args['--single-page'])
+    ok, detail = validate_page_scripts(html)
+    if not ok:
+        log('error', 'Build aborted: single-document JavaScript is invalid.\n' + detail)
+        sys.exit(1)
+    return html, image_inventory_from_html(image_pages)
 
 
 def _write_index(ctx, claimant, index_extra=None, build_stamp=''):
@@ -21290,7 +21878,7 @@ def _manifest_paths(manifest, key, output_dir, manifest_path):
 
 
 def _write_manifest(output_dir, articles_built, include_index=True,
-                    images=(), presentation_presets=()):
+                    images=(), presentation_presets=(), single_page=None):
     """Writes .lwp-manifest.json in public/ listing every file the build
     produced, so `clean` can purge orphans without guessing.
 
@@ -21299,7 +21887,7 @@ def _write_manifest(output_dir, articles_built, include_index=True,
     exists now; the pair says what stopped existing, and only the second
     question has an answer that can be acted on without touching a file
     the tool never made."""
-    files = [e['page_dest'] for e in articles_built]
+    files = [single_page] if single_page else [e['page_dest'] for e in articles_built]
     if include_index:
         files.append('index.html')
     # What copy_images says it published, from the SOURCE. This used to
@@ -21525,13 +22113,14 @@ def cmd_watch(series_dir, args):
                                     directory=str(output_dir))
         httpd = http.server.HTTPServer(('127.0.0.1', port), handler)
         threading.Thread(target=httpd.serve_forever, daemon=True).start()
-        url = f'http://127.0.0.1:{port}/'
+        from urllib.parse import quote
+        url = f'http://127.0.0.1:{port}/' + quote(args.get('--single-page', ''))
         progress(f'[watch] serving {output_dir} at {url}')
         if args.get('--open'):
             webbrowser.open(url)
     elif args.get('--open'):
         # No serve, but --open: open the file directly.
-        index = output_dir.resolve() / 'index.html'
+        index = output_dir.resolve() / args.get('--single-page', 'index.html')
         if index.exists():
             webbrowser.open(index.resolve().as_uri())
 
@@ -21583,6 +22172,32 @@ def cmd_build(series_dir, args):
         build_stamp = build_stamp_html(VERSION)
     else:
         build_stamp = ''
+
+    if args.get('--single-page'):
+        if args.get('--only'):
+            _resolve_only_entry(ctx, args['--only'])
+        html, inventory = _render_single_page(ctx, build_stamp)
+        _mkdir(ctx.output_dir, parents=True, exist_ok=True)
+        _write_file(ctx.output_dir / args['--single-page'], html)
+        if not args.get('--no-readme'):
+            _write_file(ctx.sd / 'README.md', build_readme(
+                ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings, args['--single-page']))
+        images = []
+        if not args.get('--inline-images'):
+            images = copy_images(ctx.sources_dir, ctx.output_dir, referenced_images=set(inventory))
+            images.extend(copy_presentation_assets(
+                _presentation_packages_for_output(ctx, ctx.articles, False), ctx.output_dir))
+        _write_manifest(ctx.output_dir, ctx.articles, include_index=False, images=images,
+                        presentation_presets=ctx.presentation_presets,
+                        single_page=args['--single-page'])
+        # Do not let a later multipage --only reuse a fingerprint from before
+        # this topology switch. The ordinary missing-cache path rebuilds it.
+        save_nav_cache(args.get('--nav-cache') or default_nav_cache_path(ctx.sd), {})
+        progress(f'Build complete: {len(ctx.articles)} articles in {args["--single-page"]} -> {ctx.output_dir}')
+        if args.get('--open'):
+            import webbrowser
+            webbrowser.open((ctx.output_dir / args['--single-page']).resolve().as_uri())
+        return
 
     # §11.3.3, decided before anything is written and before the --only
     # fast path (which writes the index too): when an index is requested, more
@@ -21730,11 +22345,15 @@ def cmd_check(series_dir, args):
     series_meta change (title, intro, article order) alters only the
     index/README, and check stayed green over a stale publication."""
     ctx = load_build_context(series_dir, args)
+    if args.get('--drafts-only'):
+        log('error', 'verify does not support --drafts-only previews; use --include-drafts for a complete publication.')
+        sys.exit(1)
     # Decided up front, as in cmd_build: a series.json that build refuses
     # is refused here too, with the same message and before any per-file
     # line is printed, rather than after a screenful of comparisons that
     # describe an arrangement no build will produce.
-    claimant = resolve_index_claim(ctx.claim_articles, ctx.articles)
+    claimant = (None if args.get('--single-page') else resolve_index_claim(
+        ctx.claim_articles, ctx.articles, index_enabled=not args.get('--no-index')))
 
     ok_count = 0
     diff_count = 0
@@ -21783,7 +22402,17 @@ def cmd_check(series_dir, args):
             print(f'[DRIFT] {name}')
             diff_count += 1
 
-    for entry in ctx.articles:
+    if args.get('--single-page'):
+        generated, inventory = _render_single_page(ctx)
+        compare(args['--single-page'], generated,
+                _optional_contained_file(ctx.output_dir, args['--single-page'], args['--single-page']))
+        if not args.get('--inline-images'):
+            for relative in inventory:
+                source = _resolve_contained(ctx.sources_dir, relative)
+                if source is not None and source.is_file():
+                    compare_asset(relative, source,
+                                  _optional_contained_file(ctx.output_dir, relative, relative))
+    for entry in ([] if args.get('--single-page') else ctx.articles):
         source_path = _resolve_contained(ctx.sources_dir, entry['page_source'])
         if source_path is None:
             log('error', f'Source path traversal: {ctx.sources_dir / entry["page_source"]} '
@@ -21803,14 +22432,15 @@ def cmd_check(series_dir, args):
     # and diffing it against that page would report a [DRIFT] on a series
     # that is correctly built and that no rebuild could ever settle: the
     # CI gate would stay red for as long as the arrangement lasts.
-    if claimant is None:
+    if claimant is None and not args.get('--single-page') and not args.get('--no-index'):
         compare('index.html',
                 _render_index(ctx, _index_extra(ctx)),
                 _optional_contained_file(ctx.output_dir, 'index.html',
                                          'index.html'))
-    compare('README.md',
-            build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings),
-            _optional_contained_file(ctx.sd, 'README.md', 'README.md'))
+    if not args.get('--no-readme'):
+        compare('README.md',
+                build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings, args.get('--single-page')),
+                _optional_contained_file(ctx.sd, 'README.md', 'README.md'))
     if not args.get('--inline-images'):
         for package in _presentation_packages_for_output(ctx, ctx.articles, False):
             if package.default:
@@ -27154,21 +27784,25 @@ OPTIONS
     template update: regenerate settings.conf's commented surface at
     the current theme's values, keeping your pinned lines (spec §9.4.3)
   --include-drafts
-    build/verify: also build articles marked status: draft
+    build/verify/watch: also build articles marked status: draft
   --drafts-only
     build/watch: build only status: draft articles (preview, not publication)
   --no-nav
     build/watch/verify: do not generate the series navigation block
   --no-index
-    build/watch: do not generate index.html
+    build/verify/watch: do not generate index.html (not with --single-page)
   --no-readme
-    build/watch: do not generate README.md
+    build/verify/watch: do not generate README.md
   --open
     build/watch: open the result in the browser after build
   --inline-images
-    build: embed images as base64 data URIs — each page is fully
-    self-contained (no img/ directory copied to the output). The HTML
-    grows ~33% per image; a serving gzip recovers the overhead on the wire.
+    build/verify/watch: embed local Markdown and kit images, including SVG,
+    as data URIs (no img/ directory copied). External dependencies may remain.
+  --single-page filename.html
+    build/verify/watch: publish the series in one HTML, with deliberate
+    article switching and printing of the active article. Combine with
+    --inline-images to embed supported images. --output remains a directory.
+    Requires native navigation; excludes --no-index and --drafts-only.
   --strict
     audit: exit non-zero if any warnings are emitted — the complete CI
     gate, editorial warnings and everything the render raises alike
@@ -27176,7 +27810,7 @@ OPTIONS
     audit: restrict the audit to the presentation/template layer — skips
     the per-article editorial checks and does not render
   --slides-page-numbers on|off
-    build/watch: engrave the top-right NN / NN slide number (off by
+    build/verify/watch: engrave the top-right NN / NN slide number (off by
     default; the article front-matter slide_page_numbers and
     series_meta.slide_page_numbers also enable it, spec §3.3.5)
   --scroll-duration milliseconds
@@ -27454,6 +28088,7 @@ where this tool is published and can be downloaded.'''
 # out-of-place option is a fatal error instead of a silent no-op, and
 # `--opt=value` is accepted as equivalent to `--opt value`.
 _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
+                              '--single-page',
                              '--theme', '--themes', '--presentation-presets',
                              '--only', '--nav-cache',
                              '--polarity', '--hue', '--family',
@@ -27467,6 +28102,7 @@ _COMMAND_OPTIONS = {
                 '--no-starter'},
     'demo': {'--lang', '--output'},
     'build': {'--lang', '--output', '--language-file', '--no-typography',
+              '--single-page',
               '--themes', '--presentation-presets', '--no-essential-theme',
               '--include-drafts', '--only', '--nav-cache',
               '--build-stamp', '--build-stamp-minimal',
@@ -27474,6 +28110,8 @@ _COMMAND_OPTIONS = {
               '--open', '--inline-images', '--slides-page-numbers',
               '--scroll-duration'},
     'check': {'--lang', '--output', '--language-file', '--no-typography',
+              '--single-page', '--inline-images', '--no-index', '--no-readme',
+              '--slides-page-numbers', '--build-stamp', '--build-stamp-minimal', '--drafts-only',
               '--themes', '--presentation-presets', '--no-essential-theme',
               '--include-drafts', '--no-nav', '--scroll-duration'},
     'audit': {'--lang', '--strict', '--templates'},
@@ -27507,6 +28145,7 @@ _COMMAND_OPTIONS = {
     # actual output. The env var LWP_OUTPUT_DIR was the sole way in.
     'clean': {'--force', '--dry-run', '--output'},
     'watch': {'--lang', '--output', '--serve', '--port', '--no-typography',
+              '--single-page', '--inline-images', '--include-drafts', '--language-file',
               '--themes', '--presentation-presets', '--no-essential-theme',
               '--open', '--slides-page-numbers',
               '--no-nav', '--no-index', '--no-readme', '--drafts-only',

@@ -2,7 +2,7 @@
 name: sourced-presentation
 description: "Create, revise and verify editorial content pairing a public slide presentation with a rigorously sourced long-form article. Use for research, drafting, corrections and rereading: establish the argument in the article, make the cards compelling, and verify their fidelity across explanatory, knowledge-review and argumentative intentions."
 metadata:
-  version: "0.18"
+  version: "0.19"
 ---
 
 # Sourced editorial presentation checklist
@@ -92,10 +92,10 @@ by convenience. The intention governs both article and cards.
   comparison and magnitude needed alone. Keep pertinent benefits and costs
   together; invent neither for symmetry.
 
-- [ ] **9 — Select, do not compress mechanically.** Cards need not copy the
-  article's order or methodological apparatus. Cut detours before the scene
-  or material qualifications; repeat scope where independent reading requires
-  it. Length serves explanation, not a quota. Each content card needs an
+- [ ] **9 — State scope directly.** Name what the evidence establishes and
+  its relevant scope. Add an exclusion only to prevent a plausible misreading
+  that remains. Preserve meaningful contrasts and null results. Select rather
+  than compress; length serves explanation. Each content card needs an
   identifiable source route, not just a series link.
 
 - [ ] **10 — End on the established implication.** Make transitions explain

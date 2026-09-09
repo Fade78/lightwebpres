@@ -138,7 +138,15 @@ Follow the [six guide routes](GUIDE.md) or explore the
 
 - **A site, not an application server.** Publish the complete `public/` tree:
   HTML plus referenced `img/` and identity assets. `--inline-images` can embed
-  supported images and kit assets for single-file article delivery.
+  supported images and kit assets, but does not bundle every external dependency.
+- **A series in one HTML file.** `build my-series --single-page collection.html`
+  combines the series contents and articles with deliberate article switching,
+  not continuous scrolling through the whole collection. Add `--inline-images`
+  to embed supported images; `--output` still names a directory. Fullscreen
+  survives article switches, and printing includes only the active filtered
+  article, or only the series contents when that view is active. See the
+  [single-page guide](GUIDE.md#publish-a-series-in-one-html-file) for extension
+  restrictions, links and portability limits.
 - **An index when you need one.** `series.json` determines article order and
   navigation. A lone article can claim `index.html`; `--no-index` lets you
   integrate pages into a site whose landing page is managed elsewhere.
@@ -191,11 +199,10 @@ and its panel opens in the same page that a projector or screen share shows.
 Use `comment:` for source-only review notes; those are not published.
 Tags are viewing filters, not access control.
 
-Before publishing, inspect the output and use matching build/verify options.
-`verify` cannot reproduce `--inline-images`; keep a separate non-inline
-output if you need that CI gate. Removing an article or asset from the
-sources does not itself delete an old published file. Review `clean` and
-the host's stale files as described in
+Before publishing, inspect the output and use matching build/verify options,
+including `--single-page FILE` and `--inline-images` when used. Removing an
+article or asset from the sources does not itself delete an old published
+file. Review `clean` and the host's stale files as described in
 [Publish and maintain](GUIDE.md#5-publish-and-maintain). Keep the source project
 and its exact engine version: published HTML or a browser `public.zip` is not
 an authoring backup.

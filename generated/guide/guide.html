@@ -2519,7 +2519,7 @@ button.share-action:hover:not(:disabled) {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.57.2</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.58.0</div>
   </div>
 </div>
 
@@ -3843,6 +3843,7 @@ note: Mention the 2020 study — the audience asked for it last time.
   <p>A <code>note:</code> may run over several lines: any line that starts with whitespace continues the note, and an indented blank line marks a paragraph break. The block ends at the first non-indented, non-empty line (the next field or the slide's body), so the continuation lines are never captured as slide content.</p>
 <h3 id="printing-and-pdf" tabindex="-1">Printing and PDF</h3>
   <p><strong>Print</strong> from the browser (Ctrl/Cmd+P) and choose "Save as PDF". Slides start on separate sheets, navigation chrome is stripped, and print styles preserve the active theme colors. Print content is not constrained to the screen's viewport height; a long slide can span several sheets. Table viewports expand without screen clipping or local scroll limits, and runtime fitting scales and presentation zoom are cleared for print. The screen choices return afterwards; print expansion does not guarantee that a wide table fits the physical paper.</p>
+  <p>In single-page series output, printing includes only the active article with its current tag filter, never the whole collection. If the series contents view is active, only those contents print. Switch to the intended article before opening print preview.</p>
   <p>For black ink on white, press <strong>C</strong> and select <strong>Print Ink</strong> before opening the print dialog. It is included by default in the essential theme bundle; printing does not switch to it automatically.</p>
   <p>Check print preview before sending the PDF: the selected variant, the longest card and its notes, a wide table, image captions and long-form page breaks. Browser paper size, margins, scaling and background-printing settings affect the result. If a card overflows, try another orientation or scale; ask the author to shorten or split it if essential text still does not fit. Do not assume a long-form article fits on one physical sheet.</p>
 <h3 id="mouse" tabindex="-1">Mouse</h3>
@@ -4008,7 +4009,7 @@ note: Mention the 2020 study — the audience asked for it last time.
   </ul>
   <p>Plain <code>audit</code> exits zero even when rendering fails. <code>--strict</code> makes warnings and render failures non-zero CI results. <code>--templates</code> limits the check to the presentation layer, including resolved styles, without rendering or per-article checks. It is cheaper than the full audit, which costs about a build.</p>
   <p><code>verify</code> asks the other question: it rebuilds every article in memory and compares it against <code>public/</code> (ignoring build stamps and surrounding whitespace), exiting non-zero when output differs. Run it before <code>build</code> to catch a <code>public/</code> that was hand-edited or never rebuilt after a source change.</p>
-  <p>Use the same supported rendering options as the build, including <code>--lang</code>, <code>--themes</code> and <code>--no-essential-theme</code>. <strong><code>verify</code> does not accept <code>--inline-images</code></strong> and cannot reproduce that build mode: embedded images or presentation assets can therefore report drift even with unchanged sources. Use a separate, non-inline build output for this CI check.</p>
+  <p>Use the same supported rendering options as the build, including <code>--lang</code>, <code>--themes</code>, <code>--no-essential-theme</code>, <code>--single-page FILE</code> and <code>--inline-images</code> when used. <code>verify</code> reproduces both inline-image and single-page output; no separate non-inline build is needed for this CI check.</p>
 <h3 id="asking-why-a-value-is-what-it-is" tabindex="-1">Asking why a value is what it is</h3>
   <p>Most of what ends up on a page was never written on that page: a title falls back through <code>series.json</code>, the meta block and the cover slide, a colour falls through <code>settings.conf</code>, the theme and the built-in defaults. When the result surprises you, ask:</p>
   <pre><code class="language-bash">
@@ -4034,9 +4035,22 @@ kicker.fg — theme property
   <p>A slide field has no cascade, so <code>resolve fact-label</code> answers with the list of slides that set it instead — across the series, or within one article with <code>--article</code>. Add <code>--format json</code> for a machine, and pass <code>--article</code> to a theme property to fold that page's own <code>style.*</code> lines into the chain.</p>
 <h3 id="publish-the-output-not-the-project" tabindex="-1">Publish the output, not the project</h3>
   <p>Upload the contents of <code>public/</code> to a static host: the article HTML files, <code>index.html</code>, referenced <code>img/</code> files and any <code>assets/presentations/</code> files. The generated series README lives beside <code>series.json</code>, not inside <code>public/</code>. No Python server or LightWebPres runtime is needed on the host. Reopen the hosted index, follow an article link and test a slide link from another device. Local <code>file://</code> viewing works, but does not make an address reachable by a phone.</p>
-  <p>By default, only referenced images are copied from <code>sources/img/</code>; unused source files are not published and existing output assets are left in place. <code>--inline-images</code> embeds Markdown images from cards and included long-form files as data URIs, with no copied <code>img/</code> directory. Base64 adds roughly a third to image size before serving compression. Raw HTML images with relative paths cannot be inlined: the build names and rejects them rather than leaving references to an absent asset directory. Keep a non-inline output for <code>verify</code>.</p>
-  <p>Output switches on <code>build</code> and <code>watch</code>: <code>--no-index</code> skips <code>index.html</code>, <code>--no-readme</code> skips the series README, <code>--no-nav</code> leaves a placed <code>series-nav</code> without generated links, <code>--drafts-only</code> previews only drafts, and <code>--open</code> opens the result. <code>build --include-drafts</code> includes drafts alongside active articles; <code>verify</code> supports that selection too. <code>--slides-page-numbers on</code> engraves top-right numbering (off by default, independent of the live counter).</p>
-  <p>A single article can set <code>page_dest: index.html</code> to become the directory's landing page; no redundant one-card index is then generated. In a multi-article series that name is reserved when an index is generated. <code>--no-index</code> leaves it available. Duplicate destinations (case-insensitive), unsafe filenames, malformed JSON, missing slugs and duplicate slugs are fatal. Generated HTML is checked for tag balance before writing; that is not a security sanitizer.</p>
+  <p>By default, only referenced images are copied from <code>sources/img/</code>; unused source files are not published and existing output assets are left in place. <code>--inline-images</code> embeds Markdown images from cards and included long-form files as data URIs, with no copied <code>img/</code> directory. Base64 adds roughly a third to image size before serving compression. Raw HTML images with relative paths cannot be inlined: the build names and rejects them rather than leaving references to an absent asset directory. <code>verify --inline-images</code> reproduces this mode; <code>watch</code> accepts the option too. Declared kit images follow the same embedding rule.</p>
+  <p>SVG is embedded as an <code>&lt;img&gt;</code> data URI with its original vector bytes, not inserted as interactive SVG DOM. Nested SVG resources are blocked in image rendering even when the parent SVG is served online. The engine reports a warning summary; <code>--verbose</code> adds source paths, line numbers and remediation. <code>--quiet</code> keeps warnings, and <code>audit --strict</code> may fail on them. Export a self-contained static SVG or replace nested references with SVG shapes; the engine does not fetch resources or rewrite the SVG. This inspection is not proof of offline completeness. CSS, fonts, scripts, media and arbitrary raw HTML dependencies are outside the image-embedding bundle.</p>
+  <p>Output switches on <code>build</code>, <code>verify</code> and <code>watch</code>: <code>--no-index</code> skips <code>index.html</code>, <code>--no-readme</code> skips the series README, <code>--no-nav</code> leaves a placed <code>series-nav</code> without generated links. On <code>build</code> and <code>watch</code>, <code>--drafts-only</code> previews only drafts and <code>--open</code> opens the result. <code>--include-drafts</code> includes drafts alongside active articles on all three commands. <code>--slides-page-numbers on</code> engraves top-right numbering (off by default, independent of the live counter).</p>
+  <p>In default multipage output, a single article can set <code>page_dest: index.html</code> to become the directory's landing page; no redundant one-card index is then generated. In a multi-article series that name is reserved when an index is generated. <code>--no-index</code> leaves it available. Duplicate destinations (case-insensitive), unsafe filenames, malformed JSON, missing slugs and duplicate slugs are fatal. Generated HTML is checked for tag balance before writing; that is not a security sanitizer.</p>
+<h3 id="publish-a-series-in-one-html-file" tabindex="-1">Publish a series in one HTML file</h3>
+  <pre><code class="language-bash">
+./lightwebpres build my-series --lang en --single-page collection.html --inline-images
+./lightwebpres verify my-series --lang en --single-page collection.html --inline-images
+./lightwebpres watch my-series --lang en --single-page collection.html --inline-images --serve --open
+  </code></pre>
+  <p><code>--single-page FILE</code> requires a bare <code>.html</code> or <code>.htm</code> filename, not a path or URL. <code>--output</code> still selects the output directory, so these commands produce <code>my-series/public/collection.html</code> by default. Omit <code>--inline-images</code> to keep supported images and presentation assets as copied files beside the combined HTML; include them when distributing it. Image embedding has the portability limits described above. Without <code>--single-page</code>, output remains multipage.</p>
+  <p>The combined document opens on series contents. Readers deliberately switch to an article and back, rather than scrolling continuously through all articles. Only the active view is mounted in the DOM; inactive articles are stored as inert data. Styles, notes and IDs stay article-local. One root runtime remains in place, preserving fullscreen across article switches. Print uses the active, tag-filtered article, or only the series contents when that view is active.</p>
+  <p>Any <code>templates/nav.js</code> must match the built-in runtime. Nonempty <code>templates/index_extra.html</code> is rejected in this initial mode, and arbitrary widget script lifecycles are unsupported. Use default multipage output for those extensions rather than expecting their scripts to restart on each switch. <code>--no-index</code> and <code>--drafts-only</code> are refused in single-page mode. <code>--include-drafts</code>, <code>--no-nav</code> and <code>--no-readme</code> remain supported. <code>build --only ARTICLE</code> validates the target but rebuilds the complete combined file, not an incremental fragment.</p>
+  <p>Do not change source <code>page_dest</code> values. Generated series README links point to <code>collection.html#lwp/a/&lt;encoded page_dest&gt;</code>. Article-local targets append <code>/&lt;encoded local id&gt;</code>; series contents use <code>collection.html#lwp/index</code>. For example, <code>collection.html#lwp/a/first-page.html/introduction</code> addresses the <code>introduction</code> target in <code>first-page.html</code>. Encode each component separately.</p>
+<h3 id="review-stale-output" tabindex="-1">Review stale output</h3>
+  <p>The single-page build manifest records the physical combined HTML file and copied images/presentation assets unless inlined, not one file per virtual article. Changing publication mode does not automatically remove old multipage files or previously copied assets.</p>
   <p>Removing an article from the array, marking it draft/ignored, or dropping an image reference does not erase an old published file. Review the manifest-based cleanup after a build:</p>
   <pre><code class="language-bash">
 ./lightwebpres clean my-series          # preview orphan removal
@@ -4061,7 +4075,7 @@ python3 restored-series/lightwebpres audit restored-series --lang en
 python3 restored-series/lightwebpres verify restored-series --lang en
 python3 restored-series/lightwebpres build restored-series --lang en --output /tmp/lwp-restored-public --open
   </code></pre>
-  <p>Skip the initial <code>verify</code> if the backup has no generated output. An inline publication cannot be checked by <code>verify</code>; rebuild a separate non-inline output instead. Match any original theme, preset-alternative or typography flags rather than assuming the defaults in this example. <code>.lwp-cache/</code> is rebuildable state; retain output manifests with a published tree if you want <code>clean</code> to know which files it owns.</p>
+  <p>Skip the initial <code>verify</code> if the backup has no generated output. Match the original <code>--single-page FILE</code>, <code>--inline-images</code>, theme, preset-alternative or typography flags rather than assuming the defaults in this example. <code>.lwp-cache/</code> is rebuildable state; retain output manifests with a published tree if you want <code>clean</code> to know which files it owns.</p>
 <h3 id="upgrade-the-executable-and-templates" tabindex="-1">Upgrade the executable and templates</h3>
   <p>Replace the project's executable with a newer release, read <code>CHANGELOG.md</code>, then audit, rebuild and inspect the output. The composed stylesheet and built-in navigation/language packs follow the executable. Your theme choice, property pins and <code>custom.css</code> remain yours.</p>
   <p>A tool-owned file installed by <code>template write</code> takes precedence over the built-in copy. Builds warn when it differs, even with <code>--quiet</code>; the tool cannot tell a stale override from an intentional customization. Older series (before v0.40.0) received copies automatically. To resume following built-ins:</p>
@@ -4143,7 +4157,7 @@ python3 lightwebpres resolve my-series page_title --article first-page.md --form
       <tr>
         <td><code>verify</code></td>
         <td>Non-zero on drift or failure</td>
-        <td>Match supported rendering flags; it cannot verify inline-image mode.</td>
+        <td>Match rendering flags, including <code>--single-page FILE</code> and <code>--inline-images</code> when used.</td>
       </tr>
     </tbody>
   </table>
@@ -4202,13 +4216,13 @@ build:
     - python3 lightwebpres verify . --lang fr
     - python3 lightwebpres build . --lang fr
   </code></pre>
-  <p>A fresh checkout with no committed output needs a build, not that initial drift gate. Match rendering options in <code>verify</code>, including language, themes and <code>--no-essential-theme</code>. It cannot reproduce <code>--inline-images</code>.</p>
+  <p>A fresh checkout with no committed output needs a build, not that initial drift gate. Match rendering options in <code>verify</code>, including language, themes and <code>--no-essential-theme</code>, plus <code>--single-page FILE</code> and <code>--inline-images</code> when used.</p>
 <h3 id="target-builds-and-record-build-stamps" tabindex="-1">Target builds and record build stamps</h3>
   <pre><code class="language-bash">
 ./lightwebpres build my-series --lang en --only first-page.md
   </code></pre>
   <p>For the author's rebuild-and-preview loop, use <a href="#preview-while-writing">watch</a> in route 1; it does not reload the browser.</p>
-  <p><code>--only</code> targets one article only when the navigation cache is safe. It still refreshes derived outputs (index, README and assets according to options, manifest and cache); changes affecting index/navigation trigger a full build. The cache is bound to its output directory. Switching output directories, or losing retained pages or declared assets, also triggers a full build rather than producing a partial site under a successful exit code. <code>--nav-cache path</code> relocates the fingerprint, normally <code>.lwp-cache/nav.json</code>. That cache is derived state and can be deleted, not hand-edited. <code>--build-stamp</code> records version and time on the pages; <code>--build-stamp-minimal</code> keeps a marker without either and takes precedence. <code>status: draft</code> and <code>ignored</code> control which articles enter normal output (route 2).</p>
+  <p><code>--only</code> targets one article only when the navigation cache is safe. It still refreshes derived outputs (index, README and assets according to options, manifest and cache); changes affecting index/navigation trigger a full build. With <code>--single-page FILE</code>, it validates the target and always rebuilds the complete combined document. The cache is bound to its output directory. Switching output directories, or losing retained pages or declared assets, also triggers a full build rather than producing a partial site under a successful exit code. <code>--nav-cache path</code> relocates the fingerprint, normally <code>.lwp-cache/nav.json</code>. That cache is derived state and can be deleted, not hand-edited. <code>--build-stamp</code> records version and time on the pages; <code>--build-stamp-minimal</code> keeps a marker without either and takes precedence. <code>status: draft</code> and <code>ignored</code> control which articles enter normal output (route 2).</p>
 <h3 id="paths-and-cli-conventions" tabindex="-1">Paths and CLI conventions</h3>
   <div class="lwp-table-viewport">
   <table class="comparison-table">
@@ -4312,7 +4326,7 @@ eval "$(lightwebpres completion --shell bash)"
       </tr>
       <tr>
         <td><code>verify</code> reports drift after an unchanged build</td>
-        <td>Match rendering options; inline-image builds need a separate non-inline verification output.</td>
+        <td>Match rendering options, including the combined filename and inline-image mode when used.</td>
       </tr>
       <tr>
         <td>Builder fails under <code>file://</code> or on <code>.mjs</code></td>
@@ -5083,7 +5097,77 @@ function lwpChooseInitialLanguage() {
 document.addEventListener('DOMContentLoaded', function() {
   lwpChooseInitialLanguage();
 (function(){
-  var allSlides = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
+  var seriesViewHost = document.getElementById('lwp-series-view');
+  var seriesDataNode = document.getElementById('lwp-series-data');
+  var seriesViews = null;
+  if (seriesViewHost && seriesDataNode) {
+    try {
+      var bundle = JSON.parse(seriesDataNode.textContent || '');
+      if (bundle.version === 1 && Array.isArray(bundle.views)) {
+        var views = new Map();
+        bundle.views.forEach(function (view) {
+          if (typeof view.key !== 'string' || typeof view.content !== 'string'
+              || typeof view.pageCss !== 'string' || views.has(view.key)) {
+            throw new Error('Invalid series view');
+          }
+          views.set(view.key, view);
+        });
+        if (views.has('')) seriesViews = views;
+      }
+    } catch (e) {}
+  }
+  var seriesCurrentKey = '';
+  var seriesActiveView = null;
+  var seriesGeneration = 0;
+  var seriesActivating = false;
+  var seriesPrinting = false;
+  var seriesPendingRoute = null;
+  var seriesTarget = null;
+  var seriesLastHash = null;
+  function contentRoot() { return seriesViews ? seriesViewHost : document; }
+  function seriesFragment(key, target) {
+    return key === '' ? '#lwp/index' : '#lwp/a/' + encodeURIComponent(key)
+      + (target ? '/' + encodeURIComponent(target) : '');
+  }
+  function parseSeriesRoute(hash) {
+    if (!hash || hash === '#lwp/index') return {key: '', target: ''};
+    var parts = hash.split('/');
+    if (parts[0] !== '#lwp' || parts[1] !== 'a'
+        || parts.length < 3 || parts.length > 4) return null;
+    try {
+      var key = decodeURIComponent(parts[2]);
+      var target = parts.length === 4 ? decodeURIComponent(parts[3]) : '';
+      return key && seriesViews.has(key) ? {key: key, target: target} : null;
+    } catch (e) { return null; }
+  }
+  function remapSeriesLinks() {
+    if (!seriesViews) return;
+    Array.prototype.forEach.call(seriesViewHost.querySelectorAll('a[href]'), function (link) {
+      var href = link.getAttribute('href');
+      if (!href || href.indexOf('#lwp/') === 0 || link.hasAttribute('download')) return;
+      if (href.charAt(0) === '#') {
+        if (!seriesCurrentKey) return;
+        try {
+          link.setAttribute('href', seriesFragment(seriesCurrentKey, decodeURIComponent(href.slice(1))));
+        } catch (e) {}
+        return;
+      }
+      // Only known relative page destinations are publication links. External
+      // documentary links and resource downloads retain their authored URLs.
+      if (/^(?:[a-z][a-z0-9+.-]*:|\/|\?)/i.test(href)) return;
+      try {
+        var url = new URL(href, location.href);
+        if (url.search) return;
+        var key = null;
+        seriesViews.forEach(function (_view, candidate) {
+          if (candidate && new URL(candidate, location.href).pathname === url.pathname) key = candidate;
+        });
+        if (key === null && new URL('index.html', location.href).pathname === url.pathname) key = '';
+        if (key !== null) link.setAttribute('href', seriesFragment(key, decodeURIComponent(url.hash.slice(1))));
+      } catch (e) {}
+    });
+  }
+  var allSlides = Array.prototype.slice.call(contentRoot().querySelectorAll('section.slide'));
   var isIndex = document.body.classList.contains('index-page');
   var hasFinePointer = !!(window.matchMedia
                            && window.matchMedia('(pointer: fine)').matches);
@@ -5259,7 +5343,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // explicit zoom scales its result without changing frame geometry.
       document.documentElement.style.setProperty('--lwp-presentation-zoom', String(presentationZoom));
       var contentRoots = isIndex ? Array.prototype.slice.call(
-        document.querySelectorAll('.header, .intro, .article-card')) : allSlides;
+        contentRoot().querySelectorAll('.header, .intro, .article-card')) : allSlides;
       var visible = contentRoots.filter(function (slide) {
         return !slide.hidden && getComputedStyle(slide).display !== 'none';
       });
@@ -5459,7 +5543,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function schedule(reason) {
-      if (!printing && frame === null) {
+      if (!seriesActivating && !printing && frame === null) {
         pendingPosition = ready && !isIndex && reason !== 'resize' && reason !== 'zoom'
           ? captureReadingPosition() : null;
         frame = requestAnimationFrame(layout);
@@ -5468,8 +5552,10 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('beforeprint', function () {
       if (printing) return;
       printing = true;
+      // A bundle prints its mounted view: one article, or contents alone.
+      seriesPrinting = true;
       printPosition = isIndex ? null : captureReadingPosition();
-      printScroll = Array.prototype.map.call(document.querySelectorAll('.lwp-table-viewport'),
+      printScroll = Array.prototype.map.call(contentRoot().querySelectorAll('.lwp-table-viewport'),
         function (node) { return {node: node, left: node.scrollLeft, top: node.scrollTop}; });
       if (frame !== null) { cancelAnimationFrame(frame); frame = null; }
       printStyles = changed.map(function (item) {
@@ -5482,6 +5568,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('afterprint', function () {
       if (!printing) return;
       printing = false;
+      seriesPrinting = false;
       restore(printStyles);
       printStyles = [];
       printScroll.forEach(function (item) {
@@ -5492,9 +5579,15 @@ document.addEventListener('DOMContentLoaded', function() {
       if (printPosition && !printPosition.slide.hidden) reanchorPresentation(printPosition);
       printPosition = null;
       schedule('afterprint');
+      if (seriesPendingRoute) {
+        var pending = seriesPendingRoute;
+        seriesPendingRoute = null;
+        activateSeriesView(pending.route, pending.push);
+      }
     });
     document.addEventListener('load', function (event) {
-      if (event.target.tagName === 'IMG') schedule('image');
+      if (event.target.tagName === 'IMG'
+          && (!seriesViews || seriesViewHost.contains(event.target))) schedule('image');
     }, true);
     if (document.fonts) {
       document.fonts.ready.then(function () { schedule('fonts'); });
@@ -5502,7 +5595,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     window.addEventListener('resize', function () { schedule('resize'); });
     schedule('initial');
-    return {schedule: schedule};
+    return {schedule: schedule, reset: function () {
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;
+      pendingPosition = null;
+      ready = false;
+      restore(changed);
+      changed = [];
+      originals = new WeakMap();
+    }};
   })();
 
   function scheduleReadingLayout(reason) {
@@ -5560,10 +5661,10 @@ document.addEventListener('DOMContentLoaded', function() {
   // is underneath the breathing room wanted by the navigation selector.
   var focusedCard = -1;
   var allIndexCards = isIndex
-    ? Array.prototype.slice.call(document.querySelectorAll('.article-card')) : [];
+    ? Array.prototype.slice.call(contentRoot().querySelectorAll('.article-card')) : [];
   var indexCards = allIndexCards.slice();
   var articleCards = Array.prototype.slice.call(
-    document.querySelectorAll('[data-lwp-article-card]'));
+    contentRoot().querySelectorAll('[data-lwp-article-card]'));
   var btnPrev    = document.getElementById('navPrev');
   var btnNext    = document.getElementById('navNext');
   var navDots    = document.querySelector('.nav-dots');
@@ -5804,6 +5905,7 @@ document.addEventListener('DOMContentLoaded', function() {
         allSlides[0].insertBefore(buildStamp, allSlides[0].firstChild);
       }
     }
+    remapSeriesLinks();
     if (returnContainer && returnHref !== null) {
       themeReturnFocus = Array.prototype.find.call(
         returnContainer.querySelectorAll('[href]'), function (link) {
@@ -5817,6 +5919,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function applyPresentation(selector, persist) {
+    if (seriesViews && seriesPrinting) return false;
     var preset = presentationBySelector(selector);
     if (!preset) return false;
     scheduleReadingLayout('presentation');
@@ -5845,6 +5948,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function clearExplicitTheme(persist) {
+    if (seriesViews && seriesPrinting) return false;
     if (!presentationData) return false;
     scheduleReadingLayout('theme-default');
     clearRuntimeVariables();
@@ -5858,6 +5962,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function applyTheme(slug, persist, explicit) {
+    if (seriesViews && seriesPrinting) return false;
     var theme = themeBySlug(slug);
     if (!theme) return false;
     scheduleReadingLayout('theme');
@@ -6132,7 +6237,8 @@ document.addEventListener('DOMContentLoaded', function() {
     navDots.innerHTML = '';
     slides.forEach(function (slide, i) {
       var a = document.createElement('a');
-      a.href = '#' + (slide.id || ('s' + (i + 1)));
+      a.href = seriesViews ? seriesFragment(seriesCurrentKey, slide.id)
+        : '#' + (slide.id || ('s' + (i + 1)));
       var kickerEl = slide.querySelector('.slide-kicker');
       var headEl = slide.querySelector('h2, h1');
       var label = kickerEl ? kickerEl.textContent :
@@ -6208,10 +6314,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function refreshPresentationCards(focusedHref, focusedWasActive) {
     allIndexCards = isIndex
-      ? Array.prototype.slice.call(document.querySelectorAll('.article-card'))
+      ? Array.prototype.slice.call(contentRoot().querySelectorAll('.article-card'))
       : [];
     articleCards = Array.prototype.slice.call(
-      document.querySelectorAll('[data-lwp-article-card]'));
+      contentRoot().querySelectorAll('[data-lwp-article-card]'));
     if (!isIndex) return;
     indexCards = allIndexCards.filter(function (card) {
       return articleMatchesTag(card, selectedTag);
@@ -6233,10 +6339,20 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function applyHash() {
+    if (seriesViews) {
+      if (seriesLastHash === location.hash) return;
+      var route = parseSeriesRoute(location.hash);
+      if (route) activateSeriesView(route, false);
+      return;
+    }
     // The index has no fiche and no fragment: nothing to follow.
     if (isIndex) return;
     var id = window.location.hash ? window.location.hash.slice(1) : '';
     try { id = decodeURIComponent(id); } catch (e) {}
+    applyHashTarget(id);
+  }
+
+  function applyHashTarget(id) {
     if (!id) return;
     var target = allSlides.find(function (slide) { return slide.id === id; });
     if (!target) {
@@ -6250,7 +6366,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var anchor = document.getElementById(id);
       target = anchor && anchor.closest ? anchor.closest('section.slide') : null;
     }
-    if (!target) return;
+    if (!target || allSlides.indexOf(target) < 0) return;
     if (!articleGateMatches(document.body, selectedTag)
         || !slideMatchesTag(target, selectedTag)) {
       var candidates = articleTags(document.body).concat(slideTags(target),
@@ -6264,7 +6380,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     var index = slides.indexOf(target);
     if (index >= 0) {
-      goTo(index, !!anchor);
+      if (seriesViews) seriesTarget = id;
+      goTo(index, !!anchor || !!seriesViews, true);
       if (anchor) {
         // Reveal the owning slide first, then keep the inner destination,
         // rather than replacing a footnote link with the section's top.
@@ -6277,7 +6394,9 @@ document.addEventListener('DOMContentLoaded', function() {
         anchor.scrollIntoView({block: 'start', behavior: 'instant'});
         jumpScrollTo(window.pageYOffset + anchor.getBoundingClientRect().top
           - navigableCardViewportMargin, window.pageXOffset);
-        window.history.replaceState(null, '', '#' + encodeURIComponent(id));
+        var fragment = seriesViews ? seriesFragment(seriesCurrentKey, id) : '#' + encodeURIComponent(id);
+        window.history.replaceState(null, '', fragment);
+        if (seriesViews) seriesLastHash = location.hash;
         readingPosition = captureReadingPosition();
       }
     }
@@ -7115,6 +7234,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function updatePresenter() {
     if (!presenterPanel || !presenterPanel.classList.contains('open')) return;
     if (!slides.length) {
+      if (seriesViews) {
+        if (presenterHead) presenterHead.textContent = '';
+        if (presenterNotes) presenterNotes.textContent = '';
+        if (presenterNext) presenterNext.textContent = '';
+      }
       // The presenter panel exists on the index too (one skeleton), but
       // it is a deck's furniture: without slides there is nothing to
       // present, so the panel says nothing.
@@ -7183,6 +7307,15 @@ document.addEventListener('DOMContentLoaded', function() {
     var slide = slides[idx];
     if (!slide || !slide.id) return;
     if (!window.history || !window.history.replaceState) return;
+    if (seriesViews) {
+      if (seriesActivating || seriesPrinting) return;
+      var target = seriesTarget && document.getElementById(seriesTarget);
+      if (!target || target.closest('section.slide') !== slide) seriesTarget = null;
+      var fragment = seriesFragment(seriesCurrentKey, seriesTarget || (idx ? slide.id : ''));
+      if (location.hash !== fragment) window.history.replaceState(null, '', fragment);
+      seriesLastHash = location.hash;
+      return;
+    }
     if (idx === 0) {
       // Top of the page: the article's own URL, no fragment. Only when
       // one is actually present — the freshly opened page already has
@@ -7244,6 +7377,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return {slide: slide, ratio: isScrolling ? 0 : Math.max(0, -rect.top / rect.height)};
   }
   function reanchorPresentation(position) {
+    if (seriesViews && (seriesActivating || seriesPrinting)) return;
     if (isIndex) {
       if (focusedCard >= 0 && indexCards[focusedCard]) {
         focusNavigableCard(indexCards[focusedCard]);
@@ -7269,6 +7403,13 @@ document.addEventListener('DOMContentLoaded', function() {
     var rect = slide.getBoundingClientRect();
     var targetY = rect.top + (window.pageYOffset || document.documentElement.scrollTop)
       + (position ? position.ratio * rect.height : 0);
+    if (seriesViews && seriesTarget) {
+      var anchor = document.getElementById(seriesTarget);
+      if (anchor && anchor !== slide && anchor.closest('section.slide') === slide) {
+        targetY = window.pageYOffset + anchor.getBoundingClientRect().top
+          - navigableCardViewportMargin;
+      }
+    }
     jumpScrollTo(targetY);
     isScrolling = false;
     readingPosition = captureReadingPosition();
@@ -7283,7 +7424,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  function goTo(idx, instant) {
+  function goTo(idx, instant, preserveTarget) {
+    if (seriesViews && seriesPrinting) return;
+    if (seriesViews && !preserveTarget) seriesTarget = null;
     if (isIndex) {
       // On the index there is no slide to go to — the URL keeps no
       // fragment, the focus is the position (stepIndexCards), and the
@@ -7313,7 +7456,10 @@ document.addEventListener('DOMContentLoaded', function() {
       animateScrollTo(targetY, duration);
       // The safety net: a frame dropped by the compositor must not leave
       // the deck locked forever.
-      setTimeout(function(){ isScrolling = false; }, duration + 60);
+      var generation = seriesGeneration;
+      setTimeout(function(){
+        if (generation === seriesGeneration) isScrolling = false;
+      }, duration + 60);
     }
     updateUI();
   }
@@ -7549,7 +7695,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // and the menu action mean the top of the page, where the journey starts.
   function goHome() {
     if (!isIndex) {
-      window.location.href = 'index.html';
+      if (seriesViews) activateSeriesView({key: '', target: ''}, true);
+      else window.location.href = 'index.html';
     } else {
       clearIndexFocus();
       scrollToTop();
@@ -7596,7 +7743,10 @@ document.addEventListener('DOMContentLoaded', function() {
      if (stepCooldownActive) return;
      stepCooldownActive = true;
      fn();
-     setTimeout(function () { stepCooldownActive = false; }, STEP_COOLDOWN_MS);
+     var generation = seriesGeneration;
+     setTimeout(function () {
+       if (generation === seriesGeneration) stepCooldownActive = false;
+     }, STEP_COOLDOWN_MS);
    }
 
    function isForegroundScrollKey(key) {
@@ -8041,6 +8191,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   function detectCurrent() {
+    if (seriesViews && (seriesActivating || seriesPrinting)) return;
     // On the index there are no slides, and the focus is the source of
     // truth for the position — the scroll observer has nothing to
     // detect, so it does nothing.
@@ -8064,6 +8215,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   var scrollTimer = null;
   window.addEventListener('scroll', function() {
+    if (seriesViews && (seriesActivating || seriesPrinting)) return;
     if (helpIsOpen()) return;
     readingPosition = captureReadingPosition();
     if (scrollTimer) clearTimeout(scrollTimer);
@@ -8109,6 +8261,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function shareUrl(scope) {
     if (location.protocol !== 'http:' && location.protocol !== 'https:') return null;
+    if (seriesViews) {
+      var base = location.origin + location.pathname + location.search;
+      if (scope === 'series') return base + seriesFragment('', '');
+      if (scope === 'article') return base + seriesFragment(seriesCurrentKey, '');
+      var slideId = scope === 'fiche' ? currentSlideId() : null;
+      return slideId ? base + seriesFragment(seriesCurrentKey, slideId) : null;
+    }
     if (scope === 'series') {
       return location.origin + location.pathname.replace(/[^\/]*$/, '') + 'index.html';
     }
@@ -8696,7 +8855,8 @@ document.addEventListener('DOMContentLoaded', function() {
       // the intent window too).
       e.preventDefault();
       fsIntentUntil = 0;
-      window.location.href = 'index.html';
+      if (seriesViews) goHome();
+      else window.location.href = 'index.html';
     }
   }, true);
   document.addEventListener('click', function (e) {
@@ -8726,6 +8886,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var touchPairScrollX = 0, touchPairScrollY = 0;
   var touchPairCurrent = 0, touchPairFocusedCard = -1;
   var touchPairHref = '';
+  var touchPairGeneration = 0;
   function discardMultiTouch(e) {
     if (e.touches.length > 1) multiTouchActive = true;
     if (!multiTouchActive && e.type !== 'touchcancel') return false;
@@ -8833,6 +8994,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return document.documentElement.classList.contains('nav-idle');
   }
   function rememberTouchPosition() {
+    touchPairGeneration = seriesGeneration;
     touchPairScrollX = window.pageXOffset
       || document.documentElement.scrollLeft || 0;
     touchPairScrollY = window.pageYOffset
@@ -8842,6 +9004,7 @@ document.addEventListener('DOMContentLoaded', function() {
     touchPairHref = window.location.href;
   }
   function restoreTouchPosition() {
+    if (touchPairGeneration !== seriesGeneration) return;
     if (scrollTimer) { clearTimeout(scrollTimer); scrollTimer = null; }
     if (isIndex) {
       if (focusedCard >= 0 && indexCards[focusedCard]) {
@@ -8859,6 +9022,7 @@ document.addEventListener('DOMContentLoaded', function() {
     isScrolling = false;
     if (touchPairHref && window.history && window.history.replaceState) {
       window.history.replaceState(null, '', touchPairHref);
+      if (seriesViews) seriesLastHash = location.hash;
     }
     updateUI();
   }
@@ -8928,8 +9092,145 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   scheduleHide();
 
+  function activateSeriesView(route, push) {
+    if (!seriesViews || !seriesViews.has(route.key)) return false;
+    if (seriesPrinting) {
+      seriesPendingRoute = {route: route, push: push};
+      return false;
+    }
+    var view = seriesViews.get(route.key);
+    var changing = view !== seriesActiveView;
+    var marker = document.getElementById('lwp-series-css-marker');
+    var css = null;
+    if (changing) {
+      if (!marker || marker.parentNode !== document.head) return false;
+      css = document.createElement('template');
+      css.innerHTML = view.pageCss;
+      if (!css.content.querySelector('style')) return false;
+    }
+    seriesActivating = true;
+    seriesGeneration++;
+    if (scrollRAF) cancelAnimationFrame(scrollRAF);
+    scrollRAF = null;
+    if (presentationReanchorFrame) cancelAnimationFrame(presentationReanchorFrame);
+    presentationReanchorFrame = null;
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = null;
+    if (jumpTimer) clearTimeout(jumpTimer);
+    jumpTimer = null;
+    jumpBuffer = '';
+    isScrolling = false;
+    stepCooldownActive = false;
+    readingPosition = null;
+    seriesTarget = null;
+    focusedCard = -1;
+    touchStartX = touchStartY = null;
+    lastTapT = 0;
+    fsIntentUntil = 0;
+    fsEntryPending = false;
+    closeReadingMenu(false);
+    closePresenterMenu(false);
+    closeThemeMenu(false);
+    closeTagMenu(false);
+    closeSharePopover(false);
+    closeQrModal(false);
+    closeHelp(false);
+    closeAbout(false);
+    closePause();
+    readingRuntime.reset();
+    if (changing) {
+      // Clear patches against the outgoing catalogue before installing the
+      // incoming page's baseline and pins. Unrelated root styles stay intact.
+      clearRuntimeVariables();
+      Array.prototype.forEach.call(document.querySelectorAll('style[data-lwp-series-css]'),
+        function (node) { node.parentNode.removeChild(node); });
+      Array.prototype.forEach.call(css.content.querySelectorAll('style'), function (node) {
+        node.setAttribute('data-lwp-series-css', '');
+        document.head.insertBefore(node, marker);
+      });
+      var previous = seriesActiveView || seriesViews.get('');
+      String(previous.bodyClass || '').split(/\s+/).filter(Boolean).forEach(function (name) {
+        document.body.classList.remove(name);
+      });
+      String(view.bodyClass || '').split(/\s+/).filter(Boolean).forEach(function (name) {
+        document.body.classList.add(name);
+      });
+      document.body.classList.toggle('index-page', route.key === '');
+      document.body.setAttribute('data-lwp-article-tags', view.articleTags || '');
+      document.title = view.title || '';
+      seriesCurrentKey = route.key;
+      seriesActiveView = view;
+      seriesViewHost.innerHTML = view.content;
+      isIndex = route.key === '';
+      allSlides = Array.prototype.slice.call(seriesViewHost.querySelectorAll('section.slide'));
+      slides = allSlides.slice();
+      current = 0;
+      presentationStyleNode = document.getElementById('lwp-presentation-structure');
+      presentationIndexNode = document.getElementById('lwp-presentation-index');
+      themePinned = {};
+      (view.themePins || []).forEach(function (index) { themePinned[index] = true; });
+      presentationPinned = {};
+      (view.presentationPins || []).forEach(function (index) { presentationPinned[index] = true; });
+      if (presentationData) presentationData.variants = view.variants || {};
+      refreshPresentationCards();
+      if (themeData) applyTheme(themeCurrent, false, themeExplicit);
+      if (presentationData) applyPresentation(presentationCurrent, false);
+      refreshPresentationLanguage();
+      remapSeriesLinks();
+    }
+    renderTagMenu();
+    applyTagFilter(false);
+    writeStoredTag(selectedTag);
+    var hash = seriesFragment(route.key, route.target);
+    if (location.hash !== hash) {
+      window.history[push ? 'pushState' : 'replaceState'](null, '', hash);
+    }
+    seriesLastHash = location.hash;
+    seriesActivating = false;
+    if (isIndex || !slides.length) jumpScrollTo(0);
+    else if (route.target) applyHashTarget(route.target);
+    else goTo(0, true);
+    scheduleReadingLayout('series');
+    updateUI();
+    // A replaced link must not strand keyboard focus on the document body.
+    var destination = route.target && document.getElementById(route.target);
+    if (!destination || !seriesViewHost.contains(destination) || destination.closest('[hidden]')) {
+      destination = slides[current] || seriesViewHost;
+    }
+    if (!destination.hasAttribute('tabindex')) destination.setAttribute('tabindex', '-1');
+    destination.focus({preventScroll: true});
+    return true;
+  }
+
+  if (seriesViews) {
+    document.addEventListener('click', function (event) {
+      if (event.defaultPrevented || event.button !== 0 || event.ctrlKey
+          || event.metaKey || event.shiftKey || event.altKey) return;
+      var link = event.target.closest && event.target.closest('a[href]');
+      if (!link || link.hasAttribute('download')
+          || (link.target && link.target.toLowerCase() !== '_self')) return;
+      var href = link.getAttribute('href');
+      if (href.indexOf('#lwp/') !== 0) return;
+      var route = parseSeriesRoute(href);
+      if (!route) return;
+      event.preventDefault();
+      activateSeriesView(route, true);
+    });
+    window.addEventListener('popstate', applyHash);
+  }
+
   if (btnMenu) btnMenu.addEventListener('click', togglePresenterMenu);
   presentationCurrent = readStoredPresentation();
+  if (seriesViews) {
+    if (themeData) {
+      themeCurrent = readStoredTheme();
+      themeExplicit = readStoredThemeExplicit();
+    }
+    updateAppearanceLabels();
+    window.addEventListener('hashchange', applyHash);
+    activateSeriesView(parseSeriesRoute(location.hash) || {key: '', target: ''}, false);
+    return;
+  }
   if (themeData) {
     applyTheme(readStoredTheme(), false, readStoredThemeExplicit());
     if (presentationData) applyPresentation(presentationCurrent, false);

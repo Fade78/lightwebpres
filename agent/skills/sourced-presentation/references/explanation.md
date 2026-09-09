@@ -75,17 +75,23 @@ sentence, answer these questions from what has already been introduced:
 | Check | Failure to repair |
 |---|---|
 | Who acts, on what, and with what result? | Actor, object or operation must be inferred from the writer's private knowledge. |
-| What does each pronoun or pointer denote? | “Its replies”, “these uses” or “this result” has competing antecedents. |
+| What does each pronoun or pointer denote? | A pronoun or demonstrative can refer to more than one previously introduced entity. |
 | What relation joins the sentences? | Cause, contrast, example, chronology or qualification is merely implied or unsupported. |
-| Are the compared objects comparable? | A use is contrasted with a conversation, a duration with a frequency, or a permission with a deletion. |
-| Does attribution describe the right actor? | Documentation is credited with performing a product action, or a possibility described in a policy becomes observed practice. |
+| Does this negation resolve a plausible ambiguity? | The text denies an alternative already excluded by its precise wording, or answers a claim the passage never makes. |
+| Are the compared objects comparable? | Different entities, measures or stages are compared without an explicit basis for comparison. |
+| Does attribution describe the right actor? | Evidence of a description, rule or intention is presented as evidence of an action or outcome. |
 | Is each needed term or frame already available? | A brand, acronym, task or setting appears before the reader knows its role. |
-| Does this detail explain or materially qualify the point? | A subscription aside, secondary procedure or generic warning interrupts the needed chain. |
+| Does this detail explain or materially qualify the point? | An ancillary detail interrupts the explanation without changing its meaning or scope. |
 
-Rewrite the relationship, not just the connective. Separate operations
-that affect different things; make their effects explicit. For example,
-changing what appears on a screen and changing what a service retains
-require separate explanations. Do not infer either from the other's label.
+Apply this test to articles and cards alike. A distinction checked during
+verification does not automatically need a disclaimer in the published
+text. State the source's contribution and scope directly; keep exclusions
+that prevent a real misunderstanding. Moving a needless disclaimer into
+the long article does not make it useful.
+
+Rewrite the relationship, not just the connective. Separate operations,
+states and results; explain what each changes and how they relate.
+A shared label does not establish that their effects are equivalent.
 
 A conclusion can reveal a new deduction earned by the explanation. It
 must not be the first sentence that makes earlier actors, events or

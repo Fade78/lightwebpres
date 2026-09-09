@@ -67,9 +67,9 @@ on a legal document or a manufactured controversy on an exposition.
 - Give quantities their units and observation level: people or accounts,
   continuous or cumulative time, individual or group average, time per
   person or study duration. Keep the necessary population, window and comparator.
-- Name what was measured, not a larger construct. A delay to the next action
-  is not full cognitive recovery; time before returning can include other
-  work. Results on exposure, reactions, intentions and acts are not interchangeable.
+- Match the wording to the measured outcome. A proxy or intermediate result
+  is not the final outcome it may help explain. Distinguish observed measures
+  from the broader constructs or effects inferred from them.
 - Check numerator and denominator before calculating a proportion. Matching
   units alone are insufficient. Record the derivation and preserve exact
   meaningful thresholds; use justified approximation rather than false precision.
@@ -100,8 +100,8 @@ on a legal document or a manufactured controversy on an exposition.
 - For a new allegation, seek the response within the authorized reporting
   workflow. Do not contact people without authorization or manufacture an
   exchange merely to report existing research.
-- Read guarantees against the actor, data, operation and conditions covered.
-  Not selling is not not holding; protection against one party is not
-  protection against all. Preserve real safeguards without turning them universal.
+- Read guarantees against the actors, operations and conditions covered.
+  Protection at one stage or against one party does not cover every stage
+  or party. Preserve real safeguards without extending or dismissing their scope.
 - Date claims that can expire. When wording or scope changes, recheck the
   article and every dependent card, not just the reference URL.

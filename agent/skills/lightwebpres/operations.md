@@ -124,11 +124,11 @@ alternatives. Read warnings even when build exits zero.
 
 `verify` needs the same supported rendering flags and environment as the
 build, including language, themes, presentation alternatives, typography,
-draft inclusion, navigation and scroll duration where applicable. Consult
-`verify --help`: not every build option is accepted. In particular,
-`verify` cannot reproduce `--inline-images`; keep a separate non-inline
-output for that CI check. Build-stamp differences and surrounding whitespace
-are ignored, not arbitrary body differences. Audit has its own smaller option
+draft inclusion, navigation, scroll duration, `--single-page FILE` and
+`--inline-images` where applicable. Both image embedding and single-page output
+are reproducible by `verify`; consult `verify --help` for its accepted options.
+Build-stamp differences and surrounding whitespace are ignored, not arbitrary
+body differences. Audit has its own smaller option
 set; do not pass build-only switches to it.
 
 Use `verify` **before** rebuilding when the question is whether an existing
@@ -187,9 +187,45 @@ Confirm the intended public base URL before distributing those links.
 
 Normal output includes separate images and kit assets: distribute the whole
 intended output tree, not a lone HTML file assumed to contain every asset.
-`--inline-images` is a distinct build mode with validation of supported local
-image references, not a reason to skip checks. See the
+`--inline-images` on `build`, `verify` and `watch` embeds supported local
+Markdown and kit images, including SVG as an `<img>` data URI with original
+vector bytes, not interactive SVG DOM. Raw HTML `<img>` is not auto-inlined;
+remaining relative image paths fail inline validation. SVG-as-image blocks
+nested resources even online. Read its warning summary; `--verbose` adds
+source, line and remediation, `--quiet` retains warnings, and `audit --strict`
+may fail on them. The engine neither fetches nor rewrites these resources.
+CSS, fonts, scripts and media are not a complete portable bundle. See the
 [sharing walkthrough](https://github.com/Fade78/lightwebpres/blob/main/GUIDE.md#4-read-present-and-share).
+
+### Publish A Series In One HTML File
+
+```bash
+lightwebpres build my-series --single-page collection.html --inline-images
+lightwebpres verify my-series --single-page collection.html --inline-images
+```
+
+`--single-page FILE` requires a bare `.html` or `.htm` filename on `build`,
+`verify` or `watch`; `--output` remains a directory. Without `--inline-images`,
+distribute copied images and presentation assets too. Default output remains
+multipage. Only the active contents/article view is mounted; switching articles
+is deliberate, not continuous scrolling. Article styles, notes and IDs remain
+local, and one root runtime preserves fullscreen across switches. Print uses
+the active tag-filtered article; the contents view prints only series contents.
+
+Single-page mode requires any `templates/nav.js` override to match the built-in
+runtime and rejects nonempty `templates/index_extra.html`. Arbitrary widget
+script lifecycles are unsupported; keep multipage output for those extensions.
+`--no-index` and `--drafts-only` are refused; `--include-drafts`, `--no-nav`
+and `--no-readme` are supported. `build --only` validates its article target
+but rebuilds the entire combined file.
+
+Source `page_dest` values do not change. Generated README links use
+`collection.html#lwp/a/<encoded page_dest>`; local targets append
+`/<encoded local id>`, and series contents use `collection.html#lwp/index`.
+Encode each component separately. The build manifest records the physical
+combined file and copied images/assets unless inlined, not virtual article
+files. Old multipage files are not deleted when changing modes; review `clean`
+explicitly before authorized removal.
 
 ## Publish And Maintain
 

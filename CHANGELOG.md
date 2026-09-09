@@ -33,6 +33,30 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.58.0
+
+`build`, `verify` and `watch` accept `--single-page FILE` to publish a series
+in one HTML document. Readers deliberately switch between articles; only the
+active view is mounted, with article-local styles, notes and IDs. One root
+runtime preserves fullscreen across switches. Printing uses the active,
+tag-filtered article, or only the series contents when that view is active.
+Multipage output remains the default, with an intentionally updated runtime.
+
+`verify` now reproduces `--inline-images` as well as single-page output. Image
+embedding includes SVG as an image data URI, preserving its vector bytes,
+not turning it into interactive SVG DOM. Warnings identify SVG resources that
+image rendering blocks even online; `--verbose` adds source lines and remedies.
+This is not a complete offline bundle: raw HTML images are not auto-inlined,
+and external CSS, fonts, scripts and media can remain dependencies.
+
+Single-page mode requires built-in navigation and rejects nonempty
+`templates/index_extra.html`, `--no-index` and `--drafts-only`. Use multipage
+output for existing script extensions. Switching modes does not delete old
+published files; review `clean` explicitly.
+
+Update the optional sourced-presentation skill to version 0.19, clarifying
+evidential scope and removing unnecessary disclaimers.
+
 ## Unreleased — 0.57.2
 
 Display settings (**Affichage** in French) names the submenu that controls

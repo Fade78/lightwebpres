@@ -2239,7 +2239,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.57.2</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.58.0</div>
   </div>
 </div>
 
@@ -3163,7 +3163,77 @@ function lwpChooseInitialLanguage() {
 document.addEventListener('DOMContentLoaded', function() {
   lwpChooseInitialLanguage();
 (function(){
-  var allSlides = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
+  var seriesViewHost = document.getElementById('lwp-series-view');
+  var seriesDataNode = document.getElementById('lwp-series-data');
+  var seriesViews = null;
+  if (seriesViewHost && seriesDataNode) {
+    try {
+      var bundle = JSON.parse(seriesDataNode.textContent || '');
+      if (bundle.version === 1 && Array.isArray(bundle.views)) {
+        var views = new Map();
+        bundle.views.forEach(function (view) {
+          if (typeof view.key !== 'string' || typeof view.content !== 'string'
+              || typeof view.pageCss !== 'string' || views.has(view.key)) {
+            throw new Error('Invalid series view');
+          }
+          views.set(view.key, view);
+        });
+        if (views.has('')) seriesViews = views;
+      }
+    } catch (e) {}
+  }
+  var seriesCurrentKey = '';
+  var seriesActiveView = null;
+  var seriesGeneration = 0;
+  var seriesActivating = false;
+  var seriesPrinting = false;
+  var seriesPendingRoute = null;
+  var seriesTarget = null;
+  var seriesLastHash = null;
+  function contentRoot() { return seriesViews ? seriesViewHost : document; }
+  function seriesFragment(key, target) {
+    return key === '' ? '#lwp/index' : '#lwp/a/' + encodeURIComponent(key)
+      + (target ? '/' + encodeURIComponent(target) : '');
+  }
+  function parseSeriesRoute(hash) {
+    if (!hash || hash === '#lwp/index') return {key: '', target: ''};
+    var parts = hash.split('/');
+    if (parts[0] !== '#lwp' || parts[1] !== 'a'
+        || parts.length < 3 || parts.length > 4) return null;
+    try {
+      var key = decodeURIComponent(parts[2]);
+      var target = parts.length === 4 ? decodeURIComponent(parts[3]) : '';
+      return key && seriesViews.has(key) ? {key: key, target: target} : null;
+    } catch (e) { return null; }
+  }
+  function remapSeriesLinks() {
+    if (!seriesViews) return;
+    Array.prototype.forEach.call(seriesViewHost.querySelectorAll('a[href]'), function (link) {
+      var href = link.getAttribute('href');
+      if (!href || href.indexOf('#lwp/') === 0 || link.hasAttribute('download')) return;
+      if (href.charAt(0) === '#') {
+        if (!seriesCurrentKey) return;
+        try {
+          link.setAttribute('href', seriesFragment(seriesCurrentKey, decodeURIComponent(href.slice(1))));
+        } catch (e) {}
+        return;
+      }
+      // Only known relative page destinations are publication links. External
+      // documentary links and resource downloads retain their authored URLs.
+      if (/^(?:[a-z][a-z0-9+.-]*:|\/|\?)/i.test(href)) return;
+      try {
+        var url = new URL(href, location.href);
+        if (url.search) return;
+        var key = null;
+        seriesViews.forEach(function (_view, candidate) {
+          if (candidate && new URL(candidate, location.href).pathname === url.pathname) key = candidate;
+        });
+        if (key === null && new URL('index.html', location.href).pathname === url.pathname) key = '';
+        if (key !== null) link.setAttribute('href', seriesFragment(key, decodeURIComponent(url.hash.slice(1))));
+      } catch (e) {}
+    });
+  }
+  var allSlides = Array.prototype.slice.call(contentRoot().querySelectorAll('section.slide'));
   var isIndex = document.body.classList.contains('index-page');
   var hasFinePointer = !!(window.matchMedia
                            && window.matchMedia('(pointer: fine)').matches);
@@ -3339,7 +3409,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // explicit zoom scales its result without changing frame geometry.
       document.documentElement.style.setProperty('--lwp-presentation-zoom', String(presentationZoom));
       var contentRoots = isIndex ? Array.prototype.slice.call(
-        document.querySelectorAll('.header, .intro, .article-card')) : allSlides;
+        contentRoot().querySelectorAll('.header, .intro, .article-card')) : allSlides;
       var visible = contentRoots.filter(function (slide) {
         return !slide.hidden && getComputedStyle(slide).display !== 'none';
       });
@@ -3539,7 +3609,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function schedule(reason) {
-      if (!printing && frame === null) {
+      if (!seriesActivating && !printing && frame === null) {
         pendingPosition = ready && !isIndex && reason !== 'resize' && reason !== 'zoom'
           ? captureReadingPosition() : null;
         frame = requestAnimationFrame(layout);
@@ -3548,8 +3618,10 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('beforeprint', function () {
       if (printing) return;
       printing = true;
+      // A bundle prints its mounted view: one article, or contents alone.
+      seriesPrinting = true;
       printPosition = isIndex ? null : captureReadingPosition();
-      printScroll = Array.prototype.map.call(document.querySelectorAll('.lwp-table-viewport'),
+      printScroll = Array.prototype.map.call(contentRoot().querySelectorAll('.lwp-table-viewport'),
         function (node) { return {node: node, left: node.scrollLeft, top: node.scrollTop}; });
       if (frame !== null) { cancelAnimationFrame(frame); frame = null; }
       printStyles = changed.map(function (item) {
@@ -3562,6 +3634,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('afterprint', function () {
       if (!printing) return;
       printing = false;
+      seriesPrinting = false;
       restore(printStyles);
       printStyles = [];
       printScroll.forEach(function (item) {
@@ -3572,9 +3645,15 @@ document.addEventListener('DOMContentLoaded', function() {
       if (printPosition && !printPosition.slide.hidden) reanchorPresentation(printPosition);
       printPosition = null;
       schedule('afterprint');
+      if (seriesPendingRoute) {
+        var pending = seriesPendingRoute;
+        seriesPendingRoute = null;
+        activateSeriesView(pending.route, pending.push);
+      }
     });
     document.addEventListener('load', function (event) {
-      if (event.target.tagName === 'IMG') schedule('image');
+      if (event.target.tagName === 'IMG'
+          && (!seriesViews || seriesViewHost.contains(event.target))) schedule('image');
     }, true);
     if (document.fonts) {
       document.fonts.ready.then(function () { schedule('fonts'); });
@@ -3582,7 +3661,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     window.addEventListener('resize', function () { schedule('resize'); });
     schedule('initial');
-    return {schedule: schedule};
+    return {schedule: schedule, reset: function () {
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;
+      pendingPosition = null;
+      ready = false;
+      restore(changed);
+      changed = [];
+      originals = new WeakMap();
+    }};
   })();
 
   function scheduleReadingLayout(reason) {
@@ -3640,10 +3727,10 @@ document.addEventListener('DOMContentLoaded', function() {
   // is underneath the breathing room wanted by the navigation selector.
   var focusedCard = -1;
   var allIndexCards = isIndex
-    ? Array.prototype.slice.call(document.querySelectorAll('.article-card')) : [];
+    ? Array.prototype.slice.call(contentRoot().querySelectorAll('.article-card')) : [];
   var indexCards = allIndexCards.slice();
   var articleCards = Array.prototype.slice.call(
-    document.querySelectorAll('[data-lwp-article-card]'));
+    contentRoot().querySelectorAll('[data-lwp-article-card]'));
   var btnPrev    = document.getElementById('navPrev');
   var btnNext    = document.getElementById('navNext');
   var navDots    = document.querySelector('.nav-dots');
@@ -3884,6 +3971,7 @@ document.addEventListener('DOMContentLoaded', function() {
         allSlides[0].insertBefore(buildStamp, allSlides[0].firstChild);
       }
     }
+    remapSeriesLinks();
     if (returnContainer && returnHref !== null) {
       themeReturnFocus = Array.prototype.find.call(
         returnContainer.querySelectorAll('[href]'), function (link) {
@@ -3897,6 +3985,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function applyPresentation(selector, persist) {
+    if (seriesViews && seriesPrinting) return false;
     var preset = presentationBySelector(selector);
     if (!preset) return false;
     scheduleReadingLayout('presentation');
@@ -3925,6 +4014,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function clearExplicitTheme(persist) {
+    if (seriesViews && seriesPrinting) return false;
     if (!presentationData) return false;
     scheduleReadingLayout('theme-default');
     clearRuntimeVariables();
@@ -3938,6 +4028,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function applyTheme(slug, persist, explicit) {
+    if (seriesViews && seriesPrinting) return false;
     var theme = themeBySlug(slug);
     if (!theme) return false;
     scheduleReadingLayout('theme');
@@ -4212,7 +4303,8 @@ document.addEventListener('DOMContentLoaded', function() {
     navDots.innerHTML = '';
     slides.forEach(function (slide, i) {
       var a = document.createElement('a');
-      a.href = '#' + (slide.id || ('s' + (i + 1)));
+      a.href = seriesViews ? seriesFragment(seriesCurrentKey, slide.id)
+        : '#' + (slide.id || ('s' + (i + 1)));
       var kickerEl = slide.querySelector('.slide-kicker');
       var headEl = slide.querySelector('h2, h1');
       var label = kickerEl ? kickerEl.textContent :
@@ -4288,10 +4380,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function refreshPresentationCards(focusedHref, focusedWasActive) {
     allIndexCards = isIndex
-      ? Array.prototype.slice.call(document.querySelectorAll('.article-card'))
+      ? Array.prototype.slice.call(contentRoot().querySelectorAll('.article-card'))
       : [];
     articleCards = Array.prototype.slice.call(
-      document.querySelectorAll('[data-lwp-article-card]'));
+      contentRoot().querySelectorAll('[data-lwp-article-card]'));
     if (!isIndex) return;
     indexCards = allIndexCards.filter(function (card) {
       return articleMatchesTag(card, selectedTag);
@@ -4313,10 +4405,20 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function applyHash() {
+    if (seriesViews) {
+      if (seriesLastHash === location.hash) return;
+      var route = parseSeriesRoute(location.hash);
+      if (route) activateSeriesView(route, false);
+      return;
+    }
     // The index has no fiche and no fragment: nothing to follow.
     if (isIndex) return;
     var id = window.location.hash ? window.location.hash.slice(1) : '';
     try { id = decodeURIComponent(id); } catch (e) {}
+    applyHashTarget(id);
+  }
+
+  function applyHashTarget(id) {
     if (!id) return;
     var target = allSlides.find(function (slide) { return slide.id === id; });
     if (!target) {
@@ -4330,7 +4432,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var anchor = document.getElementById(id);
       target = anchor && anchor.closest ? anchor.closest('section.slide') : null;
     }
-    if (!target) return;
+    if (!target || allSlides.indexOf(target) < 0) return;
     if (!articleGateMatches(document.body, selectedTag)
         || !slideMatchesTag(target, selectedTag)) {
       var candidates = articleTags(document.body).concat(slideTags(target),
@@ -4344,7 +4446,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     var index = slides.indexOf(target);
     if (index >= 0) {
-      goTo(index, !!anchor);
+      if (seriesViews) seriesTarget = id;
+      goTo(index, !!anchor || !!seriesViews, true);
       if (anchor) {
         // Reveal the owning slide first, then keep the inner destination,
         // rather than replacing a footnote link with the section's top.
@@ -4357,7 +4460,9 @@ document.addEventListener('DOMContentLoaded', function() {
         anchor.scrollIntoView({block: 'start', behavior: 'instant'});
         jumpScrollTo(window.pageYOffset + anchor.getBoundingClientRect().top
           - navigableCardViewportMargin, window.pageXOffset);
-        window.history.replaceState(null, '', '#' + encodeURIComponent(id));
+        var fragment = seriesViews ? seriesFragment(seriesCurrentKey, id) : '#' + encodeURIComponent(id);
+        window.history.replaceState(null, '', fragment);
+        if (seriesViews) seriesLastHash = location.hash;
         readingPosition = captureReadingPosition();
       }
     }
@@ -5195,6 +5300,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function updatePresenter() {
     if (!presenterPanel || !presenterPanel.classList.contains('open')) return;
     if (!slides.length) {
+      if (seriesViews) {
+        if (presenterHead) presenterHead.textContent = '';
+        if (presenterNotes) presenterNotes.textContent = '';
+        if (presenterNext) presenterNext.textContent = '';
+      }
       // The presenter panel exists on the index too (one skeleton), but
       // it is a deck's furniture: without slides there is nothing to
       // present, so the panel says nothing.
@@ -5263,6 +5373,15 @@ document.addEventListener('DOMContentLoaded', function() {
     var slide = slides[idx];
     if (!slide || !slide.id) return;
     if (!window.history || !window.history.replaceState) return;
+    if (seriesViews) {
+      if (seriesActivating || seriesPrinting) return;
+      var target = seriesTarget && document.getElementById(seriesTarget);
+      if (!target || target.closest('section.slide') !== slide) seriesTarget = null;
+      var fragment = seriesFragment(seriesCurrentKey, seriesTarget || (idx ? slide.id : ''));
+      if (location.hash !== fragment) window.history.replaceState(null, '', fragment);
+      seriesLastHash = location.hash;
+      return;
+    }
     if (idx === 0) {
       // Top of the page: the article's own URL, no fragment. Only when
       // one is actually present — the freshly opened page already has
@@ -5324,6 +5443,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return {slide: slide, ratio: isScrolling ? 0 : Math.max(0, -rect.top / rect.height)};
   }
   function reanchorPresentation(position) {
+    if (seriesViews && (seriesActivating || seriesPrinting)) return;
     if (isIndex) {
       if (focusedCard >= 0 && indexCards[focusedCard]) {
         focusNavigableCard(indexCards[focusedCard]);
@@ -5349,6 +5469,13 @@ document.addEventListener('DOMContentLoaded', function() {
     var rect = slide.getBoundingClientRect();
     var targetY = rect.top + (window.pageYOffset || document.documentElement.scrollTop)
       + (position ? position.ratio * rect.height : 0);
+    if (seriesViews && seriesTarget) {
+      var anchor = document.getElementById(seriesTarget);
+      if (anchor && anchor !== slide && anchor.closest('section.slide') === slide) {
+        targetY = window.pageYOffset + anchor.getBoundingClientRect().top
+          - navigableCardViewportMargin;
+      }
+    }
     jumpScrollTo(targetY);
     isScrolling = false;
     readingPosition = captureReadingPosition();
@@ -5363,7 +5490,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  function goTo(idx, instant) {
+  function goTo(idx, instant, preserveTarget) {
+    if (seriesViews && seriesPrinting) return;
+    if (seriesViews && !preserveTarget) seriesTarget = null;
     if (isIndex) {
       // On the index there is no slide to go to — the URL keeps no
       // fragment, the focus is the position (stepIndexCards), and the
@@ -5393,7 +5522,10 @@ document.addEventListener('DOMContentLoaded', function() {
       animateScrollTo(targetY, duration);
       // The safety net: a frame dropped by the compositor must not leave
       // the deck locked forever.
-      setTimeout(function(){ isScrolling = false; }, duration + 60);
+      var generation = seriesGeneration;
+      setTimeout(function(){
+        if (generation === seriesGeneration) isScrolling = false;
+      }, duration + 60);
     }
     updateUI();
   }
@@ -5629,7 +5761,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // and the menu action mean the top of the page, where the journey starts.
   function goHome() {
     if (!isIndex) {
-      window.location.href = 'index.html';
+      if (seriesViews) activateSeriesView({key: '', target: ''}, true);
+      else window.location.href = 'index.html';
     } else {
       clearIndexFocus();
       scrollToTop();
@@ -5676,7 +5809,10 @@ document.addEventListener('DOMContentLoaded', function() {
      if (stepCooldownActive) return;
      stepCooldownActive = true;
      fn();
-     setTimeout(function () { stepCooldownActive = false; }, STEP_COOLDOWN_MS);
+     var generation = seriesGeneration;
+     setTimeout(function () {
+       if (generation === seriesGeneration) stepCooldownActive = false;
+     }, STEP_COOLDOWN_MS);
    }
 
    function isForegroundScrollKey(key) {
@@ -6121,6 +6257,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   function detectCurrent() {
+    if (seriesViews && (seriesActivating || seriesPrinting)) return;
     // On the index there are no slides, and the focus is the source of
     // truth for the position — the scroll observer has nothing to
     // detect, so it does nothing.
@@ -6144,6 +6281,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   var scrollTimer = null;
   window.addEventListener('scroll', function() {
+    if (seriesViews && (seriesActivating || seriesPrinting)) return;
     if (helpIsOpen()) return;
     readingPosition = captureReadingPosition();
     if (scrollTimer) clearTimeout(scrollTimer);
@@ -6189,6 +6327,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function shareUrl(scope) {
     if (location.protocol !== 'http:' && location.protocol !== 'https:') return null;
+    if (seriesViews) {
+      var base = location.origin + location.pathname + location.search;
+      if (scope === 'series') return base + seriesFragment('', '');
+      if (scope === 'article') return base + seriesFragment(seriesCurrentKey, '');
+      var slideId = scope === 'fiche' ? currentSlideId() : null;
+      return slideId ? base + seriesFragment(seriesCurrentKey, slideId) : null;
+    }
     if (scope === 'series') {
       return location.origin + location.pathname.replace(/[^\/]*$/, '') + 'index.html';
     }
@@ -6776,7 +6921,8 @@ document.addEventListener('DOMContentLoaded', function() {
       // the intent window too).
       e.preventDefault();
       fsIntentUntil = 0;
-      window.location.href = 'index.html';
+      if (seriesViews) goHome();
+      else window.location.href = 'index.html';
     }
   }, true);
   document.addEventListener('click', function (e) {
@@ -6806,6 +6952,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var touchPairScrollX = 0, touchPairScrollY = 0;
   var touchPairCurrent = 0, touchPairFocusedCard = -1;
   var touchPairHref = '';
+  var touchPairGeneration = 0;
   function discardMultiTouch(e) {
     if (e.touches.length > 1) multiTouchActive = true;
     if (!multiTouchActive && e.type !== 'touchcancel') return false;
@@ -6913,6 +7060,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return document.documentElement.classList.contains('nav-idle');
   }
   function rememberTouchPosition() {
+    touchPairGeneration = seriesGeneration;
     touchPairScrollX = window.pageXOffset
       || document.documentElement.scrollLeft || 0;
     touchPairScrollY = window.pageYOffset
@@ -6922,6 +7070,7 @@ document.addEventListener('DOMContentLoaded', function() {
     touchPairHref = window.location.href;
   }
   function restoreTouchPosition() {
+    if (touchPairGeneration !== seriesGeneration) return;
     if (scrollTimer) { clearTimeout(scrollTimer); scrollTimer = null; }
     if (isIndex) {
       if (focusedCard >= 0 && indexCards[focusedCard]) {
@@ -6939,6 +7088,7 @@ document.addEventListener('DOMContentLoaded', function() {
     isScrolling = false;
     if (touchPairHref && window.history && window.history.replaceState) {
       window.history.replaceState(null, '', touchPairHref);
+      if (seriesViews) seriesLastHash = location.hash;
     }
     updateUI();
   }
@@ -7008,8 +7158,145 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   scheduleHide();
 
+  function activateSeriesView(route, push) {
+    if (!seriesViews || !seriesViews.has(route.key)) return false;
+    if (seriesPrinting) {
+      seriesPendingRoute = {route: route, push: push};
+      return false;
+    }
+    var view = seriesViews.get(route.key);
+    var changing = view !== seriesActiveView;
+    var marker = document.getElementById('lwp-series-css-marker');
+    var css = null;
+    if (changing) {
+      if (!marker || marker.parentNode !== document.head) return false;
+      css = document.createElement('template');
+      css.innerHTML = view.pageCss;
+      if (!css.content.querySelector('style')) return false;
+    }
+    seriesActivating = true;
+    seriesGeneration++;
+    if (scrollRAF) cancelAnimationFrame(scrollRAF);
+    scrollRAF = null;
+    if (presentationReanchorFrame) cancelAnimationFrame(presentationReanchorFrame);
+    presentationReanchorFrame = null;
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = null;
+    if (jumpTimer) clearTimeout(jumpTimer);
+    jumpTimer = null;
+    jumpBuffer = '';
+    isScrolling = false;
+    stepCooldownActive = false;
+    readingPosition = null;
+    seriesTarget = null;
+    focusedCard = -1;
+    touchStartX = touchStartY = null;
+    lastTapT = 0;
+    fsIntentUntil = 0;
+    fsEntryPending = false;
+    closeReadingMenu(false);
+    closePresenterMenu(false);
+    closeThemeMenu(false);
+    closeTagMenu(false);
+    closeSharePopover(false);
+    closeQrModal(false);
+    closeHelp(false);
+    closeAbout(false);
+    closePause();
+    readingRuntime.reset();
+    if (changing) {
+      // Clear patches against the outgoing catalogue before installing the
+      // incoming page's baseline and pins. Unrelated root styles stay intact.
+      clearRuntimeVariables();
+      Array.prototype.forEach.call(document.querySelectorAll('style[data-lwp-series-css]'),
+        function (node) { node.parentNode.removeChild(node); });
+      Array.prototype.forEach.call(css.content.querySelectorAll('style'), function (node) {
+        node.setAttribute('data-lwp-series-css', '');
+        document.head.insertBefore(node, marker);
+      });
+      var previous = seriesActiveView || seriesViews.get('');
+      String(previous.bodyClass || '').split(/\s+/).filter(Boolean).forEach(function (name) {
+        document.body.classList.remove(name);
+      });
+      String(view.bodyClass || '').split(/\s+/).filter(Boolean).forEach(function (name) {
+        document.body.classList.add(name);
+      });
+      document.body.classList.toggle('index-page', route.key === '');
+      document.body.setAttribute('data-lwp-article-tags', view.articleTags || '');
+      document.title = view.title || '';
+      seriesCurrentKey = route.key;
+      seriesActiveView = view;
+      seriesViewHost.innerHTML = view.content;
+      isIndex = route.key === '';
+      allSlides = Array.prototype.slice.call(seriesViewHost.querySelectorAll('section.slide'));
+      slides = allSlides.slice();
+      current = 0;
+      presentationStyleNode = document.getElementById('lwp-presentation-structure');
+      presentationIndexNode = document.getElementById('lwp-presentation-index');
+      themePinned = {};
+      (view.themePins || []).forEach(function (index) { themePinned[index] = true; });
+      presentationPinned = {};
+      (view.presentationPins || []).forEach(function (index) { presentationPinned[index] = true; });
+      if (presentationData) presentationData.variants = view.variants || {};
+      refreshPresentationCards();
+      if (themeData) applyTheme(themeCurrent, false, themeExplicit);
+      if (presentationData) applyPresentation(presentationCurrent, false);
+      refreshPresentationLanguage();
+      remapSeriesLinks();
+    }
+    renderTagMenu();
+    applyTagFilter(false);
+    writeStoredTag(selectedTag);
+    var hash = seriesFragment(route.key, route.target);
+    if (location.hash !== hash) {
+      window.history[push ? 'pushState' : 'replaceState'](null, '', hash);
+    }
+    seriesLastHash = location.hash;
+    seriesActivating = false;
+    if (isIndex || !slides.length) jumpScrollTo(0);
+    else if (route.target) applyHashTarget(route.target);
+    else goTo(0, true);
+    scheduleReadingLayout('series');
+    updateUI();
+    // A replaced link must not strand keyboard focus on the document body.
+    var destination = route.target && document.getElementById(route.target);
+    if (!destination || !seriesViewHost.contains(destination) || destination.closest('[hidden]')) {
+      destination = slides[current] || seriesViewHost;
+    }
+    if (!destination.hasAttribute('tabindex')) destination.setAttribute('tabindex', '-1');
+    destination.focus({preventScroll: true});
+    return true;
+  }
+
+  if (seriesViews) {
+    document.addEventListener('click', function (event) {
+      if (event.defaultPrevented || event.button !== 0 || event.ctrlKey
+          || event.metaKey || event.shiftKey || event.altKey) return;
+      var link = event.target.closest && event.target.closest('a[href]');
+      if (!link || link.hasAttribute('download')
+          || (link.target && link.target.toLowerCase() !== '_self')) return;
+      var href = link.getAttribute('href');
+      if (href.indexOf('#lwp/') !== 0) return;
+      var route = parseSeriesRoute(href);
+      if (!route) return;
+      event.preventDefault();
+      activateSeriesView(route, true);
+    });
+    window.addEventListener('popstate', applyHash);
+  }
+
   if (btnMenu) btnMenu.addEventListener('click', togglePresenterMenu);
   presentationCurrent = readStoredPresentation();
+  if (seriesViews) {
+    if (themeData) {
+      themeCurrent = readStoredTheme();
+      themeExplicit = readStoredThemeExplicit();
+    }
+    updateAppearanceLabels();
+    window.addEventListener('hashchange', applyHash);
+    activateSeriesView(parseSeriesRoute(location.hash) || {key: '', target: ''}, false);
+    return;
+  }
   if (themeData) {
     applyTheme(readStoredTheme(), false, readStoredThemeExplicit());
     if (presentationData) applyPresentation(presentationCurrent, false);

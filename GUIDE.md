@@ -1544,6 +1544,11 @@ without screen clipping or local scroll limits, and runtime fitting scales and
 presentation zoom are cleared for print. The screen choices return afterwards;
 print expansion does not guarantee that a wide table fits the physical paper.
 
+In single-page series output, printing includes only the active article with
+its current tag filter, never the whole collection. If the series contents
+view is active, only those contents print. Switch to the intended article
+before opening print preview.
+
 For black ink on white, press **C** and select **Print Ink** before opening
 the print dialog. It is included by default in the essential theme bundle;
 printing does not switch to it automatically.
@@ -1724,10 +1729,9 @@ whitespace), exiting non-zero when output differs. Run it before `build` to
 catch a `public/` that was hand-edited or never rebuilt after a source change.
 
 Use the same supported rendering options as the build, including `--lang`,
-`--themes` and `--no-essential-theme`. **`verify` does not accept
-`--inline-images`** and cannot reproduce that build mode: embedded images or
-presentation assets can therefore report drift even with unchanged sources.
-Use a separate, non-inline build output for this CI check.
+`--themes`, `--no-essential-theme`, `--single-page FILE` and `--inline-images`
+when used. `verify` reproduces both inline-image and single-page output; no
+separate non-inline build is needed for this CI check.
 
 ### Asking why a value is what it is
 
@@ -1787,21 +1791,78 @@ source files are not published and existing output assets are left in place.
 files as data URIs, with no copied `img/` directory. Base64 adds roughly a
 third to image size before serving compression. Raw HTML images with relative
 paths cannot be inlined: the build names and rejects them rather than leaving
-references to an absent asset directory. Keep a non-inline output for `verify`.
+references to an absent asset directory. `verify --inline-images` reproduces
+this mode; `watch` accepts the option too. Declared kit images follow the same
+embedding rule.
 
-Output switches on `build` and `watch`: `--no-index` skips `index.html`,
+SVG is embedded as an `<img>` data URI with its original vector bytes, not
+inserted as interactive SVG DOM. Nested SVG resources are blocked in image
+rendering even when the parent SVG is served online. The engine reports a
+warning summary; `--verbose` adds source paths, line numbers and remediation.
+`--quiet` keeps warnings, and `audit --strict` may fail on them. Export a
+self-contained static SVG or replace nested references with SVG shapes; the
+engine does not fetch resources or rewrite the SVG. This inspection is not
+proof of offline completeness. CSS, fonts, scripts, media and arbitrary raw
+HTML dependencies are outside the image-embedding bundle.
+
+Output switches on `build`, `verify` and `watch`: `--no-index` skips `index.html`,
 `--no-readme` skips the series README, `--no-nav` leaves a placed `series-nav`
-without generated links, `--drafts-only` previews only drafts, and `--open`
-opens the result. `build --include-drafts` includes drafts alongside active
-articles; `verify` supports that selection too. `--slides-page-numbers on`
+without generated links. On `build` and `watch`, `--drafts-only` previews only
+drafts and `--open` opens the result. `--include-drafts` includes drafts alongside
+active articles on all three commands. `--slides-page-numbers on`
 engraves top-right numbering (off by default, independent of the live counter).
 
-A single article can set `page_dest: index.html` to become the directory's
-landing page; no redundant one-card index is then generated. In a multi-article
+In default multipage output, a single article can set `page_dest: index.html`
+to become the directory's landing page; no redundant one-card index is then
+generated. In a multi-article
 series that name is reserved when an index is generated. `--no-index` leaves
 it available. Duplicate destinations (case-insensitive), unsafe filenames,
 malformed JSON, missing slugs and duplicate slugs are fatal. Generated HTML
 is checked for tag balance before writing; that is not a security sanitizer.
+
+### Publish a series in one HTML file
+
+```bash
+./lightwebpres build my-series --lang en --single-page collection.html --inline-images
+./lightwebpres verify my-series --lang en --single-page collection.html --inline-images
+./lightwebpres watch my-series --lang en --single-page collection.html --inline-images --serve --open
+```
+
+`--single-page FILE` requires a bare `.html` or `.htm` filename, not a path or
+URL. `--output` still selects the output directory, so these commands produce
+`my-series/public/collection.html` by default. Omit `--inline-images` to keep
+supported images and presentation assets as copied files beside the combined
+HTML; include them when distributing it. Image embedding has the portability
+limits described above. Without `--single-page`, output remains multipage.
+
+The combined document opens on series contents. Readers deliberately switch
+to an article and back, rather than scrolling continuously through all articles.
+Only the active view is mounted in the DOM; inactive articles are stored as
+inert data. Styles, notes and IDs stay article-local. One root runtime remains
+in place, preserving fullscreen across article switches. Print uses the active,
+tag-filtered article, or only the series contents when that view is active.
+
+Any `templates/nav.js` must match the built-in runtime. Nonempty
+`templates/index_extra.html` is rejected in this initial mode, and arbitrary
+widget script lifecycles are unsupported. Use default multipage output for
+those extensions rather than expecting their scripts to restart on each switch.
+`--no-index` and `--drafts-only` are refused in single-page mode.
+`--include-drafts`, `--no-nav` and `--no-readme` remain supported.
+`build --only ARTICLE` validates the target but rebuilds the complete combined
+file, not an incremental fragment.
+
+Do not change source `page_dest` values. Generated series README links point
+to `collection.html#lwp/a/<encoded page_dest>`. Article-local targets append
+`/<encoded local id>`; series contents use `collection.html#lwp/index`.
+For example, `collection.html#lwp/a/first-page.html/introduction` addresses
+the `introduction` target in `first-page.html`. Encode each component separately.
+
+### Review stale output
+
+The single-page build manifest records the physical combined HTML file and
+copied images/presentation assets unless inlined, not one file per virtual
+article. Changing publication mode does not automatically remove old multipage
+files or previously copied assets.
 
 Removing an article from the array, marking it draft/ignored, or dropping an
 image reference does not erase an old published file. Review the manifest-based
@@ -1876,11 +1937,10 @@ python3 restored-series/lightwebpres verify restored-series --lang en
 python3 restored-series/lightwebpres build restored-series --lang en --output /tmp/lwp-restored-public --open
 ```
 
-Skip the initial `verify` if the backup has no generated output. An inline
-publication cannot be checked by `verify`; rebuild a separate non-inline
-output instead. Match any original theme, preset-alternative or typography
-flags rather than assuming the defaults in this example. `.lwp-cache/` is
-rebuildable state; retain output manifests with a published tree if you want
+Skip the initial `verify` if the backup has no generated output. Match the
+original `--single-page FILE`, `--inline-images`, theme, preset-alternative or
+typography flags rather than assuming the defaults in this example.
+`.lwp-cache/` is rebuildable state; retain output manifests with a published tree if you want
 `clean` to know which files it owns.
 
 ### Upgrade the executable and templates
@@ -1985,7 +2045,7 @@ schema rather than guessing its meaning.
 | `series preset --format json` | `lightwebpres.series-preset/2`, containing a `lightwebpres.presentation-preset/2` object | Read the nested `preset` selector and resources; `native_renderer` describes rendering, not the initial selection. |
 | `build` | Non-zero on fatal structural/render errors | Read warnings too; exit 0 is not editorial approval. |
 | `audit` | Reports warnings and render failures; normally exits 0 | Read the report, or use `--strict` for a failing gate. |
-| `verify` | Non-zero on drift or failure | Match supported rendering flags; it cannot verify inline-image mode. |
+| `verify` | Non-zero on drift or failure | Match rendering flags, including `--single-page FILE` and `--inline-images` when used. |
 
 `status` can succeed with **incomplete source information**. A missing,
 unreadable or non-UTF-8 article stays in the report with `source_read: false`,
@@ -2138,7 +2198,8 @@ check it **before** rebuilding, so build does not erase evidence of drift:
 
 A fresh checkout with no committed output needs a build, not that initial
 drift gate. Match rendering options in `verify`, including language, themes
-and `--no-essential-theme`. It cannot reproduce `--inline-images`.
+and `--no-essential-theme`, plus `--single-page FILE` and `--inline-images`
+when used.
 
 ### Target builds and record build stamps
 
@@ -2152,6 +2213,8 @@ in route 1; it does not reload the browser.
 `--only` targets one article only when the navigation cache is safe. It still
 refreshes derived outputs (index, README and assets according to options,
 manifest and cache); changes affecting index/navigation trigger a full build.
+With `--single-page FILE`, it validates the target and always rebuilds the
+complete combined document.
 The cache is bound to its output directory. Switching output directories, or
 losing retained pages or declared assets, also triggers a full build rather
 than producing a partial site under a successful exit code.
@@ -2225,7 +2288,7 @@ in sync with whatever commands the version you are running knows about.
 | A title or color ignores your edit | `resolve my-series page_title --article first-page.md` or `resolve my-series kicker.fg` shows the winning and losing levels. |
 | An article is absent | Check registration, `status`, article tags and effective slides with `status` and `series tags`. |
 | An old page remains online | Review local `clean`, then remove stale files on the host too (route 5). |
-| `verify` reports drift after an unchanged build | Match rendering options; inline-image builds need a separate non-inline verification output. |
+| `verify` reports drift after an unchanged build | Match rendering options, including the combined filename and inline-image mode when used. |
 | Builder fails under `file://` or on `.mjs` | Serve the builder and check executable placement/MIME types (route 6). |
 
 ### Command routes

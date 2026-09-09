@@ -92,14 +92,17 @@ The following chains run from strongest to weakest:
 - `card_label` (index card and this-series navigation): series entry > meta > empty.
 - `nav_title` / `nav_desc` (cards embedded in other articles): series entry > meta > resolved `card_title` / `card_desc`.
 
-Four `page_dest` cases are fatal: not ending in `.html`/`.htm`, not a bare
+Invalid `page_dest` values are fatal: not ending in `.html`/`.htm`, not a bare
 filename (`sub/x.html` is rejected), a case-insensitive collision with another
-article's destination, or `index.html` in a series of several articles.
-A series of exactly one article may choose `index.html`; no series index is
-then generated and `build` prints `[no index]`. Leave the default article
+article's destination, or `index.html` in a multipage series of several articles
+when an index is generated. `--no-index` removes that last collision; single-page
+mode has no separate index file and keeps `page_dest` as an article route key.
+In multipage output, a series of exactly one article may choose `index.html`;
+no series index is then generated and `build` prints `[no index]`. Leave the default article
 filename when another page or generator owns that directory's index.
 The normative cascade is in specifications.md §20.3.1; index ownership is
-in §11.3.3.
+in §11.3.3. Single-page routes and restrictions are in §11.3.8 and
+[Operations](operations.md).
 
 Ask the engine rather than calculating a cascade by hand:
 

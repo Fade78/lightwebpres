@@ -112,6 +112,9 @@ a field can still enter the page.
 **Trust boundary:** raw HTML, including `<script>`, reaches published pages.
 LWP trusts author-controlled text; `templates/custom.css` is also appended
 verbatim, and `template write nav.js` can hand over the page script.
+Single-page mode requires that script to match the built-in runtime; arbitrary
+widget script lifecycles are unsupported. Use multipage output for those
+extensions; see [Operations](operations.md).
 Sanitize untrusted CMS exports, database text, translations or another
 agent's output **upstream**. LightWebPres does not filter raw HTML. An HTML
 comment in body text is shipped even when invisible on screen; source-only
