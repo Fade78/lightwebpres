@@ -49,7 +49,7 @@ import traceback
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 from types import SimpleNamespace
-from html import escape as html_escape
+from html import escape as html_escape, unescape as html_unescape
 from html.parser import HTMLParser
 
 # Enforced at import: the source itself parses down to Python 3.6, so on
@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.56.0"
+VERSION = "0.57.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1275,6 +1275,25 @@ LANG_FR = r'''{
     "menu_scroll": "Défilement",
     "menu_share": "Partager",
     "menu_help": "Aide",
+    "menu_zoom": "Zoom de présentation",
+    "menu_zoom_out": "Réduire le zoom de présentation",
+    "menu_zoom_in": "Agrandir le zoom de présentation",
+    "menu_zoom_reset": "Réinitialiser",
+    "menu_zoom_hint": "Ces boutons règlent la présentation. Le pincement garde le zoom natif du navigateur.",
+    "menu_table_mode": "Tableaux trop larges",
+    "menu_table_clip": "Masquer ce qui dépasse",
+    "menu_table_overflow": "Laisser dépasser",
+    "menu_table_scroll": "Faire défiler dans le tableau",
+    "menu_text_fit": "Taille du texte",
+    "menu_text_fixed": "Conserver la taille choisie",
+    "menu_text_uniform": "Réduire toutes les slides ensemble",
+    "menu_text_per_slide": "Réduire chaque slide si nécessaire",
+    "menu_table_shrink": "Réduire les tableaux si nécessaire",
+    "menu_object_shrink": "Réduire les images si nécessaire",
+    "menu_reading_status_one": "{count} slide nécessite encore de faire défiler.",
+    "menu_reading_status_many": "{count} slides nécessitent encore de faire défiler.",
+    "help_tables": "Tableaux trop larges : masquer, laisser dépasser ou faire défiler localement (O). Les flèches dans un tableau défilant restent dans ce tableau, même au bord.",
+    "help_text_fit": "Texte : taille choisie, réduction commune ou réduction par slide (A). Le menu permet aussi de réduire les tableaux et les images séparément, dans les limites prévues par l'auteur.",
     "menu_pause_black": "Écran noir",
     "menu_pause_white": "Écran blanc",
     "menu_pause_theme": "Écran du thème",
@@ -1306,7 +1325,7 @@ LANG_FR = r'''{
     "help_home": "Début de la page",
     "help_index": "Retour à l'index de la série (sur l'index : début de page)",
     "help_edges": "Dernière slide du deck (sur l'index : dernière carte)",
-    "help_zoom": "Zoom de la page : + agrandir, - réduire, = réinitialiser",
+    "help_zoom": "Zoom de présentation : + agrandir, - réduire, = réinitialiser, même dans le menu. Ctrl/Cmd garde les raccourcis du navigateur. Le pincement zoome dans le navigateur, sans changer de slide.",
     "help_fullscreen": "Plein écran (Échap pour quitter)",
     "help_scroll": "Basculer entre défilement fluide et instantané (touche I)",
     "help_menu": "Menu du présentateur",
@@ -1321,10 +1340,10 @@ LANG_FR = r'''{
     "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : armer l'entrée (puis clic gauche) ou quitter le plein écran · molette : défiler",
     "help_touch_next": "Toucher / balayer vers la gauche",
     "help_touch_prev": "Balayer vers la droite",
-    "help_touch_home": "Bouton Accueil",
-    "help_touch_index": "Bouton Accueil",
-    "help_touch_edges": "Menu",
-    "help_touch_zoom": "Pincer pour zoomer",
+    "help_touch_home": "",
+    "help_touch_index": "Menu : Retour à l'index",
+    "help_touch_edges": "",
+    "help_touch_zoom": "Menu : Zoom de présentation",
     "help_touch_fullscreen": "Bouton Plein écran",
     "help_touch_scroll": "Faire défiler",
     "help_touch_menu": "Bouton Menu",
@@ -1333,7 +1352,7 @@ LANG_FR = r'''{
     "help_touch_speaker": "Menu",
     "help_touch_tags": "Menu",
     "help_touch_share": "Menu",
-    "help_touch_jump": "Menu",
+    "help_touch_jump": "",
     "help_touch_open": "Bouton Aide",
     "help_touch_keys": "Tactile",
     "help_touch": "Toucher : suivante · balayer vers la gauche : suivante · balayer vers la droite : précédente · toucher deux fois : afficher ou masquer la navigation",
@@ -1452,6 +1471,25 @@ LANG_EN = r'''{
     "menu_scroll": "Scroll",
     "menu_share": "Share",
     "menu_help": "Help",
+    "menu_zoom": "Presentation zoom",
+    "menu_zoom_out": "Reduce presentation zoom",
+    "menu_zoom_in": "Increase presentation zoom",
+    "menu_zoom_reset": "Reset",
+    "menu_zoom_hint": "These buttons resize the presentation. Pinching keeps the browser's native zoom.",
+    "menu_table_mode": "Wide tables",
+    "menu_table_clip": "Hide what does not fit",
+    "menu_table_overflow": "Allow overflow",
+    "menu_table_scroll": "Scroll inside the table",
+    "menu_text_fit": "Text size",
+    "menu_text_fixed": "Keep the chosen size",
+    "menu_text_uniform": "Reduce all slides together",
+    "menu_text_per_slide": "Reduce each slide as needed",
+    "menu_table_shrink": "Reduce tables as needed",
+    "menu_object_shrink": "Reduce images as needed",
+    "menu_reading_status_one": "{count} slide still needs scrolling.",
+    "menu_reading_status_many": "{count} slides still need scrolling.",
+    "help_tables": "Wide tables: hide overflow, allow overflow or scroll locally (O). Arrow keys in a focused scrolling table stay inside it, even at its edges.",
+    "help_text_fit": "Text: chosen size, shared reduction or per-slide reduction (A). The menu also reduces tables and images independently, within the author's limits.",
     "menu_pause_black": "Black screen",
     "menu_pause_white": "White screen",
     "menu_pause_theme": "Theme screen",
@@ -1483,7 +1521,7 @@ LANG_EN = r'''{
     "help_home": "Beginning of the page",
     "help_index": "Back to the series index (on the index: top of the page)",
     "help_edges": "Last slide of the deck (on the index: last article card)",
-    "help_zoom": "Page zoom: + enlarge, - reduce, = reset",
+    "help_zoom": "Presentation zoom: + enlarge, - reduce, = reset, including in the menu. Ctrl/Cmd keeps browser shortcuts. Pinching zooms in the browser without changing slides.",
     "help_fullscreen": "Fullscreen (Esc to exit)",
     "help_scroll": "Toggle smooth and instant scrolling (I key)",
     "help_menu": "Presenter menu",
@@ -1498,10 +1536,10 @@ LANG_EN = r'''{
     "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · wheel: scroll",
     "help_touch_next": "Tap / swipe left",
     "help_touch_prev": "Swipe right",
-    "help_touch_home": "Home button",
-    "help_touch_index": "Home button",
-    "help_touch_edges": "Menu",
-    "help_touch_zoom": "Pinch to zoom",
+    "help_touch_home": "",
+    "help_touch_index": "Menu: Back to index",
+    "help_touch_edges": "",
+    "help_touch_zoom": "Menu: Presentation zoom",
     "help_touch_fullscreen": "Fullscreen button",
     "help_touch_scroll": "Scroll",
     "help_touch_menu": "Menu button",
@@ -1510,7 +1548,7 @@ LANG_EN = r'''{
     "help_touch_speaker": "Menu",
     "help_touch_tags": "Menu",
     "help_touch_share": "Menu",
-    "help_touch_jump": "Menu",
+    "help_touch_jump": "",
     "help_touch_open": "Help button",
     "help_touch_keys": "Touch",
     "help_touch": "Tap: next · swipe left: next · swipe right: previous · double tap: show or hide navigation",
@@ -8137,6 +8175,19 @@ sup { vertical-align: super; line-height: 0; }
 .full-article blockquote, .full-article pre { font-size: max(15px, 1.875vmin); }
 
 /* --- Comparison table --- */
+.lwp-table-viewport {
+  max-width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
+  overflow: clip;
+}
+html[data-lwp-table-mode="overflow"] .lwp-table-viewport,
+html:not([data-lwp-table-mode]) body[data-lwp-table-mode="overflow"] .lwp-table-viewport { overflow: visible; }
+html[data-lwp-table-mode="scroll"] .lwp-table-viewport,
+html:not([data-lwp-table-mode]) body[data-lwp-table-mode="scroll"] .lwp-table-viewport { overflow-x: auto; }
+.lwp-table-viewport:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.lwp-table-viewport > table { display: table; }
+
 .comparison-table {
   width: 100%;
   max-width: var(--page-block-max);
@@ -8690,6 +8741,15 @@ body.fs-noselect {
   color: inherit;
 }
 .presenter-menu.open, .theme-menu.open { display: block; }
+.help-list li[hidden] { display: none; }
+.presenter-menu, .theme-menu, .tag-menu, .help-overlay, .about-overlay,
+.share-popover, .share-qr-modal, .presenter-panel, .tag-empty-state {
+  overscroll-behavior: contain;
+  /* Foreground controls retain their layout and chosen type sizes. Only deck
+     zoom is canceled; native browser pinch still magnifies these surfaces. */
+  zoom: calc(1 / var(--lwp-presentation-zoom, 1));
+  overflow-wrap: anywhere;
+}
 .presenter-menu-card, .theme-menu-card {
   max-width: 720px;
   margin: 0 auto;
@@ -8709,9 +8769,38 @@ body.fs-noselect {
 }
 .presenter-menu-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
   gap: 8px;
 }
+.reading-controls {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.reading-controls label { display: block; }
+.reading-controls select {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin-top: 4px;
+  padding: 8px;
+  font: inherit;
+  color: inherit;
+  background: inherit;
+}
+.reading-zoom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.reading-zoom .presenter-menu-action { display: block; min-height: 44px; }
+.reading-zoom output { min-width: 4ch; text-align: center; }
+.reading-controls input { width: 20px; height: 20px; vertical-align: middle; }
+.reading-controls :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.reading-controls button:disabled { opacity: 0.5; cursor: default; }
+.reading-controls p { margin: 0; font-size: 0.85em; }
 .presenter-menu-action, .theme-option {
   border-style: solid;
   border-width: 1px;
@@ -8769,7 +8858,7 @@ body.fs-noselect {
 }
 .theme-options {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
   gap: 8px;
   max-height: 54vh;
   overflow: auto;
@@ -8895,9 +8984,10 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
   inset: 0;
   z-index: 300;
   display: none;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 24px;
+  overflow: auto;
 }
 .share-qr-modal.open { display: flex; }
 /* 400px, not 320: a longer URL bumps the code to a higher version (more
@@ -8905,6 +8995,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
    native camera fails to detect one that decodes fine in a dedicated
    scanner. Give it room to stay legible. */
 .share-qr-modal-content {
+  margin: auto;
   font-size: max(15px, 1.875vmin);
   border-radius: 12px;
   padding: 24px;
@@ -9096,8 +9187,11 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
    their own content (not 100vh) so a short slide does not blank a page. */
 @media print {
   html, body { overflow: visible !important; height: auto !important; }
+  html { zoom: 1 !important; }
   .nav-buttons, .nav-dots, .nav-btn, .tag-menu, .slide-counter,
-  .pause-overlay, .presenter-menu, .theme-menu { display: none !important; }
+  .pause-overlay, .presenter-menu, .theme-menu, .help-overlay, .about-overlay,
+  .presenter-panel, .share-popover, .share-qr-modal { display: none !important; }
+  html .lwp-table-viewport { overflow: visible !important; max-height: none !important; }
   .slide {
     page-break-after: always;
     break-after: page;
@@ -9815,7 +9909,331 @@ document.addEventListener('DOMContentLoaded', function() {
   var PRESENTATION_ZOOM_MIN = 0.5;
   var PRESENTATION_ZOOM_MAX = 2;
 
+  // Private reading layout: settings are shared only with this navigation IIFE.
+  var readingSettings = {
+    table_mode: 'clip', text_fit: 'fixed', table_shrink: false,
+    object_shrink: false, min_text_scale: 0.75,
+    min_table_scale: 0.85, min_object_scale: 0.85
+  };
+  var readingDataNode = document.getElementById('lwp-reading-data');
+  if (readingDataNode) {
+    try {
+      var readingData = JSON.parse(readingDataNode.textContent);
+      Object.keys(readingSettings).forEach(function (name) {
+        if (Object.prototype.hasOwnProperty.call(readingData, name)) {
+          readingSettings[name] = readingData[name];
+        }
+      });
+    } catch (e) {}
+  }
+
+  function setReadingOption(name, value) {
+    if (name === 'table_mode') {
+      if (['clip', 'overflow', 'scroll'].indexOf(value) < 0) return false;
+    } else if (name === 'text_fit') {
+      if (['fixed', 'uniform', 'per-slide'].indexOf(value) < 0) return false;
+    } else if (name === 'table_shrink' || name === 'object_shrink') {
+      if (typeof value !== 'boolean') return false;
+    } else return false;
+    readingSettings[name] = value;
+    scheduleReadingLayout('option');
+    return true;
+  }
+
+  var readingRuntime = (function () {
+    var frame = null;
+    var printing = false;
+    var ready = false;
+    var pendingPosition = null;
+    var changed = [];
+    var printStyles = [];
+    var printPosition = null;
+    var printScroll = [];
+    var viewports = new WeakMap();
+
+    function remember(node, property) {
+      var item = {node: node, property: property,
+        value: node.style.getPropertyValue(property),
+        priority: node.style.getPropertyPriority(property)};
+      changed.push(item);
+      return item;
+    }
+    function restore(items) {
+      items.forEach(function (item) {
+        if (item.value) item.node.style.setProperty(item.property, item.value, item.priority);
+        else item.node.style.removeProperty(item.property);
+      });
+    }
+    function enhanceTables() {
+      allSlides.forEach(function (slide) {
+        Array.prototype.forEach.call(slide.querySelectorAll('table'), function (table) {
+          var viewport = table.parentElement;
+          if (!viewport.classList.contains('lwp-table-viewport')) {
+            viewport = document.createElement('div');
+            viewport.className = 'lwp-table-viewport';
+            table.parentNode.insertBefore(viewport, table);
+            viewport.appendChild(table);
+          }
+          if (!viewports.has(viewport)) {
+            viewports.set(viewport, ['tabindex', 'role', 'aria-label'].map(function (name) {
+              return [name, viewport.getAttribute(name)];
+            }));
+          }
+          if (readingSettings.table_mode === 'scroll') {
+            viewport.setAttribute('tabindex', '0');
+            viewport.setAttribute('role', 'region');
+            if (!viewport.hasAttribute('aria-label')) {
+              var caption = table.caption;
+              viewport.setAttribute('aria-label', (caption && caption.textContent.trim())
+                || table.getAttribute('aria-label') || 'Table');
+            }
+          } else {
+            viewports.get(viewport).forEach(function (attribute) {
+              if (attribute[1] === null) viewport.removeAttribute(attribute[0]);
+              else viewport.setAttribute(attribute[0], attribute[1]);
+            });
+          }
+        });
+      });
+      document.documentElement.setAttribute('data-lwp-table-mode', readingSettings.table_mode);
+    }
+
+    function layout() {
+      frame = null;
+      if (printing) return;
+      // Resize/zoom already own a pending reanchor. Other reading changes use
+      // the same anchor contract, without scheduling another layout loop.
+      var position = !isIndex && !isScrolling && !presentationReanchorFrame
+        ? (pendingPosition || captureReadingPosition()) : null;
+      pendingPosition = null;
+      restore(changed);
+      changed = [];
+      enhanceTables();
+      allSlides.forEach(function (slide) {
+        slide.removeAttribute('data-lwp-fit-overflow');
+        slide.removeAttribute('data-lwp-text-scale');
+      });
+      // Solve at 100%, not against the magnified viewport. Replacing only these
+      // two properties synchronously avoids turning explicit zoom into autofit.
+      var root = document.documentElement;
+      var zoom = {node: root, property: 'zoom', value: root.style.getPropertyValue('zoom'),
+        priority: root.style.getPropertyPriority('zoom')};
+      var frameZoom = {node: root, property: '--lwp-presentation-zoom',
+        value: root.style.getPropertyValue('--lwp-presentation-zoom'),
+        priority: root.style.getPropertyPriority('--lwp-presentation-zoom')};
+      root.style.setProperty('zoom', '1', 'important');
+      root.style.setProperty('--lwp-presentation-zoom', '1');
+      try {
+        var visible = allSlides.filter(function (slide) {
+          return !slide.hidden && getComputedStyle(slide).display !== 'none';
+        });
+        var height = document.documentElement.clientHeight;
+        var candidates = visible.map(function (slide) {
+          var cs = getComputedStyle(slide);
+          var text = [];
+          var textByNode = new Map();
+          // Snapshot every baseline before writing any size: absolute theme
+          // sizes and em descendants must keep their original hierarchy.
+          Array.prototype.forEach.call(slide.querySelectorAll('*'), function (node) {
+            if (node.closest('[hidden], script, style, table, svg, iframe, video, audio, object, embed, .slide-num, .build-stamp, .slide-chrome')) return;
+            var ranges = [];
+            Array.prototype.forEach.call(node.childNodes, function (child) {
+              if (child.nodeType !== 3 || !child.textContent.trim()) return;
+              var range = document.createRange();
+              range.selectNodeContents(child);
+              ranges.push(range);
+            });
+            if (!ranges.some(function (range) { return range.getClientRects().length; })
+                || getComputedStyle(node).visibility !== 'visible') return;
+            // Inline descendants share their container's line boxes. A p
+            // containing only strong/a still owns the line-height strut.
+            // Stop at that formatting container, not unrelated outer blocks.
+            var container = node;
+            while (container && container !== slide) {
+              var style = getComputedStyle(container);
+              var item = textByNode.get(container);
+              if (!item) {
+                item = {node: container, ranges: [], size: parseFloat(style.fontSize),
+                  line: style.lineHeight === 'normal' ? null : parseFloat(style.lineHeight)};
+                textByNode.set(container, item);
+                text.push(item);
+              }
+              if (container === node) item.ranges = ranges;
+              if (style.display.indexOf('inline') !== 0 && style.display !== 'contents') break;
+              container = container.parentElement;
+            }
+          });
+          if (readingSettings.text_fit !== 'fixed') {
+            text.forEach(function (item) {
+              remember(item.node, 'font-size');
+              if (item.line !== null) remember(item.node, 'line-height');
+            });
+          }
+          // Tables have a separate scale; never shrink embedded controls.
+          var objects = [];
+          if (readingSettings.table_shrink) {
+            Array.prototype.forEach.call(slide.querySelectorAll('table'), function (node) {
+              // Nested tables follow the outer table, not a second multiplier.
+              if (!node.parentElement.closest('table')) objects.push([node, readingSettings.min_table_scale]);
+            });
+          }
+          if (readingSettings.object_shrink) {
+            Array.prototype.forEach.call(slide.querySelectorAll('figure, .figure, img'), function (node) {
+              if (node.parentElement.closest('figure, .figure, table')
+                  || node.querySelector('iframe, video, audio, object, embed')) return;
+              objects.push([node, readingSettings.min_object_scale]);
+            });
+          }
+          var objectFloor = 1;
+          objects = objects.map(function (entry) {
+            var node = entry[0];
+            var rect = node.getBoundingClientRect();
+            var parent = node.parentElement;
+            var parentStyle = getComputedStyle(parent);
+            var width = parent.clientWidth - parseFloat(parentStyle.paddingLeft)
+              - parseFloat(parentStyle.paddingRight);
+            objectFloor = Math.min(objectFloor, entry[1]);
+            return {node: node, minimum: entry[1],
+              maximum: Math.max(entry[1], Math.min(1, width / Math.max(1, rect.width))),
+              zoom: parseFloat(getComputedStyle(node).zoom) || 1,
+              original: remember(node, 'zoom')};
+          });
+          return {slide: slide, text: text, objects: objects, objectFloor: objectFloor,
+            left: parseFloat(cs.paddingLeft), right: parseFloat(cs.paddingRight)};
+        });
+
+        function apply(candidate, scale) {
+          candidate.slide.setAttribute('data-lwp-text-scale', String(scale));
+          candidate.text.forEach(function (item) {
+            // Do not enlarge an authored size below 12px. Larger text keeps
+            // at least 12px even when the configured factor permits less.
+            var size = Math.max(Math.min(12, item.size), item.size * scale);
+            item.node.style.setProperty('font-size', size + 'px', 'important');
+            if (item.line !== null) item.node.style.setProperty(
+              'line-height', (item.line * size / item.size) + 'px', 'important');
+          });
+        }
+        function applyObjects(candidate, scale) {
+          candidate.objects.forEach(function (item) {
+            var factor = Math.max(item.minimum, Math.min(item.maximum, scale));
+            if (factor === 1) restore([item.original]);
+            else item.node.style.setProperty('zoom', String(item.zoom * factor), 'important');
+          });
+        }
+        function fits(candidate) {
+          var slide = candidate.slide;
+          var rect = slide.getBoundingClientRect();
+          if (rect.height > height + 1 || slide.scrollHeight > height + 1) return false;
+          // The slide's scrollWidth also includes intentionally overflowing
+          // tables. Measure text runs instead, including unbreakable tokens.
+          return candidate.text.every(function (item) {
+            return item.ranges.every(function (range) {
+              return Array.prototype.every.call(range.getClientRects(), function (run) {
+                return run.left >= rect.left + candidate.left - 1
+                  && run.right <= rect.right - candidate.right + 1;
+              });
+            });
+          });
+        }
+        function solve(group, low, applyScale) {
+          function test(scale) {
+            group.forEach(function (candidate) { applyScale(candidate, scale); });
+            return group.every(fits);
+          }
+          if (test(1)) return;
+          var high = 1;
+          if (!test(low)) return;
+          // Nine bisections bound the factor error below 0.001. Failed
+          // floor candidates remain readable and scroll, never disappear.
+          for (var i = 0; i < 9; i++) {
+            var mid = (low + high) / 2;
+            if (test(mid)) low = mid;
+            else high = mid;
+          }
+          test(low);
+        }
+        // Object bounds are individual; the shared factor is searched against
+        // the entire slide, so several individually small images can fit too.
+        // Spend the permitted object reduction before reducing any text.
+        candidates.forEach(function (candidate) {
+          if (candidate.objects.length) solve([candidate], candidate.objectFloor, applyObjects);
+        });
+        if (readingSettings.text_fit === 'uniform') solve(candidates, readingSettings.min_text_scale, apply);
+        else if (readingSettings.text_fit === 'per-slide') {
+          candidates.forEach(function (candidate) { solve([candidate], readingSettings.min_text_scale, apply); });
+        }
+        candidates.forEach(function (candidate) {
+          // A uniform text factor may be constrained by another slide. Give
+          // objects their space back wherever that factor makes it available.
+          if (readingSettings.text_fit !== 'fixed' && candidate.objects.length) {
+            solve([candidate], candidate.objectFloor, applyObjects);
+          }
+          if (!fits(candidate)) candidate.slide.setAttribute('data-lwp-fit-overflow', 'true');
+        });
+      } finally {
+        restore([zoom, frameZoom]);
+      }
+      if (position && !position.slide.hidden) reanchorPresentation(position);
+      ready = true;
+      if (typeof updateReadingMenu === 'function') updateReadingMenu();
+    }
+
+    function schedule(reason) {
+      if (!printing && frame === null) {
+        pendingPosition = ready && !isIndex && reason !== 'resize' && reason !== 'zoom'
+          ? captureReadingPosition() : null;
+        frame = requestAnimationFrame(layout);
+      }
+    }
+    window.addEventListener('beforeprint', function () {
+      if (printing) return;
+      printing = true;
+      printPosition = isIndex ? null : captureReadingPosition();
+      printScroll = Array.prototype.map.call(document.querySelectorAll('.lwp-table-viewport'),
+        function (node) { return {node: node, left: node.scrollLeft, top: node.scrollTop}; });
+      if (frame !== null) { cancelAnimationFrame(frame); frame = null; }
+      printStyles = changed.map(function (item) {
+        return {node: item.node, property: item.property,
+          value: item.node.style.getPropertyValue(item.property),
+          priority: item.node.style.getPropertyPriority(item.property)};
+      });
+      restore(changed);
+    });
+    window.addEventListener('afterprint', function () {
+      if (!printing) return;
+      printing = false;
+      restore(printStyles);
+      printStyles = [];
+      printScroll.forEach(function (item) {
+        item.node.scrollLeft = item.left;
+        item.node.scrollTop = item.top;
+      });
+      printScroll = [];
+      if (printPosition && !printPosition.slide.hidden) reanchorPresentation(printPosition);
+      printPosition = null;
+      schedule('afterprint');
+    });
+    document.addEventListener('load', function (event) {
+      if (event.target.tagName === 'IMG') schedule('image');
+    }, true);
+    if (document.fonts) {
+      document.fonts.ready.then(function () { schedule('fonts'); });
+      document.fonts.addEventListener('loadingdone', function () { schedule('fonts'); });
+    }
+    window.addEventListener('resize', function () { schedule('resize'); });
+    schedule('initial');
+    return {schedule: schedule};
+  })();
+
+  function scheduleReadingLayout(reason) {
+    if (readingRuntime) readingRuntime.schedule(reason);
+  }
+
   function setPresentationZoom(value) {
+    var position = captureReadingPosition();
+    if (position && !position.slide.classList.contains('full-article')) {
+      position.ratio = 0;
+    }
     presentationZoom = Math.max(PRESENTATION_ZOOM_MIN,
       Math.min(PRESENTATION_ZOOM_MAX, Math.round(value * 10) / 10));
     // CSS zoom scales viewport units too. Keep the slide frame at one
@@ -9824,7 +10242,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.documentElement.style.setProperty(
       '--lwp-presentation-zoom', String(presentationZoom));
     document.documentElement.style.zoom = String(presentationZoom);
-    schedulePresentationReanchor();
+    updateReadingMenu();
+    scheduleReadingLayout('zoom');
+    schedulePresentationReanchor(position);
   }
 
   function changePresentationZoom(delta) {
@@ -10111,12 +10531,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     refreshPresentationLanguage();
     refreshPresentationCards(focusedHref, focusedWasActive);
+    scheduleReadingLayout('presentation-dom');
     return true;
   }
 
   function applyPresentation(selector, persist) {
     var preset = presentationBySelector(selector);
-    if (!preset || (presentationAlternatives() && !replacePresentationLayer(preset))) return false;
+    if (!preset) return false;
+    scheduleReadingLayout('presentation');
+    if (presentationAlternatives() && !replacePresentationLayer(preset)) return false;
     if (presentationStyleNode) {
       presentationStyleNode.textContent = preset.structure_css || '';
     }
@@ -10136,23 +10559,27 @@ document.addEventListener('DOMContentLoaded', function() {
     rebuildDots();
     applyTagFilter(false);
     updatePresenter();
+    scheduleReadingLayout('presentation');
     return true;
   }
 
   function clearExplicitTheme(persist) {
     if (!presentationData) return false;
+    scheduleReadingLayout('theme-default');
     clearRuntimeVariables();
     themeExplicit = false;
     themeCurrent = themeData ? themeData.primary : null;
     applyPresentationTheme(presentationBySelector(presentationCurrent));
     if (persist) writeStoredTheme(themeCurrent);
     updateThemeOptions();
+    scheduleReadingLayout('theme-default');
     return true;
   }
 
   function applyTheme(slug, persist, explicit) {
     var theme = themeBySlug(slug);
     if (!theme) return false;
+    scheduleReadingLayout('theme');
     clearRuntimeVariables();
     themeExplicit = explicit === undefined
       ? (presentationData ? true : slug !== themeData.primary)
@@ -10165,6 +10592,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (persist) writeStoredTheme(theme.slug);
     updateThemeOptions();
+    scheduleReadingLayout('theme');
     return true;
   }
 
@@ -10437,6 +10865,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function applyTagFilter(scrollToCurrent) {
+    scheduleReadingLayout('tags');
     var available = tagList();
     if (available.indexOf(selectedTag) === -1 || !tagHasContent(selectedTag)) {
       selectedTag = firstPublishableTag() || defaultTag;
@@ -10525,6 +10954,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // The index has no fiche and no fragment: nothing to follow.
     if (isIndex) return;
     var id = window.location.hash ? window.location.hash.slice(1) : '';
+    try { id = decodeURIComponent(id); } catch (e) {}
     if (!id) return;
     var target = allSlides.find(function (slide) { return slide.id === id; });
     if (!target) {
@@ -10551,7 +10981,24 @@ document.addEventListener('DOMContentLoaded', function() {
       if (candidate) selectTag(candidate, false);
     }
     var index = slides.indexOf(target);
-    if (index >= 0) goTo(index);
+    if (index >= 0) {
+      goTo(index, !!anchor);
+      if (anchor) {
+        // Reveal the owning slide first, then keep the inner destination,
+        // rather than replacing a footnote link with the section's top.
+        if (presentationReanchorFrame) {
+          cancelAnimationFrame(presentationReanchorFrame);
+          presentationReanchorFrame = null;
+        }
+        if (!anchor.hasAttribute('tabindex')) anchor.setAttribute('tabindex', '-1');
+        anchor.focus({preventScroll: true});
+        anchor.scrollIntoView({block: 'start', behavior: 'instant'});
+        jumpScrollTo(window.pageYOffset + anchor.getBoundingClientRect().top
+          - navigableCardViewportMargin, window.pageXOffset);
+        window.history.replaceState(null, '', '#' + encodeURIComponent(id));
+        readingPosition = captureReadingPosition();
+      }
+    }
   }
 
   selectedTag = readStoredTag();
@@ -11004,7 +11451,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function openPresenterMenu() {
     if (!presenterMenu) return;
     updateAppearanceLabels();
-    menuReturnFocus = document.activeElement;
+    menuReturnFocus = document.activeElement === document.body
+      ? btnMenu : document.activeElement;
     closeThemeMenu(false);
     closeHelp();
     closeAbout(false);
@@ -11014,6 +11462,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (menuThemeAction) menuThemeAction.hidden = !appearanceAlternatives();
     if (menuTagsAction) menuTagsAction.hidden = tagList().length < 2;
     updateScrollMenu();
+    updateReadingMenu();
     presenterMenu.classList.add('open');
     if (btnMenu) btnMenu.setAttribute('aria-expanded', 'true');
     var actions = focusablesWithin(presenterMenu);
@@ -11027,6 +11476,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function runMenuAction(action) {
+    if (action === 'zoom-in') { changePresentationZoom(PRESENTATION_ZOOM_STEP); return; }
+    if (action === 'zoom-out') { changePresentationZoom(-PRESENTATION_ZOOM_STEP); return; }
+    if (action === 'zoom-reset') { setPresentationZoom(1); return; }
     closePresenterMenu(false);
     if (action === 'prev' && btnPrev) btnPrev.click();
     else if (action === 'home') goHome();
@@ -11044,6 +11496,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function runMenuShortcut(key) {
+    if (runReadingShortcut(key)) return true;
     var actions = {
       f: 'fullscreen', i: 'scroll', c: 'theme', n: 'presenter', l: 'tags',
       s: 'share', h: 'help', b: 'pause-black', w: 'pause-white',
@@ -11057,7 +11510,63 @@ document.addEventListener('DOMContentLoaded', function() {
     return true;
   }
 
+  function updateReadingMenu() {
+    if (!presenterMenu) return;
+    var zoom = document.getElementById('menuZoomValue');
+    var zoomOut = presenterMenu.querySelector('[data-menu-action="zoom-out"]');
+    var zoomIn = presenterMenu.querySelector('[data-menu-action="zoom-in"]');
+    if (zoom) zoom.textContent = Math.round(presentationZoom * 100) + '%';
+    if (zoomOut) zoomOut.disabled = presentationZoom <= PRESENTATION_ZOOM_MIN;
+    if (zoomIn) zoomIn.disabled = presentationZoom >= PRESENTATION_ZOOM_MAX;
+    if (!readingSettings) return;
+    Array.prototype.forEach.call(presenterMenu.querySelectorAll('[data-reading-option]'),
+      function (control) {
+        var value = readingSettings[control.getAttribute('data-reading-option')];
+        if (control.type === 'checkbox') control.checked = !!value;
+        else control.value = value;
+      });
+    var status = document.getElementById('menuReadingStatus');
+    if (status) {
+      var automatic = readingSettings.text_fit !== 'fixed'
+        || readingSettings.table_shrink || readingSettings.object_shrink;
+      var count = automatic ? slides.filter(function (slide) {
+        return !slide.hidden && slide.getAttribute('data-lwp-fit-overflow') === 'true'
+          && getComputedStyle(slide).display !== 'none';
+      }).length : 0;
+      var message = count ? (count === 1
+        ? lwpString('menu_reading_status_one')
+        : lwpString('menu_reading_status_many')).replace('{count}', String(count)) : '';
+      // Layout may run repeatedly without changing what the reader needs to know.
+      if (status.textContent !== message) status.textContent = message;
+      if (status.hidden !== !message) status.hidden = !message;
+    }
+  }
+
+  function runReadingShortcut(key) {
+    if (key === '+') changePresentationZoom(PRESENTATION_ZOOM_STEP);
+    else if (key === '-') changePresentationZoom(-PRESENTATION_ZOOM_STEP);
+    else if (key === '=') setPresentationZoom(1);
+    else {
+      var name = String(key).toLowerCase() === 'o' ? 'table_mode'
+        : String(key).toLowerCase() === 'a' ? 'text_fit' : '';
+      if (!name) return false;
+      var modes = name === 'table_mode' ? ['clip', 'overflow', 'scroll']
+        : ['fixed', 'uniform', 'per-slide'];
+      setReadingOption(name, modes[(modes.indexOf(readingSettings[name]) + 1) % modes.length]);
+    }
+    updateReadingMenu();
+    return true;
+  }
+
   if (presenterMenu) {
+    Array.prototype.forEach.call(presenterMenu.querySelectorAll('[data-reading-option]'),
+      function (control) {
+        control.addEventListener('change', function () {
+          setReadingOption(control.getAttribute('data-reading-option'),
+            control.type === 'checkbox' ? control.checked : control.value);
+          updateReadingMenu();
+        });
+      });
     Array.prototype.forEach.call(
       presenterMenu.querySelectorAll('[data-menu-action]'), function (button) {
         button.addEventListener('click', function (e) {
@@ -11087,7 +11596,9 @@ document.addEventListener('DOMContentLoaded', function() {
     ['Home', lwpString('help_touch_home'), lwpString('help_home')],
     ['Ctrl+Home', lwpString('help_touch_index'), lwpString('help_index')],
     ['Ctrl+End', lwpString('help_touch_edges'), lwpString('help_edges')],
-     ['+ / - / =', lwpString('help_touch_zoom'), lwpString('help_zoom')],
+    ['+ / - / =', lwpString('help_touch_zoom'), lwpString('help_zoom')],
+    ['O', lwpString('menu_table_mode'), lwpString('help_tables')],
+    ['A', lwpString('menu_text_fit'), lwpString('help_text_fit')],
     ['F', lwpString('help_touch_fullscreen'), lwpString('help_fullscreen')],
     ['I', lwpString('help_touch_scroll'), lwpString('help_scroll')],
     ['M', lwpString('help_touch_menu'), lwpString('help_menu')],
@@ -11108,6 +11619,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (helpList) {
     helpEntries.forEach(function (e) {
       var li = document.createElement('li');
+      if (!e[1]) li.setAttribute('data-help-variant', 'keyboard');
       var k = document.createElement('span');
       k.className = 'help-keys';
       var keyboard = document.createElement('span');
@@ -11404,7 +11916,15 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   var presentationReanchorFrame = null;
-  function reanchorPresentation() {
+  var readingPosition = null;
+  var layoutViewportWidth = window.innerWidth;
+  function captureReadingPosition() {
+    var slide = slides[isScrolling ? current : currentVisible()];
+    if (!slide) return null;
+    var rect = slide.getBoundingClientRect();
+    return {slide: slide, ratio: isScrolling ? 0 : Math.max(0, -rect.top / rect.height)};
+  }
+  function reanchorPresentation(position) {
     if (isIndex) {
       if (focusedCard >= 0 && indexCards[focusedCard]) {
         focusNavigableCard(indexCards[focusedCard]);
@@ -11416,7 +11936,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // though its top has not reached the viewport yet. Resize must cancel the
     // old glide and place that destination, not revert to the slide still
     // visible underneath it.
-    var visible = isScrolling ? current : currentVisible();
+    var visible = position ? slides.indexOf(position.slide)
+      : isScrolling ? current : currentVisible();
+    if (visible < 0) return;
     if (visible !== current) {
       current = visible;
       focusedCard = -1;
@@ -11425,18 +11947,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     var slide = slides[current];
     if (!slide) return;
-    var targetY = slide.getBoundingClientRect().top
-      + (window.pageYOffset || document.documentElement.scrollTop);
+    var rect = slide.getBoundingClientRect();
+    var targetY = rect.top + (window.pageYOffset || document.documentElement.scrollTop)
+      + (position ? position.ratio * rect.height : 0);
     jumpScrollTo(targetY);
     isScrolling = false;
+    readingPosition = captureReadingPosition();
   }
-  function schedulePresentationReanchor() {
+  function schedulePresentationReanchor(position) {
     if (presentationReanchorFrame) {
       cancelAnimationFrame(presentationReanchorFrame);
     }
     presentationReanchorFrame = requestAnimationFrame(function () {
       presentationReanchorFrame = null;
-      reanchorPresentation();
+      reanchorPresentation(position);
     });
   }
 
@@ -11881,8 +12405,13 @@ document.addEventListener('DOMContentLoaded', function() {
       if (presenterMenu && presenterMenu.classList.contains('open')) {
        if (e.key === 'Escape' || e.key === 'm' || e.key === 'M') {
          e.preventDefault();
-         closePresenterMenu();
-        } else if (runMenuShortcut(e.key)) {
+          closePresenterMenu();
+        } else if (e.target.tagName === 'SELECT' && e.key !== 'Tab'
+                   && ['+', '-', '=', 'o', 'O', 'a', 'A'].indexOf(e.key) === -1) {
+          return;
+        } else if (e.target.type === 'checkbox' && e.key === ' ') {
+          return;
+        } else if (runMenuShortcut(e.key === '=' && e.shiftKey ? '+' : e.key)) {
           e.preventDefault();
         } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
           e.preventDefault();
@@ -11994,7 +12523,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return;
       }
-      if ((e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')
+      if ((e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA'
+           || e.target.tagName === 'SELECT' || e.target.isContentEditable)
           && !(helpOverlay && helpOverlay.classList.contains('open')
                && e.target.closest && e.target.closest('.help-mode-control'))) return;
       // While the help overlay is open, route scroll keys to the foreground
@@ -12077,19 +12607,16 @@ document.addEventListener('DOMContentLoaded', function() {
       else if (e.key === 'End') goToLastSlide();
       return;
     }
-    if (e.key === '+' || (e.key === '=' && e.shiftKey)) {
+    var tableViewport = tableScrollViewport(e.target);
+    if (tableViewport && isForegroundScrollKey(e.key)) {
+      // Consume the key even at an edge: leaving a table requires moving
+      // focus, never one accidental extra arrow press.
       e.preventDefault();
-      changePresentationZoom(PRESENTATION_ZOOM_STEP);
+      scrollForeground(tableViewport, e.key, e.shiftKey);
       return;
     }
-    if (e.key === '-') {
+    if (runReadingShortcut(e.key === '=' && e.shiftKey ? '+' : e.key)) {
       e.preventDefault();
-      changePresentationZoom(-PRESENTATION_ZOOM_STEP);
-      return;
-    }
-    if (e.key === '=' && !e.shiftKey) {
-      e.preventDefault();
-      setPresentationZoom(1);
       return;
     }
     // Number jump: type digits, Enter jumps to that slide (1-based).
@@ -12195,13 +12722,21 @@ document.addEventListener('DOMContentLoaded', function() {
   var scrollTimer = null;
   window.addEventListener('scroll', function() {
     if (helpIsOpen()) return;
+    readingPosition = captureReadingPosition();
     if (scrollTimer) clearTimeout(scrollTimer);
     scrollTimer = setTimeout(detectCurrent, 80);
   }, { passive: true });
-  window.addEventListener('resize', schedulePresentationReanchor);
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', schedulePresentationReanchor);
-  }
+  window.addEventListener('resize', function () {
+    var position = readingPosition || captureReadingPosition();
+    if (window.innerWidth !== layoutViewportWidth && position
+        && !position.slide.classList.contains('full-article')) {
+      position.ratio = 0;
+    }
+    layoutViewportWidth = window.innerWidth;
+    schedulePresentationReanchor(position);
+  });
+  // A visualViewport resize alone is native pinch or browser chrome, not
+  // deck navigation. Let the browser retain its focal point and pan offset.
 
   // --- Share button: popover with a copy-link / QR-code matrix, scoped to
   // the series index, this article, or the current slide. §9.3.4.
@@ -12572,8 +13107,33 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   function isInteractive(e) {
     return !!(e.target && e.target.closest && e.target.closest(
-      '.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .presenter-menu, .theme-menu, .about-overlay, .nav-buttons'));
+      '.nav-btn, .nav-dots, a, button, input, select, textarea, [contenteditable], img, .share-popover, .share-qr-modal, .tag-menu, .presenter-menu, .theme-menu, .about-overlay, .nav-buttons'))
+      || !!tableScrollViewport(e.target);
   }
+  function tableScrollViewport(target) {
+    return readingSettings.table_mode === 'scroll' && target && target.closest
+      ? target.closest('.lwp-table-viewport') : null;
+  }
+  // Consume compatibility clicks in capture phase, including clicks on links
+  // and controls. Touch events themselves remain passive: native pinch wins.
+  ['click', 'dblclick', 'contextmenu'].forEach(function (type) {
+    document.addEventListener(type, function (e) {
+      if (multiTouchActive || Date.now() < multiTouchClicksUntil) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
+    }, true);
+  });
+  document.addEventListener('wheel', function (e) {
+    var viewport = tableScrollViewport(e.target);
+    if (!viewport || e.ctrlKey || e.metaKey) return;
+    // Explicitly consume both axes, even on a horizontal-only viewport at
+    // its edge. Native scroll chaining must not move the deck behind it.
+    e.preventDefault();
+    var unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? viewport.clientWidth : 1;
+    viewport.scrollLeft += (e.deltaX || (e.shiftKey ? e.deltaY : 0)) * unit;
+    if (!e.shiftKey) viewport.scrollTop += e.deltaY * unit;
+  }, {passive: false});
   // An outside click closes an open dialog instead of activating whatever is
   // underneath it. A click on another overlay opener is a deliberate
   // transition, though: dismiss the old overlay and let the target's own
@@ -12709,6 +13269,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.getSelection().removeAllRanges();
   });
   document.addEventListener('contextmenu', function (e) {
+    if (tableScrollViewport(e.target)) return;
     if (helpIsOpen()) {
       e.preventDefault();
       return;
@@ -12756,6 +13317,8 @@ document.addEventListener('DOMContentLoaded', function() {
   var FS_INTENT_MS = 900;
   document.addEventListener('mousedown', function (e) {
     var inAbout = aboutIsOpen() && aboutOverlay.contains(e.target);
+    if (tableScrollViewport(e.target) || multiTouchActive
+        || Date.now() < multiTouchClicksUntil) return;
     var inHelpControl = e.target && e.target.closest
       && e.target.closest('.help-mode-control, .help-about');
     if (helpIsOpen() && !inAbout && !inHelpControl) {
@@ -12807,6 +13370,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // --- Touch swipe and double tap (mobile / tablet) ---
   var touchStartX = null, touchStartY = null, touchStartT = 0;
   var lastTapT = 0;
+  var multiTouchActive = false, multiTouchClicksUntil = 0;
+  var touchNavigationBlocked = false;
   // Two taps close together, each of them short and still. The window is
   // wider than the platform's own two-click window (the one that fires
   // dblclick) on purpose: a finger
@@ -12818,20 +13383,46 @@ document.addEventListener('DOMContentLoaded', function() {
   var touchPairScrollX = 0, touchPairScrollY = 0;
   var touchPairCurrent = 0, touchPairFocusedCard = -1;
   var touchPairHref = '';
+  function discardMultiTouch(e) {
+    if (e.touches.length > 1) multiTouchActive = true;
+    if (!multiTouchActive && e.type !== 'touchcancel') return false;
+    multiTouchActive = e.touches.length > 0;
+    touchStartX = touchStartY = null;
+    touchStartT = lastTapT = 0;
+    touchNavigationBlocked = true;
+    fsIntentUntil = 0;
+    multiTouchClicksUntil = Date.now() + 450;
+    if (!e.touches.length) multiTouchActive = false;
+    return true;
+  }
   document.addEventListener('touchstart', function (e) {
-    if (helpIsOpen()) {
-      touchStartX = null;
+    if (discardMultiTouch(e)) return;
+    var viewport = tableScrollViewport(e.target);
+    if (viewport) viewport.style.overscrollBehavior = 'contain';
+    touchNavigationBlocked = isInteractive(e) || helpIsOpen()
+      || !!(window.visualViewport && window.visualViewport.scale > 1);
+    if (touchNavigationBlocked || e.touches.length !== 1) {
+      touchStartX = touchStartY = null;
       lastTapT = 0;
       return;
     }
-    if (e.touches.length !== 1) return;
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
     touchStartT = Date.now();
   }, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (discardMultiTouch(e)) return;
+    if (e.touches.length !== 1) {
+      touchStartX = touchStartY = null;
+      lastTapT = 0;
+    }
+  }, { passive: true });
+  document.addEventListener('touchcancel', discardMultiTouch, { passive: true });
   document.addEventListener('touchend', function (e) {
-    if (helpIsOpen()) {
-      touchStartX = null;
+    if (discardMultiTouch(e)) return;
+    if (helpIsOpen() || touchNavigationBlocked || isInteractive(e)
+        || e.touches.length || e.changedTouches.length !== 1) {
+      touchStartX = touchStartY = null;
       lastTapT = 0;
       return;
     }
@@ -13045,6 +13636,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
       data-lwp-series-tags="{{series_tags}}"
       data-lwp-article-tags="{{article_tags}}"
       data-lwp-tag-preview="{{tag_preview}}"
+      data-lwp-table-mode="{{table_mode}}"
       data-lwp-scroll-duration="{{scroll_duration}}">
 
 {{build_stamp}}{{draft_banner}}
@@ -13097,6 +13689,33 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
      aria-labelledby="presenterMenuTitle">
   <div class="presenter-menu-card">
     <div class="presenter-menu-title" id="presenterMenuTitle" data-lwp-i18n="menu_title">{{str_menu_title}}</div>
+    <div class="reading-controls">
+      <div id="menuZoomLabel" data-lwp-i18n="menu_zoom">{{str_menu_zoom}}</div>
+      <div class="reading-zoom" role="group" aria-labelledby="menuZoomLabel" aria-describedby="menuZoomHint">
+        <button type="button" class="presenter-menu-action" data-menu-action="zoom-out" aria-label="{{str_menu_zoom_out}}" data-lwp-i18n-aria-label="menu_zoom_out" aria-keyshortcuts="-">-</button>
+        <output id="menuZoomValue" aria-live="polite" aria-atomic="true">100%</output>
+        <button type="button" class="presenter-menu-action" data-menu-action="zoom-in" aria-label="{{str_menu_zoom_in}}" data-lwp-i18n-aria-label="menu_zoom_in" aria-keyshortcuts="+">+</button>
+        <button type="button" class="presenter-menu-action" data-menu-action="zoom-reset" data-lwp-i18n="menu_zoom_reset" aria-keyshortcuts="=">{{str_menu_zoom_reset}}</button>
+      </div>
+      <p id="menuZoomHint" data-lwp-i18n="menu_zoom_hint">{{str_menu_zoom_hint}}</p>
+      <label><span data-lwp-i18n="menu_table_mode">{{str_menu_table_mode}}</span>
+        <select id="menuTableMode" data-reading-option="table_mode" aria-keyshortcuts="O">
+          <option value="clip" data-lwp-i18n="menu_table_clip">{{str_menu_table_clip}}</option>
+          <option value="overflow" data-lwp-i18n="menu_table_overflow">{{str_menu_table_overflow}}</option>
+          <option value="scroll" data-lwp-i18n="menu_table_scroll">{{str_menu_table_scroll}}</option>
+        </select>
+      </label>
+      <label><span data-lwp-i18n="menu_text_fit">{{str_menu_text_fit}}</span>
+        <select id="menuTextFit" data-reading-option="text_fit" aria-keyshortcuts="A">
+          <option value="fixed" data-lwp-i18n="menu_text_fixed">{{str_menu_text_fixed}}</option>
+          <option value="uniform" data-lwp-i18n="menu_text_uniform">{{str_menu_text_uniform}}</option>
+          <option value="per-slide" data-lwp-i18n="menu_text_per_slide">{{str_menu_text_per_slide}}</option>
+        </select>
+      </label>
+      <label><input type="checkbox" data-reading-option="table_shrink"> <span data-lwp-i18n="menu_table_shrink">{{str_menu_table_shrink}}</span></label>
+      <label><input type="checkbox" data-reading-option="object_shrink"> <span data-lwp-i18n="menu_object_shrink">{{str_menu_object_shrink}}</span></label>
+      <p id="menuReadingStatus" aria-live="polite" aria-atomic="true" hidden></p>
+    </div>
     <div class="presenter-menu-actions">
       <button type="button" class="presenter-menu-action" id="menuPrev" data-menu-action="prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace">
         {{icon_prev}}<span class="presenter-menu-label" data-lwp-i18n="menu_prev">{{str_menu_prev}}</span><kbd>Page Up</kbd>
@@ -13216,7 +13835,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 
 {{content}}
 {{page_footer}}
-{{language_runtime}}{{theme_runtime}}{{presentation_runtime}}<script defer>
+{{language_runtime}}{{theme_runtime}}{{presentation_runtime}}{{reading_runtime}}<script defer>
 {{js_nav}}
 </script>
 {{index_extra}}
@@ -15400,7 +16019,7 @@ def _is_paragraph_continuation(line, lines, idx, n):
 
 def convert_markdown(md_text, typo_engine=None, disabled=None,
                      notes=None, strings=None, absorb_punct=False,
-                     inline_images=False, sources_dir=None):
+                     inline_images=False, sources_dir=None, table_candidates=None):
     """Converts the Markdown body to HTML.
 
     `notes` is the NoteScope this text's notes belong to. A deferred scope
@@ -15416,7 +16035,11 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
 
     `inline_images` passes through to md_inline(): when True, image src
     paths are replaced with base64 data URIs (--inline-images). The
-    `sources_dir` is needed to resolve the `img/...` path."""
+    `sources_dir` is needed to resolve the `img/...` path.
+
+    `table_candidates`, when supplied, collects each Markdown table's rows
+    (header first) for static audit, using this parser rather than a second
+    approximation of Markdown table recognition."""
     lines = md_text.split('\n')
     out = []
     in_list = None
@@ -15588,6 +16211,8 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
         if line.strip().startswith('|') and i + 1 < n and is_table_separator(lines[i + 1]):
             close_list()
             header_cells = parse_table_row(line)
+            candidate = [header_cells] if table_candidates is not None else None
+            out.append('  <div class="lwp-table-viewport">')
             out.append('  <table class="comparison-table">')
             out.append('    <thead>')
             out.append('      <tr>')
@@ -15599,6 +16224,8 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             i += 2
             while i < n and lines[i].strip().startswith('|'):
                 row_cells = parse_table_row(lines[i])
+                if candidate is not None:
+                    candidate.append(row_cells)
                 out.append('      <tr>')
                 for cell in row_cells:
                     out.append(f'        <td>{md_inline(cell, absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</td>')
@@ -15606,6 +16233,9 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
                 i += 1
             out.append('    </tbody>')
             out.append('  </table>')
+            out.append('  </div>')
+            if candidate is not None:
+                table_candidates.append(candidate)
             continue
 
         # Raw HTML (line starting with a block-level tag, or an inline
@@ -16366,7 +16996,7 @@ def _is_safe_relative_filename(value):
     satisfy `value == Path(value).name` yet are directories (a bare `..`
     used to crash with IsADirectoryError), and a NUL byte would raise a
     raw ValueError at open() time — both are rejected here explicitly."""
-    if not value or value in ('.', '..') or '\x00' in value:
+    if not value or value in ('.', '..') or '\x00' in value or '\\' in value:
         return False
     return value == Path(value).name
 
@@ -17433,6 +18063,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     meta = series_meta_of(series_data)
     if scroll_duration is None:
         scroll_duration = resolve_scroll_duration(meta)
+    reading = resolve_reading_settings(meta)
     articles = _series_entries(series_data)
     series_tag_values = series_tags(series_data)
 
@@ -17535,6 +18166,8 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         'js_nav': apply_strings(TEMPLATE_NAV_JS, strings),
         'build_stamp': build_stamp, 'index_extra': index_extra,
         'scroll_duration': str(scroll_duration),
+        'table_mode': reading['table_mode'],
+        'reading_runtime': reading_runtime_markup(reading),
          'lightwebpres_version': VERSION,
          'language_runtime': language_runtime or '',
         'theme_runtime': _theme_runtime_markup(theme_runtime, style_context),
@@ -18430,6 +19063,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     series_meta = series_meta_of(series_data)
     if scroll_duration is None:
         scroll_duration = resolve_scroll_duration(series_meta, args)
+    reading = resolve_reading_settings(series_meta)
     series_tag_values = series_tags(series_data)
     html = fill_placeholders(html, {
         'lang': lang, 'title': title_clean, 'meta_head': meta_head,
@@ -18449,6 +19083,8 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
          'js_nav': nav_js, 'build_stamp': stamp_in_body,
          'draft_banner': draft_banner, 'index_extra': '',
          'scroll_duration': str(scroll_duration),
+         'table_mode': reading['table_mode'],
+         'reading_runtime': reading_runtime_markup(reading),
           'lightwebpres_version': VERSION,
           'language_runtime': language_runtime or '',
           'theme_runtime': theme_runtime_markup,
@@ -18695,13 +19331,58 @@ _SERIES_META_STRING_FIELDS = (
     'default_tag', 'slug_prefix', 'presentation_preset',
 )
 _SERIES_META_INTEGER_FIELDS = ('scroll_duration',)
-_SERIES_META_OBJECT_FIELDS = ()
+_SERIES_META_OBJECT_FIELDS = ('reading',)
 _SERIES_META_FIELDS = (_SERIES_META_STRING_FIELDS
                         + _SERIES_META_INTEGER_FIELDS
                         + ('lang_tags', 'notes_placement', 'notes_tooltip',
                            'slide_page_numbers', 'slug_prefix')
                         + _SERIES_META_OBJECT_FIELDS)
 DEFAULT_SCROLL_DURATION_MS = 200
+DEFAULT_READING_SETTINGS = {
+    'table_mode': 'clip',
+    'text_fit': 'fixed',
+    'table_shrink': False,
+    'object_shrink': False,
+    'min_text_scale': 0.75,
+    'min_table_scale': 0.85,
+    'min_object_scale': 0.85,
+}
+
+
+def resolve_reading_settings(series_meta):
+    """Validate reading policy and resolve defaults without changing authored JSON."""
+    reading = series_meta.get('reading', {})
+    origin = 'series.json: series_meta.reading'
+    if not isinstance(reading, dict):
+        raise PropertyError(f'{origin}: must be an object')
+    resolved = dict(DEFAULT_READING_SETTINGS)
+    for key, value in reading.items():
+        if key not in resolved:
+            raise PropertyError(f'{origin}: unknown key {key!r}')
+        if key in ('table_mode', 'text_fit'):
+            allowed = (('clip', 'overflow', 'scroll') if key == 'table_mode'
+                       else ('fixed', 'uniform', 'per-slide'))
+            if not isinstance(value, str) or value not in allowed:
+                raise PropertyError(
+                    f'{origin}.{key}: must be one of {" | ".join(allowed)}')
+        elif key in ('table_shrink', 'object_shrink'):
+            if not isinstance(value, bool):
+                raise PropertyError(f'{origin}.{key}: must be a boolean')
+        elif (isinstance(value, bool) or not isinstance(value, (int, float))
+              or not 0.5 <= value <= 1):
+            # The bounded comparison also rejects NaN and both infinities.
+            raise PropertyError(
+                f'{origin}.{key}: must be a finite number from 0.5 to 1')
+        resolved[key] = value
+    return resolved
+
+
+def reading_runtime_markup(reading):
+    """An inert JSON payload; a literal '<' must never close its script."""
+    payload = json.dumps(reading, ensure_ascii=True, allow_nan=False,
+                         separators=(',', ':')).replace('<', '\\u003c')
+    return ('<script id="lwp-reading-data" type="application/json">'
+            + payload + '</script>\n')
 
 
 def _parse_scroll_duration(value, origin):
@@ -18789,6 +19470,13 @@ def series_meta_of(series_data, tolerate_invalid=False, errors=None):
                     f'(got {type(meta[field]).__name__}).')
             if tolerate_invalid:
                 meta.pop(field, None)
+    if 'reading' in meta:
+        try:
+            resolve_reading_settings(meta)
+        except PropertyError as exc:
+            invalid(str(exc))
+            if tolerate_invalid:
+                meta.pop('reading', None)
     for field in _PRESENTATION_MANIFEST_FIELDS:
         if field not in meta:
             continue
@@ -20399,13 +21087,14 @@ def _safe_manifest_path(output_dir, value):
     rejects absolute names and traversal, but follows filesystem links like
     every other command.
     """
-    if not isinstance(value, str) or not value:
+    if (not isinstance(value, str) or not value
+            or '\\' in value or '\x00' in value):
         return None
-    normalized = value.replace('\\', '/')
-    if (normalized.startswith('/')
-            or re.match(r'^[A-Za-z]:', normalized)):
+    if (value.startswith('/')
+            or re.match(r'^[A-Za-z]:', value)):
         return None
-    parts = PurePosixPath(normalized).parts
+    # Validate the spelling before pathlib can normalize away components.
+    parts = value.split('/')
     if not parts or any(part in ('', '.', '..') for part in parts):
         return None
     return Path(output_dir).joinpath(*parts)
@@ -20731,6 +21420,7 @@ def cmd_build(series_dir, args):
 
     nav_cache_path = args.get('--nav-cache') or default_nav_cache_path(ctx.sd)
     shared_fingerprint = {
+        'output_dir': os.path.abspath(ctx.output_dir),
         'series_meta': ctx.series_data.get('series_meta', {})
         if isinstance(ctx.series_data, dict) else {},
         'themes': ctx.series_data.get('themes')
@@ -20780,13 +21470,34 @@ def cmd_build(series_dir, args):
         # Validate the designation before consulting the cache. A cache miss
         # may trigger a full build, but it must not turn an invalid --only
         # request into an unrelated successful build.
-        _resolve_only_entry(ctx, only_file)
+        only_entry = _resolve_only_entry(ctx, only_file)
     if only_file:
         cached_fingerprint = load_nav_cache(nav_cache_path)
+        reason = 'no usable cache found' if cached_fingerprint is None else 'nav/index-affecting metadata changed since the last build, or output directory changed'
         if cached_fingerprint == fresh_fingerprint:
-            _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_stamp)
-            return
-        reason = 'no usable cache found' if cached_fingerprint is None else 'nav/index-affecting metadata changed since the last build'
+            # A shared cache is not evidence that retained output still exists.
+            # The index and selected page are rebuilt; drafts-only deliberately
+            # permits absent published pages, but not absent draft pages.
+            retained = {entry['page_dest'] for entry in ctx.articles
+                        if entry != only_entry and (not args.get('--drafts-only')
+                                                   or entry.get('status') == 'draft')}
+            pages = {entry['page_dest'] for entry in ctx.articles} | {'index.html'}
+            try:
+                manifest = json.loads((ctx.output_dir / _MANIFEST_NAME).read_text(
+                    encoding='utf-8'))
+                files = manifest.get('files') if isinstance(manifest, dict) else None
+                usable = isinstance(files, list) and all(
+                    _safe_manifest_path(ctx.output_dir, name) is not None
+                    for name in files)
+                if usable:
+                    retained.update(set(files) - pages)
+                    usable = all((ctx.output_dir / name).is_file() for name in retained)
+            except (OSError, ValueError, RecursionError):
+                usable = False
+            if usable:
+                _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_stamp)
+                return
+            reason = 'retained pages/assets are missing or the output manifest is unusable'
         log('info', f'--only requested but not safe ({reason}) — doing a full build instead.')
 
     progress(f'Build: {ctx.sd}')
@@ -21844,6 +22555,134 @@ def _absolute_size_px(value):
     return length_px(v, 16.0)
 
 
+READING_REFERENCE_VIEWPORTS = (
+    ('landscape', 1024, 768),
+    ('portrait', 768, 1024),
+    ('16:9', 1280, 720),
+    ('21:9', 1680, 720),
+)
+
+
+def reading_length_px(value, width, height, base=16.0):
+    """Evaluate common typed lengths at a viewport, not their contrast floor.
+
+    Unsupported expressions return None: callers must disclose any fallback.
+    This deliberately leaves length_px's existing contrast contract unchanged.
+    """
+    value = value.strip()
+    match = re.fullmatch(r'(min|max|clamp)\((.*)\)', value, re.S)
+    if match:
+        values = [reading_length_px(arg, width, height, base)
+                  for arg in _top_level_args(match.group(2))]
+        if not values or any(v is None for v in values):
+            return None
+        if match.group(1) == 'clamp':
+            return (max(values[0], min(values[1], values[2]))
+                    if len(values) == 3 else None)
+        return (min if match.group(1) == 'min' else max)(values)
+    match = re.fullmatch(r'(-?\d*\.?\d+)(vw|vh|vmin|vmax)', value)
+    if match:
+        axis = {'vw': width, 'vh': height, 'vmin': min(width, height),
+                'vmax': max(width, height)}[match.group(2)]
+        return float(match.group(1)) * axis / 100
+    return length_px(value, base)
+
+
+def estimate_table_widths(rows, resolved, full_article=False):
+    """Likely min-content overflow, not a browser or font measurement.
+
+    Longest tokens use a conservative half-em character advance. Wrappable
+    prose does not add its entire line length. Skeleton cell/container padding
+    and typed size/width pins are included; custom CSS, glyph metrics and
+    browser hyphenation are not. Results describe the unshrunk default view.
+    """
+    tokens = [[max((len(word) for word in re.split(
+        r'[ \t\r\n/\-\u00ad\u200b]+', html_unescape(re.sub(
+            r'<[^<>]*>', '', md_inline(cell))))), default=0)
+        for cell in row] for row in rows]
+    findings = []
+    for name, width, height in READING_REFERENCE_VIEWPORTS:
+        fallbacks = set()
+
+        def size(key, base=16.0):
+            value = reading_length_px(resolved[key], width, height, base)
+            if value is None:
+                fallbacks.add(key)
+                value = reading_length_px(
+                    PROPERTY_REGISTRY[key].default, width, height, base)
+            return value
+
+        content = min(width * 0.84, size('page.content-max'))
+        available = min(width * 0.84 if full_article else content,
+                        size('page.block-max'))
+        if full_article:
+            # These full-article table declarations are skeleton literals.
+            body_font = max(14.0, min(width, height) * 0.0175)
+            cell_padding = 24 + size('article.rule-width')
+        else:
+            available = min(content - 56 - size('fact.rule-width'), available)
+            body_font = size('table.size', size('fact.size'))
+            cell_padding = 32
+        head_font = size('table.head.size', body_font)
+        tracking = size('table.head.tracking', head_font)
+        columns = [0.0] * max((len(row) for row in tokens), default=0)
+        for row_index, row in enumerate(tokens):
+            font = body_font if row_index else head_font
+            for column, length in enumerate(row):
+                estimate = length * font * 0.5 + cell_padding
+                if not row_index:
+                    estimate += max(0, length - 1) * tracking
+                columns[column] = max(columns[column], estimate)
+        required = sum(columns)
+        if required > max(0, available):
+            findings.append((name, width, height, required, max(0, available),
+                             sorted(fallbacks)))
+    return findings
+
+
+def audit_markdown_tables(source_name, slides, sources_dir, resolved):
+    """Report wide Markdown tables using the converter's own table recognition."""
+    warnings = 0
+    for slide_number, slide in enumerate(slides, 1):
+        text = slide.fact_content or ''
+        full_article = slide.slide_type == 'full-article'
+        if full_article and slide.article_file:
+            path = _resolve_contained(sources_dir, slide.article_file)
+            if path is None or not path.is_file():
+                continue
+            text = audit_read(path) or ''
+        if '|' not in text:
+            continue
+        tables = []
+        try:
+            convert_markdown(text, table_candidates=tables)
+        except (PropertyError, SystemExit):
+            # The render pass names invalid Markdown, not this estimate.
+            continue
+        for table_number, rows in enumerate(tables, 1):
+            findings = estimate_table_widths(rows, resolved, full_article)
+            if not findings:
+                continue
+            viewports = '; '.join(
+                f'{name} {width}x{height}: ~{required:.0f}px > {available:.0f}px'
+                for name, width, height, required, available, _ in findings)
+            fallback = sorted({key for finding in findings for key in finding[5]})
+            fallback_note = (f' Unsupported length expressions use registry '
+                             f'defaults for {", ".join(fallback)}.' if fallback else '')
+            included = f' ({slide.article_file})' if full_article else ''
+            log('warn', f'{source_name}: slide {slide_number} '
+                f'({slide.slug or slide.h2 or slide.h1 or slide.slide_type}), '
+                f'table {table_number}{included}: ESTIMATE of table width '
+                f'exceeds default formats before reader scaling: {viewports}. '
+                'Longest-token character estimate plus cell padding, not a '
+                'precise font measurement; custom CSS and browser layout may '
+                'differ. Consider shorter cells, fewer columns, or reading '
+                'table_mode=scroll; no content is truncated at build.'
+                + fallback_note)
+            warnings += 1
+    return warnings
+
+
 def judge_resolved_theme(resolved):
     """The three ways a composed sheet stops working, measured on `resolved`.
 
@@ -21977,14 +22816,15 @@ def audit_resolved_theme(templates_dir, articles, sources_dir, catalog=None,
         if source_path is None or not source_path.exists():
             continue
         try:
-            meta, _, _, _ = parse_markdown_extended(
+            meta, slides, _, _ = parse_markdown_extended(
                 audit_read(source_path) or '')
             page_props = page_style_properties(meta, entry['page_source'])
-            if not page_props:
-                continue
             resolved = resolve_theme_properties(*layers, page_props)
         except (PropertyError, KeyError, OSError, SystemExit):
             continue
+        if entry.get('status') != 'ignored':
+            warnings += audit_markdown_tables(
+                entry['page_source'], slides, sources_dir, resolved)
         for key, message in judge_resolved_theme(resolved):
             if key in already:
                 continue
@@ -22901,6 +23741,25 @@ def cmd_refresh_templates(target_dir, args):
         progress('Run build again to apply.')
         return
 
+    # Check before creating settings/custom CSS or removing any tool-owned file.
+    nav_path = templates_dir / 'nav.js'
+    backup_path = templates_dir / 'nav.js.bak'
+    old_nav = None
+    reuse_backup = False
+    if _optional_contained_file(templates_dir, 'nav.js',
+                                'templates/nav.js') is not None:
+        old_nav = read_text_file(nav_path)
+        if old_nav != TEMPLATE_NAV_JS and (backup_path.is_symlink()
+                                          or backup_path.exists()):
+            reuse_backup = (not backup_path.is_symlink() and backup_path.is_file()
+                            and backup_path.read_bytes() == nav_path.read_bytes())
+            if not reuse_backup:
+                log('error', f'Refusing template update: protected backup {backup_path} '
+                    'already exists and is not an identical regular file. '
+                    'Move the backup to a safe location, then rerun template update; '
+                    'no files were changed.')
+                sys.exit(1)
+
     legacy = templates_dir / 'style.css'
     if legacy.exists():
         log('warn', f'templates/style.css is no longer read (the stylesheet '
@@ -22945,10 +23804,7 @@ def cmd_refresh_templates(target_dir, args):
     # replace the base set wholesale and overwriting one erases whatever
     # the author added.
     removed, kept = [], []
-    nav_path = templates_dir / 'nav.js'
-    if _optional_contained_file(templates_dir, 'nav.js',
-                                'templates/nav.js') is not None:
-        old_nav = read_text_file(nav_path)
+    if old_nav is not None:
         if old_nav == TEMPLATE_NAV_JS:
             _remove(nav_path)
             removed.append('templates/nav.js (was identical to the '
@@ -22960,7 +23816,8 @@ def cmd_refresh_templates(target_dir, args):
             # having no file rather than by holding a copy, which is the
             # only difference and the whole point: a copy would go stale
             # again at the next release.
-            _write_file(templates_dir / 'nav.js.bak', old_nav)
+            if not reuse_backup:
+                _copy(nav_path, backup_path)
             removed.append('templates/nav.js (yours saved as '
                            'templates/nav.js.bak)')
             _remove(nav_path)
@@ -23253,9 +24110,9 @@ def cmd_theme_path(args):
             print(f'{scope}: {Path(root).expanduser()}')
 
 
-PRESENTATION_PRESET_SCHEMA = 'lightwebpres.presentation-preset/1'
-PRESET_LIST_SCHEMA = 'lightwebpres.preset-list/1'
-SERIES_PRESET_SCHEMA = 'lightwebpres.series-preset/1'
+PRESENTATION_PRESET_SCHEMA = 'lightwebpres.presentation-preset/2'
+PRESET_LIST_SCHEMA = 'lightwebpres.preset-list/2'
+SERIES_PRESET_SCHEMA = 'lightwebpres.series-preset/2'
 
 
 def _kit_composition_object(pairs):
@@ -23506,7 +24363,7 @@ def _presentation_preset_report(preset):
         'id': preset.id,
         'label': preset.label,
         'description': preset.description,
-        'default': preset.default,
+        'native_renderer': preset.default,
         'resource_collection': preset.resource_collection,
         'scope': preset.scope,
         'package': {
@@ -23898,12 +24755,10 @@ def cmd_themes(args):
 # §11.9.1): renaming one breaks the GUI's theme picker and nothing here
 # goes red. The version in the string is what lets the GUI tell an old
 # executable from a new one instead of guessing from the keys it finds.
-# Bumped to /2 when `family` joined the facets, and to /5 when
-# `target.presentation_preset` joined the series report. An added key is a
-# contract change: a consumer that switches on the facet set -- the GUI's
-# theme picker does -- is entitled to learn from this string that the set
-# grew, rather than discovering it by rendering an empty column.
-THEME_INFO_SCHEMA = 'lightwebpres.theme-info/5'
+# /6 makes the native series target explicit as builtin/standard instead of
+# null. Breaking changes require a new schema; compatible optional additions
+# do not, and consumers must tolerate unknown keys (§13.9).
+THEME_INFO_SCHEMA = 'lightwebpres.theme-info/6'
 
 # The three WCAG categories, in the order the output shows them, with the
 # heading each gets in the text format.
@@ -24475,10 +25330,11 @@ def cmd_set_theme(target_dir, args):
 # SERIES-INFO COMMAND (specifications.md §11.11)
 # ============================================================================
 
-# Bumped to /3 when the resolved presentation joined the target and report.
+# /4 includes series_meta.reading and the explicit native presentation report,
+# whose renderer flag is now native_renderer rather than default.
 # A consumer can test the string instead of guessing an executable's age from
 # the keys it happens to find.
-SERIES_INFO_SCHEMA = 'lightwebpres.series-info/3'
+SERIES_INFO_SCHEMA = 'lightwebpres.series-info/4'
 SERIES_TAGS_SCHEMA = 'lightwebpres.series-tags/1'
 
 

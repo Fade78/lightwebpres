@@ -1,0 +1,36 @@
+{
+  "schema": "lightwebpres.identity-kit/1",
+  "id": "field-marks",
+  "version": "1.0.0",
+  "label": "Field Marks",
+  "default_preset": "compass",
+  "layouts": {
+    "cover": {"default": "builtin:standard"},
+    "standard": {"default": "builtin:standard"},
+    "series-nav": {"default": "builtin:standard"},
+    "full-article": {"default": "builtin:standard"},
+    "index": "builtin:standard"
+  },
+  "themes": {"light": "builtin:light"},
+  "chrome": "chrome.json",
+  "assets": {
+    "compass": {"path": "assets/compass.svg", "kind": "icon"},
+    "trail": {"path": "assets/trail.svg", "kind": "icon"}
+  },
+  "presets": {
+    "compass": {
+      "label": "Compass Mark",
+      "description": "A symbolic compass masthead on native layouts and the native light theme.",
+      "theme": "light",
+      "slide_layouts": {
+        "cover": "default",
+        "standard": "default",
+        "series-nav": "default",
+        "full-article": "default"
+      },
+      "slide_chrome": {
+        "all": {"header": {"model": "masthead", "text": "FIELD MARKS"}}
+      }
+    }
+  }
+}

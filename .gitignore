@@ -5,6 +5,12 @@
 private/
 captures/
 
+# Repository-local agent work, notes, configuration and executable shim.
+/work/
+/notes/
+/lightwebpres.py
+/.opencode/
+
 # --- Sortie de build (régénérée par le pipeline, jamais committée) ---
 public/
 **/public/

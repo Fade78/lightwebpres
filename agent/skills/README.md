@@ -1,73 +1,74 @@
-# The two skills, and what each one is
+# Two Skills, Different Roles
 
-Two packaged skills ship with LightWebPres. **They do not have the same
-status**, and mistaking one for the other is the easiest way to
-misunderstand what this tool is.
+LightWebPres distributes a product skill and an optional editorial method.
+They answer different questions and do not have the same status.
 
 | | `lightwebpres` | `sourced-presentation` |
 |---|---|---|
-| What it is | the **format reference** | a **method**, offered |
-| Answers | *what is the exact syntax?* | *how do I go about it?* |
-| Status | part of the product | a courtesy, given with it |
-| If you ignore it | you will guess the syntax wrong | nothing breaks |
-| Tracks | the parser, exactly | editorial practice |
+| Purpose | Use the tool and write its exact format | Plan and verify sourced editorial work |
+| Answers | What does the engine accept, and how do I carry out this task safely? | How do I research, structure and verify this presentation? |
+| Status | Part of the product | An optional method offered with it |
+| Tracks | The executable and specification | Externally maintained editorial practice |
+| If omitted | An agent may guess the syntax or workflow incorrectly | No build requirement is violated |
 
----
+## The Product Skill
 
-## `lightwebpres/SKILL.md` — the format
+Start at [lightwebpres/SKILL.md](lightwebpres/SKILL.md). Its compact mission
+entry covers creating content, organizing a documentary collection, designing
+and composing identities, reading/presenting/sharing, publishing/maintaining,
+and integration/automation. Diagnosis and validation apply across these
+missions. A workflow describes what to do within the user's authority;
+it does not grant permission to publish, delete or push.
 
-This one is **the tool's own contract**. It describes what the parser
-accepts: the `lwp:meta` block, the four slide types and their fields, the
-one-way switch from structured fields to free text, `series.json` wiring,
-the read-only `status`/`series tags` visibility reports, the typography rules
-and their opt-outs, and the instance tags.
+Load the relevant reference, not the entire package by default:
 
-It is written so an agent can emit a correct article without guessing,
-and it is kept in step with the executable — the test suite asserts that
-it names no field the parser does not know, and that every styling hook
-it promises is really in the composed stylesheet. If the format changes
-and this file does not, the build goes red.
+- [Article Format](lightwebpres/article-format.md): `lwp:meta`, every slide type and field, cascades, slugs, comments and speaker notes.
+- [Series and Appearance](lightwebpres/series-and-appearance.md): `series.json`, order, statuses, tag visibility, languages, presets, themes and kits.
+- [Text and Style](lightwebpres/text-and-style.md): the limited Markdown converter, images, source notes, typography, instance tags and raw-HTML hooks.
+- [Operations](lightwebpres/operations.md): scoped editing, composition, diagnosis, validation, preview, maintenance and automation.
 
-Read it, or point an agent at it, before writing or debugging an article.
+The executable remains the version authority. Use its `--help` and live
+`contract` instead of maintaining another CLI or parser schema. The skill's
+coverage tests follow Markdown references reachable from the entry, check
+parser fields and per-type table rows, reject invented example fields, and
+confirm the documented manual styling hooks exist in the composed stylesheet.
+An orphan reference does not count as coverage.
 
-## `sourced-presentation/SKILL.md` — a method, and only that
+For the human walkthrough, use a local `GUIDE.md` when a checkout is available,
+or the [canonical guide](https://github.com/Fade78/lightwebpres/blob/main/GUIDE.md).
+The mission entry links to the guide's six task routes. This skill is for
+using the product, not contributing to its engine.
 
-This one is **not part of the product**. It is a method for one kind of
-content — a deck of short cards, each readable on its own, backed by a
-fully referenced long-form article — covering the chain from commissioning
-research to verifying every fact at its source.
+## The Optional Method
 
-Use it to plan a series, make each card understandable on its own, connect
-claims to checked sources, and verify the delivered presentation. It can
-help experienced writers as well as people who want a repeatable method.
+`sourced-presentation/SKILL.md` is an editorial method, not the LWP format
+contract. It covers short cards that stand on their own, backed by a fully
+referenced long-form article, from research through verification at sources.
+Use it when that method fits the brief. It can help experienced authors or
+those wanting a repeatable process, but LWP does not enforce its rules.
 
-It remains optional. LightWebPres renders what you give it: these editorial
-rules are not enforced at build time, and a series that follows none of
-them builds exactly the same.
+A series' own instructions define audience, scope and editorial conventions.
+Neither local rules nor a successful build make a false claim true or justify
+misleading omissions. Keep factual verification separate from format checks:
+`active` is participation, not approval, and theme measurements are not a
+design certification.
 
-> The same separation runs through the whole project. The theme system
-> renders a theme; it does not teach you to design one. The format
-> renders an article; it does not teach you to write one. Each layer does
-> its own job and declines the one above it.
+The method copy is maintained outside this repository and carries its own
+`metadata.version`. Compare that version when checking freshness. Do not
+rewrite the method as part of a parser or product-workflow documentation change.
 
----
+## Install And Update
 
-## Which to load
+Copy the **entire `lightwebpres/` directory**, including all four reference
+files, into the skill location supported by the agent host. Do not install
+only `SKILL.md`. Its internal links are package-relative, and its external
+guide/specification links work without a repository checkout. No particular
+agent configuration directory is assumed.
 
-- **Writing or debugging an article** → `lightwebpres`. Always.
-- **Also want a method for sourced editorial work** → add
-  `sourced-presentation`. Optional.
-- **A series with its own written rules** → use those rules for audience,
-  format, scope and editorial conventions; use `sourced-presentation` for
-  the method. Local rules cannot make a false claim true, remove necessary
-  qualifications or justify a misleading omission. Check claims against
-  evidence even when a local convention asks for a simpler story.
+Install the optional method separately if wanted; it is not a dependency of
+the product skill. The skill does not install the executable or confer access
+to a hosted service. The tool and its documentation are available at
+<https://github.com/Fade78/lightwebpres>.
 
-## Keeping them current
-
-Both are plain Markdown with YAML front matter. `lightwebpres/SKILL.md`
-changes when the executable format does and is checked by the test suite;
-the executable and specification are its version authority. The
-`sourced-presentation/SKILL.md` copy is maintained outside this repository
-and carries its own `metadata.version`, which is the number to compare when
-you wonder whether that method copy is stale.
+Update the product entry and references together when the executable's
+contract changes. Keep the method's independently maintained version separate.

@@ -1,0 +1,81 @@
+.lwp-presentation--field-frames .field-sheet {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: clamp(20px, 3.5vmin, 42px);
+  border: 1px solid var(--color-ink);
+  border-left: 7px double var(--color-ink);
+  background: var(--page-bg);
+  text-align: left;
+}
+
+.lwp-presentation--field-frames .field-sheet-content {
+  min-width: 0;
+  padding-block: clamp(18px, 3vmin, 36px);
+}
+
+.lwp-presentation--field-frames .slide-chrome-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--color-ink);
+  font-family: var(--font-ui);
+  font-size: var(--footer-size);
+  font-weight: bold;
+  letter-spacing: 0.16em;
+}
+
+.lwp-presentation--field-frames .slide-chrome-header img {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+}
+
+.lwp-presentation--field-frames .slide-chrome-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Keep the icon's accessible label without repeating it in the masthead. */
+.lwp-presentation--field-frames .slide-chrome-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.lwp-presentation--field-frames .slide-chrome-footer {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-ink);
+  font-family: var(--font-ui);
+  font-size: var(--footer-size);
+  letter-spacing: 0.08em;
+}
+
+.lwp-presentation--field-frames .field-sheet .highlight {
+  text-align: left;
+}
+
+.lwp-presentation--field-frames .field-sheet .highlight-caption {
+  text-align: left;
+}
+
+.lwp-presentation--field-frames .field-sheet .fact-box {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@media (max-width: 600px) {
+  .lwp-presentation--field-frames .field-sheet {
+    padding: 16px;
+    border-left-width: 4px;
+  }
+
+  .lwp-presentation--field-frames .slide-chrome-header {
+    gap: 8px;
+    letter-spacing: 0.08em;
+  }
+}

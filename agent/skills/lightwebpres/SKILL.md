@@ -1,1020 +1,144 @@
 ---
 name: lightwebpres
 description: >
-  The exact LWP article syntax the lightwebpres tool parses: the lwp:meta
-  block, the four slide types and their fields, presentation-preset selection
-  and per-slide layout/chrome overrides, series.json wiring, the
-  read-only status and series-tags visibility reports, and the automatic
-  non-breaking-space typography. Format mechanics, not editorial
-  advice. Use when writing, editing or debugging a lightwebpres .md article
-  or series.json entry — including when nobody names this skill, if a
-  series.json and a lightwebpres executable are present, or the text
-  mentions LWP format, a slide deck article, fact-box, highlight,
-  series-nav or full-article. Not for generic Markdown or blog writing, and
-  not for deciding what an article says.
+  Use LightWebPres to create or edit LWP articles, organize series and tags,
+  select or compose presentation identities, diagnose builds, and integrate
+  or maintain a publishing workflow. Supplies the exact article grammar and
+  bounded references for series.json, text conversion and appearance. Use
+  when a task mentions LWP, fact-box, highlight, series-nav, full-article,
+  or a project has series.json and a lightwebpres executable. Not generic
+  Markdown, an editorial research method, or permission to publish.
 ---
 
-# Writing LightWebPres (LWP) articles
-
-LWP is a Markdown dialect for one specific job: a scrollable article made
-of "slides" (cover, fact-cards, cross-article nav) followed by an
-optional long-form piece. One `.md` file per article. The tool that
-builds it (`lightwebpres`) is a single stdlib-only Python script — if
-it's not obviously present in the project, ask before assuming it is.
-It is published at <https://github.com/Fade78/lightwebpres>; that is
-where to download it from, and the only address to trust for it.
-
-## The one idea that matters most
-
-LWP text is **two different grammars stitched together**, and mixing them
-up is the single most common way to lose content silently:
-
-1. **Structural fields** (`kicker: ...`, `tags: ...`, `summary: ...`, `highlight: ...`,
-   etc.) — each scalar field is **exactly one physical line**. The two
-   review/presenter fields `comment:` and `note:` may have indented
-   continuation lines; no other field does.
-2. **Free Markdown text** — a standard slide's trailing body (fact-box or
-   bare paragraphs, see "Slide types" below) and the full-article file.
-   Ordinary CommonMark rules apply here: consecutive non-blank lines
-   merge into one paragraph, a blank line starts a new paragraph.
-
-The switch from (1) to (2) is **one-way and permanent within a slide**:
-the moment a line in a slide's header isn't a recognized field, the
-parser stops looking for fields entirely for the rest of that slide —
-even a later line that looks exactly like `kicker: something` is just text
-from then on. So: put every field before any body text, one per line,
-and never expect a field to wrap.
-
-**And a field is a value, not Markdown.** `summary: un **gras**` publishes
-the literal markup. What misleads is that a field passes **raw HTML**
-through untouched (`page_title: A<br>B`), so markup appearing to "work"
-there says nothing about Markdown. `audit` names a field carrying a
-`**bold**` pair, an `*italic*` pair, a backtick pair or a `[text](url)`
-link; `build` says nothing. Write the emphasis in the free text below, or
-in the full-article file.
-
-A **duplicated field** in the same header is not an error: the last
-occurrence wins, silently — deliberate override semantics (like CSS or
-Make) so a build system can assemble a slide by concatenating a base
-fragment and an overriding one. Headings differ: only the first `#` (on
-a cover) / `##` (elsewhere) is captured as the slide's title, later ones
-fall through to content.
-
-## Anatomy of a file
-
-```markdown
-<!-- lwp:meta -->
-page_title: The apple pie<br>What shortcrust pastry actually changes
-nav_title: The apple pie
-nav_desc: Pastry, baking, and plating
----
-
-<!-- lwp:slide:cover -->
-slug: apple-pie-cover
-kicker: Recipe
-# The apple pie
-summary: Nine things that make or break a homemade apple pie.
-
----
-
-<!-- lwp:slide -->
-slug: temperature
-kicker: Baking
-## Temperature changes everything
-summary: An oven that's too hot cooks the surface before the center is ready.
-fact-label: The takeaway
-highlight: 180 °C
-highlight-caption: recommended baking temperature for shortcrust pastry
-source: Baking guide, 2024 edition.
-
-An oven that's too hot browns the crust while the center stays raw — the
-most common mistake in a homemade pie. A second paragraph, separated by
-a blank line, stays a second paragraph.
-
----
-
-<!-- lwp:slide:series-nav -->
-slug: series-links
-
----
-
-<!-- lwp:slide:full-article -->
-slug: apple-pie-long
-article: apple-pie_article.md
-```
-
-- The file **must** start with `<!-- lwp:meta -->`, immediately followed by
-  `key: value` lines, then a bare `---` line closing the block. Nothing
-  else is allowed before it.
-- `---` alone on its own line separates slides everywhere in the file —
-  including inside a fact-box's free text, where it still means "new
-  slide," not "horizontal rule." Use inline `<hr>` if you actually want a
-  rule inside body text.
-- `<!-- lwp:slide:TYPE -->` opens a slide; omit `TYPE` (just `<!-- lwp:slide -->`)
-  for a standard slide.
-
-## The meta block
-
-Every field here is optional and falls back to something derived from
-the article's own content, so a minimal article needs none of them at
-all. `series.json`'s `articles` entry for this file only needs to repeat
-a field when you want it to win over what's set here (or over the
-content-derived fallback) — not as a rule for every entry. The full
-chain, cheapest to most specific:
-
-- `page_dest` (output HTML filename) — `series.json` entry > this meta
-  block's `page_dest:` > `page_source` with `.md` swapped for `.html`.
-- `page_title` (the `<title>` tag) — `series.json` > `page_title:` here >
-  the cover slide's own `# Heading` > the resolved `page_dest`.
-- `card_title`/`card_desc` (this article's card on the **index page**) —
-  `series.json` > `card_title:`/`card_desc:` here > resolved
-  `page_title` (for the title) / the cover slide's own `summary:` (for
-  the description).
-- `card_label` (short label on the index card **and** the "This series"
-  nav block on every article's own page) — `series.json` >
-  `card_label:` here > empty (no error if it never resolves to anything).
-- `nav_title`/`nav_desc` (this article's card when it appears in the
-  cross-article navigation embedded in a **different** article's page)
-  — `series.json` > `nav_title:`/`nav_desc:` here > resolved
-  `card_title`/`card_desc`.
-
-Every field in that chain resolves to *something*, `card_label` included
-(it just ends up empty) — **except `page_dest`, which has four fatal
-cases**: a value that doesn't end in `.html`/`.htm`, a value that isn't a
-bare filename (`sub/x.html` is rejected wherever it comes from), two
-articles resolving to the same output name (compared case-insensitively),
-and — in a series of **several** articles — the name `index.html`, which
-is where the series index goes (§11.3.3). Any of the four stops the build
-with a named error. See `specifications.md` §20.3.1 for the authoritative
-version of this cascade.
-
-A series of **exactly one** article may take `index.html`, and that is
-the way to make a single article the page a directory serves: the
-article gets the name, no series index is generated (an index listing one
-entry adds nothing), and `build` says so on a `[no index]` line. Leave
-the default name instead when the article is a brick in a directory whose
-`index.html` is kept some other way — by hand, by another generator, or
-because other articles already live there. The name chosen is the
-statement of intent, so choose it.
-
-You never have to reason a cascade out by hand. `lightwebpres resolve
-<dir> page_title --article this-file.md` prints the value in force, the
-level that decided it, and every level that did not — which is the fast
-way to see that the line you just wrote is being beaten by a
-`series.json` entry. The shape of the name picks the cascade: a dot is a
-theme property, an underscore an article field, a hyphen a slide field.
-`--format json` if you are parsing it.
-
-**Editorial fields**, settable here or in `series.json`, with these outputs:
-
-- `author` — falls back to `series_meta.author` for the whole series. It is
-  rendered in the page footer as a byline and emitted as `<meta name="author">`.
-- `license` — falls back to `series_meta.license` for the whole series. It is
-  rendered in the page footer as a licence line only.
-- `date` — free text, no format imposed; it joins the author in the footer
-  byline only.
-- `page_desc` — feeds `<meta name="description">`. Cascade:
-  `series.json` > here > the cover slide's `summary`. It is the one field
-  `audit` actively complains about when it resolves to nothing.
-- `status: active | draft | ignored` — what this article is worth to the
-  series (`active` when absent; `series.json` wins over this file).
-  `status: draft` keeps it out of the output — no page, no index card, no
-  navigation entry — while it still counts as an article of the series;
-  `build --include-drafts` builds it anyway, with a banner on the page so
-  a preview is never mistaken for a publication. `status: ignored` takes
-  it out of the normal chain altogether: never built whatever the flags,
-  never carded or navigated, and never counted for normal output. The entry
-  survives with every field on it — which is how you set an article aside
-  without losing its settings. Read-only `status` and `series tags` reports
-  still retain it in the `ignored` inventory count, but it cannot make
-  `output` visible. Any other value is a fatal error. `audit` is the exception:
-  it examines every
-   listed article, including `ignored` entries that a normal build excludes
-   and drafts that a normal build omits unless `--include-drafts`; it renders
-   what it can and reports it without writing output.
-- `tags:` — optional article-level filter tags in this article's `lwp:meta`
-  block. A selected tag must match one of them and at least one non-excluded
-  slide must accept it for the article's index/nav card to remain visible.
-  An article without this field has no article-level gate. `series tags` counts
-  the article only when both gates have an effective intersection.
-
-At series level, `series_meta.default_tag` chooses the tag selected on a
-fresh page. It defaults to `default` and must occur on an article or a
-non-excluded slide selected for the build. `build` and `audit` warn when the
-chosen tag, or any other selectable tag, has no effective slide after article
-gates and exclusions. A valid persisted reader choice still wins over this
-initial value. To inspect the same resolved intersections without writing a
-build, run `lightwebpres series tags <series-dir>`; use `--format json` for
-the `default_output`, per-tag status counts, slide counts and stable
-vocabulary, or `--tag fr` to keep one row. `status --format json` embeds the
-same report under `tags`.
-
-The series can also set `scroll_duration` to a non-negative integer number of
-milliseconds. It defaults to `200`; `0` makes slide navigation jump instead
-of gliding. `build`, `verify` and `watch` accept `--scroll-duration` as a
-one-run override. In the generated page, the presenter menu's Scroll action,
-or the **I** key, switches between that configured duration and `0` and
-displays the active value.
-
-**Notes fields**, settable here or in `series_meta` (the article wins):
-
-- `notes_placement: local | page` — where note bodies land. `local`
-  (default) puts them at the foot of the unit that called them: the foot
-  of that card, the end of the long-form article. `page` collects every
-  body on the page into one notes section at the end. An unknown value is
-  a fatal build error naming the article.
-- `notes_tooltip: on | off` — `on` also puts the body's text on the call
-  as a tooltip. It composes with either placement and is never the only
-  carrier: the body stays in the document regardless. Off by default.
-
-**Slide-number field** (opt-in, off by default):
-
-- `slide_page_numbers: true | false` — shows the engraved top-right
-  `<span class="slide-num">NN / NN</span>` on every slide except the
-  `series-nav` one (which is generated furniture, not a card). Resolves down
-  the same cascade shape as the other article fields: the article's
-  front-matter wins over the `--slides-page-numbers on|off` CLI flag, which
-  wins over `series_meta.slide_page_numbers` in `series.json`, which wins
-  over the built-in default (`off`). An invalid value is a fatal build
-  error naming the article. This is **not** the always-on bottom-left live
-  `X / N` counter — that one needs no setting and is never suppressed.
-
-**A key this block does not recognize has no effect, and the build says
-nothing.** `page-title:` instead of `page_title:` builds cleanly and
-falls back as though you had written nothing. This is the opposite of a
-mistyped *slide* field, which becomes free text and is loud on a cover
-slide.
-
-`audit` is what catches it: it names the key, says nothing reads it, and
-offers the nearest real field name. It warns and never blocks, so the
-build stays silent either way — run `audit` after editing a meta block.
-`comment:` and `style.*` keys are never reported *as unknown keys*:
-nothing resolves the first, and the second is the article property layer,
-which has its own vocabulary and its own fatal errors. `style.*` is not
-out of `audit`'s reach, though: a key and a value that are both valid but
-compose an unreadable page — text the colour of its ground, a size under
-the readability floor — get named, under this article's filename.
-
-`comment:` here works too, for an article-wide note — same rule as the
-per-slide one below: recognized, never read, never published.
-
-## Identities, presets and themes
-
-An Identity Kit owns inner layouts, chrome, assets, typed themes and constrained
-structural CSS. LWP keeps the `<head>`, `<body>`, navigation, JavaScript and
-each slide's `<section>`. A kit lives at `kits/<id>/<version>/`; a vendored
-copy lives at `templates/kits/<id>/<version>/`. `LWP_IDENTITY_KITS_DIR` selects
-the user catalogue. Published kit assets use
-`public/assets/presentations/<id>/<version>/...`. The complete manifest,
-fragment, asset, and validation reference is `specifications.md` §9.9.
-
-Only `series_meta.presentation_preset` persists the initial selection:
-`builtin/standard`, `commons/<id>` or `id@MAJOR.MINOR.PATCH/preset`. Identity
-is inferred from that reference. It applies to the entire series and index;
-no article entry or `lwp:meta` block may select a preset. Omission selects
-`builtin/standard` implicitly. `init --preset builtin/standard` and
-`series preset set --preset builtin/standard` persist that explicit reference;
-plain `init` leaves the field absent. Neither native choice vendors resources.
-
-```json
-{
-  "series_meta": {
-    "presentation_preset": "corporate@1.0.0/brief"
-  }
-}
-```
-
-The `lightwebpres.identity-kit/1` manifest requires an identity `label` and
-`id`/`version`. Its optional `default_preset` names a local preset, otherwise
-the first in manifest order is used. The identity label stays fixed regardless
-of that initial choice. `slide_layouts` and `slide_chrome` declare preset
-defaults in the manifest only. Kit references are local files or native
-`builtin:standard` layouts and `builtin:light` themes. Native layouts inside
-a kit keep its chrome. Kits neither extend nor depend on other kits or Commons;
-origins are computed by loaders, with no declared provenance or authenticity.
-
-Commons themes are the global catalogue under `themes/` and
-`templates/themes/`, configured with `LWP_THEMES_DIR`. Commons presets live
-under `commons/presets/<id>.json`, installed, user (`LWP_COMMONS_DIR`), or
-series-local (`templates/commons/presets/`). Their strict
-`lightwebpres.commons-preset/1` schema contains `schema`, `id`, `label`,
-`description`, `theme`; the theme is a global slug or `builtin:light`.
-They bind native layouts to a theme, without a starter. Native Standard uses
-the minimal Light theme. See the guide for complete manifest and composition
-examples; `kit compose` creates an autonomous kit from explicit final references.
-
-On **every** slide, these fields override the selected preset's defaults:
-
-```text
-slide-layout: hero
-slide-header: Marque interne
-slide-footer: ""
-```
-
-`slide-layout` is a lowercase/digit/hyphen variant; an empty value is fatal.
-`slide-header` and `slide-footer` may be text, a JSON model, or exactly `""` to
-remove inherited chrome; an unquoted empty value is fatal. These are per-slide
-overrides, not an author JSON cascade, and are valid on `cover`, standard,
-`series-nav`, and `full-article`. The preset theme is the typed base layer:
-base theme < `settings.conf` pins < article `style.*` < instance styles, with
-`templates/custom.css` as advanced final CSS.
-
-### Runtime presentation alternatives
-
-The primary preset comes from `series_meta.presentation_preset` (or
-`builtin/standard` when omitted). A kit or Commons primary also exposes compatible native
-Standard as a runtime alternative; a series may expose additional
-presets at the root of `series.json`:
-
-```json
-{
-  "series_meta": {
-    "presentation_preset": "corporate@1.0.0/brief"
-  },
-  "presentation_presets": ["builtin/standard"]
-}
-```
-
-`build`, `verify` and `watch` also accept
-`--presentation-presets selector[,selector...]`; the CLI value overrides the
-root list. It adds alternatives rather than replacing the primary. The primary
-is always first in the effective ordered list, duplicates are removed, and
-`builtin/standard` is the native choice. A missing or unknown selector is a
-build error before output is written. With alternatives, every article and the
-index carries the primary HTML plus inert runtime fragments for each alternative;
-the reader changes the presentation with **C**. The choice applies to the whole
-series, is held in browser session storage, and is not written to source files.
-
-The Appearance picker has **Identity**, **Preset** and **Theme** controls.
-Applicable / Current identity / All filter only published choices by typed
-compatibility or resource ownership, not brand approval. All themes of selected
-kits are published with kit-qualified names; no cross-product is generated.
-Identity labels name ownership, while default markers name initial selections.
-An explicit `theme:` in
-`settings.conf` stays fixed while the presentation changes. Without one, the
-preset's theme follows the selected presentation until the reader chooses an
-explicit runtime theme. That choice persists until the reader chooses
-**Follow preset**. Kit-only slide overrides can make implicit native Standard
-incompatible; it is then omitted with a warning. An explicit incompatible
-request remains a build error.
-
-## Tags: `tags:`
-
-On a slide header, `tags:` is a slide-level filter field, separate from the
-article-level `tags:` above and from the inline instance tags described later.
-Its value is one physical line containing space-separated names. Names are
-normalized case-insensitively; Unicode word characters, digits, `-`, and `_`
-are accepted, except a name may not begin with `_`.
-
-- No slide `tags:` or an empty value assigns `default`, the shared slide tag.
-- `tags: excluded` removes the slide during build, after its slide type has
-  been validated but before the rest of the slide is validated and before
-  numbering or anchors are generated.
-- Other values are emitted as `data-tags="..."` on the slide section.
-- In the generated page, press **L** to choose a tag when at least two exist.
-  The selected non-`default` tag keeps its own slides and `default` slides,
-  while `default` keeps only `default` slides. The selection is persisted in
-  `localStorage['lwp-active-tag']`. The same selection gates article cards:
-  an article tag is an exact match, while a slide's `default` tag is shared.
-  The menu names the active tag, counts visible articles/slides, and lists
-  their titles; an empty selection is announced on the page.
-
-The source-side `series tags` report uses that same runtime rule: an explicit
-article gate must match, `excluded` slides are absent, and `default` slides
-are shared only with non-default selections. It is a visibility check, not a
-build command, and does not rewrite the series.
-
-The former visible-label field `tag:` is not an alias. Use `kicker:` for the
-label above a slide title, and `tags:` for tag filtering. On a standard
-slide an old `tag:` line becomes body text; on a cover, `build` reports the
-unknown field and prints the two current choices.
-
-If tags select different languages, declare their typography packs in
-`series.json`:
-
-```json
-{
-  "series_meta": {
-    "lang_tags": {"fr": "fr", "en": "en"}
-  },
-  "articles": [{"page_source": "guide.md"}]
-}
-```
-
-The first mapped language tag on a slide selects its typography pack. Slides
-without one use the build-wide `--lang`/`LWP_LANG` fallback. Built-in `fr` and
-`en` packs are always available; another name resolves to
-`typography/<name>.json`, then the legacy `language/<name>.json`. `audit`
-warns about malformed slide tags and missing mapped packs; it does not block
-the build.
-
-## Slide types
-
-| Type | Fields | Cardinality |
-|---|---|---|
-| `cover` | `slug`, `kicker`, `tags`, `# Title`, `summary`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
-| standard (default, or explicit `<!-- lwp:slide -->`) | `slug`, `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note`, then free Markdown text | As many as you want |
-| `series-nav` | `slug`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `comment` — navigation generated from `series.json` | 0 or 1 per article |
-| `full-article` | `slug`, `article: filename.md` (required for publication), `tags`, `slide-layout`, `slide-header`, `slide-footer`, `comment` | Any number — each carries its own file. An explicit empty `article:` is a warned, omitted draft slide. Under `notes_placement: local` each one numbers its notes from 1, as a card does. |
-
-`kicker`, `tags`, `summary`, `fact-label`, `fact-variant`, `source`,
-`highlight`/`highlight-caption`, `slide-layout`, `slide-header`,
-`slide-footer`, `comment`, and `note` are all optional — omit the line if you
-don't need it. (`slug` is NOT optional — see below.) An empty scalar value
-behaves like omitting it; an empty `tags:` receives `default`; the three
-presentation fields follow the stricter empty-value rules above.
-An empty `#` or `##` is still the slide's own empty title, not free text. The
-one special incomplete value is `article:` on a `full-article`: when the line
-is present but empty, `build` warns and omits that slide; when the line is
-absent, the build fails. `highlight` is a short standalone figure (a number, a
-stat, a quote) with an optional caption underneath; it renders above the free
-text, not instead of it.
-
-**The `slug` field** names the card in a URL, and it is REQUIRED on
-every card. It is the card's whole identity: not its position, not its
-title, so the link survives you reordering the deck, inserting a card,
-rewriting a heading, or excluding a card with `tags: excluded`. Write a
-readable one — `slug: barrage-de-vajont`. A slug must start with a letter
-or a digit and may then contain letters, digits, `-`, `_` and `.`;
-anything else is a build error, because the value also becomes a URL
-fragment and the tail of a printed QR code. Two cards on the same slug is
-a build error too, never a silent suffix.
-
-A card without a `slug:` stops the build. `lightwebpres series slug set`
-writes a random one into every card that has none — the only command in
-this tool that edits the author's articles — and `lightwebpres series
-slug` lists every card and the name it is published under. What that
-command writes is meant to be renamed to something readable before
-publication. `slug_prefix:` in the meta block (or in `series_meta`) puts
-a namespace in front of every id on the page.
-
-`lightwebpres series slug` reports those effective, prefixed names rather than
-the raw `slug:` lines, so its output is the address a reader will actually
-receive.
-
-**The `source` field on a standard slide** renders a citation in a dedicated,
-styled location separate from the fact content (e.g. `source: Baking guide,
-2024 edition.`). Inline citations in the fact-box body are also valid
-Markdown; the parser does not forbid them. Prefer `source:` for a short
-reference and a footnote (`[^1]`) for a longer one, unless the series uses
-another citation convention. This is a layout recommendation, not a parser
-restriction. A footnote body goes to the foot of the card by default, or to
-the page end with `notes_placement: page` in the meta block.
-
-A cover slide **accepts** `fact-label`, `fact-variant`, `source`, `highlight`
-and `highlight-caption` without failing, and then never renders them — you
-get a `[WARNING]` — from `build`, and from `audit` too, which
-renders — exit code 0, and a page missing what you wrote. Only
-free *text* on a cover is fatal.
-
-**Cover slides only accept** `slug`, `kicker`, `tags`, `# Title`, `summary`,
-`slide-layout`, `slide-header`, `slide-footer`, `comment`, and `note` as their
-own header fields. Any standard-slide field
-(`highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`)
-is parsed but **never rendered** on a cover — the build warns and continues.
-This is deliberate so you can toggle a slide between `cover` and `standard`
-while drafting without a build failure. When the slide is a cover, remove
-those standard-only fields; they do nothing.
-
-`<!-- lwp:slide:TYPE -->` is validated: a misspelt type
-(`lwp:slide:standrd`) is a fatal build error naming the slide's rank, the
-token, and the four types.
-
-`comment` is a review note — recognized as a real field on any slide
-(and in `series.json`/the article's own meta block too), but never read
-by any renderer. It never reaches the built output, not even the page's
-raw HTML source — unlike an HTML comment (`<!-- ... -->`) written in
-free text, which passes through untouched (still shipped, just invisible
-on screen). Use it for an editorial note, a TODO, a "verify this stat"
-flag — anything that must stay in the source without ever publishing.
-
-The free Markdown text on a standard slide has two possible renderings,
-picked automatically: with a `fact-label:` line, it's wrapped in a
-labeled fact-box (`<div class="fact-box">` / `<div class="fact-label">` /
-`<div class="fact-content">`); without one, it renders as plain
-paragraph(s) — no box, no label. Use `fact-label:` when you want the
-highlighted-callout look, omit it for ordinary body text.
-
-**That free text goes through the same Markdown converter as the
-full-article file** — everything listed under "The full-article file"
-below works here too: tables (including the verdict classes), notes,
-blockquotes, code spans and fenced blocks, links, raw HTML. Headings are
-styled smaller than the slide's own big title to fit the fact-box's
-frame. One trap to know about: a heading opening
-the free text directly (no paragraph before it) is still just content,
-*not* a redefinition of the slide's own title — but only the first `#`
-on a `cover` / first `##` on a non-`cover` slide is ever captured as the
-slide's title at all; a second one, or the wrong level for that slide
-type, always falls through to content (§22.2 in `specifications.md`).
-
-`series-nav` is **at most one** per article — having two is a fatal build
-error, not "the second one wins." `full-article` has no such limit: a page
-may pull in several long-form files, each `full-article` slide naming its
-own (§22.8). An explicit empty `article:` is the unfinished form of that
-slide and is omitted with a warning; a missing `article:` remains fatal. Both also
-accept `tags:`, the three presentation fields and `comment:` like every other
-slide; beyond that, any
-unrecognized non-blank line inside either one is fatal, not ignored: a
-`series-nav` slide takes no free body, and a `full-article` slide takes
-`article:` plus those two optional fields.
-
-Those four names are the whole list. A marker naming anything else is a
-fatal build error citing the slide's rank, the token you wrote, and the
-four names — `<!-- lwp:slide:covre -->` does not quietly become a
-standard slide.
-
-## The draft contract
-
-`lightwebpres contract [directory]` is the read-only, versioned interface for
-an authoring client. Its JSON response, under
-`lightwebpres.slide-draft/1`, is generated from the same registry as the
-parser and lists the four types, their fields and order, required fields,
-cardinalities, empty-value rules, reserved IDs and one complete source
-skeleton per type. The skeletons already contain non-empty generated slugs.
-Pass `--article file.md` to avoid slugs declared by an existing source; use
-`--format text` for a human-readable view. Do not duplicate this grammar in an
-agent or editor.
-
-## The full-article file
-
-Referenced by `article:`, it's a separate `.md` file (by convention
-`{name}_article.md`) with **no LWP structure at all** — just standard
-Markdown: headings, `**bold**`/`*italic*`, `[links](url)`, notes
-(`[^label]` + `[^label]: body` — see "Notes" below), lists, tables,
-blockquotes (`> text`),
-images (`![alt](img/pic.png)` — alone on its line it becomes a centered
-`<figure>` block, and a standard Markdown title, `![alt](src "Caption")`,
-renders as a small centered caption under the image; wrap that whole line
-in a Markdown link, `[![alt](src "Caption")](https://…)`, and the picture
-becomes clickable while the caption stays outside the link — so the link's
-accessible name is the alt text alone, not alt plus caption;
-append `{50%}` for general image zoom, or an extended suffix such as
-`{width=50% height=auto align=right}`. The extended keys are `width`,
-`height`, `zoom` and (for standalone figures only) `align`; `width` and
-`height` use safe CSS lengths while `zoom` uses a percentage. Values are
-validated before they become CSS. Mid-paragraph images accept the size keys,
-but not `align`;
-mid-paragraph it's a plain inline `<img>`, no caption; the path is
-relative — images live in `sources/img/`, and only images referenced by
-rendered pages are copied to `public/img/` at build), inline code
-(`` `code` ``), fenced code blocks (` ```lang ` ... ` ``` `, the
-language optional and purely informational — no syntax highlighting),
-and raw HTML passed through as-is (so an author can drop in a
-hand-written `<figure>` or similar if the situation calls for it).
-
-**`&` is escaped in all ordinary text**, not only in code — so an HTML
-entity you type by hand (`&rarr;`, `&nbsp;`) is published as the literal
-string `&rarr;`, not as an arrow. The only place one survives is inside a
-raw-HTML *block* (see below), which bypasses inline conversion entirely.
-Write the character itself (`→`) rather than an entity; the format is
-UTF-8 throughout.
-
-Code goes further: text inside `` `...` `` or a ` ``` ` block is fully
-HTML-escaped and shown exactly as written, even if it looks like a tag —
-the opposite of how raw HTML elsewhere in this file passes through
-untouched. A `>` at the very start
-of a line or a backtick that isn't meant to open a blockquote/code span
-can be written literally by prefixing it with `\` (`` \> ``, `` \` ``) —
-the only escaping this format supports, and only needed in that
-position; a `>` anywhere else never triggers a blockquote and needs no
-escaping.
-
-Four limits the converter does not announce:
-
-- **A Markdown link must be `http://` or `https://`.** `[text](page.html)`
-  or a `mailto:` matches nothing and is published as that literal text,
-  with no warning. Use a raw `<a href="...">` for anything else.
-- **Headings go up to level 6.** `#`–`###` are real headings; `####`
-  renders as a bold-font paragraph (a sub-heading look, **not** `<strong>`
-  markdown emphasis — it uses the bold typeface, not bold weight on
-  emphasized text); `#####` and `######` render as plain paragraphs. None
-  are left as literal text.
-- **Blockquotes are one paragraph.** Consecutive `>` lines merge into a
-  single `<p>` inside one `<blockquote>`; multi-paragraph and nested
-  quotes are not supported.
-- **Table alignment colons are accepted and ignored.** `|:---|---:|`
-  parses, and changes nothing. Ragged rows are emitted as written, with
-  no cell-count check.
-
-Raw HTML at the start of a line is either an inline usage or a block,
-decided per line: `<strong>Word</strong> opens a sentence.` — an inline
-tag (`<a>`, `<strong>`, `<em>`, `<span>`, `<sup>`...) closed on that same
-line — is ordinary paragraph text, merges with the next line like
-anything else. Leave it unclosed (`<a href="..." class="card">` opening
-a multi-line card, closed by `</a>` several lines later) and every line
-in between is raw HTML verbatim until the matching close, even a line
-that would look like a self-contained inline usage on its own
-(`<span class="caption">...</span>` alone on its line, say).
-
-## Notes
-
-Standard Markdown, nothing invented:
-
-```markdown
-The kettle draws about 3 kW[^kwh] on a domestic ring.
-
-[^kwh]: Measured at 230 V, 13 A. See the appliance's rating plate.
-```
-
-Works in a slide's free text and in the full-article file. **The label is
-a key, not content** — what the reader sees is a position, so you never
-have to renumber anything when you insert a note.
-
-**A label contains only word characters.** Letters, digits and `_`, accents and
-non-Latin scripts included — and nothing else: no `-`, no space, no
-punctuation. `[^kwh]`, `[^1]`, `[^a]`, `[^clé]` are labels. `[^a-b]`,
-`[^note 2]`, `[^réf.]` are not, and they are not errors either: the
-engine reads neither a call nor a body, so `[^réf.]` ships to the reader
-inside the sentence as literal text and `[^réf.]: …` renders as an
-ordinary paragraph with the label showing. `build` is silent and exits 0.
-This is the one defect in this format that reaches the reader with
-nothing raised anywhere — `audit` is what names it. If a label has to
-read as it stands, wrap it in backticks.
-
-The call becomes a link to the body; the body carries a link back to the
-call. One label called twice gives one body with two return links.
-
-**Numbering restarts with whatever unit holds the bodies.** Under the
-default `local` placement that means each card starts again at 1, while
-the long-form article runs continuously through itself. That is on
-purpose: a card is individually shareable, so a reader can arrive at card
-5 having seen nothing else, and a note numbered 7 there would send them
-hunting for six that are not on their screen.
-
-Four things `audit` will tell you about, none of them fatal:
-
-- a label outside the word-character pattern above — reported separately
-  for a call and for a body, because they do not repair the same way: one
-  gets renamed, the other gets renamed *and* has been rendering a line of
-  prose you never wrote;
-- a call with no body — the marker still renders, but as no link at all;
-- a body nothing calls — it still renders, at the end of the block,
-  with no return link;
-- a definition written inside a raw HTML block (a `<div class="refs">`,
-  typically) — raw HTML is passed through verbatim, so it ships as the
-  literal text `[^1]: …`. Put note bodies outside your raw HTML.
-
-Practical note for `local`: notes at the foot of a card take room on a
-screen that is already short. A card carrying five of them will scroll.
-
-These footnotes are **source notes** — they are printed for the reader at
-the foot of the card. They are not the speaker's cue; that is a separate
-field (below).
-
-## Speaker notes (`note:`)
-
-A footnote (`[^x]:`) is a *source* note the reader sees. A speaker note is a
-different thing: a speaking cue hidden from the normal slide view, but still
-published in the page's HTML. Write it as a `note:` field on the slide:
-
-```markdown
-<!-- lwp:slide -->
-kicker: Two
-## Slide two
-note: Mention the 2020 study — the audience asked for it last time.
-  Follow up with the 2023 replication.
-
-  If time runs short, skip the appendix.
-```
-
-`note:` is rendered into a hidden HTML element, without a footnote marker.
-Press **N** to open the **presenter panel**, which shows the current slide's
-`note:` text alongside the next slide's title. The panel is in the same page,
-not a private presenter window: a projected or shared screen shows it too.
-Anyone with the HTML can read the notes, so do not put confidential content
-there. The panel follows navigation; press **N** again to close it. `note:`
-is accepted on `cover` and `standard` slides.
-
-A `note:` may span several lines: each continuation line starts with
-whitespace, and an indented blank line is a paragraph break. The block ends at
-the first non-indented, non-empty line (the next field or the slide body), so
-the extra lines never leak into the visible slide. `comment:` accepts the same
-multi-line form (it stays a review note, never rendered).
-
-The same deck prints one slide per sheet (Ctrl/Cmd+P → PDF), with the
-navigation chrome stripped and the theme colours kept, so a footnote-heavy
-card and a clean handout come from the same source.
-
-## Per-slide look: `fact-variant`
-
-`fact-variant: warning` on a standard slide adds `fact--warning` to that
-slide's fact-box classes. The source names a *meaning*; what it looks like
-is defined by the series (a `.fact--warning` rule in
-`templates/custom.css`), so changing themes carries the variant along.
-The name must match `[a-z][a-z0-9-]*` — anything else is a fatal build
-error naming the file when the fact-box actually renders (a fact-label
-**and** body text). Only meaningful together with `fact-label:` (no
-fact-box, no class to hook); a variant on a slide with no fact-box body
-is ignored in silence, since there is nothing to class.
-
-## Instance tags: character-level styling beyond Markdown
-
-Format-defined tags for one-off interventions inside any free text (slide
-bodies and the full-article file). They go through the compiler: a bad
-value is a fatal build error naming the file, and `audit` counts them per
-article — they are author decisions that survive every theme change.
-
-| Tag | Effect |
+# LightWebPres
+
+Turn the user's requested change into valid LWP sources and checked output.
+LWP builds scrollable slide-deck articles with optional long-form text from
+one deck `.md` per article. It is a single Python 3.8+ standard-library
+executable, published and downloadable at
+<https://github.com/Fade78/lightwebpres>. If it is absent, ask before assuming
+an installation or downloading one. Use the current executable, not remembered
+syntax from an older installed skill.
+
+## Start With Scope
+
+Identify the series directory, requested result, source files, output path,
+language and existing presentation choices. Inspect the relevant files and
+read-only reports before changing them. A request to write, diagnose or
+preview does not automatically authorize publication, deletion, push,
+credential use or overwriting another owner's files. Confirm those actions
+when they are not already explicit in the task.
+
+The author owns `sources/`, `series.json`, settings pins, custom CSS and
+deliberately installed overrides. The tool owns generated HTML, build
+manifests and cache state. Change sources, then regenerate authorized output;
+do not patch rendered pages. A local `nav.js` or language-pack override stops
+following the embedded version's fixes. See [Operations](operations.md).
+
+Load only the reference needed for the mission. These four files travel
+with this entry when the whole `lightwebpres/` directory is copied:
+
+| Reference | Read For |
 |---|---|
-| `{color:#E8A33D}…{/color}` | colour literal (3/4/6/8-digit hex, normalized to RGBA — alpha last, `#RRGGBBAA`) |
-| `{color:mark}…{/color}` | a shared colour by name (`page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`, `nav`) — any name `N` for which `color.N` is in the registry |
-| `{font:mono}…{/font}` | a shared stack by name (`text`, `display`, `ui`, `mono`), or a literal stack ending on a CSS generic |
-| `{sc}…{/sc}` | small caps |
-| `{strike}…{/strike}` | strikethrough |
-| `{u}…{/u}` | underline |
-| `{mono}…{/mono}` | monospace (the `font.mono` stack) |
+| [Article Format](article-format.md) | Deck anatomy, metadata cascades, every slide type and field, slugs and speaker notes |
+| [Series and Appearance](series-and-appearance.md) | Registration, order, status, tags, languages, presets, kits and runtime choices |
+| [Text and Style](text-and-style.md) | The exact converter subset, images, source notes, typography and styling hooks |
+| [Operations](operations.md) | Scoped workflows, diagnosis, validation, composition, maintenance and automation |
 
-**Alignment is the one block tag**, because `text-align` is a block-level
-property: applying it to the inline `<span>` produced by every other tag has
-no effect.
-Opener and closer each go alone on their own line, and they wrap whole
-paragraphs:
+## 1. Create Content
 
-```
-{align:center}
-This paragraph is centred.
+Inputs: the brief, local editorial rules, authorized source files and assets.
+Read [Article Format](article-format.md), then [Text and Style](text-and-style.md)
+for the body features you need. Use the engine's `contract` for draft
+skeletons and live field rules; fill or remove unfinished placeholders.
+Edit only the agreed article scope. Register a new article only when the
+task includes adding it to the series. Validate and inspect a local render;
+writing an article is not authorization to publish it.
 
-So is this one.
-{/align}
-```
+Human walkthrough: [Create content](https://github.com/Fade78/lightwebpres/blob/main/GUIDE.md#1-create-content).
 
-Values are `left | center | right | justify`. Alignment sets alignment and
-nothing else: breaking words at end of line is a separate axis,
-`page.hyphens` (`manual | auto`, default `manual`), and it is never turned
-on for you. Everything inside the block aligns, including table cells,
-which is what makes the tag able to override a component's own alignment.
-A closer with no opener stays literal text.
+## 2. Organize A Documentary Collection
 
-Tags nest, and Markdown inside them still converts. An opener without its
-closer on the same line stays literal text — visible in the render. Inside
-`` `code` `` spans nothing is ever a tag. Prefer a `fact-variant` or a
-settings.conf property for anything that repeats; the tag is the tool for
-the one place that needs it.
+Inputs: the selected series or corpus, desired order, statuses, tags and
+languages. Read [Series and Appearance](series-and-appearance.md). Inspect
+`status`, `series tags` and effective slugs before editing `series.json` or
+article metadata. Keep URLs stable and compare visibility intersections after
+the change. A corpus spanning series is an editorial organization, not an LWP
+database. `status` is participation, **not approval** of facts or publication.
 
-## Per-article style: `style.*` meta keys
+Human walkthrough: [Organize a documentary collection](https://github.com/Fade78/lightwebpres/blob/main/GUIDE.md#2-organize-a-documentary-collection).
 
-Any `style.<property>: value` line in the lwp:meta block restyles that
-page only, over the series' theme and settings — same vocabulary and
-types as `templates/settings.conf` (e.g. `style.verdict.partial.fg:
-#8A4B00`, `style.cover.bg.angle: 90deg`). A bad key or value is a fatal
-build error naming the file. A good key and a good value that compose an
-unreadable page are not an error — `audit` warns, naming this article and
-the property, and the build still succeeds. Run `audit` after adding
-`style.*` lines: it is the only thing that reads the sheet those lines
-actually produce.
+## 3. Design And Compose Identities
 
-## Styling hooks you reach with raw HTML
+Inputs: the intended identity, available resources, target kit/version and
+authorized catalogue or series destination. Read [Series and Appearance](series-and-appearance.md)
+and [Operations](operations.md). Change the smallest appropriate layer:
+instance, article, series settings, theme or structural kit. Composition
+needs an explicit recipe and produces an autonomous kit, not inheritance.
+Inspect actual content and runtime alternatives; contrast measurements and
+compatibility filters are not accessibility or brand approval.
 
-Some things the stylesheet renders have no Markdown syntax at all, and
-inline HTML is the documented way to reach them (spec §6.1). They work in
-a fact-box and in the full-article file alike.
+Human walkthrough: [Design and compose identities](https://github.com/Fade78/lightwebpres/blob/main/GUIDE.md#3-design-and-compose-identities).
 
-**Comparison-table verdicts.** Every generated table carries
-`class="comparison-table"`. Put one of these on a cell — or on a `<span>`
-inside a Markdown cell — and it renders with a shape marker as well as a
-colour, so the verdict survives greyscale and colour-vision deficiency:
+## 4. Read, Present And Share
 
-| Class | Meaning | Marker |
-|---|---|---|
-| `yes` | does / holds | ● filled circle |
-| `no` | does not | ○ empty circle |
-| `partial` | partly, with conditions | ◐ half circle |
+Inputs: the built page, audience, intended viewport and sharing destination.
+Use [Operations](operations.md) for local inspection, presentation, print and
+stable links. Check tag selection, appearance alternatives, note bodies and
+PDF layout on the real output. Local preview or generating a shareable link
+does not authorize uploading files, sending the link or exposing a repository.
 
-```markdown
-| Feature | A | B |
-|---|---|---|
-| Offline | <span class="yes">Yes</span> | <span class="no">No</span> |
-```
+Human walkthrough: [Read, present and share](https://github.com/Fade78/lightwebpres/blob/main/GUIDE.md#4-read-present-and-share).
 
-Two more emphasize a whole column rather than a cell, applied to the
-`<th>`: `col-signal` (the column that carries the comparison's point) and
-`col-snap` (a column meant to be read at a glance). Reaching those means
-writing the whole table in raw HTML, since Markdown cannot put a class on
-a header cell.
+## 5. Publish And Maintain
 
-**`.refs`** — a small-print block for a reference list at the end of a
-full-article file: `<div class="refs">…</div>`.
+Inputs: the approved output destination, build options, deployment scope and
+any requested upgrade. Follow [Operations](operations.md). Diagnose first;
+review overrides before template maintenance and inspect a cleanup plan
+before any authorized deletion. Publish only the intended output and assets,
+not sources or secrets. Deployment and Git push require their own authority.
 
-## Raw HTML inside a field value
+Human walkthrough: [Publish and maintain](https://github.com/Fade78/lightwebpres/blob/main/GUIDE.md#5-publish-and-maintain).
 
-A field value may contain inline HTML, and `page_title` is the usual
-reason: `page_title: The apple pie<br>What pastry changes` gives the
-index card a two-line title. Where that value is used as *text* rather
-than markup — the `<title>` element, the `<meta name="description">` —
-tags are stripped and replaced by a space, so the same value reads
-correctly in both places. (The index card's own title is a `<div>`, a
-visible rendering: it keeps the HTML, as body content does.) Nothing
-else is stripped: an unclosed tag in a field value ends up in the page.
+## 6. Integrate And Automate
 
-**Trust boundary.** Raw HTML — a `<script>` included — passes through to
-the published page. That is the contract for the *author's own* text: the
-author already owns the page (`templates/custom.css` is appended verbatim
-to it, and `template write nav.js` hands over the navigation script too).
-If the markdown you
-are assembling comes from a source the author does not control (a CMS
-export, a database, another agent's output, a third-party translation),
-sanitize it upstream before the build — LightWebPres does not filter raw
-HTML and does not claim to.
+Inputs: the client or CI environment, supported engine version, paths and
+allowed side effects. Follow [Operations](operations.md); discover options
+with `--help` and consume the versioned `contract` rather than duplicating
+the CLI or parser schema. Use JSON only on reports that support it. LWP does
+not provide native AI authoring or an MCP service; an external client owns
+those integrations, credentials, approval gates and upstream sanitization.
 
-## Typography: automatic non-breaking spaces
+Human walkthrough: [Integrate and automate](https://github.com/Fade78/lightwebpres/blob/main/GUIDE.md#6-integrate-and-automate).
 
-Under `--lang fr` (the default), `build` silently upgrades certain plain
-spaces already present in the text to non-breaking ones: before
-`; : ! ?` **and before a closing `»`**, after an opening `«`, before
-`%`, around the spaced em/en dashes of an incise, between groups of 3 digits
-in a number you've already spaced out (`170 000`), between a number and
-`million(s)`/`milliard(s)`/`dollar(s)`/`$`, and after `×`/`≈` before a
-number. Nothing to do on your end — write ordinary spaces, the build
-handles the rest. It never *inserts* spacing or digit grouping that
-wasn't already there (don't add a space just to trigger the rule), and a
-non-breaking space you type yourself always passes through unchanged.
-`--lang en` has a smaller rule set of its own — the two dash rules, a
-number followed by a metric unit or a unit word, initials, and `×`/`≈` —
-it is **not** rule-free. To mix
-languages in one article, map slide tags to packs with
-`series_meta.lang_tags`, for example `{"fr": "fr", "en": "en"}`. The first
-mapped language tag on a slide chooses that typography pack; a slide without
-one uses the build-wide `--lang`/`LWP_LANG` fallback. Built-in `fr` and `en`
-packs are available, and another pack name refers to
-`typography/<name>.json`, or the legacy `language/<name>.json`.
+## Guardrails Before Editing
 
-This alters generated content, so it can be turned off per article, in
-that article's meta block: `typo_units: off` (the unit and operator
-rules — numbers/units and `×`/`≈`), `typo_thousands: off` (the
-thousands-grouping rules; the English pack has none, so the field does
-nothing there), or `typo: off` (every rule, this article only). Each one
-names a CATEGORY, so it reaches whichever language pack is in force. Leave these out unless
-specifically asked to disable something — the default is what most
-articles want.
+- The field-to-prose switch is **one-way** within a slide. Put all fields first; scalar values occupy one physical line. Only slide `comment:` and `note:` support indented continuation.
+- Fields are values, not Markdown. Raw HTML is trusted and passed through, including scripts. Sanitize untrusted input upstream; the build is not a security filter.
+- Free text uses the documented LWP subset, **not generic CommonMark**. Markdown links require HTTP(S); `---` splits a deck, not a visual rule.
+- Every card needs a stable `slug:`. Only standard slides accept a free body; `full-article` references a separate file without LWP markers.
+- Speaker `note:` content is public in the HTML, even when hidden from normal view. `comment:` stays out of generated pages, but not out of a published source repository.
+- Keep research and editorial approval separate from format validation. An optional, externally maintained `sourced-presentation` skill can supply a method; it is not a build requirement.
 
-## Adding an article to a series
+## Common Mistakes
 
-Every article that should appear in navigation/index needs a matching
-entry in `series.json`'s `articles` array — at minimum, just one
-structural field:
+- `page-title:` is not `page_title:`; unknown meta keys can build silently. Run `audit`.
+- `tag:` is not an alias: use `kicker:` for a visible label and `tags:` for filtering.
+- `page_source`, `page_dest` and a full-article `article:` target are bare filenames, not paths such as `sources/x.md`.
+- Close code fences; write actual characters rather than entities such as `&rarr;` in ordinary text.
 
-```json
-{"page_source": "apple-pie.md"}
-```
+## Verify The Result
 
-`page_source` must be a **bare filename** — no `/`, no `..` — and is the
-only field ever required directly in `series.json`. The array order is the
-navigation/index order. `page_dest`, if you give one, must be a bare
-filename too; leave it out and it's derived from `page_source` (see "The
-meta block" above for the full cascade). The pre-v1.0 names
-`source`/`file` are rejected with an explicit migration error.
+For diagnosis and validation, read [Operations](operations.md). `--dry-run`
+journals planned effects; it is **not proof of rendered output**. Plain
+`audit` reports warnings and render failures without failing; `audit --strict`
+makes them a CI gate. Read findings, then build and inspect within scope.
+`verify` compares existing output with an in-memory rebuild using matching
+supported flags. It cannot reproduce `--inline-images`; use a separate
+non-inline output for that check. Report commands, options, findings and any
+unperformed visual or deployment checks; never call an unbuilt draft verified.
 
-Every other field — `page_dest`, `page_title`/`page_desc`,
-`card_title`/`card_desc`,
-`card_label`, `nav_title`/`nav_desc` — is read from the article's own
-meta block and content by default; add one to the `series.json` entry
-only to override it for this particular article without touching the
-file, e.g.:
-
-```json
-{"page_source": "apple-pie.md", "card_label": "Article 3 (corrected)"}
-```
-
-An `articles[]` entry cannot select or refine the presentation preset. It is
-series-wide only through `series_meta.presentation_preset`; use the per-slide
-fields above for a card-specific override.
-
-Most of these resolve down the cascade and cannot fail — but four things
-here are fatal, and they are the ones worth checking before you call a
-file done:
-
-- `page_source` must end in `.md`, and the file it names must exist in
-  `sources/`.
-- an explicit `page_dest` must end in `.html` or `.htm`, and must be a
-  bare filename.
-- two entries must not resolve to the same `page_dest` (case-insensitive).
-- a `full-article` slide's `article:` target must be a bare filename too,
-  must resolve from `sources/`, and must exist. A symlink pointing out
-  of that directory is followed by the tool and reported by `audit`.
-
-Any non-string value for one of these fields is fatal as well.
-
-`series_meta`, the object beside `articles`, holds what belongs to the
-series rather than to one article: `title`, `subtitle`, `version`, `intro`,
-`author`, `license`, `default_tag`, `scroll_duration`, `lang_tags`,
-`notes_placement`, `notes_tooltip`, `slide_page_numbers`, `slug_prefix`,
-`presentation_preset`. The optional root `presentation_presets` list names
-runtime alternatives; it is separate from `series_meta` and is not a reader
-selection. The root `themes` list follows the same build-time pattern for
-runtime themes.
-The first four drive the generated index page and `README.md`; `author` and
-`license` are the fallback for every article's byline and licence line;
-`default_tag` selects the initial tag, and `lang_tags` selects typography
-packs per slide. The optional root `themes` list selects extra runtime
-themes for `build`/`verify`/`watch`; it is a list of strings, not an article
-field. The slugs come from the effective catalogue visible to that series,
-including complete snapshots in `templates/themes/`:
-
-```json
-{
-  "series_meta": {
-    "title": "My series",
-    "intro": "What it is about.",
-    "default_tag": "fr",
-    "lang_tags": {"fr": "fr", "en": "en"}
-  },
-  "themes": ["essential", "family:terrain"],
-  "articles": [{"page_source": "apple-pie.md"}]
-}
-```
-
-Each item is a theme slug, `all`, `essential`, or a facet selector such as
-`background:light`, `fam:terrain`, or `bgh:red`. `essential` means Monochrome,
-Monochrome Night and Print Ink; if a local file shadows one of those slugs,
-the embedded version can be named `builtin:<slug>`. Several items add their
-matches; an explicit CLI `--themes` value takes precedence over this list. The
-`essential` bundle ships by default on every build — this list only adds to it
-— and `--no-essential-theme` opts out. When `settings.conf` contains property
-pins, the runtime names its first variant `custom(<theme>)` and also includes
-the raw base theme; those settings pins apply only to the custom variant.
-Theme choice is described here only as `series.json` wiring; palette design and
-build procedure belong to the guide and specification.
-
-A series-local theme snapshot is a complete `templates/themes/<slug>.conf` file;
-`series.json` names it but never contains its typed properties.
-
-`comment` also works as a `series.json` entry key, or in `series_meta`
-for a note about the series as a whole — same rule: recognized, never
-read, never published.
-
-## Always verify before calling it done
-
-Writing valid-looking LWP is not the same as writing LWP that builds.
-Run the tool on what you just wrote — this is the only reliable way to
-know it's actually correct, and it catches the mistakes above
-immediately instead of leaving them for a human to discover later:
-
-```bash
-lightwebpres audit <series-dir>   # renders in memory, reports everything, never fails
-lightwebpres build <series-dir>   # fatal on real structural errors
-lightwebpres series tags <series-dir> --format json  # inspect tag visibility without building
-```
-
-`audit` renders the series the way a build does, writing nothing, so it
-sees what only a render can say — including a series that cannot be built
-at all, which it reports without stopping. It also prints the rendered image
-inventory and warns about unused or missing local assets. It still exits 0 whatever it
-finds: **read its output, not its exit code**, unless you pass
-`--strict`. A clean `build` (exit code 0) with no `[ERROR]` lines is what
-tells you the file parses, renders and ships. If the executable isn't available in this
-environment, say so explicitly rather than presenting unverified output
-as finished — don't guess at whether it would build.
-
-When an article or its slides use `tags:`, read the `series tags` report before
-calling the series finished. It names the stable vocabulary, the effective
-article/slide intersection for each tag, the `active`/`draft`/`ignored`
-counts, and the `default_output` selected on a fresh page. Its `output` count
-is intentionally active-only; drafts and ignored entries remain useful in the
-inventory without making normal output appear visible.
-
-## Common mistakes to avoid
-
-- Wrapping a field value across two lines expecting it to join — it
-  won't; the second line becomes free text instead (a fatal build error
-  on a `cover` slide, since it has no fact-box for that text to go into
-  — at least you'll get a clear error, not silent data loss).
-- Writing `kicker:`, `summary:`, etc. **after** the fact-box body has
-  started — those lines are already free text at that point, not fields.
-  Same for a `#`/`##` heading appearing after body content has started:
-  it becomes a heading rendered *inside* the fact-box, not a rewrite of
-  the slide's own title.
-- A bare `---` expecting a visual divider. In the LWP `.md` it **splits
-  the slide**. In the full-article `.md` it does something worse: the
-  line is **dropped silently** — no `<hr>`, no split, nothing at all.
-  Write `<hr>` in both cases.
-- Typing an HTML entity (`&rarr;`, `&nbsp;`) in body text and expecting
-  it to render — `&` is escaped, so the reader sees the source. Write the
-  character.
-- A Markdown link to anything that isn't `http(s)` — it stays literal.
-- Two `series-nav` slides in one file (the second one fails the build).
-- `page_source`/`page_dest` values with a path (`sources/x.md` instead of `x.md`)
-  or anything that isn't a plain filename.
-- Opening a ` ``` ` code fence without a matching closing ` ``` ` —
-  every line after it, including the rest of the file, is swallowed as
-  code content instead of being parsed. A fatal build error catches
-  this (an unclosed tag), not silent data loss, but it's easy to trigger
-  by mistake when editing a code block's contents.
-
-## Deeper reference
-
-This skill covers only the LWP article format — writing and editing
-`.md` files. It's deliberately kept narrow to stay light on context; it
-does not cover installing, choosing a theme, building, verifying with
-`verify`/`audit`, refreshing templates, or deploying. For all of that, if
-`GUIDE.md` is present alongside this project, read it — it's the full
-walkthrough, in the order it's actually needed.
-
-For the article format itself, if `specifications.md` is present
-alongside this project, it's the complete, authoritative specification
-(sections 4 and 6 for the format itself, section 22 for every parser
-edge case) — consult it for anything this skill doesn't cover.
-
-Both of those documents, and the executable itself, live at
-<https://github.com/Fade78/lightwebpres>. This skill may well be
-installed somewhere the project isn't, so when neither file is beside
-you, that's where they are.
+If a checkout is available, use its local `GUIDE.md` for the mission routes
+above and `specifications.md` for normative details. Otherwise use the linked
+canonical guide and [specification](https://github.com/Fade78/lightwebpres/blob/main/specifications.md).
+Do not infer a checkout location from where this skill is installed.

@@ -227,8 +227,11 @@
     <label for="branch">Branch</label>
     <input type="text" id="branch" placeholder="main" value="main">
 
-    <label for="token">Personal access token (needs read_api + write_repository scopes — see specifications.md §23.11)</label>
+    <label for="token">Personal access token (api scope for Push; read_api for read-only Pull)</label>
     <input type="password" id="token" placeholder="glpat-...">
+    <p>The <code>api</code> scope grants broad API read/write access within your
+      GitLab permissions. <code>write_repository</code> covers Git-over-HTTP,
+      not this page's REST commit requests. See specifications.md §23.11.</p>
 
     <div class="checkbox-row">
       <input type="checkbox" id="rememberToken">
@@ -423,6 +426,7 @@
     rememberEl.checked = false;
     setRememberWarning(false);
     setStatus('Connection data cleared.', 'ok');
+    checkGitTarget();
   }
 
   FIELDS.forEach((f) => document.getElementById(f).addEventListener('input', saveConnection));
@@ -546,12 +550,53 @@
   let seriesDir = null;
   let gitOperation = null;
   let gitBuilt = false;
+  let snapshotTarget = null;
+  let observedTarget = connectionTarget();
+  let gitNeedsPull = false;
+
+  function connectionTarget() {
+    const { baseUrl, projectId, branch } = connectionValues();
+    return Object.freeze({ baseUrl, projectId, branch });
+  }
+
+  function sameTarget(a, b) {
+    return a !== null && b !== null && a.baseUrl === b.baseUrl
+      && a.projectId === b.projectId && a.branch === b.branch;
+  }
+
+  function hasCurrentSnapshot() {
+    return seriesDir && !gitNeedsPull && sameTarget(snapshotTarget, connectionTarget());
+  }
+
+  function checkGitTarget() {
+    const target = connectionTarget();
+    if (!sameTarget(observedTarget, target)) {
+      observedTarget = target;
+      if (seriesDir || gitOperation !== null) {
+        // Latch invalidation even if the old target is restored while awaiting an operation.
+        gitNeedsPull = true;
+        gitBuilt = false;
+      }
+    }
+    updateGitButtons();
+    if (gitNeedsPull) {
+      setStatus('GitLab target changed. Pull again before Build or Push, even if you restore '
+        + 'the previous target. Local files remain in this tab until the next Pull '
+        + '(no GitLab snapshot download). Any in-flight operation still uses its original target.', 'error');
+    }
+    return !gitNeedsPull;
+  }
+
+  [baseUrlEl, projectIdEl, branchEl].forEach((el) => {
+    el.addEventListener('input', checkGitTarget);
+    el.addEventListener('change', checkGitTarget);
+  });
 
   function updateGitButtons() {
     const busy = !pyodideReady || gitOperation !== null;
     pullBtn.disabled = busy;
-    gitBuildBtn.disabled = busy || !seriesDir;
-    pushBtn.disabled = busy || !seriesDir || !gitBuilt;
+    gitBuildBtn.disabled = busy || !hasCurrentSnapshot();
+    pushBtn.disabled = busy || !hasCurrentSnapshot() || !gitBuilt;
   }
 
   function destroyPyProxy(proxy) {
@@ -654,12 +699,16 @@
   // --- GitLab tab ------------------------------------------------------
 
   function connectionValues() {
-    return {
-      baseUrl: baseUrlEl.value.trim(),
+    let baseUrl = baseUrlEl.value.trim();
+    try {
+      baseUrl = new URL(baseUrl).href.replace(/\/+$/, '');
+    } catch (e) { /* requireConnection reports invalid instance URLs */ }
+    return Object.freeze({
+      baseUrl,
       projectId: projectIdEl.value.trim(),
       branch: branchEl.value.trim() || 'main',
       token: tokenEl.value,
-    };
+    });
   }
 
   function isSafeBaseUrl(url) {
@@ -669,6 +718,7 @@
     // network path.
     try {
       const u = new URL(url);
+      if (u.username || u.password || u.search || u.hash) return false;
       if (u.protocol === 'https:') return true;
       if (u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1')) return true;
       return false;
@@ -684,7 +734,7 @@
       return null;
     }
     if (!isSafeBaseUrl(c.baseUrl)) {
-      setStatus('GitLab instance URL must be https:// (plain http:// is only allowed for localhost/127.0.0.1) — the token would otherwise travel in clear text.', 'error');
+      setStatus('GitLab instance URL must be https:// (plain http:// is only allowed for localhost/127.0.0.1), without credentials, query or fragment.', 'error');
       return null;
     }
     return c;
@@ -694,9 +744,13 @@
     if (!pyodideReady || gitOperation !== null) return;
     const c = requireConnection();
     if (!c) return;
+    const target = connectionTarget();
 
     gitOperation = 'pull';
     seriesDir = null;
+    snapshotTarget = null;
+    observedTarget = target;
+    gitNeedsPull = false;
     gitBuilt = false;
     updateGitButtons();
     setStatus('Pulling ' + c.branch + ' from ' + c.baseUrl + '…');
@@ -713,6 +767,7 @@
         return;
       }
       seriesDir = dir;
+      snapshotTarget = target;
       // Test hook only (tests/git_sync_e2e.cjs): lets the E2E test remove a
       // local file between build and push, to verify push() never turns
       // that into a delete action against the remote (§23.12).
@@ -720,19 +775,21 @@
         window.__lwp_pyodide = pyodideReady;
         window.__lwp_series_dir = seriesDir;
       }
-      setStatus('Pulled. Ready to build.', 'ok');
+      if (checkGitTarget()) setStatus('Pulled. Ready to build.', 'ok');
     } catch (err) {
       setStatus('Pull failed: ' + err, 'error');
     } finally {
       destroyPyProxy(resultProxy);
       destroyPyProxy(pullFn);
       gitOperation = null;
-      updateGitButtons();
+      checkGitTarget();
     }
   });
 
   gitBuildBtn.addEventListener('click', async () => {
-    if (!pyodideReady || !seriesDir || gitOperation !== null) return;
+    if (!checkGitTarget() || !pyodideReady || !hasCurrentSnapshot() || gitOperation !== null) return;
+    const dir = seriesDir;
+    const language = gitLangSelect.value;
 
     gitOperation = 'build';
     gitBuilt = false;
@@ -744,7 +801,7 @@
     let resultProxy = null;
     try {
       buildFn = pyodideReady.globals.get('build');
-      resultProxy = buildFn(seriesDir, gitLangSelect.value);
+      resultProxy = await buildFn(dir, language);
       const [ok, logText, errorText] = resultProxy.toJs();
       showLog(logText || '');
 
@@ -752,20 +809,23 @@
         setStatus('Build failed: ' + errorText, 'error');
         return;
       }
-      gitBuilt = true;
-      setStatus('Build complete. Ready to push.', 'ok');
+      if (checkGitTarget() && hasCurrentSnapshot()) {
+        gitBuilt = true;
+        setStatus('Build complete. Ready to push.', 'ok');
+      }
     } catch (err) {
       setStatus('Build failed: ' + err, 'error');
     } finally {
       destroyPyProxy(resultProxy);
       destroyPyProxy(buildFn);
       gitOperation = null;
-      updateGitButtons();
+      checkGitTarget();
     }
   });
 
   pushBtn.addEventListener('click', async () => {
-    if (!pyodideReady || !seriesDir || !gitBuilt || gitOperation !== null) return;
+    // Re-read the target here too: assigning an input's value need not emit an event.
+    if (!checkGitTarget() || !pyodideReady || !hasCurrentSnapshot() || !gitBuilt || gitOperation !== null) return;
     const c = requireConnection();
     if (!c) return;
 
@@ -782,14 +842,16 @@
         commitMessageEl.value || 'Update from LightWebPres git-sync',
       );
       const [ok, summary] = resultProxy.toJs();
-      setStatus(ok ? summary : ('Push failed: ' + summary), ok ? 'ok' : 'error');
+      if (checkGitTarget()) {
+        setStatus(ok ? summary : ('Push failed: ' + summary), ok ? 'ok' : 'error');
+      }
     } catch (err) {
       setStatus('Push failed: ' + err, 'error');
     } finally {
       destroyPyProxy(resultProxy);
       destroyPyProxy(pushFn);
       gitOperation = null;
-      updateGitButtons();
+      checkGitTarget();
     }
   });
 

@@ -37,7 +37,7 @@
 
 **§9. Thèmes et personnalisation : les propriétés typées**
 
-9.1 Le principe et le vocabulaire · 9.2 Les types et les renvois · 9.3 La cascade à cinq couches et les trois fichiers · 9.3.8 Présentations compilées à la demande · 9.4 Les commandes · 9.5 Thèmes de couleurs et catalogue externe · 9.6 La couche article, et les balises d'instance · 9.7 Effets et dégradés · 9.8 Migration depuis `templates/style.css` · 9.9 Identités, kits et presets
+9.1 Le principe et le vocabulaire · 9.2 Les types et les renvois · 9.3 La cascade à cinq couches et les trois fichiers · 9.3.8 Présentations compilées à la demande · 9.3.9 Reader controls and bounded fitting · 9.4 Les commandes · 9.5 Thèmes de couleurs et catalogue externe · 9.6 La couche article, et les balises d'instance · 9.7 Effets et dégradés · 9.8 Migration depuis `templates/style.css` · 9.9 Identités, kits et presets
 
 **§10. Pipeline GitLab CI**
 
@@ -122,12 +122,12 @@ projet, au même titre que le code. Les documents normatifs et leur rôle :
   du format : portée, chaîne de repli, rendu, et les conventions de
   nommage gelées.
 - **`README.md`** (anglais) — présentation et démarrage rapide.
-- **`GUIDE.md`** (anglais) — le parcours complet côté utilisateur
-  (installer, écrire, vérifier, publier).
-- **`agent/skills/`** (anglais) — les skills, plus leur index
-  (`README.md`). `lightwebpres/SKILL.md` est la référence du format à
-  destination d'un agent LLM qui écrit ou modifie des articles ; les
-  autres portent des méthodes éditoriales et n'engagent pas le format.
+- **[GUIDE.md](GUIDE.md)** (English): the operational manual, organized by
+  user task from content creation to integration and automation. Its routes
+  describe using the product, not contributing to the engine.
+- **[agent/skills/](agent/skills/README.md)** (English): agent guidance and
+  its index. Product workflows and exact format mechanics are separate from
+  optional editorial methods; those methods do not define the format.
 - **`DECISIONS.md`** (anglais) — le registre *pérenne* des manques relevés
   et des décisions différées : ce qui doit rester trouvable « plus tard »
   y va, et y reste au travers des releases. Cette spécification y renvoie
@@ -153,11 +153,10 @@ ignoré un répertoire entier.
 Les autres fichiers `.md` ne font **pas** partie de ce
 contrat, et se répartissent dans les familles suivantes :
 
-- **transitoire** — `delete-before-1.0/JOURNAL-1.0.md`, la mémoire de
-  travail de la 1.0 : supprimée du dépôt juste avant la release. Ses
-  renvois internes en `§x.y` ne sont pas tenus à jour et peuvent pointer
-  dans le vide. `DECISIONS.md` la cite une fois, en tête, pour dire ce qu'il
-  n'est pas.
+- **Working memory**: the former `delete-before-1.0/JOURNAL-1.0.md` was
+  removed with the historical working tree on 2026-09-09. Its internal
+  references describe past documents, not the current contract. Retained
+  decisions and unresolved reports belong to `DECISIONS.md`.
 - **relevés** — des mesures avec leurs conditions, les hypothèses
   qu'elles ont tuées, une enquête datée : ce qu'une spec normative ne peut
   pas absorber sans cesser d'être une spec. Ils n'obligent rien ; en cas
@@ -166,15 +165,13 @@ contrat, et se répartissent dans les familles suivantes :
   et les relire comme des affirmations présentes est l'erreur à ne pas
   commettre.
 
-  Les relevés ne font pas partie de l'arborescence active et ne sont pas
-  distribués. Ceux qu'on conserve restent hors dépôt ; les mesures qu'ils
-  portent restent datées et ne valent pas comme affirmations présentes.
-
-  - `delete-before-1.0/` — les relevés dont le raisonnement est versé
-    ailleurs, et les plans dont le travail est fait. Le répertoire n'est
-    pas énuméré ici : ce serait reproduire le défaut que cette section
-    vient de décrire. Ce qui y entre est nommé par son chemin quand un
-    document pérenne en parle, et pas autrement.
+  These records are not part of the active documentation. New agent records
+  stay in ignored repository-local `work/`, not in a tracked archive tree.
+  The former `delete-before-1.0/` documents were tracked and therefore
+  included in older source archives, despite earlier wording saying they
+  were not distributed. Removing them from the current tree changes neither
+  Git history nor those previously distributed archives. Their measurements
+  remain dated observations, not present guarantees.
 
 - **outillage** — les fichiers qu'un outil lit : `tools/guide-deck.md`,
   le deck source du guide, compilé par `tools/build_guide.py`. Ce n'est
@@ -204,10 +201,12 @@ PNG n'en a pas : c'est une capture d'écran, elle exige un navigateur et son
 rendu n'est pas reproductible à l'octet. Elle se refait à la main quand la
 galerie change, et c'est le point faible connu de ce répertoire.
 
-`delete-before-1.0/` est un miroir de la racine : ce qui y entre reste
-consultable mais quitte l'arborescence active, git en conserve
-l'historique, et la suppression effective se fera avant la 1.0 — ce que
-son nom dit.
+The former `delete-before-1.0/` tree has been removed, not relocated into
+another shipped tree. Its exact originals were copied to the ignored local
+`work/archive-before-1.0/` before deletion and remain available in earlier
+Git revisions. `DECISIONS.md` records the cleanup dispositions, including
+unresolved design notes; historical paths identify those originals rather
+than current files.
 
 **Un document de conception ne survit pas à son absorption.** Une fois son
 raisonnement versé ici — raisonnement compris, pas seulement ses règles —
@@ -251,10 +250,12 @@ est la source de vérité) :
   deux dérogations implémentées : un déploiement sans copie vendorée va
   chercher la dernière release taguée sur GitHub, et l'utilisateur peut
   demander la bascule. La montée de version est vérifiée par ses tests.
-- **Stabilité promise.** À partir de la 1.0, les noms de champs gelés
-  (`GLOSSARY.md` § « Naming conventions », liste gelée en §20.2) et le
-  format d'entrée (`series.json`, article `.md`) sont stables au sens de la politique de versionnage (§13.9) : le GUI peut
-  s'y fier sans qu'un patch les casse.
+- **Stability promise.** From the final 1.0.0 release, frozen field names
+  (`GLOSSARY.md`, "Naming conventions", frozen list in §20.2), input formats
+  (`series.json`, article `.md`) and public JSON report contracts follow
+  §13.9. Beta releases solicit feedback and may change these contracts
+  before the final release; they do not promise compatibility with pre-beta
+  versions.
 
 - **Licence.** Ce projet est sous GPLv3 ou ultérieure, avec la
   *LightWebPres Output Exception* (`COPYING`, `COPYING.EXCEPTION`). Le GUI
@@ -271,7 +272,7 @@ est la source de vérité) :
   l'exécutable, `_find_series_dir_in_archive()` dans `git_sync.py` (§23.1).
   Il dépend aussi de la **forme** du pack de langue — le dictionnaire
   `strings`, qui est une donnée et non un symbole — et du schéma JSON
-   `lightwebpres.theme-info/5` (§11.9.1), versionné justement pour ça.
+   `lightwebpres.theme-info/6` (§11.9.1), versionné justement pour ça.
   La dépendance existe, écrite ou non ;
   l'écrire évite qu'un renommage la casse en silence, puisque la suite de
   tests d'ici ne la voit pas. Les renommer est un changement cassant pour
@@ -319,10 +320,15 @@ construit à la place, c'est une entrée.
 **Trois entrées valent mieux que la lecture linéaire**, et ce document
 n'est pas la première à essayer :
 
-- `GUIDE.md` est le parcours rédigé, en anglais, pour quelqu'un qui
-  démarre. Ce document-ci répond « qu'est-ce qui est vrai », pas
-  « comment fait-on » ; quand les deux se contredisent, c'est celui-ci
-  qui fait foi et l'autre qui se corrige (§1.1).
+- [GUIDE.md](GUIDE.md) provides six task-oriented routes in English:
+  [Create content](GUIDE.md#1-create-content),
+  [Organize a documentary collection](GUIDE.md#2-organize-a-documentary-collection),
+  [Design and compose identities](GUIDE.md#3-design-and-compose-identities),
+  [Read, present and share](GUIDE.md#4-read-present-and-share),
+  [Publish and maintain](GUIDE.md#5-publish-and-maintain), and
+  [Integrate and automate](GUIDE.md#6-integrate-and-automate).
+  The guide explains how to use the product; this specification defines its
+  behavior and remains authoritative when they disagree (§1.1).
 - `GLOSSARY.md` répond à « ce champ, il vaut quoi par défaut et d'où
   tombe-t-il ? » sans qu'on ait à trouver la section.
 - `lightwebpres resolve <nom>` répond à la même question sur **votre**
@@ -3162,6 +3168,98 @@ dialogues sont parcourables au clavier et ne laissent pas Tab sortir vers la
 page sous-jacente. Sans alternative, C reste inerte et l'action « thèmes » est
 absente du menu M.
 
+### 9.3.9 Reader controls and bounded fitting
+
+The presenter menu (**M**, or the Menu button) exposes presentation zoom
+**-**, **+**, **Reset** and the current percentage, **Wide tables**, **Text
+size**, **Reduce tables as needed** and **Reduce images as needed**.
+Keyboard **-**, **+**, **=** reduce, enlarge and reset presentation zoom;
+**O** cycles `clip`, `overflow`, `scroll`; **A** cycles `fixed`, `uniform`,
+`per-slide`. These are reader controls, not source edits. Their state survives
+closing and reopening the menu in the loaded page only; reading choices and
+presentation zoom are not stored across pages or reloads.
+
+**Author configuration.** Only `series.json`'s `series_meta.reading` sets the
+initial reading policy. It is a strict object, not an article field, theme
+property or preset selector. Omission or `{}` resolves to these defaults:
+
+```json
+{
+  "series_meta": {
+    "reading": {
+      "table_mode": "clip",
+      "text_fit": "fixed",
+      "table_shrink": false,
+      "object_shrink": false,
+      "min_text_scale": 0.75,
+      "min_table_scale": 0.85,
+      "min_object_scale": 0.85
+    }
+  }
+}
+```
+
+Partial objects fill omitted keys from those defaults. The two modes accept
+only the exact strings listed above; the two shrink switches require JSON
+booleans. Each minimum scale requires a finite JSON number in the inclusive
+range `0.5` to `1`, not a boolean or numeric string. Unknown keys, wrong types
+and out-of-range values are fatal errors naming `series_meta.reading` and the
+invalid key where applicable. Readers can change modes and switches, not the
+author's minimum scales.
+
+**Tables.** All cells remain in generated HTML. `clip` (the default, labelled
+**Hide what does not fit**) clips visually at the table viewport; it does not
+truncate data during build. `overflow` (**Allow overflow**) removes that local
+clipping. `scroll` (**Scroll inside the table**) provides a focusable local
+scrolling region. Its navigation keys, wheel and touch interactions stay in
+the table viewport, including at its edges, rather than accidentally advancing
+or scrolling the deck. Links and other interactive content retain their own
+actions. Print expands the viewport without screen clipping or local scroll
+limits; it does not promise that every table fits a sheet of paper.
+
+**Text fitting.** `fixed` (**Keep the chosen size**) preserves native responsive
+CSS sizing with no content-based fit. `uniform` (**Reduce all slides together**)
+uses one shared factor for all slides currently visible under the active tag,
+not just the slide on screen. A visible `full-article` participates too.
+`per-slide` (**Reduce each slide as needed**) computes a factor independently
+for each visible slide. The browser measures actual layout at its current
+viewport, starting from the selected presentation/theme and authored styles.
+It recalculates after viewport resize, theme/preset or tag changes, font
+loading and image loading. This is not the audit's estimate.
+
+Fitting factors range from the configured minimum to `1`, never enlarging
+content above its baseline. Text originally at least 12 CSS pixels is not
+reduced below 12 CSS pixels; a smaller authored size is not enlarged to that
+floor. Text fitting excludes table text, which follows the independent table
+scale. Optional `table_shrink` and `object_shrink` reductions have their own
+floors; supported objects are images/figures, not a general fitting contract
+for iframes, media players or buttons. An unfit slide can remain at its floor,
+including a long-form article that drives a uniform group to the minimum.
+The runtime marks remaining slide overflow with `data-lwp-fit-overflow="true"`;
+it does not hide or delete the slide's content. When fitting or shrinking is
+enabled, the reader menu reports the number of visible marked slides through
+a localized polite live region. This is not a guarantee about every embedded
+object, and no notice is drawn over slide content or printed.
+
+**Zoom and print.** Explicit presentation zoom is independent magnification;
+fitting is solved at 100% presentation zoom so it does not cancel a reader's
+zoom choice. Magnification can create overflow. Browser Ctrl/Cmd zoom and
+native pinch remain browser features, not a custom LWP pinch implementation.
+Touch-event emulation tests do not establish behavior on physical devices.
+Printing clears runtime text/table/object fitting scales and presentation
+zoom; screen state is restored afterwards. Long slides can span several
+printed sheets, and print preview remains necessary.
+
+**Audit estimates.** `audit` reports likely wide Markdown tables, including
+those in a referenced long-form article, as **ESTIMATE** warnings before reader
+scaling. Reference viewports are landscape `1024x768`, portrait `768x1024`,
+16:9 `1280x720` and 21:9 `1680x720`. Estimates use resolved size/font-size
+settings, longest-token character counts and cell/container padding;
+unsupported length expressions use registry defaults and are disclosed.
+They do not measure exact fonts, glyph metrics, custom CSS or browser layout.
+Neither a warning nor its absence guarantees fit; actual browser inspection
+with the chosen content and appearance remains the visual check.
+
 ### 9.4 Les commandes
 
 Le détail CLI (options, codes de sortie) est en §11 ; cette section fixe
@@ -4293,13 +4391,16 @@ pas compatible.
 
 ### 9.9 Identités, kits et presets
 
-Une **identité** regroupe des choix de présentation. L'identité native
-`builtin`, libellée **LightWebPres**, propose le preset `standard` et le thème minimal **Light** ;
-**Commons** regroupe les thèmes du catalogue global et des presets à layouts
-natifs. Un **kit d'identité** est un arbre versionné autonome qui possède ses
-layouts, son chrome, ses assets, ses thèmes typés et son CSS structurel contraint.
-Un **preset** lie un thème et les défauts des quatre types de fiche. Les trois
-notions sont distinctes : Identity, Preset, Theme dans le sélecteur d'apparence.
+An **identity** owns presentation resources. The native identity `builtin`,
+labelled **LightWebPres**, provides the `standard` preset and minimal **Light**
+theme. **Commons** is a shared collection of global themes and native-layout
+presets, never an identity: its presets use the native LightWebPres identity.
+An **Identity Kit** is a self-contained versioned tree that owns its layouts,
+chrome, assets, typed themes and constrained structural CSS. A **preset** binds
+a theme and defaults for the four slide types. Identity, Preset and Theme are
+distinct controls in the appearance picker. Resource collection (`builtin`,
+`commons` or `kit`) is separate from loading origin (built-in, installed, user
+or series-local); neither renames the owning identity.
 
 LWP conserve le shell `<html>`, `<head>`, `<body>`, `<section>`, les scripts,
 la navigation et les liens. Un kit ne reçoit que les enveloppes de contenu et
@@ -5877,7 +5978,7 @@ slugs ou `--all`, c'est une **liste** de ces objets, dans l'ordre demandé.
 
 | Clé | Type | Sens |
 |---|---|---|
-| `schema` | chaîne | `lightwebpres.theme-info/5` — le nom porte encore la clé de dispatch historique `theme-info`, et c'est voulu : c'est ce que le GUI teste pour distinguer un exécutable ancien d'un neuf, au lieu de le deviner aux clés qu'il trouve. Le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
+| `schema` | string | `lightwebpres.theme-info/6`: the public report contract identifier. Breaking changes require a new schema; compatible optional additions do not (§13.9). Version 6 reports the native series preset explicitly as `builtin/standard`, not `null` |
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
 | `label` | chaîne ou `null` | l'étiquette affichable du thème ; `null` si aucun thème n'est nommé |
@@ -6159,11 +6260,11 @@ La sortie texte est le défaut et vise la lecture humaine.
 
 | Clé | Type | Sens |
 |---|---|---|
-| `schema` | chaîne | `lightwebpres.series-info/3` — là encore le nom porte la clé de dispatch historique. Même promesse que celle de `theme show` : le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
+| `schema` | string | `lightwebpres.series-info/4`: the public report contract identifier, following §13.9. This baseline includes `series_meta.reading`, explicit native references and the renamed `presentation.native_renderer` flag |
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
 | `series_meta` | objet | les champs de §20.5 — dont `title`, `subtitle`, `version`, `intro`, `author`, `license`, `scroll_duration` et `presentation_preset` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
-| `presentation` | objet | le rapport complet du preset résolu, de schéma `lightwebpres.presentation-preset/1` (§11.18) |
+| `presentation` | object | The complete resolved preset report, with schema `lightwebpres.presentation-preset/2` (§11.18) |
 | `counts` | objet | un nombre par statut de §20.6 — `active`, `draft`, `ignored` — dont la somme est la liste entière. Un article `ignored` est toujours *dans* le fichier de série : le sortir discrètement de l'arithmétique ferait paraître la série plus petite qu'elle n'est |
 | `tags` | objet | l'inventaire de visibilité défini en §11.11.1, identique à la réponse de `series tags` sans son enveloppe `schema`/`target` |
 | `articles` | liste | un objet par article, **dans l'ordre de `series.json`** (ci-dessous) |
@@ -6648,17 +6749,29 @@ lightwebpres series preset [répertoire] [--format text|json]
 lightwebpres series preset set [répertoire] --preset <builtin/standard|commons/id|id@version/preset> [--keep-theme|--use-preset-theme]
 ```
 
-`preset list` expose les choix complets du catalogue global : `builtin/standard`,
-presets Commons et presets des kits, jamais des fragments isolés. `preset show`
-décrit un choix sans écrire de série : identité et scope calculé, thème, défauts de
-layouts et de chrome, starter éventuel. Les rapports JSON stables sont
-`lightwebpres.preset-list/1` et `lightwebpres.presentation-preset/1`.
+`preset list` exposes complete choices from the global catalogue:
+`builtin/standard`, Commons presets and kit presets, never isolated fragments.
+`preset show` describes one choice without writing a series: identity and
+calculated scope, theme, layout and chrome defaults, and optional starter.
+The JSON contracts are `lightwebpres.preset-list/2` (a `presets` array of
+reports) and `lightwebpres.presentation-preset/2` (one report).
 
-`series preset` résout le catalogue de la série, donc aussi
-`templates/kits/` et `templates/commons/`, et rapporte le choix que son prochain build emploierait
-sous `lightwebpres.series-preset/1`. Il n'écrit rien. `status` et
-`series status` exposent ce même contexte résolu dans leur rapport de série
-(§11.11).
+Each preset report exports `native_renderer`, a boolean taken from the
+renderer choice: `true` for native Standard and Commons presets, `false` for
+kit presets, including kits using native layout fragments. It is not an
+initial-selection flag. The former public key `default` is absent, with no
+alias. `selector` is explicit, including `builtin/standard`;
+`package.default_preset` names the package's preferred local preset, not the
+series selection. Select by reference, not by inferring a choice from
+`native_renderer`.
+
+`series preset` resolves the series catalogue, including `templates/kits/`
+and `templates/commons/`, and reports the next build's choice under
+`lightwebpres.series-preset/2`, with the complete report in `preset`. It
+writes nothing. `status` and `series status` expose that same resolved
+context in their series report (§11.11). These schema versions establish
+the native-identity producer baseline; consumers must adapt, not expect
+legacy aliases or adapters.
 
 `series preset set` sélectionne un preset sans jamais appliquer son starter.
 Il valide le sélecteur, vendorise un kit sous
@@ -7116,39 +7229,53 @@ hash amont avant de copier** — jamais `latest` sans contrôle.
 
 ### 13.9 Politique de versionnage
 
-Le numéro de version (constante `VERSION` de l'exécutable, affichée par
-`--help` et par le build stamp) suit le **versionnage sémantique**
-`MAJEUR.MINEUR.CORRECTIF`. Ce que chaque incrément promet, à partir de la
-1.0 :
+The product version (`VERSION` in the executable, displayed by `--version`,
+`--help` and the build stamp) follows **Semantic Versioning**:
+`MAJOR.MINOR.PATCH`, optionally followed by `-prerelease` and `+build`.
+Prerelease identifiers use numeric comparison when both are numeric;
+numeric identifiers precede non-numeric ones, which compare lexically in
+ASCII order. A longer equal-prefix prerelease follows a shorter one, and a
+final release follows its prereleases. Thus `1.0.0-beta.1 < 1.0.0-beta.2 <
+1.0.0-beta.10 < 1.0.0-rc.1 < 1.0.0`. Build metadata does not affect
+precedence. This product policy does not broaden the separate kit-version
+grammar in §9.9: kit references still use `MAJOR.MINOR.PATCH` only.
 
-- **CORRECTIF** (`x.y.Z`) : corrections de bugs, durcissements, sans
-  changement d'API ni de format. Peut modifier le **HTML de sortie** (une
-  correction de rendu, un ajustement de style) — ce n'est **pas** garanti
-  stable à l'octet (voir ci-dessous).
-- **MINEUR** (`x.Y.0`) : nouvelles fonctionnalités **rétrocompatibles** —
-  un nouveau champ optionnel, une nouvelle option de commande, un nouveau
-  thème. Une série valide pour `x.Y` le reste pour `x.Y+1`.
-- **MAJEUR** (`X.0.0`) : changement **incompatible** du contrat d'entrée —
-  renommer/supprimer un champ gelé (§20.2), changer la sémantique de la
-  cascade (§20.3.1), retirer une commande ou une option. C'est exactement
-  ce qui a motivé le gel de nomenclature avant la 1.0.
+From the **final 1.0.0** release:
 
-**Le contrat stable, c'est l'entrée, pas la sortie.** Sont garantis
-stables au sein d'une même version MAJEURE : les noms et la portée des
-champs (`GLOSSARY.md` § « Naming conventions », liste gelée en §20.2),
-la structure de `series.json`, le format de l'article `.md`, les commandes et options de la CLI, les variables `LWP_*`. Le
-**HTML produit**, lui, peut changer entre deux CORRECTIFs (amélioration de
-style, de sémantique, d'accessibilité) : c'est pourquoi `verify` (§11.4)
-signale une dérive normale après une montée de version, jusqu'au prochain
-`build` — ce n'est pas une régression, mais le comportement attendu. Un
-build reste **reproductible à l'octet pour une version donnée** (§13.3),
-ce dont `verify` dépend ; la reproductibilité ne traverse pas les versions.
+- **PATCH** (`x.y.Z`): bug fixes and hardening without incompatible API or
+  format changes. Generated HTML may change, including rendering and style
+  corrections; cross-version byte identity is not promised.
+- **MINOR** (`x.Y.0`): backward-compatible features, such as an optional
+  field, a command option or a theme. A valid series remains valid.
+- **MAJOR** (`X.0.0`): incompatible public-contract changes, such as removing
+  or renaming a frozen field (§20.2), changing cascade semantics (§20.3.1),
+  removing a command or option, or breaking a public JSON report contract.
 
-Avant la 1.0, toutes les releases sont des **préversions** : le format a
-pu bouger d'une mineure à l'autre (c'est la phase de stabilisation qui
-s'achève avec le gel des noms de champs (§20.2). La 1.0 est le premier
-engagement de stabilité
-au sens ci-dessus.
+**Input formats and public machine-readable reports are contracts;
+generated HTML is not a stable API.** Within one final-release major
+version, the stable surface includes field names and scope (`GLOSSARY.md`,
+"Naming conventions", and §20.2), `series.json`, article `.md` grammar,
+CLI commands and options, `LWP_*` variables, and documented public JSON
+report keys, types and meanings. Each report's `schema` identifies its
+contract independently of the product version. Removing or renaming a key,
+changing its type or meaning, or breaking a nested report requires a new
+schema identifier, including affected envelopes. Compatible optional
+additions may keep the identifier; consumers must tolerate unknown keys.
+A schema bump signals a breaking change, not a compatibility adapter.
+
+Generated HTML, CSS and JavaScript can change between patch releases to
+improve style, semantics or accessibility. Consequently, `verify` (§11.4)
+may report expected drift after an upgrade until the next `build`.
+Reproducibility for a fixed tool version follows §13.3; it does not promise
+identical output across tool versions.
+
+**Before final 1.0.0, including beta and release candidates, the contracts
+remain candidates.** Beta intentionally invites feedback that may change
+inputs, CLI behavior or public JSON before the final release. Compatibility
+with pre-beta versions or between prereleases is not promised. Breaking
+report changes still receive new schema identifiers so consumers can detect
+and adapt to them. Final 1.0.0 starts the stability commitment above; a beta
+version number does not start it early.
 
 ---
 
@@ -9112,18 +9239,15 @@ location /api/ {
 
 ### 23.11 Jeton d'accès personnel
 
-Scopes nécessaires : **`read_api` + `write_repository`**, pas `api`. Le pull
-(`repository/archive.zip`, `repository/tree`) relève de la « Repositories
-API » de GitLab, qui n'accepte pas le scope `read_repository` — une
-limitation encore ouverte côté GitLab (ticket `read_repository` scope for
-Repositories API, #28324) — d'où `read_api` (accès lecture à toute l'API,
-plus étroit que `api` mais plus large que `read_repository`). Le push
-(`repository/commits`, l'API Commits) accepte en revanche bien
-`write_repository`, pas besoin de `api` pour cette partie. Un jeton limité
-à `read_repository`/`write_repository` seuls (sans `read_api`/`api`) ne
-suffit donc pas aujourd'hui : le pull échouera avec une erreur
-d'insuffisance de scope. Si une instance GitLab plus ancienne échoue même
-avec `read_api`, `api` reste le repli à essayer.
+Required scope for Pull/Build/Push: **`api`**. Read-only Pull can use
+**`read_api`** for the repository archive and tree endpoints. Push creates
+commits with `POST /projects/:id/repository/commits`, a REST API write:
+`write_repository` grants Git-over-HTTP access, not REST API authentication
+for commit creation. Consequently, `read_api` + `write_repository` is not
+sufficient for Push. The `api` scope grants broad API read/write access
+within the token owner's GitLab permissions, not just repository writes;
+project roles and protected-branch rules still apply. See GitLab's
+[access token scopes](https://docs.gitlab.com/security/tokens/access_token_scopes/).
 
 Le jeton est saisi dans un champ de la page, jamais passé en
 paramètre d'URL (ça finirait dans l'historique du navigateur et les logs du

@@ -32,3 +32,11 @@ The kit is deliberately not installed into the user's catalogue. Keeping
 its physical `kits/<id>/<version>/` namespace here makes the example
 inspectable, versioned and available to the guide build without changing a
 user's global environment.
+
+For the user workflow, follow
+[Design and compose identities](../../GUIDE.md#3-design-and-compose-identities).
+For explicit assembly from several independent kits, use the
+[Field Notes composition example](../kit-composition/README.md). The
+[presentation glossary](../../GLOSSARY.md#presentation-vocabulary) distinguishes
+identity ownership, resource collection and loading origin: Commons is a shared
+collection, not another identity.

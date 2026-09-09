@@ -33,6 +33,84 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.57.0
+
+### Reader Controls
+
+The presenter menu now exposes presentation zoom **-**, **+**, **Reset** and
+the current percentage, wide-table handling, text fitting and independent
+table/image shrink switches. **O** cycles clipping, overflow and local table
+scrolling; **A** cycles chosen sizes, shared reduction and per-slide reduction.
+Scrolling tables keep keys and gestures inside their own viewport rather than
+accidentally navigating the deck. Every table cell remains in the HTML; default
+clipping is visual only.
+
+The strict `series_meta.reading` object sets initial choices and bounded
+reduction limits. Defaults retain native responsive sizes without content
+fitting, clip wide tables and leave optional table/image shrinking off.
+Fitting measures actual browser layout after resize, theme/preset/tag changes
+and font/image loading. Uniform fitting includes all currently visible slides,
+including long-form content; a slide still too large at the floor stays
+available to scroll. Presentation zoom remains independent magnification and
+native pinch remains browser zoom. Reading choices and presentation zoom last
+only in the loaded page, not across page navigation or reloads.
+
+Foreground controls remain usable while presentation content is magnified.
+Multitouch no longer triggers slide navigation, long articles preserve their
+relative reading position across viewport changes, and footnote links reach
+their inner targets rather than the beginning of the containing slide.
+
+Print clears runtime fitting scales and presentation zoom, hides foreground
+panels, and expands table viewports without screen clipping. Wide Markdown-table
+audit warnings are explicit **ESTIMATE** findings at four reference viewports,
+accounting for size/font-size settings but not exact browser measurements or
+guaranteed fit.
+
+### Publication Safety
+
+Filename and manifest validation no longer interpret backslashes differently:
+ambiguous names are refused before a build or cleanup can target another file.
+Template refresh protects existing navigation backups, and incremental builds
+bind their cache to the output directory and check retained pages and assets.
+An unsafe cache hit falls back to a complete build.
+
+The browser GitLab workflow binds its loaded snapshot to the originating
+instance, project and branch. Changing that destination requires another Pull;
+an in-flight operation keeps its captured target. REST Push permission guidance
+now requires `api`, while `read_api` supports a read-only Pull.
+
+Product prerelease identifiers are supported by release checks. Public report
+schemas establish a new identity baseline, and preset reports expose
+`native_renderer` rather than confusing native rendering with default selection.
+The preset, preset-list and series-preset schemas are version 2; series-info is
+version 4 and theme-info is version 6.
+Historical working documents are retained locally outside the tracked tree;
+their unresolved questions and superseded viewport decisions remain recorded
+in `DECISIONS.md`.
+
+### Documentation Journeys
+
+The README and guide now route readers by task: create content, organize a
+documentary collection, design and compose identities, read and present,
+publish and maintain, or integrate and automate. The guide keeps operational
+instructions together, with direct chapter links from the field glossary and
+specification. Contributor rules remain in `AGENTS.md`, outside these user
+journeys.
+
+The Field Notes example composes selected layout and structural CSS, chrome
+and compass artwork, and a typed paper theme from three independent source
+kits into one self-contained kit. Its recipe names the final resources
+explicitly; the result needs neither the source kits nor the recipe at runtime.
+Browser captures show the same article with native LightWebPres, the official
+documentation kit and Field Notes, plus a source-to-result composition diagram.
+The capture script and hash manifest make the illustrations regenerable from
+the examples rather than hand-built mockups.
+
+Agent guidance separates product workflows, exact LWP syntax and optional
+editorial methods. The glossary is fully in English and distinguishes identity
+ownership, resource collection and computed loading origin: Commons is a
+shared collection, never an identity, and its presets use native LightWebPres.
+
 ## Unreleased — 0.56.0
 
 Builds publish named presets from the native identity, Commons and autonomous

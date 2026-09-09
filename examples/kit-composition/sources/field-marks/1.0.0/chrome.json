@@ -1,0 +1,11 @@
+{
+  "models": {
+    "masthead": {
+      "slot": "header",
+      "items": [
+        {"kind": "icon", "asset": "presentation:compass", "label": "Compass rose"},
+        {"kind": "text", "slot": "text"}
+      ]
+    }
+  }
+}

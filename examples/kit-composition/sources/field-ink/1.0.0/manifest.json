@@ -1,0 +1,29 @@
+{
+  "schema": "lightwebpres.identity-kit/1",
+  "id": "field-ink",
+  "version": "1.0.0",
+  "label": "Field Ink",
+  "default_preset": "paper",
+  "layouts": {
+    "cover": {"default": "builtin:standard"},
+    "standard": {"default": "builtin:standard"},
+    "series-nav": {"default": "builtin:standard"},
+    "full-article": {"default": "builtin:standard"},
+    "index": "builtin:standard"
+  },
+  "themes": {"paper": "themes/paper.conf"},
+  "presets": {
+    "paper": {
+      "label": "Paper and Ink",
+      "description": "A complete Print Old Press theme snapshot on native layouts, without chrome.",
+      "theme": "paper",
+      "slide_layouts": {
+        "cover": "default",
+        "standard": "default",
+        "series-nav": "default",
+        "full-article": "default"
+      },
+      "slide_chrome": {}
+    }
+  }
+}

@@ -94,7 +94,8 @@ class IdentityKits(unittest.TestCase):
     def test_selector_grammar_has_no_native_aliases(self):
         for value in ('default', 'builtin', 'builtin/default',
                       'builtin@1.0.0/standard', 'commons@1.0.0/brief',
-                      'commons/a/b', 'commons/', 'studio/brief'):
+                      'commons/a/b', 'commons/', 'studio/brief',
+                      'studio@1.0.0-beta.1/brief', 'studio@1.0.0+build.1/brief'):
             with self.subTest(value=value), self.assertRaises(self.lwp.PropertyError):
                 self.lwp.parse_presentation_preset_selector(value, 'test')
         result = fixtures.run('preset', 'show', 'default')
@@ -137,6 +138,9 @@ class IdentityKits(unittest.TestCase):
                                   'LWP_IDENTITY_KITS_DIR': str(root.parent.parent)})
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
+        self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/2')
+        self.assertFalse(report['native_renderer'])
+        self.assertNotIn('default', report)
         self.assertEqual(report['selector'], 'studio@1.0.0/brief')
         self.assertEqual(report['package']['default_preset'], 'second')
         self.assertEqual(report['package']['label'], 'Studio')
@@ -232,6 +236,24 @@ class IdentityKits(unittest.TestCase):
         candidates = self.lwp._presentation_runtime_presets(catalog, preset, None, 'test')
         self.assertEqual([p.selector for p in candidates],
                          ['commons/night', 'builtin/standard'])
+
+    def test_public_native_renderer_does_not_mean_initial_selection(self):
+        self._commons(root=self.root / 'library' / 'commons')
+        listed = fixtures.run('preset', 'list', '--format', 'json')
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        listing = json.loads(listed.stdout)
+        self.assertEqual(listing['schema'], 'lightwebpres.preset-list/2')
+        reports = {report['selector']: report for report in listing['presets']}
+        for selector in ('builtin/standard', 'commons/night'):
+            shown = fixtures.run('preset', 'show', selector, '--format', 'json')
+            self.assertEqual(shown.returncode, 0, shown.stderr)
+            report = json.loads(shown.stdout)
+            self.assertEqual(report, reports[selector])
+            self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/2')
+            self.assertIs(report['native_renderer'], True)
+            self.assertNotIn('default', report)
+        self.assertNotEqual(reports['commons/night']['id'],
+                            reports['commons/night']['package']['default_preset'])
 
     def test_commons_theme_is_not_dropped_by_native_renderer_flag(self):
         self._commons()

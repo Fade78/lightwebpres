@@ -2,9 +2,11 @@
 
 The **permanent** register of what this project has decided, and of what
 it has not decided yet: defects with no urgency, change requests, format
-questions still open. Unlike `delete-before-1.0/JOURNAL-1.0.md` (the 1.0
-working memory, deleted at release), this file outlives releases —
-anything that has to be findable "later" goes here, not in the journal.
+questions still open. Unlike the former 1.0 working journal, this file
+outlives releases: anything that has to be findable "later" goes here.
+Historical paths under `delete-before-1.0/` below identify originals retained
+in earlier Git revisions, not files in the current tree. See Historical
+Archive Dispositions for their local preservation and unresolved questions.
 
 Every entry says what has been **verified** and what remains to be
 **decided**.
@@ -99,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 7 · **à faire** 0 · **en cours** 1 · **terminé** 55 · **abandonné** 1 · **sans objet** 3
+**à étudier** 10 · **à faire** 0 · **en cours** 1 · **terminé** 55 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -110,6 +112,9 @@ gets its own entry and its own state**, however small.
 - **B35** — Reaching a verdict class without writing HTML
 - **B36** — The engine can halo 32 components; the catalogue haloes three
 - **B50** — Soft animation of cover colours
+- **B64** — Historical fact-heading report needs its original case
+- **B65** — The historical pop-rose proposal has no recorded disposition
+- **B66** — Unreconciled archive design options remain deferred
 
 ### en cours
 
@@ -222,13 +227,72 @@ impossible to tell whether they are late.
 They are not late. Nothing here is on a clock. Two consequences worth
 stating so nobody has to rediscover them:
 
-- `delete-before-1.0/` and its 44 files stay where they are. The name
-  promises a deletion, not a deadline.
+- Retaining `delete-before-1.0/` was not tied to a release date. That
+  retention decision was superseded by the owner's bounded cleanup request
+  on 2026-09-09, with exact local preservation before removal.
 - An entry may be decided whenever the decision is ripe, and implemented
   whenever it is worth implementing. Being pre-1.0 is what makes that
   ordering free — see the note above on what it does *not* excuse.
 
 ---
+
+## Historical Archive Dispositions
+
+**Cleanup decision, 2026-09-09.** Remove the 44 tracked files formerly under
+`delete-before-1.0/`, after checking that neither the worktree nor the index
+contains changes to them. Preserve the exact tree first in ignored local
+`work/archive-before-1.0/`; the copy was compared byte for byte before
+deletion. Earlier Git revisions retain the originals too. This is removal
+from the current tree, not history erasure, and the local archive is not a
+new shipped documentation route. Older source archives included these files.
+
+The disposition is by subject, not by whether an old checklist says "done":
+
+- **Viewport study** (`ETUDE-VIEWPORT.md`): B13 now records both reversals
+  after the original `50ch` experiment, through the current `84vw` default,
+  and the measurement blind spots. The complete tables and later rendering
+  investigations remain in the exact original; their numbers are historical.
+- **Theme survey and revision** (`ANTERIORITE-THEMES.md`,
+  `REVISION-THEMES.md`, `themes-revision/`): the architecture rationale is in
+  spec §9.1 and §9.8; B5, B6 and B9 retain palette fidelity, navigation
+  visibility, rejected palette removals and the narrowly applied typography
+  pass. B10, B11 and B36 retain known catalogue uncertainties. The 31 layers
+  and `blocks.txt` are historical snapshots, not pending wholesale imports:
+  B9 records why importing all 541 values would undo later work. Unreconciled
+  design suggestions are deferred in B66, not silently declared delivered.
+- **CLI proposal, decisions, plan and review** (`newargs/`): the contract
+  was absorbed into spec §2.4 and §11. Preserve the reasons for the rejected
+  alternatives: `theme` does not mutate a series; `--theme` uses one name
+  throughout; `audit --templates` avoids a second partial inspection command;
+  `--serve` is opt-in and loopback-only; deletion is explicit, not hidden in
+  a build. `--quiet` suppresses progress, never the requested value; write
+  helpers own dry-run behavior. C1 resolves the plan's stale AST-test doubt;
+  C2 retains the deliberately excluded article-editing commands. The review's
+  unchecked final checklist is not fresh evidence of failing tests.
+- **Correction plan** (`docs/PLAN-CORRECTIONS-2026-08-17.md`): its lot table
+  records delivery; B19 retains and resolves the audit/build warning gap.
+  The method still matters: test rendered effects, exercise the whole
+  population, and prove guards against mutations. Its old branch, release
+  and sibling-GUI observations do not authorize repository operations now.
+- **Theme proposals** (`docs/THEMES-A-ECRIRE-2026-08-17.md`): B20/B21 retain
+  the halo-coverage and polarity decisions, and B36 the remaining catalogue
+  question. The original explicitly excepted `pop-rose` from delivery; B65
+  preserves its palette, measurement conditions and undecided disposition.
+- **Presentation plan** (`docs/presentation-plan.md`): C3/C4 retain the
+  delivered tag/kicker split, variant filtering and subsequent corrections.
+  Its proposed promotional decks remain optional editorial material, not a
+  public contribution route or a new release checklist; disposition is
+  deferred in B66 rather than inferred from the current guide.
+- **Journal and old agent guide** (`JOURNAL-1.0.md`, `AGENTS.md`): current
+  specification, glossary, licensing files and root `AGENTS.md` supersede
+  their process and format instructions. B1-B9 retain the early feature and
+  theme decisions. The journal's contradictory fact-heading report remains
+  explicit known uncertainty in B64. Historic release numbering, test counts
+  and sibling-GUI synchronization notes are not current status reports.
+
+No exhaustive fresh browser, external-source or sibling-project review was
+performed for this cleanup. Where absorption is uncertain, keep the exact
+original and defer the decision (B66); file removal does not close a question.
 
 ## B1 — Mid-paragraph image with a title
 
@@ -493,7 +557,7 @@ that scores low, it is a palette shown on a ground its authors never chose
 here, for want of an official light one") and nobody had measured the
 consequence. Four of them — `dracula`, `tokyo-night`, `monokai`,
 `everforest` — have since been returned to their own dark grounds, which
-appendix A of `delete-before-1.0/REVISION-THEMES.md` establishes as a
+appendix A of the former `delete-before-1.0/REVISION-THEMES.md` recorded as a
 **restoration** of fidelity rather than a correction of a score. Whether
 the remaining three should follow is the same question, and it is the only
 one this entry leaves open.
@@ -721,8 +785,8 @@ reference. That is the reference working, and it is declared in the
 render guard rather than absorbed.
 
 **Report delivered and verified** (`c4156e8`):
-`delete-before-1.0/REVISION-THEMES.md`, with 31 validated property layers
-in `delete-before-1.0/themes-revision/`. It covered the historical
+the former `delete-before-1.0/REVISION-THEMES.md`, with 31 validated property
+layers formerly under `delete-before-1.0/themes-revision/`. It covered the historical
 catalogue of 33 themes; the registry now carries 57.
 
 **Three of its decisions are settled.**
@@ -755,10 +819,11 @@ Half of that sentence was never about levels and survives on its own:
 **visual families such as `pop`, halo and monochrome are editorial
 categories**, and `theme show` remains the measured report.
 
-**What is actually left, and it is all typography:** the per-theme blocks
-— named display faces, tracking, cover gradients, the two extra halos.
-They are in `delete-before-1.0/themes-revision/`, 31 of them, all verified
-to resolve. That is the work; it needs no pass structure and no floor.
+**What was left before the 2026-08-20 pass:** the per-theme blocks' named
+display faces, tracking, cover gradients and two extra halos. The 31
+historical layers were verified to resolve then; the selected values were
+subsequently applied as recorded above. Their local/history preservation
+does not make the remaining snapshot values a pending import.
 
 The one hard floor in the project is elsewhere and has nothing to do with
 this entry: navigation furniture clears 3:1 because an invisible progress
@@ -850,7 +915,38 @@ ground a black shadow is not a shadow, it is nothing at all.
 **État :** terminé
 
 **Done: exposed, not exempted.** `page.content-max` is an ordinary length
-property, default **`50ch`** — a measure, not a pixel width. The old
+property, currently defaulting to **`84vw`**, not `50ch` and not a fixed
+1100px ceiling. The cleanup checked the registry and ran the `ContentMeasure`
+tests; it did not repeat the historical browser measurements below.
+
+**The two reversals matter.** The original `50ch` experiment gave a shared
+custom property different pixel widths at different consuming font sizes:
+roughly 800px for a 32px title and 450px for 18px body text. The character
+counts improved, but the card lost its common inner edge. The owner reported
+that visual defect, and the default returned to `min(84vw, 1100px)`. A shared
+width must resolve consistently across components; per-line counts alone
+cannot establish that.
+
+The 1100px ceiling then proved too narrow for a fullscreen deck: the study
+recorded 57% screen use at 1080p and 29% at 4K. Width and type ceilings came
+off together: `84vw`, proportional `vmin` type, with the type coefficients
+raised by 1.35 and the phone-size floors retained. The study measured the
+same character counts at 1080p and 4K. Uncapping width alone lengthens lines;
+uncapping type alone shortens them. This is a deck-layout choice, not a
+claim that every article or viewport meets a character-count target.
+
+Later investigations in the same original counted all rendered sizes, not
+only the first eight registry properties; checked common centres for the key
+figure and series list; distinguished lengths drawn against glyphs from
+fixed chrome; and tested actual alignment, focus, contrast and printed pages
+rather than emitted declarations alone. A DOM measurement must not collapse
+different elements under one signature, and a regression fixture must carry
+the footer or other condition that exposed the defect. The exact study is
+preserved locally and in Git history, including its unverified mobile
+browser-chrome behavior. Those lessons survive; its old live status does not.
+
+**Original experiment, before those reversals.** The following figures
+describe the historical `50ch` configuration, not the current default. The old
 `min(84vw, 1100px)` rendered 106 characters per line for the card summary
 on a laptop and 127 for the article paragraph, against a WCAG 1.4.8 (AAA)
 ceiling of 80; the article was the worst offender and was not even
@@ -863,7 +959,7 @@ size. Measured across fifteen viewports, characters per line become
 viewport-invariant.
 
 Two things came with it, neither in the original entry, both found by
-measuring rather than reasoning (`delete-before-1.0/ETUDE-VIEWPORT.md`):
+measuring rather than reasoning (the former `delete-before-1.0/ETUDE-VIEWPORT.md`):
 
 - **The fluid type clamps moved from `vw` to `vmin`.** On `vw`, rotating
   a phone shortens the viewport *and enlarges the type*, so 6 cards in 8
@@ -1153,22 +1249,23 @@ someone decides that default.
 **État :** terminé · **Version :** v0.33.2
 
 **Type:** test d'architecture.
-**Signalé dans:** `delete-before-1.0/newargs/PLAN-CLI.md` §6 Phase 3 (ligne 199), comme non
-implémenté. Le test `test_no_bare_filesystem_write_outside_helpers`
-(`tests/test_lightwebpres.py`) est bien un balayage AST du source : il
-interdit `.write_text()` et `.mkdir()`, ainsi que les copies `shutil`, hors
-des helpers `_write_file`, `_mkdir`, `_copy` et `_copytree`. Il couvre donc
-l'intention de l'entrée ; aucun second test AST n'est nécessaire.
+**Historical report:** the former `delete-before-1.0/newargs/PLAN-CLI.md`,
+section 6, Phase 3 (line 199), called it unimplemented. The test
+`test_no_bare_filesystem_write_outside_helpers` (`tests/test_lightwebpres.py`)
+does scan the source AST: it prohibits `.write_text()`, `.mkdir()` and
+`shutil` copies outside `_write_file`, `_mkdir`, `_copy` and `_copytree`.
+It covers the entry's intent; no second AST test is needed.
 
-Vérifié le 2026-08-15.
+Verified on 2026-08-15.
 
 ## C2 — `series article add/remove/set`
 
 **État :** abandonné
 
-Hors périmètre de la refonte CLI v0.24 (`delete-before-1.0/newargs/PLAN-CLI.md` §7).
-Nécessite son propre cahier des charges ; ce n'est pas une dette mais une
-décision de périmètre. Non implémenté et volontairement absent.
+Excluded from the v0.24 CLI redesign (the former
+`delete-before-1.0/newargs/PLAN-CLI.md`, section 7).
+It requires its own requirements document; this is a scope decision, not
+technical debt. Unimplemented and deliberately absent.
 
 ---
 
@@ -1249,9 +1346,10 @@ Ce qui reste volontairement ouvert :
   (inline scripts + wasm + connect-src arbitraire = protection faible pour
   un risque de casse élevé ; pas de sink innerHTML à protéger). À revisiter
   si la page passe à des scripts nonce'd.
-- **Déploiement « racine du dépôt »** : copier tout le dépôt tel quel sous
-  une racine HTTP expose `.git/`, `delete-before-1.0/` et les tests ; la mise
-  en page sûre (servir `web/` seul) est documentée dans le README.
+- **Repository-root deployment**: serving the entire checkout exposes
+  `.git/`, tests and local working material, including any local archive.
+  Removing the historical tracked tree does not make that deployment safe;
+  serve `web/` alone as documented in the README.
 - **E2e navigateur** : exécuté le 2026-08-15 sur un poste avec Node +
   Playwright global — les 13 tests du volet navigateur passent (dont le
   menu de variantes et les axes `note.*` ; le comparateur du test `note`
@@ -1266,9 +1364,9 @@ l'ancienne section C3 est historique et ne s'applique plus.
 **État :** terminé · **Version :** v0.37.0
 
 Recorded here on 2026-08-18 because it was the one open point left in
-`delete-before-1.0/docs/PLAN-CORRECTIONS-2026-08-17.md`, a design document whose lots are
-all delivered and which is therefore leaving the active tree. The point
-itself was never settled, so it moves rather than goes.
+the former `delete-before-1.0/docs/PLAN-CORRECTIONS-2026-08-17.md`. Its lots
+had been delivered, but this point had not been settled when the document
+was absorbed, so it was retained here rather than discarded.
 
 `--strict` inverts the exit code on the slightest warning, and is
 documented as a CI gate. But `audit` never compiles anything, so warnings
@@ -1346,8 +1444,9 @@ of its own on any theme. That is **B36**, and it is theme work rather
 than engine work, which is why this entry is finished and that one is
 open.
 
-From `delete-before-1.0/docs/THEMES-A-ECRIRE-2026-08-17.md`, absorbed here for the same
-reason as B19: the document is delivered, this decision is not.
+From the former `delete-before-1.0/docs/THEMES-A-ECRIRE-2026-08-17.md`,
+absorbed here for the same reason as B19: this decision was still open at
+absorption. The separate undelivered `pop-rose` proposal is retained in B65.
 
 `page.shadow` is inherited, so its `em` resolves once at the root and
 propagates as an absolute length. A halo is therefore proportional to the
@@ -2169,7 +2268,7 @@ catalogue. Counted on the registry and on `THEME_PROPERTY_OVERRIDES`,
 The entry's table names the slide heading as the worst-served element in
 the page and says "the slide heading is the worst served, and it is a
 heading". Zero themes give `title2` a halo, and the 31 revision layers
-waiting in `delete-before-1.0/themes-revision/` (B9) do not add one
+formerly under `delete-before-1.0/themes-revision/` (B9) did not add one
 either — they add `title1` and `highlight` halos to two themes, which is
 what B9 means by "the two extra halos".
 
@@ -2918,3 +3017,88 @@ reste fixe ; le marqueur initial décrit une sélection.
 d'index, aperçus, labels, assets et fraîcheur des alternatives. Le navigateur
 doit conserver la locale et isoler la persistance par deck, avec navigation,
 changement de preset, thème explicite et retour au thème du preset.
+
+## B64 — Historical fact-heading report needs its original case
+
+**État :** à étudier · **Depuis :** 2026-09-09
+
+**Classification: known uncertainty, not a confirmed current defect or beta
+blocker.** The former `delete-before-1.0/JOURNAL-1.0.md`, section 3, item 14,
+records the owner's 2026-08-03 report that a `#` heading inside a fact was
+not smaller than the slide's `##` heading, despite the expected
+`.fact-content h1` rule at `1.3em`. It explicitly asks to reproduce the
+owner's real case before concluding.
+
+The same journal's accessibility item 8 says the v0.11.0 fix reproduced
+the case **without `fact-label`** and introduced `.slide-body`; it says
+the labeled fact was already scoped. These accounts do not establish that
+the originally reported labeled case was reproduced or closed. The cleanup
+does not turn either statement into a current browser finding.
+
+**Deferred decision:** obtain the original source, theme/customizations and
+viewport, then compare rendered heading sizes under the current contract.
+If the issue no longer exists, record that evidence; if it reproduces,
+classify the concrete cause. The exact journal remains in the local archive
+and Git history, so the unresolved report is not lost with its file.
+
+## B65 — The historical pop-rose proposal has no recorded disposition
+
+**État :** à étudier · **Depuis :** 2026-09-09
+
+**Classification: deferred catalogue design note, not a beta blocker.** The
+former `delete-before-1.0/docs/THEMES-A-ECRIRE-2026-08-17.md` explicitly says
+"implemented, except pop-rose". Its intent was a light, vivid magenta in a
+Pop family then dominated by dark grounds, not a missing renderer capability.
+No adoption or rejection of this candidate was established in the cleanup.
+
+The proposed palette, retained without silently substituting a current theme:
+
+```text
+color.page: #FFC2D8
+color.ink: #40071F
+color.ink-quiet: #7A1440
+color.mark: #FFE761
+color.call: #1F3A8A
+color.affirm: #0F5132
+```
+
+The original reported 35 rendered elements, none below AA, with a worst
+ratio of 6.37:1 on the demo's `middle.html` at 1440x900 on 2026-08-17.
+That is a historical measurement of that fixture, not a present accessibility
+guarantee or catalogue admission requirement (B5). If theme design resumes,
+decide whether the current catalogue still benefits from this candidate,
+then re-render it before adopting values. No theme is added by this cleanup.
+
+## B66 — Unreconciled archive design options remain deferred
+
+**État :** à étudier · **Depuis :** 2026-09-09
+
+**Classification: historical design inventory, not an implementation order
+or beta gate.** Removing a working tree is not proof that every suggestion
+in it was absorbed. Exact originals remain under local
+`work/archive-before-1.0/` and in earlier Git revisions.
+
+The bounded cleanup leaves these dispositions explicitly undecided:
+
+- `REVISION-THEMES.md`, section 6, proposed independent verdict-marker
+  colour, body-heading and summary typography axes, title tracking/transform,
+  page gradients/tracking, index typography and smaller component axes.
+  Some capabilities evolved later, but this cleanup did not reconcile each
+  proposed axis with the current registry. B6/B7/B13/B21 already own the
+  navigation, alignment, width and polarity decisions; do not reopen them
+  from a stale list. Check the remaining proposals individually if needed,
+  retaining their motivation rather than importing old property layers.
+- `docs/presentation-plan.md` proposed separate promotional decks by role.
+  The current guide is not evidence that each proposed deck was commissioned
+  or delivered. Reuse as optional editorial material only after checking its
+  claims against the current product; no contribution route is requested.
+- The journal and correction plan carry dated performance, manual W3C and
+  accessibility checks, translation work and sibling-GUI synchronization
+  questions. Their old omissions are not fresh test failures, and their
+  completed checks are not current guarantees. No sibling repository or
+  external validator was inspected in this cleanup; any still-useful
+  follow-up needs a separately scoped decision and current evidence.
+
+This preserves uncertainty without labeling the whole archive either
+delivered or blocking. B64 and B65 own the two specific unresolved reports
+identified separately; all other dated evidence remains recoverable exactly.

@@ -504,7 +504,7 @@ async function main() {
     focus: document.activeElement && document.activeElement.getAttribute('data-menu-action'),
     expanded: document.getElementById('navMenu').getAttribute('aria-expanded'),
   }));
-  if (!openedFromNav.menuOpen || openedFromNav.focus !== 'prev'
+  if (!openedFromNav.menuOpen || openedFromNav.focus !== 'zoom-out'
       || openedFromNav.expanded !== 'true') {
     fail('the presenter menu nav button did not open and focus the menu: '
       + JSON.stringify(openedFromNav));
@@ -525,7 +525,7 @@ async function main() {
     menuOpen: document.getElementById('presenterMenu').classList.contains('open'),
     focus: document.activeElement && document.activeElement.getAttribute('data-menu-action'),
   }));
-  if (!openedByNavKey.menuOpen || openedByNavKey.focus !== 'prev') {
+  if (!openedByNavKey.menuOpen || openedByNavKey.focus !== 'zoom-out') {
     fail('Enter on the nav menu button did not open the presenter menu: '
       + JSON.stringify(openedByNavKey));
   }
@@ -540,7 +540,7 @@ async function main() {
       (button) => getComputedStyle(button).display !== 'none'
     ).length,
   }));
-  if (!menu.open || menu.expanded !== 'true' || menu.visibleActions !== 12) {
+  if (!menu.open || menu.expanded !== 'true' || menu.visibleActions !== 15) {
     fail('M did not expose the complete presenter menu: ' + JSON.stringify(menu));
   }
   const menuTypography = await page.evaluate(() => {
@@ -554,7 +554,7 @@ async function main() {
   }
   const firstMenuFocus = await page.evaluate(() =>
     document.activeElement && document.activeElement.getAttribute('data-menu-action'));
-  if (firstMenuFocus !== 'prev') {
+  if (firstMenuFocus !== 'zoom-out') {
     fail('M did not focus the first presenter action: ' + firstMenuFocus);
   }
   const scrollAction = page.locator('[data-menu-action="scroll"]');
@@ -618,6 +618,9 @@ async function main() {
   if (instantErrors.length) fail('Instant-scroll page errors: ' + instantErrors.join(' | '));
 
   await page.keyboard.press('m');
+  // Reading controls precede the action grid; selects retain native arrows.
+  // Exercise the existing action grid from its own first cell.
+  await page.locator('[data-menu-action="prev"]').focus();
   const menuFocusState = async () => page.evaluate(() => {
     const action = document.activeElement;
     const box = action.getBoundingClientRect();
@@ -649,7 +652,7 @@ async function main() {
       || downMenuState.top <= firstMenuState.top
       || Math.abs(downMenuState.center - firstMenuState.center) > 1
       || upMenuState.id !== 'prev'
-      || endMenuFocus !== 'pause-theme' || homeMenuFocus !== 'prev') {
+      || endMenuFocus !== 'pause-theme' || homeMenuFocus !== 'zoom-out') {
     fail('presenter menu grid arrows/home/end navigation is wrong: '
       + JSON.stringify({ firstMenuState, rightMenuState, leftMenuState,
         downMenuState, upMenuState, endMenuFocus, homeMenuFocus }));
@@ -660,7 +663,7 @@ async function main() {
   await page.keyboard.press('Shift+Tab');
   const shiftTabMenuFocus = await page.evaluate(() =>
     document.activeElement && document.activeElement.getAttribute('data-menu-action'));
-  if (tabMenuFocus !== 'home' || shiftTabMenuFocus !== 'prev') {
+  if (tabMenuFocus !== 'zoom-in' || shiftTabMenuFocus !== 'zoom-out') {
     fail('presenter menu Tab navigation is wrong: '
       + JSON.stringify({ tabMenuFocus, shiftTabMenuFocus }));
   }

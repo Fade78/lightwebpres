@@ -32,6 +32,7 @@ from urllib.parse import urlparse, parse_qs
 REPO_ROOT = Path(__file__).resolve().parent.parent
 E2E_SCRIPT = Path(__file__).resolve().parent / 'git_sync_e2e.cjs'
 RACE_E2E_SCRIPT = Path(__file__).resolve().parent / 'git_sync_race_e2e.cjs'
+TARGET_E2E_SCRIPT = Path(__file__).resolve().parent / 'git_sync_target_e2e.cjs'
 
 TOKEN = 'test-token-abc123'
 PROJECT_ID = '42'
@@ -359,6 +360,20 @@ class GitSync(unittest.TestCase):
             'sources/old.md', [a['file_path'] for a in all_actions],
             'a file removed locally must simply be absent from the push, not deleted remotely',
         )
+
+    def test_snapshot_stays_bound_to_its_pulled_target(self):
+        archives = [base64.b64encode(_make_archive_zip(
+            ARTICLE_MD.replace('Git sync test', label),
+        )).decode('ascii') for label in ('Project A snapshot', 'Project B snapshot')]
+        result = subprocess.run(
+            ['node', str(TARGET_E2E_SCRIPT),
+             'http://127.0.0.1:%d' % self.page_port, *archives],
+            capture_output=True, text=True,
+            env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
+            timeout=120,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('OK', result.stdout)
 
 
 @unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)

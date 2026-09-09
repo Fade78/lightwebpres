@@ -29,10 +29,16 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from urllib.parse import urlsplit
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 IDENTITY_KIT_CATALOG = ROOT / 'examples' / 'kits'
 PRESENTATION_PRESET = 'lightwebpres-docs@0.1.0/docs'
+GUIDE_IMAGES = {
+    'generated/product-responsive.png': 'img/product-responsive.png',
+    'generated/appearance-choices.png': 'img/appearance-choices.png',
+    'generated/identity-composition.png': 'img/identity-composition.png',
+}
 SERIES = {
     'series_meta': {
         'title': 'LightWebPres',
@@ -40,14 +46,115 @@ SERIES = {
         'intro': 'Every component named in the guide, rendered by the '
                  'engine the guide documents.',
         'presentation_preset': PRESENTATION_PRESET,
+        'scroll_duration': 0,
     },
     'articles': [{
         'page_source': 'guide.md',
         'page_dest': 'guide.html',
         'nav_title': 'Guide',
-        'nav_desc': 'Setup, anatomy of a page, series, look, shipping',
+        'nav_desc': 'Create, organize, design, read, publish and automate',
     }],
 }
+
+
+def markdown_lines(text):
+    """Yield lines with fenced examples (including their delimiters) marked."""
+    fence = None
+    for line in text.splitlines():
+        delimiter = re.match(r'^ {0,3}(`{3,}|~{3,})(.*)$', line)
+        protected = fence is not None or delimiter is not None
+        if delimiter:
+            run, rest = delimiter.groups()
+            if fence is None:
+                fence = run
+            elif run[0] == fence[0] and len(run) >= len(fence) and not rest.strip():
+                fence = None
+        yield line, protected
+
+
+def heading_slug(title):
+    """Keep the guide's existing GitHub-style fragment spelling."""
+    return re.sub(r'[^\w -]', '', title.lower()).replace(' ', '-')
+
+
+def prepare_article(text):
+    """Adapt repository links and headings, never the tutorial's code."""
+    lines, images = [], set()
+
+    def image(match):
+        source = match[2]
+        if urlsplit(source).scheme or urlsplit(source).netloc:
+            return match[0]
+        if source not in GUIDE_IMAGES:
+            raise ValueError(f'unknown guide image: {source}; add it to GUIDE_IMAGES')
+        images.add(source)
+        return match[1] + GUIDE_IMAGES[source]
+
+    def links(line):
+        line = re.sub(r'(!\[[^\]]*\]\()([^\s)]+)', image, line)
+        line = re.sub(r'(<img\b[^>]*?\bsrc=[\"\'])([^\"\']+)', image, line)
+        return re.sub(
+            r'(?<!!)\[([^\[\]]+)\]\((?!https?://)([^)]+)\)',
+            lambda m: '<a href="' + html.escape(
+                m[2] if urlsplit(m[2]).scheme or m[2].startswith('#') else
+                'https://github.com/Fade78/lightwebpres/blob/main/' + m[2],
+                quote=True) + '">' + html.escape(m[1]) + '</a>', line)
+
+    for line, protected in markdown_lines(text):
+        if not protected:
+            heading = re.match(r'^(#{1,6}) (.+)$', line)
+            if heading:
+                level, title = len(heading[1]), heading[2]
+                content = re.sub(r'`([^`]+)`', r'<code>\1</code>', html.escape(title))
+                line = (f'<h{level} id="{heading_slug(title)}" tabindex="-1">'
+                        f'{content}</h{level}>')
+            parts, cursor = [], 0
+            for code in re.finditer(r'(`+).*?\1(?!`)', line):
+                parts.extend((links(line[cursor:code.start()]), code[0]))
+                cursor = code.end()
+            parts.append(links(line[cursor:]))
+            line = ''.join(parts)
+        lines.append(line)
+    # Guide-only navigation: the engine resolves inner hashes to their slide.
+    # Keep heading links inside the manual, including keyboard activation and
+    # direct entry. Zero-duration slide navigation avoids a competing glide.
+    lines.append('''<script>
+(function () {
+  var entry = window.location.hash;
+  function target(hash) {
+    var id;
+    try { id = decodeURIComponent(hash.slice(1)); }
+    catch (error) { return null; }
+    var element = document.getElementById(id);
+    return element && (element.id === 'guide-complet' ||
+      element.matches('.full-article h1[id], .full-article h2[id], .full-article h3[id], .full-article h4[id], .full-article h5[id], .full-article h6[id]')) ? element : null;
+  }
+  function visit(element) {
+    element.setAttribute('tabindex', '-1');
+    element.focus({preventScroll: true});
+    element.scrollIntoView({behavior: 'instant', block: 'start'});
+  }
+  document.addEventListener('click', function (event) {
+    var link = event.target.closest('a[href^="#"]');
+    if (!link || event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    var element = target(link.hash);
+    if (!element) return;
+    event.preventDefault();
+    visit(element);
+  });
+  window.addEventListener('hashchange', function (event) {
+    var element = target(window.location.hash);
+    if (!element) return;
+    event.stopImmediatePropagation();
+    visit(element);
+  }, true);
+  window.addEventListener('load', function () {
+    var element = target(entry);
+    if (element) document.fonts.ready.then(function () { visit(element); });
+  });
+})();
+</script>''')
+    return '\n'.join(lines) + '\n', images
 
 
 def build(output, theme=None, lang='en'):
@@ -63,6 +170,10 @@ def build(output, theme=None, lang='en'):
                         / 'manifest.json')
     if not package_manifest.exists():
         sys.exit(f'missing: {package_manifest}')
+    article, images = prepare_article(guide.read_text(encoding='utf-8'))
+    for source in sorted(images):
+        if not (ROOT / source).is_file():
+            sys.exit(f'missing guide image: {ROOT / source}')
 
     temporary_root = ROOT / 'work' / 'tmp'
     temporary_root.mkdir(parents=True, exist_ok=True)
@@ -83,37 +194,10 @@ def build(output, theme=None, lang='en'):
 
         sources = series / 'sources'
         shutil.copy(deck, sources / 'guide.md')
-        # Adapt repository Markdown links outside examples: LWP only converts
-        # HTTP(S) Markdown links and does not assign IDs to body headings.
-        lines = []
-        fenced = False
-        for line in guide.read_text(encoding='utf-8').splitlines():
-            if line.startswith('```'):
-                fenced = not fenced
-            elif not fenced:
-                if line.startswith('## '):
-                    title = line[3:]
-                    anchor = re.sub(r'[^\w -]', '', title.lower()).replace(' ', '-')
-                    line = f'<h2 id="{anchor}" tabindex="-1">{html.escape(title)}</h2>'
-                # The deck's hash handler navigates to the containing slide.
-                # Chapter links instead focus/scroll inside this long article;
-                # without JS their href still provides native anchor navigation.
-                line = re.sub(
-                    r'(?<!!)\[([^\[\]]+)\]\((?!https?://)([^)]+)\)',
-                    lambda m: '<a href="' + html.escape(
-                        m[2] if m[2].startswith('#') else
-                        'https://github.com/Fade78/lightwebpres/blob/main/' + m[2],
-                        quote=True) + '"' + (
-                        ' onclick="document.getElementById(this.hash.slice(1)).focus(); '
-                        "document.activeElement.scrollIntoView({behavior: 'instant'}); "
-                        'return false;"' if m[2].startswith('#') else '') +
-                        '>' + html.escape(m[1]) + '</a>', line)
-                line = line.replace('generated/product-', 'img/product-')
-            lines.append(line)
-        (sources / 'guide_article.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+        (sources / 'guide_article.md').write_text(article, encoding='utf-8')
         (sources / 'img').mkdir(exist_ok=True)
-        for name in ('product-responsive.png',):
-            shutil.copy(ROOT / 'generated' / name, sources / 'img' / name)
+        for source in sorted(images):
+            shutil.copy(ROOT / source, sources / GUIDE_IMAGES[source])
         (series / 'series.json').write_text(
             json.dumps(SERIES, indent=2, ensure_ascii=False), encoding='utf-8')
 

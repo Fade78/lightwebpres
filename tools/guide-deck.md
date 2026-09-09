@@ -1,8 +1,8 @@
 <!-- lwp:meta -->
 page_title: LightWebPres — the guide
-page_desc: Create, customize, verify and publish a LightWebPres series.
+page_desc: Create content, organize a collection, design identities and publish with LightWebPres.
 nav_title: Guide
-nav_desc: First article, page anatomy, series, presentation and publication
+nav_desc: Create, organize, design, read, publish and automate
 ---
 
 <!-- lwp:slide:cover -->
@@ -10,180 +10,104 @@ slug: lightwebpres
 kicker: Product manual
 slide-layout: hero
 # LightWebPres
-summary: One Markdown source for reading and presenting. Start with this overview, then use the complete operational manual below.
-
----
-
-<!-- lwp:slide -->
-slug: ce-qu-il-fait
-kicker: Output
-## Pages that carry their runtime
-fact-label: What to publish
-source: Guide, chapters 1 and 7
-
-Each article is an HTML file with its CSS and JavaScript inside. The build
-also derives a series index and navigation. Publish **public/**, including
-referenced images and Identity Kit assets, to a static host.
-
-Readers need a browser, not Python or LightWebPres. The source remains plain
-text; the manual describes how to operate the tool, not an editorial method.
+summary: One source for reading and presenting. Choose a route, or <a href="#guide-complet" style="color: inherit">open the complete manual</a> now.
 
 ---
 
 <!-- lwp:slide -->
 slug: trois-commandes
-kicker: Start
-## Two commands to see a working site
-fact-label: Demo first, then your own article
-source: Guide, chapters 1 and 2
+kicker: Create content
+## Start from a page that already works
+highlight: 2
+highlight-caption: commands to open a working demo
+fact-label: Edit after you have something to inspect
+source: <a href="#1-create-content">Guide, route 1: Create content</a>
 
-Run `python3 lightwebpres init my-series`, then
-`python3 lightwebpres demo my-series --lang en`.
-**Demo already builds.** Open `my-series/public/index.html`.
+Run `init my-series`, then `demo my-series --lang en` with the
+LightWebPres executable. Demo already builds: open `public/index.html`
+inside that series.
 
-Next, create `sources/first-page.md`, register its filename in `series.json`
-and run `build --lang en --open`. The manual supplies the complete source and
-JSON, followed by `audit` and `verify`. No extra build belongs before that edit.
+Replace an example with your own article, register it in `series.json`,
+then build again.[^tutorial]
 
----
-
-<!-- lwp:slide -->
-slug: anatomie
-kicker: Anatomy
-## Four slide types, one source file
-highlight: 4
-highlight-caption: cover, standard, series-nav and full-article
-fact-label: Fields first, body after
-source: Guide, chapter 3
-
-A cover supplies the title. A standard slide accepts text, images, tables,
-notes and optional named components. A series-nav slide generates links;
-a full-article slide includes a separate plain Markdown file.
-
-Every slide declares its stable `slug:`. Fields occupy one physical line,
-except indented continuations of `note:` and `comment:`. Once free text
-starts, later field-looking lines are text too.[^syntax]
-
-[^syntax]: `lightwebpres contract` exposes accepted fields and parseable skeletons. `note:` is public HTML for the speaker panel; `comment:` is source-only. Footnotes such as this one are reader-visible references, not speaker notes.
+[^tutorial]: The manual's first-article tutorial includes the complete Markdown source and matching JSON.
 
 ---
 
 <!-- lwp:slide -->
 slug: tags
-kicker: Series
-## Order articles and inspect their visibility
-fact-label: Registration and filtering are separate
-source: Guide, chapter 4
+kicker: Organize a documentary collection
+## Reuse the article, change its context
+fact-label: A series selects and orders your material
+source: <a href="#2-organize-a-documentary-collection">Guide, route 2: Organize a documentary collection</a>
 
-The `articles` array in `series.json` fixes the index and navigation order.
-Only `page_source` is required per entry. `status` shows resolved metadata;
-`series tags` reports effective article and slide visibility without building.
+The same canonical article can serve a briefing and a reading collection.
+Each series registers the source and supplies only its context-specific
+metadata.
 
-Article tags gate the article, slide tags gate its content. Untagged slides
-are shared with non-default selections. **L** opens the reader's tag menu;
-`excluded` removes a slide at build time. Tags are not access control.
+Make the article, long text and images available to both series.
+After a shared edit, build both: LightWebPres does not discover the other
+series for you.
 
 ---
 
 <!-- lwp:slide -->
 slug: identity-kits
-kicker: Identity
-## One identity, named presets and themes
-fact-label: Inner structure, not a replacement runtime
-source: Guide, chapter 5
+kicker: Design and compose identities
+## Compose a kit, not a dependency chain
+fact-label: One autonomous identity to distribute
+source: <a href="#3-design-and-compose-identities">Guide, route 3: Design and compose identities</a>
 
-A self-contained Identity Kit supplies layouts, chrome, assets and typed
-themes. LWP keeps the page shell, navigation and script. Select a preset through
-`series_meta.presentation_preset`: `builtin/standard`, `commons/id`, or
-`id@version/preset`. Omission selects native Standard with minimal Light;
-Commons presets bind global themes to native layouts. Identity is inferred
-from the reference, and its label stays fixed when the selection changes.
+`kit compose` can bring layouts, visual marks and a typed theme from
+several kits into one final kit. Authors need the result, not its source kits.
 
-Keep alternatives at the root of `series.json` with
-`presentation_presets`, or pass `--presentation-presets` to `build`, `verify`
-or `watch`. A kit or Commons primary also adds compatible `builtin/standard`
-after those choices; a kit-only slide layout or chrome override makes that
-implicit candidate unavailable and is reported as a warning. The primary stays
-first; **C** opens Identity, Preset and Theme choices and switches the whole deck
-without changing its sources. The session choice is scoped to that deck as well
-as its catalogue. Applicable / Current identity / All filter published choices
-by typed compatibility or ownership, not brand. Follow preset resets an
-explicit runtime theme choice.
-
-Use `preset list`, `preset show` and `series preset set` to inspect or change
-the choice. `init --preset` can also apply the kit's starter. `kit compose`
-builds an autonomous kit from explicit files and a complete final manifest.
-Per-slide `slide-layout`, `slide-header` and `slide-footer` override defaults.
-
----
-
-<!-- lwp:slide -->
-slug: gestes
-kicker: Customization
-## Change the smallest layer that does the job
-fact-label: Values first, advanced CSS when needed
-source: Guide, chapter 5
-
-A theme sets the base. `settings.conf` pins values for the series; `style.*`
-metadata changes one page; instance tags change one phrase. The compiler
-checks typed property names and values. `custom.css` adds unrestricted rules
-after the composed stylesheet.
-
-`resolve` explains a surprising value, including the levels that lost.
-`series theme` measures the effective typed colors; it does not certify
-arbitrary custom CSS or repair a palette.
+Follow the Field Notes example and its composition diagram in the manual.
+Use a theme alone when colors and typography are all you need to change.
 
 ---
 
 <!-- lwp:slide -->
 slug: themes
-kicker: Reading and presenting
-## Keep alternatives within reach
-fact-label: The same page, a different viewing choice
-source: Guide, chapters 5 and 8
+kicker: Read, present and share
+## Share the point, not directions to it
+fact-label: Every slide has a stable address
+source: <a href="#4-read-present-and-share">Guide, route 4: Read, present and share</a>
 
-**C** opens the theme picker. Monochrome, Monochrome Night and Print Ink ship
-by default; `--no-essential-theme` opts out. Select Print Ink before printing
-when you want black on white: printing keeps the active theme.
+Press **S** to share the current slide by link or QR code. Its `slug:`
+keeps that address stable when the deck is reordered.
 
-**M** opens the presenter menu, **F** requests fullscreen, **H** lists the
-controls and **S** shares a link or QR code. A projected screen also shows an
-open speaker panel: **N** is not a private presenter window.
-
----
-
-<!-- lwp:slide -->
-slug: pipeline
-kicker: Automation
-## One engine at the terminal or in a browser
-fact-label: Build, inspect, maintain
-source: Guide, chapters 6, 9 and 10
-
-The CLI runs unattended with Python's standard library. `watch` rebuilds on
-edits; `--only` targets an article when the navigation cache is safe. Language
-packs separate interface strings from build-time typography.
-
-The browser builder runs the same executable under Pyodide: upload a series
-zip, or pull/build/push with GitLab. Serve the builder over HTTP(S).
-Sanitize untrusted input upstream: raw HTML is passed through by the engine.
+Readers open the same page in their browser. They can follow the cards
+or go straight to the long article for detail, as you can in this guide.
 
 ---
 
 <!-- lwp:slide -->
 slug: verifications
-kicker: Publication
-## Two checks answer different questions
-fact-label: Match the check to the question
-source: Guide, chapter 7
+kicker: Publish and maintain
+## Check the output you intend to publish
+fact-label: Source warnings and stale files are different failures
+source: <a href="#5-publish-and-maintain">Guide, route 5: Publish and maintain</a>
 
-`audit` renders in memory and reports source and style warnings without
-writing output. Plain audit exits zero; `--strict` turns warnings into a
-gate. `verify` compares a fresh in-memory render with the files on disk and
-fails on drift. Use the same supported rendering options as the build.
+`audit` inspects sources and styles. `verify` compares a fresh render
+with the files on disk. Neither replaces inspecting the page in a browser.
 
-**Inspect the rendered page before publishing.** Verify cannot reproduce
-`--inline-images`. Removing an article does not delete an old hosted file;
-review `clean` locally and the host's stale files separately.
+Publish `public/`, including its images and kit assets. Keep the authoring
+project separately so you can edit and rebuild it later.
+
+---
+
+<!-- lwp:slide -->
+slug: pipeline
+kicker: Integrate and automate
+## Give automation a bounded job
+fact-label: State what may change and how to check it
+source: <a href="#6-integrate-and-automate">Guide, route 6: Integrate and automate</a>
+
+An agent can edit a named article, theme or kit without owning the whole
+project. Specify its allowed files and protect published slugs and destinations.
+
+Require a build and the relevant reports before handoff. The CLI and browser
+builder run the same engine; changing the interface does not change the format.
 
 ---
 

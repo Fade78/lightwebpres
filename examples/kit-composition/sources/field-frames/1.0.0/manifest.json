@@ -1,0 +1,30 @@
+{
+  "schema": "lightwebpres.identity-kit/1",
+  "id": "field-frames",
+  "version": "1.0.0",
+  "label": "Field Frames",
+  "default_preset": "sheet",
+  "layouts": {
+    "cover": {"default": "layouts/sheet.html"},
+    "standard": {"default": "layouts/sheet.html"},
+    "series-nav": {"default": "builtin:standard"},
+    "full-article": {"default": "builtin:standard"},
+    "index": "builtin:standard"
+  },
+  "structure_css": "structure.css",
+  "themes": {"light": "builtin:light"},
+  "presets": {
+    "sheet": {
+      "label": "Ruled Sheet",
+      "description": "A responsive notebook wrapper using the native light theme, without a mark.",
+      "theme": "light",
+      "slide_layouts": {
+        "cover": "default",
+        "standard": "default",
+        "series-nav": "default",
+        "full-article": "default"
+      },
+      "slide_chrome": {}
+    }
+  }
+}

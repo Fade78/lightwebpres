@@ -1,0 +1,115 @@
+{
+  "inputs": {
+    "examples/first-article/series.json": "381a563a55fdbe2a06662adcab3995ae467a0b1b15fecec977d6c6c505ed6e75",
+    "examples/first-article/sources/first-page.md": "2a426775d0e718abb98baa31272a101e1dce074442a5f739b7f67a55c2ebfa66",
+    "examples/first-article/templates/settings.conf": "dfa374378eec18180cb460dc458d545d06603e75789e9f0505d6061543a22e29",
+    "examples/kit-composition/LICENSE-SVG.txt": "c1cbe8129ce2675413c2e59513a15c788a7652292609f1e5d860d3a39b19a462",
+    "examples/kit-composition/recipe.json": "8944b24c69e25ced59f364bcd106bf5ef7fcf679e373c5f66a2ffa2098880791",
+    "examples/kit-composition/sources/field-frames/1.0.0/layouts/sheet.html": "aaaa9cb3cdba2bc27badc254cc9330eb79a696fe0c5ad0442c4b7a64fa1d469d",
+    "examples/kit-composition/sources/field-frames/1.0.0/manifest.json": "35688dea8f8254ff58234c55489e9535e92694c3d32ae4164fc3059883e3b7c6",
+    "examples/kit-composition/sources/field-frames/1.0.0/structure.css": "18fbecfd951260a4aa76765dbaad4a12beecbb05224e6b83008ce9bb92e92d0a",
+    "examples/kit-composition/sources/field-ink/1.0.0/manifest.json": "58783a433e4847601005abb2ee23775a35fabb9c7478c30461d9f734933390f3",
+    "examples/kit-composition/sources/field-ink/1.0.0/themes/paper.conf": "f9be8c8ccdd18b04b3ea513b19a59d02dd53c21671c9dda1e0179b23e0000b18",
+    "examples/kit-composition/sources/field-marks/1.0.0/assets/compass.svg": "db159cd4ebcc1b139099d71fda4560779e961f29187e6f130c62783bf12c5059",
+    "examples/kit-composition/sources/field-marks/1.0.0/assets/trail.svg": "96d4d4d64f30d0f15de8da6d226a0036564e7159b2fc1f4c82240c136e8bf48d",
+    "examples/kit-composition/sources/field-marks/1.0.0/chrome.json": "89ab8d8f9d2d177f6413689548a2e23a8d33493aca9a36bf85aa284b2819323f",
+    "examples/kit-composition/sources/field-marks/1.0.0/manifest.json": "282594937746c63aea0a6f09d98ede7d60551edd6b00950c6511e9ed7f8f6374",
+    "examples/kits/lightwebpres-docs/0.1.0/assets/lightwebpres-mark.svg": "169a4e1da38ede3198bfa39d78349ba4c0e8e833e5d929de0640e458a80963a5",
+    "examples/kits/lightwebpres-docs/0.1.0/chrome.json": "7dbf8889fe5f04c8f430183a41168433a6ac9a14a187780424a3e5b7fa179527",
+    "examples/kits/lightwebpres-docs/0.1.0/index.html": "d095805bd00e23b766b3500c310b6421a8a957c5b61b50769c76ddc2d58b9c9b",
+    "examples/kits/lightwebpres-docs/0.1.0/manifest.json": "fd58eac2a8af00738fbb7bb979feb835cc3135e41b2111e4d67068eb67a76c1e",
+    "examples/kits/lightwebpres-docs/0.1.0/slides/cover-hero.html": "e0f2fab70e56028587455454e3f9c075d8cfe7f07c058b38699281d7740e3d4e",
+    "examples/kits/lightwebpres-docs/0.1.0/slides/cover.html": "db11f6f1f094e8115a958b6acc0f20dd1736298a4cf9eda539e5d2d1b282f585",
+    "examples/kits/lightwebpres-docs/0.1.0/slides/full-article.html": "4574ccbf75f70bbcdfbf12fc70ca8984fa4e6a703fe3f1e529c587d428483fab",
+    "examples/kits/lightwebpres-docs/0.1.0/slides/series-nav.html": "24c2a7ead134bd47743995294316e12d818e061fd47cc555b2c981c403e0c573",
+    "examples/kits/lightwebpres-docs/0.1.0/slides/standard.html": "0c2b4913a2fe8073482366d67f41fc43bbe6bb5f5109a595a023183c3cd3d4b8",
+    "examples/kits/lightwebpres-docs/0.1.0/starters/blank/sources/welcome.md": "db50d5ded164c55e089e6d055655293b7165d16ae00889af21a602e09c433db2",
+    "examples/kits/lightwebpres-docs/0.1.0/starters/blank/starter.json": "9c9556978e90cd4bd1f3a2dc1dd422a5f172e9c65d4187d84d004df10c5d424a",
+    "examples/kits/lightwebpres-docs/0.1.0/structure.css": "4501d6bff633ce1e06facf5fd2c9d0c811236e6cd20447a4e761182e0e8a3b08",
+    "examples/kits/lightwebpres-docs/0.1.0/themes/docs.conf": "3328b9c7224c820029f3f35f8c891d239ce1edec205ca5d3310b33761713b94a",
+    "lightwebpres": "7e63cf4b13882f1318a5a9630bbe389cd9d2b71a583790e9021604aba321f250",
+    "tools/screenshot-documentation.cjs": "1be164be11a14d6c7ffa58b4b63f550615a01f39be8cdde7371747e578e497fe"
+  },
+  "browser": "145.0.7632.6",
+  "source": "examples/first-article/sources/first-page.md",
+  "slide": "travels-with-the-page",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "deviceScaleFactor": 1,
+  "locale": "en-US",
+  "pages": [
+    {
+      "name": "native",
+      "selector": "builtin/standard",
+      "failures": [],
+      "text": "Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/. Publish the whole public/ directory, not just its index.",
+      "textRects": 11,
+      "visibleImages": 0,
+      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif"
+    },
+    {
+      "name": "official",
+      "selector": "lightwebpres-docs@0.1.0/docs",
+      "failures": [],
+      "text": "LWP DOCS Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/. Publish the whole public/ directory, not just its index. LIGHTWEBPRES / OFFICIAL DOCUMENTATION",
+      "textRects": 14,
+      "visibleImages": 1,
+      "headingFont": "Seravek, \"Gill Sans Nova\", Ubuntu, Calibri, \"DejaVu Sans\", sans-serif"
+    },
+    {
+      "name": "composed",
+      "selector": "field-notes@1.0.0/brief",
+      "failures": [],
+      "text": "FIELD NOTES Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/ . Publish the whole public/ directory, not just its index. OBSERVE / RECORD / SHARE",
+      "textRects": 13,
+      "visibleImages": 1,
+      "headingFont": "\"Nimbus Mono PS\", \"Courier New\", \"Liberation Mono\", \"DejaVu Sans Mono\", monospace"
+    },
+    {
+      "name": "frames",
+      "selector": "field-frames@1.0.0/sheet",
+      "failures": [],
+      "text": "Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/. Publish the whole public/ directory, not just its index.",
+      "textRects": 11,
+      "visibleImages": 0,
+      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif"
+    },
+    {
+      "name": "marks",
+      "selector": "field-marks@1.0.0/compass",
+      "failures": [],
+      "text": "Compass rose FIELD MARKS Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/. Publish the whole public/ directory, not just its index.",
+      "textRects": 13,
+      "visibleImages": 1,
+      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif"
+    },
+    {
+      "name": "ink",
+      "selector": "field-ink@1.0.0/paper",
+      "failures": [],
+      "text": "Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/ . Publish the whole public/ directory, not just its index.",
+      "textRects": 11,
+      "visibleImages": 0,
+      "headingFont": "\"Nimbus Mono PS\", \"Courier New\", \"Liberation Mono\", \"DejaVu Sans Mono\", monospace"
+    }
+  ],
+  "captures": [
+    {
+      "file": "generated/appearance-choices.png",
+      "width": 1600,
+      "height": 1440,
+      "sha256": "f6e7a6cf0a698261a031c4687121cdb8c8550fd39eda6b7efe90b6b0e6ea5780"
+    },
+    {
+      "file": "generated/identity-composition.png",
+      "width": 1600,
+      "height": 1080,
+      "sha256": "6514cc71be20b4d62348574ba0e5d59581395208c59e5ce07124273c21153fd0"
+    }
+  ],
+  "assetPreviews": [
+    "examples/kit-composition/sources/field-marks/1.0.0/assets/compass.svg"
+  ]
+}

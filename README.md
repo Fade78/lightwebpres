@@ -4,40 +4,63 @@
 
 # LightWebPres
 
-**Write one Markdown source. Read it on a phone, present it in landscape,
-publish it as a static site.**
+**Write in Markdown. Read on a phone, present on a screen, publish as a
+static site.**
 
-LightWebPres is a single-file Python tool that builds scrollable HTML
-articles with slide navigation, optional long-form text and a series index.
-Each article carries its CSS and JavaScript: readers need a browser, not
-LightWebPres, a viewer account or a presentation service.
+Keep presentation cards, their sources and supporting long-form text together.
+LightWebPres is a single-file Python tool that builds them into scrollable HTML
+pages with slide navigation and a series index. Each article carries its CSS
+and JavaScript; readers need a browser, not LightWebPres, an account or a
+presentation service.
 
-## One page, two uses
-
-The same content card and `nebula` theme, rendered by LightWebPres in
-Chromium. The text and layout below are actual output, not a design mockup.
+**Just reading? No installation needed.** Explore the
+[presentation overview](generated/guide/guide.html), jump to the
+[complete manual](generated/guide/guide.html#guide-complet), or learn the
+[reader controls](GUIDE.md#4-read-present-and-share). Open downloaded HTML in
+a browser; GitHub's file viewer shows source rather than running the page.
 
 <p align="center">
   <img src="generated/product-responsive.png" alt="The same Nebula content card shown in real landscape and emulated portrait browser viewports" width="100%">
 </p>
 
-These are browser viewport captures, not photographs of physical devices.
-The [source example](examples/first-article/sources/first-page.md) is tracked
-and the [capture script](tools/screenshot-product.cjs) rebuilds it before
-taking the two viewport captures used in the comparison.
+The same content card in the Nebula theme, captured in actual Chromium
+landscape and emulated portrait viewports, not photographs of devices or a
+design mockup. Long content scrolls; it is not automatically shortened to fit
+a slide. See the [complete first-article example](examples/first-article/README.md).
 
-In portrait, scroll and swipe through the page. In landscape, use keyboard
-or mouse navigation. Press **F** for fullscreen and **H** for help; rotating
-the screen alone does not request fullscreen. Long content remains readable
-by scrolling rather than being cut to fit a slide.
+## Find your route
+
+1. **[Create content](GUIDE.md#1-create-content).** Make a first article,
+   add sources and long-form text, preview edits, and review drafts yourself
+   or with an agent.
+2. **[Organize a documentary collection](GUIDE.md#2-organize-a-documentary-collection).**
+   Arrange a corpus into series, reuse canonical articles in different
+   contexts, and check language or audience variants.
+3. **[Design and compose identities](GUIDE.md#3-design-and-compose-identities).**
+   Create a theme, design layouts and chrome, or combine resources into an
+   autonomous Identity Kit for other authors.
+4. **[Read, present and share](GUIDE.md#4-read-present-and-share).**
+   Navigate by keyboard, mouse or touch; use fullscreen, print to PDF, and
+   share a series, article or individual slide.
+5. **[Publish and maintain](GUIDE.md#5-publish-and-maintain).**
+   Check output, deploy a static site, remove stale files, back up inputs and
+   restore or upgrade a project.
+6. **[Integrate and automate](GUIDE.md#6-integrate-and-automate).**
+   Use the browser builder, CI or an agent; consume JSON reports and keep
+   editing, building and publishing permissions separate.
+
+Working with an agent? Start with the [mission entry](agent/skills/lightwebpres/SKILL.md)
+and [skill index](agent/skills/README.md). Agents use the same
+files and engine as people, not a separate content model.
 
 ## Quickstart
 
 Download a source archive from the
 [GitHub releases](https://github.com/Fade78/lightwebpres/releases) and extract
 the `lightwebpres` file. You need **Python 3.8+**, with no extra packages.
-The archive also includes the browser builder, documentation, examples and
-contributor tools; the single executable is enough for CLI use. Read the
+The archive also includes the browser builder, documentation and examples;
+the single executable is enough for CLI use. It uses only Python's standard
+library and can build locally without a network connection. Read the
 documentation shipped with your chosen release: this checkout can describe
 features not yet published in a release.
 
@@ -57,110 +80,56 @@ On Windows, use `python lightwebpres` or `py lightwebpres` instead of
 `python3 lightwebpres`. On Unix, invoking through Python avoids executable
 permission issues; `chmod +x lightwebpres` also enables `./lightwebpres`.
 
-**Next: [make your first personal article](GUIDE.md#2-make-your-first-personal-article).**
-The guide gives you a complete source file, the exact `series.json` entry,
-and the build/open/verify loop, while keeping the demo available as a reference.
+**Next: [make your first personal article](GUIDE.md#make-your-first-personal-article).**
+The guide supplies the complete Markdown and `series.json` entry, followed by
+the build/check loop and `watch --serve --port 8000 --open` preview. Watching
+rebuilds saved edits; refresh the browser yourself.
 
-## What you get
-
-- **Portable pages.** One HTML file per article, with an embedded runtime and
-  theme picker. Referenced local images remain files under `img/`; publish
-  the whole output directory. `--inline-images` can embed Markdown images
-  when a single-file delivery matters.
-- **A small content model.** Series → articles → slides. Four slide types
-  cover titles, content cards, cross-article navigation and long-form text.
-  Plain Markdown sources can be edited by a person, an agent or a pipeline.
-- **Series navigation without an application server.** `series.json` orders
-  the articles; the build derives the index and cross-article links. Tags
-  provide selectable variants within the same published pages.
-- **Presentation controls included.** Keyboard, mouse and touch navigation,
-  fullscreen, pause screens, slide counter, theme switching and speaker
-  notes. Browser printing produces a slide-based handout or PDF.
-- **Stable sharing.** Copy a link or show a locally generated QR code for the
-  series, article or current slide. Explicit slide slugs keep links stable
-  when titles or order change. QR codes need a reachable HTTP(S) page.
-- **Customization with checked values.** Choose a theme or presentation
-  preset from an identity, pin typed properties in `settings.conf`, and add advanced rules in
-  `custom.css`. Invalid property names and values are build errors.
-- **Automatic typography.** French and English packs upgrade existing spaces
-  around punctuation, numbers and units to non-breaking spaces. Rules can
-  be extended or disabled, independently of interface translation.
-- **Checks for publishing.** `audit` reports source and rendered-style
-  warnings; `audit --strict` makes them a CI gate. `verify` detects output
-  drift. `watch` rebuilds on edits and can serve a local preview.
-- **A browser builder too.** Build a series zip or pull/build/push a GitLab
-  repository in a browser tab, using the same Python executable under
-  Pyodide rather than a reimplementation.
-
-## Choose a look
-
-These existing previews show three real `640 × 360` landscape covers:
-`lava`, `terminal` and `pop-lemon`.
-
-![Three real landscape covers in the Lava, Terminal and Pop Lemon themes](generated/themes-featured.png)
-
-Browse the [compact theme catalogue](generated/themes-gallery.png), or open
-the [interactive HTML gallery](generated/themes-gallery.html) in a browser.
-It shows a cover, a content card with a note, page-wide notes and long-form
-text for each theme, with family, polarity and hue filters.
+## One article, different identities
 
 <p align="center">
-  <a href="generated/themes-gallery.html">
-    <img src="generated/themes-gallery.png" alt="Compact contact sheet showing one rendered cover for every built-in colour theme" width="100%">
-  </a>
+  <img src="generated/appearance-choices.png" alt="The same first article rendered with native LightWebPres, the documentation identity and the composed Field Notes identity" width="100%">
 </p>
 
-To change the quickstart series:
+Three actual Chromium views of the same article with different presentation
+choices, not device photographs. A **Theme** supplies typed colors and fonts;
+a **Preset** selects a theme, layouts and chrome; an **Identity Kit** bundles
+those resources and assets into a reusable, versioned directory.
 
-```bash
-python3 lightwebpres series theme set my-series --theme evergreen
-python3 lightwebpres build my-series --lang en
-```
+Use native `builtin/standard` with its Light theme, choose a Commons theme or
+preset, or deliver your own kit. Authors select what ships; readers use
+**Appearance** to choose among the published **Identity**, **Preset** and
+**Theme** options without editing the sources. The default theme alternatives
+include Monochrome, Monochrome Night and Print Ink. Contrast reports measure
+typed values, not arbitrary custom CSS or overall accessibility.
 
-The command changes the theme selection, not your pinned property values.
-The default runtime alternatives include Monochrome, Monochrome Night and
-Print Ink. Readers can choose them with **C** without rebuilding; use
-`--no-essential-theme` if you do not want that default bundle.
+Browse the [interactive theme gallery](generated/themes-gallery.html) or its
+[compact catalogue](generated/themes-gallery.png). For a complete, inspectable
+design workflow, the [Field Notes example](examples/kit-composition/README.md)
+composes layouts, marks and a theme from three independent source kits.
+Distribute themes as files and complete kits as directories or archives,
+through your own downloads or repositories. LightWebPres loads those files;
+no account is required.
 
-A theme's contrast report is a measurement, not an accessibility certification.
-`theme show` reports the catalogue theme; `series theme` measures the effective
-typed values after your pins. Advanced `custom.css` is outside that measurement.
+## Output you can keep
 
-The Appearance picker separates **Identity**, **Preset** and **Theme**.
-The native `builtin/standard` preset uses the minimal Light theme; Commons
-provides the global themes and native-layout presets. Self-contained Identity
-Kits provide their own layouts, chrome, themes and assets. The identity is
-inferred from the one series preset reference, not stored as a second choice.
-Applicable / Current identity / All filter published choices; compatibility
-checks types, not brand approval. An explicit theme stays selected across preset
-changes until the reader chooses Follow preset.
-
-For layouts, headers, footers, kit assets, Commons presets and a complete
-`kit compose` recipe, see
-[presets and customization](GUIDE.md#5-choose-presets-themes-and-customization).
-You do not need to design a kit to use native Standard or Commons themes.
-
-## Find your route
-
-The [GUIDE](GUIDE.md) is the operational product manual. This README is the
-entry point, not a second command reference.
-
-| I want to… | Go to |
-|---|---|
-| Understand the generated project | [Start with a working site](GUIDE.md#1-start-with-a-working-site) |
-| Replace the demo with my content | [First personal article](GUIDE.md#2-make-your-first-personal-article) |
-| Use slide fields, images and notes | [Page anatomy](GUIDE.md#3-understand-page-anatomy) |
-| Order articles or select variants | [Series and tags](GUIDE.md#4-organize-a-series-and-tags) |
-| Select layouts or change the appearance | [Presets, themes and customization](GUIDE.md#5-choose-presets-themes-and-customization) |
-| Set interface language and spacing rules | [Languages and typography](GUIDE.md#6-set-languages-and-typography) |
-| Check output and put it online | [Verify and publish](GUIDE.md#7-verify-and-publish) |
-| Use fullscreen, PDF or QR sharing | [Present, print and share](GUIDE.md#8-present-print-and-share) |
-| Build without a terminal | [Browser builder](GUIDE.md#9-build-in-the-browser) |
-| Set up CI, watch or upgrade a series | [Automation and maintenance](GUIDE.md#10-automate-and-maintain) |
-| Diagnose unexpected output | [Troubleshooting and references](GUIDE.md#11-troubleshooting-and-references) |
-
-The guide is also [built as a LightWebPres article](generated/guide/guide.html).
-Open the HTML in a browser to use its deck and full manual together.
+- **A site, not an application server.** Publish the complete `public/` tree:
+  HTML plus referenced `img/` and identity assets. `--inline-images` can embed
+  supported images and kit assets for single-file article delivery.
+- **An index when you need one.** `series.json` determines article order and
+  navigation. A lone article can claim `index.html`; `--no-index` lets you
+  integrate pages into a site whose landing page is managed elsewhere.
+- **Stable links.** Explicit slide slugs preserve addresses when titles or
+  order change. Sharing and QR generation happen locally, but a receiving
+  phone needs a reachable HTTP(S) URL, not a local file or loopback address.
+- **Reader controls.** Keyboard, mouse and touch navigation, fullscreen, pause
+  screens and browser PDF printing travel with the page. Fullscreen requires
+  a deliberate action; rotating a phone does not activate it.
+  The menu also provides zoom buttons, local scrolling for wide tables and
+  optional text fitting. Content is preserved; native browser pinch remains available.
+- **Explicit variants.** Authors supply language or audience variants and tag
+  them. French and English typography packs adjust existing spaces; they do
+  not translate content or rewrite it to fit the screen.
 
 ## Browser or terminal
 
@@ -172,12 +141,20 @@ the reference, for example `python3 lightwebpres build --help`.
 The browser builder lives in [`web/`](web/). Serve it over HTTP(S); unlike
 generated articles, it cannot run from `file://`. It needs its vendored
 Pyodide files and a copy of the executable in one of its supported locations.
-The [browser chapter](GUIDE.md#9-build-in-the-browser) gives the local server
+The [browser chapter](GUIDE.md#build-in-the-browser) gives the local server
 command and deployment layout.
 
-Zip builds stay in the tab. GitLab sync talks directly to the configured
-instance and only creates or updates files; it does not delete stale output.
-The browser builder is distinct from the separate `lightwebpres-gui` editor.
+Zip builds stay in the tab, using the same executable under Pyodide. GitLab
+sync pulls, builds and pushes directly to the configured instance; it needs
+CORS and token permissions, never deletes files, and may leave partial commits
+after a failed push. The guide explains token storage and recovery.
+
+This lightweight builder is not the separate `lightwebpres-gui` editor project.
+For pipelines and agents, `contract`, `status`, `series tags` and `resolve`
+provide machine-readable reports. `audit --strict` supplies a warning gate;
+`verify` detects output drift. Follow the
+[integration route](GUIDE.md#6-integrate-and-automate) for schemas, exit codes
+and the difference between a report and successful validation.
 
 ## Safety
 
@@ -195,50 +172,26 @@ Before publishing, inspect the output and use matching build/verify options.
 `verify` cannot reproduce `--inline-images`; keep a separate non-inline
 output if you need that CI gate. Removing an article or asset from the
 sources does not itself delete an old published file. Review `clean` and
-the host's stale files as described in [Verify and publish](GUIDE.md#7-verify-and-publish).
+the host's stale files as described in
+[Publish and maintain](GUIDE.md#5-publish-and-maintain). Keep the source project
+and its exact engine version: published HTML or a browser `public.zip` is not
+an authoring backup.
 
 ## Reference
 
 | Document | Purpose |
 |---|---|
 | [GUIDE.md](GUIDE.md) | Operational manual in task order |
-| [Format skill](agent/skills/lightwebpres/SKILL.md) | Exact article grammar, for people and agents |
+| [Agent operations](agent/skills/lightwebpres/operations.md) | Bounded tasks, inputs and verification for agent-assisted work |
+| [LightWebPres skill](agent/skills/lightwebpres/SKILL.md) | Mission entry with focused format and workflow references |
 | [GLOSSARY.md](GLOSSARY.md) | Field meanings, defaults and fallback chains |
 | [specifications.md](specifications.md) | Normative format and behavior reference, in French |
 | [CHANGELOG.md](CHANGELOG.md) | Version changes and release text |
-| [DECISIONS.md](DECISIONS.md) | Decisions, rationale and outstanding work |
 
 An optional guest [sourced-presentation method](agent/skills/sourced-presentation/SKILL.md)
 ships alongside the format skill for people who want an editorial method.
 It is independent of LightWebPres and is not required to use the tool.
 The [skill index](agent/skills/README.md) distinguishes their roles.
-
-## Contribute
-
-Read [AGENTS.md](AGENTS.md) before changing this repository. The engine is
-the single `lightwebpres` file; `tests/` holds CLI, internal-contract and
-real-browser regression tests. Development and public releases use different
-forges, as explained in the contributor rules.
-
-Run the suite before and after a change:
-
-```bash
-python3 tests/run_tests.py
-python3 -m py_compile lightwebpres
-python3 tools/check_refs.py
-```
-
-Browser tests use Playwright and Chromium and skip when unavailable.
-No browser tooling is needed to use the Python CLI.
-
-`examples/` holds tracked inputs, including Identity Kits under `examples/kits/` and the
-first-article example. `tools/` holds maintenance scripts and the guide deck.
-`generated/` holds rebuildable output: edit its sources, never its files by
-hand. The guide is regenerated with `python3 tools/build_guide.py`.
-For product images, use `node tools/screenshot-product.cjs` with an installed
-Playwright and Chromium; the [example instructions](examples/first-article/README.md)
-document resolution and freshness checks. Existing gallery captures have
-their own commands in AGENTS.md.
 
 ## License
 

@@ -36,6 +36,25 @@ EXECUTABLE = Path(__file__).resolve().parent.parent / 'lightwebpres'
 SUBPROCESS_TIMEOUT = 120
 
 
+SEMVER_PATTERN = (
+    r'(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)'
+    r'(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
+    r'(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?'
+    r'(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?'
+)
+
+
+def semver_precedence(value):
+    """Product release ordering only; kit versions have a separate grammar."""
+    if re.fullmatch(SEMVER_PATTERN, value) is None:
+        raise ValueError(f'Invalid SemVer: {value!r}')
+    core, separator, prerelease = value.split('+', 1)[0].partition('-')
+    identifiers = tuple((0, int(part)) if part.isdigit() else (1, part)
+                        for part in prerelease.split('.')) if separator else ()
+    # Numeric identifiers precede lexical ones; a final release sorts last.
+    return (*map(int, core.split('.')), not separator, identifiers)
+
+
 def run(*args, cwd=None, env=None):
     """Runs lightwebpres <args> and returns the CompletedProcess."""
     full_env = {**os.environ, **env} if env else None
@@ -2826,6 +2845,30 @@ class CliVersionAndShortcuts(unittest.TestCase):
     """Phase 1 of the CLI refonte (DECISION-CLI.md / PLAN-CLI.md):
     --version, subcommand shortcuts, and legacy aliases with a [WARN]."""
 
+    def test_product_semver_precedence(self):
+        ordered = (
+            '0.56.0', '1.0.0-alpha', '1.0.0-alpha.1', '1.0.0-alpha.beta',
+            '1.0.0-beta', '1.0.0-beta.1', '1.0.0-beta.2', '1.0.0-beta.11',
+            '1.0.0-rc', '1.0.0-rc.1', '1.0.0-rc.2', '1.0.0-rc.10',
+            '1.0.0-rc.a', '1.0.0', '1.0.1', '1.1.0', '1.2.0', '1.10.0',
+        )
+        for earlier, later in zip(ordered, ordered[1:]):
+            with self.subTest(earlier=earlier, later=later):
+                self.assertLess(semver_precedence(earlier), semver_precedence(later))
+        for version in ('0.0.0', '1.0.0-beta.1', '1.0.0-0', '1.0.0-x-y.01a', '1.0.0'):
+            for metadata in ('build.001', 'sha-abc.9'):
+                with self.subTest(version=version, metadata=metadata):
+                    self.assertEqual(semver_precedence(version),
+                                     semver_precedence(version + '+' + metadata))
+
+    def test_product_semver_rejects_malformed_versions(self):
+        for version in ('1', '1.0', 'v1.0.0', '01.0.0', '1.01.0', '1.0.01',
+                        '1.0.0-', '1.0.0-beta.01', '1.0.0-01', '1.0.0-a..b',
+                        '1.0.0-a_b', '1.0.0+', '1.0.0+build..1', '1.0.0+a+b',
+                        '1.0.0\n', ' 1.0.0', '1.0.0-\u00e9', '\u0661.0.0'):
+            with self.subTest(version=version), self.assertRaises(ValueError):
+                semver_precedence(version)
+
     def test_version_prints_version_and_exits_zero(self):
         # The whole line, not the prefix. `assertIn('LightWebPres v', ...)`
         # matched every string the emitter could possibly produce -- the
@@ -2887,24 +2930,22 @@ class CliVersionAndShortcuts(unittest.TestCase):
         match = re.search(r'^VERSION = "([^"]+)"', released.stdout, re.M)
         self.assertIsNotNone(match, f'{tag} has no VERSION line')
 
-        def parts(value):
-            return tuple(int(n) for n in value.split('.'))
-
-        tagged = parts(tag.lstrip('v'))
-        here = parts(load_lightwebpres_module().VERSION)
+        tagged = semver_precedence(tag[1:])
+        version = load_lightwebpres_module().VERSION
+        here = semver_precedence(version)
         at_tag = git('rev-list', '-n', '1', tag).stdout.strip()
         head = git('rev-parse', 'HEAD').stdout.strip()
 
         if at_tag == head:
             self.assertEqual(
-                parts(match.group(1)), tagged,
+                match.group(1), tag[1:],
                 f'{tag} was cut from a tree announcing '
                 f'{match.group(1)}: the released tool says it is a version '
                 f'it is not, and every reader who runs --version is told so')
         else:
             self.assertGreater(
                 here, tagged,
-                f'this tree announces {".".join(str(n) for n in here)} and '
+                f'this tree announces {version} and '
                 f'{tag} is already released under that number or a later '
                 f'one. An unreleased number is fine; a released one is a '
                 f'second thing claiming to be the first')
@@ -2942,13 +2983,34 @@ class CliVersionAndShortcuts(unittest.TestCase):
         headings = re.findall(r'^## +(.+)$', changelog.read_text(encoding='utf-8'),
                               re.M)
         self.assertTrue(
-            any(re.search(r'(?:^|\s|v)' + re.escape(version) + r'(?:$|\s|—|-)',
+            any(re.search(r'(?:^|\s|v)' + re.escape(version) + r'(?:$|\s|—)',
                           heading) for heading in headings),
             f'CHANGELOG.md has no section for {version}, the version this '
             f'tree announces. Write the entry when you bump VERSION, not '
             f'when you cut the release: it IS the release body, and a text '
             f'written twice is a text that disagrees with itself. '
             f'Headings found: {headings}')
+
+    def test_changelog_guard_does_not_mistake_a_prerelease_for_final(self):
+        cases = (
+            ('1.0.0-beta.1', 'Unreleased — 1.0.0-beta.1', True),
+            ('1.0.0-beta.1+build.001', 'v1.0.0-beta.1+build.001', True),
+            ('1.0.0', 'v1.0.0', True),
+            ('1.0.0', 'v1.0.0-beta.1', False),
+            ('1.0.0', 'Unreleased — 1.0.0-rc.1', False),
+            ('1.0.0-beta.1', 'v1.0.0-beta.10', False),
+            ('1.0.0-beta.1', 'v1.0.0-beta.1+build.001', False),
+        )
+        for version, heading, accepted in cases:
+            with self.subTest(version=version, heading=heading), \
+                    mock.patch(__name__ + '.load_lightwebpres_module') as load, \
+                    mock.patch.object(Path, 'read_text', return_value=f'## {heading}\n'):
+                load.return_value.VERSION = version
+                if accepted:
+                    self.test_the_version_it_announces_has_a_changelog_entry()
+                else:
+                    with self.assertRaisesRegex(AssertionError, 'has no section'):
+                        self.test_the_version_it_announces_has_a_changelog_entry()
 
     def test_the_decisions_index_matches_the_file(self):
         """`DECISIONS.md` may have an index because this refuses to let it
@@ -3100,6 +3162,8 @@ class CliVersionAndShortcuts(unittest.TestCase):
                   | set(lwp._SERIES_STRING_FIELDS)
                   | set(lwp._SERIES_META_STRING_FIELDS)
                   | set(lwp._SERIES_META_INTEGER_FIELDS)
+                  | set(lwp._SERIES_META_OBJECT_FIELDS)
+                  | set(lwp.DEFAULT_READING_SETTINGS)
                   | set(lwp._SLIDE_FIELD_ATTRS))
         named = set(re.findall(r'`([a-z][a-z0-9_.-]*)`',
                                glossary.read_text(encoding='utf-8')))
@@ -9213,11 +9277,18 @@ class PresentationPackages(unittest.TestCase):
 
             listed = run('preset', 'list', '--format', 'json', env=env)
             self.assertEqual(listed.returncode, 0, listed.stderr)
-            reports = json.loads(listed.stdout)['presets']
-            default = next(report for report in reports if report['default'])
+            listing = json.loads(listed.stdout)
+            self.assertEqual(listing['schema'], 'lightwebpres.preset-list/2')
+            reports = listing['presets']
+            native = next(report for report in reports
+                          if report['selector'] == 'builtin/standard')
             custom = next(report for report in reports
                           if report['selector'] == self.SELECTOR)
-            self.assertEqual(default['selector'], 'builtin/standard')
+            self.assertTrue(native['native_renderer'])
+            self.assertFalse(custom['native_renderer'])
+            for report in reports:
+                self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/2')
+                self.assertNotIn('default', report)
             self.assertEqual(custom['package']['scope'], 'user')
 
             shown = run('preset', 'show', self.SELECTOR, '--format', 'json',
@@ -9228,7 +9299,7 @@ class PresentationPackages(unittest.TestCase):
             virtual = run('preset', 'show', 'builtin/standard', '--format', 'json',
                           env=env)
             self.assertEqual(virtual.returncode, 0, virtual.stderr)
-            self.assertTrue(json.loads(virtual.stdout)['default'])
+            self.assertTrue(json.loads(virtual.stdout)['native_renderer'])
 
             series = root / 'series'
             initialized = run('init', str(series), env=env)
@@ -9242,7 +9313,9 @@ class PresentationPackages(unittest.TestCase):
             current = run('series', 'preset', str(series), '--format', 'json',
                           env=env)
             self.assertEqual(current.returncode, 0, current.stderr)
-            self.assertTrue(json.loads(current.stdout)['preset']['default'])
+            current_report = json.loads(current.stdout)
+            self.assertEqual(current_report['schema'], 'lightwebpres.series-preset/2')
+            self.assertTrue(current_report['preset']['native_renderer'])
             data['series_meta']['presentation_preset'] = 'default'
             (series / 'series.json').write_text(json.dumps(data), encoding='utf-8')
             persisted = run('series', 'preset', str(series), env=env)
@@ -9742,7 +9815,7 @@ class BuildStamp(unittest.TestCase):
         # and the closing > tolerates that without hardcoding its exact
         # value here.
         r'<div class="build-stamp"[^>]*>Compiled at (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) '
-        r'with lightwebpres v([\d.]+)\.</div>'
+        r'with lightwebpres v(' + SEMVER_PATTERN + r')\.</div>'
     )
 
     def _md(self):
@@ -9784,6 +9857,39 @@ class BuildStamp(unittest.TestCase):
 
             version = run('help').stdout.split('LightWebPres v', 1)[1].split(' ', 1)[0]
             self.assertEqual(article_match.group(2), version)
+
+    def test_prerelease_runtime_version_and_stamps_without_editing_the_executable(self):
+        probe = (
+            'import sys\n'
+            'from tests.test_lightwebpres import load_lightwebpres_module\n'
+            'lwp = load_lightwebpres_module()\n'
+            'lwp.VERSION = sys.argv.pop(1)\n'
+            'sys.argv[0] = lwp.__file__\n'
+            'lwp.main()\n'
+        )
+        for version in ('1.0.0-beta.1', '1.0.0-beta.2+build.001', '1.0.0-rc.1', '1.0.0'):
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as tmp:
+                root = scaffold(tmp, self._md())
+                for args in (('--version',), ('--help',),
+                             ('build', str(root), '--build-stamp'),
+                             ('status', str(root), '--format', 'json'),
+                             ('verify', str(root))):
+                    result = subprocess.run(
+                        [sys.executable, '-c', probe, version, *args],
+                        cwd=EXECUTABLE.parent, capture_output=True, text=True,
+                        timeout=SUBPROCESS_TIMEOUT)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    if args[0] == '--version':
+                        self.assertEqual(result.stdout.strip(), f'LightWebPres v{version}')
+                    elif args[0] == '--help':
+                        self.assertIn(f'LightWebPres v{version} ', result.stdout)
+                    elif args[0] == 'status':
+                        self.assertEqual(json.loads(result.stdout)['lightwebpres_version'], version)
+                for page in ('a.html', 'index.html'):
+                    html = (root / 'public' / page).read_text(encoding='utf-8')
+                    match = self.STAMP_RE.search(html)
+                    self.assertIsNotNone(match, page)
+                    self.assertEqual(match.group(2), version)
 
     def test_check_ignores_the_stamp_no_false_drift(self):
         """A series built with --build-stamp must still `check` clean —
@@ -11321,10 +11427,66 @@ class SkillDocumentsWhatTheCodeAccepts(unittest.TestCase):
     field to the executable fails here until the skill catches up."""
 
     def setUp(self):
+        from urllib.parse import unquote, urlsplit
+
         self.lwp = load_lightwebpres_module()
-        self.skill = (Path(__file__).resolve().parent.parent /
-                      'agent' / 'skills' / 'lightwebpres' / 'SKILL.md'
-                      ).read_text(encoding='utf-8')
+        self.skill_root = (Path(__file__).resolve().parent.parent /
+                           'agent' / 'skills' / 'lightwebpres').resolve()
+        self.skill_documents = {}
+        pending = [self.skill_root / 'SKILL.md']
+        while pending:
+            path = pending.pop().resolve()
+            self.assertIn(self.skill_root, path.parents,
+                          f'skill reference escapes its package: {path}')
+            self.assertTrue(path.is_file(), f'missing skill reference: {path}')
+            name = path.relative_to(self.skill_root).as_posix()
+            if name in self.skill_documents:
+                continue
+            text = path.read_text(encoding='utf-8')
+            self.skill_documents[name] = text
+            # Examples are not links to resources installed with the skill.
+            prose = re.sub(
+                r'(?ms)^(`{3,}|~{3,})[^\n]*\n.*?^\1[ \t]*(?:\n|$)',
+                '', text)
+            prose = re.sub(r'(`+)[^\n]*?\1', '', prose)
+            for target in re.findall(r'(?<!!)\[[^\]\n]+\]\(([^)\s]+)\)',
+                                     prose):
+                link = urlsplit(target)
+                if link.scheme or link.netloc or not link.path:
+                    continue
+                relative = Path(unquote(link.path))
+                if relative.suffix.lower() == '.md':
+                    self.assertFalse(relative.is_absolute(),
+                                     f'absolute skill reference: {target}')
+                    pending.append(path.parent / relative)
+        self.skill_entry = self.skill_documents['SKILL.md']
+        self.skill = '\n\n'.join(self.skill_documents[name]
+                                 for name in sorted(self.skill_documents))
+
+    def test_all_packaged_markdown_is_reachable_and_contained(self):
+        packaged = set()
+        for path in self.skill_root.rglob('*.md'):
+            self.assertIn(self.skill_root, path.resolve().parents,
+                          f'packaged resource escapes its root: {path}')
+            packaged.add(path.relative_to(self.skill_root).as_posix())
+        self.assertEqual(packaged, set(self.skill_documents),
+                         'orphan Markdown does not count as skill coverage')
+
+    def test_entry_keeps_its_name_size_and_mission_routes(self):
+        self.assertRegex(self.skill_entry, r'(?m)^name: lightwebpres$')
+        self.assertGreaterEqual(len(self.skill_entry.splitlines()), 100)
+        self.assertLessEqual(len(self.skill_entry.splitlines()), 180)
+        routes = (
+            '1-create-content',
+            '2-organize-a-documentary-collection',
+            '3-design-and-compose-identities',
+            '4-read-present-and-share',
+            '5-publish-and-maintain',
+            '6-integrate-and-automate',
+        )
+        for route in routes:
+            self.assertIn('GUIDE.md#' + route, self.skill_entry, route)
+        self.assertIn('operations.md', self.skill_entry)
 
     def test_every_recognized_slide_field_is_named(self):
         names = self.lwp.SLIDE_FIELD_NAMES
@@ -12482,12 +12644,12 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
 
     def test_the_json_parses_and_carries_exactly_the_documented_keys(self):
         """The key names are a public surface: renaming one breaks the
-        GUI's theme picker and nothing goes red here. Checked as an EXACT
-        set, both ways — an added key is as much a contract change as a
-        removed one, and the GUI is entitled to know which it is from the
-        `schema` string."""
+        GUI's theme picker and nothing goes red here. The exact producer
+        inventory keeps documentation changes deliberate; it does not require
+        a schema bump for compatible optional additions. Consumers must
+        tolerate unknown keys (§13.9)."""
         report = self._report('nord')
-        self.assertEqual(report['schema'], 'lightwebpres.theme-info/5')
+        self.assertEqual(report['schema'], 'lightwebpres.theme-info/6')
         self.assertEqual(report['lightwebpres_version'],
                          self.lwp.VERSION)
         self.assertEqual(set(report), self.ROOT_KEYS)
@@ -19434,9 +19596,8 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                                              'author': 'Fade78'})
             report = self._report(root)
 
-        # /3 exposes the resolved presentation separately from raw series
-        # metadata, after /2 removed `draft` and changed `counts`.
-        self.assertEqual(report['schema'], 'lightwebpres.series-info/3')
+        # /4 exposes explicit native references, native_renderer and reading.
+        self.assertEqual(report['schema'], 'lightwebpres.series-info/4')
         version = run('--help').stdout.split('LightWebPres v', 1)[1].split(' ', 1)[0]
         self.assertEqual(report['lightwebpres_version'], version)
         self.assertEqual(set(report), {'schema', 'lightwebpres_version',
@@ -19452,13 +19613,14 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                           {'title', 'subtitle', 'version', 'intro', 'author',
                             'license', 'default_tag', 'scroll_duration',
                             'lang_tags', 'notes_placement', 'notes_tooltip',
-                            'slide_page_numbers', 'slug_prefix',
-                            'presentation_preset'})
+                             'slide_page_numbers', 'slug_prefix',
+                             'presentation_preset', 'reading'})
         self.assertEqual(set(report['presentation']),
                          {'schema', 'selector', 'id', 'label', 'description',
-                          'default', 'package', 'theme', 'slide_layouts',
+                          'native_renderer', 'package', 'theme', 'slide_layouts',
                           'slide_chrome', 'starter', 'resource_collection', 'scope'})
-        self.assertTrue(report['presentation']['default'])
+        self.assertEqual(report['presentation']['schema'], 'lightwebpres.presentation-preset/2')
+        self.assertTrue(report['presentation']['native_renderer'])
         self.assertEqual(report['presentation']['selector'], 'builtin/standard')
         self.assertEqual(report['series_meta']['title'], 'A series')
         self.assertIsNone(report['series_meta']['default_tag'])
@@ -20306,9 +20468,11 @@ class RegressionFixes(unittest.TestCase):
     def test_b4_nav_buttons_in_is_interactive(self):
         with tempfile.TemporaryDirectory() as tmp:
             html = self._build_html(tmp)
-            i = html.find('isInteractive')
+            i = html.find('function isInteractive(e)')
             self.assertNotEqual(i, -1)
-            seg = html[i:i + 250]
+            end = html.find('\n  }', i)
+            self.assertNotEqual(end, -1)
+            seg = html[i:end]
             self.assertIn('.nav-buttons', seg)
 
     # --- B5: wake lock released on webkitfullscreenchange ---
@@ -20385,7 +20549,7 @@ class RegressionFixes(unittest.TestCase):
         back must come back with its own guard, not inside this one."""
         with tempfile.TemporaryDirectory() as tmp:
             html = self._build_html(tmp)
-            i = html.find("'contextmenu'")
+            i = html.find("document.addEventListener('contextmenu', function")
             self.assertNotEqual(i, -1)
             end = html.find('\n  });', i)
             self.assertNotEqual(end, -1, 'the contextmenu handler has no end')
