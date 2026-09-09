@@ -114,6 +114,12 @@ translation of the French specification.
   selection and licensing explanation; do not replace it with mock output.
 - `tools/screenshot-documentation.cjs`: builds the real examples and captures
   the appearance comparison and composition diagram. Regeneration is below.
+- `tools/build_readme_diagrams.py`: generates the English authoring and role
+  workflow diagrams in desktop and mobile SVG layouts. Run
+  `TMPDIR="$PWD/work/tmp" python3 tools/build_readme_diagrams.py`; `--check`
+  verifies exact output bytes. Edit the generator, never its four SVG outputs.
+  `tests/readme_diagrams_e2e.cjs` checks the README picture selection and SVG
+  text bounds in the supplied browser environment, with captures in `work/tmp/`.
 - **Deux blocs de ces documents sont générés** et se réécrivent au lieu
   de s'éditer. Chacun a sa garde dans la suite, donc une édition à la
   main ne survit ni au script ni au test :

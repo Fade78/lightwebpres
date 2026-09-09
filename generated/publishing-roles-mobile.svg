@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="1990" viewBox="0 0 600 1990" role="img" aria-labelledby="diagram-title diagram-desc">
+<title id="diagram-title">More roles, one build</title>
+<desc id="diagram-desc">Document architects configure content and series.json; theme and kit makers supply selected appearance resources. Kit compose selects files into a self-contained kit with own or builtin references, not live dependencies on other kits. Integrators orchestrate builds and check outputs. Solid arrows carry resources or results; dashed arrows denote orchestration. A configured LightWebPres build produces HTML and assets for readers, presenters and publishers. Browser printing can produce PDF; publishing and hosting are separate actions. People or external agents can fill these roles. Commons is a collection, not an identity.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M 1 1 L 9 5 L 1 9 Z" fill="#167d8d"/></marker></defs>
+<rect x="0" y="0" width="600" height="1990" rx="0" fill="#f7f4ec" stroke="none" stroke-width="2"/>
+<text x="32" y="50" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700" fill="#0e2a43">More roles, one build</text>
+<text x="32" y="86" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Solid: resources / results</text>
+<text x="32" y="116" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Dashed: build orchestration</text>
+<path data-from="architects" data-to="configured-build" data-kind="resource" d="M 512 243.0 L 552 243.0 L 552 1062 L 520 1062" fill="none" stroke="#167d8d" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path data-from="makers" data-to="configured-build" data-kind="resource" d="M 512 502.0 L 552 502.0 L 552 1062 L 520 1062" fill="none" stroke="#167d8d" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path data-from="integrators" data-to="configured-build" data-kind="orchestration" d="M 272 862 L 272 936" fill="none" stroke="#167d8d" stroke-width="2.5" stroke-dasharray="7 6" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path data-from="configured-build" data-to="readers" data-kind="resource" d="M 300 1188 L 300 1224 L 552 1224 L 552 1342.0 L 512 1342.0" fill="none" stroke="#167d8d" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path data-from="configured-build" data-to="presenters" data-kind="resource" d="M 300 1188 L 300 1224 L 552 1224 L 552 1554.0 L 512 1554.0" fill="none" stroke="#167d8d" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path data-from="configured-build" data-to="publishers" data-kind="resource" d="M 300 1188 L 300 1224 L 552 1224 L 552 1766.0 L 512 1766.0" fill="none" stroke="#167d8d" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<g id="architects" data-node="architects">
+<rect x="32" y="160" width="480" height="166" rx="14" fill="#ffffff" stroke="#167d8d" stroke-width="2"/>
+<rect x="50" y="175" width="38" height="38" rx="8" fill="#f7f4ec" stroke="none" stroke-width="2"/>
+<g transform="translate(54 179)" fill="none" stroke="#0e2a43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M 5 1 H 19 L 27 9 V 29 H 5 Z M 19 1 V 9 H 27 M 10 15 H 22 M 10 21 H 22"/></g>
+<text x="50" y="239" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#0e2a43">Document architects</text>
+<text x="50" y="273" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Articles, order, tags, languages</text>
+<text x="50" y="302" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">series.json: series config</text>
+</g>
+<g id="makers" data-node="makers">
+<rect x="32" y="378" width="480" height="248" rx="14" fill="#ffffff" stroke="#167d8d" stroke-width="2"/>
+<rect x="50" y="393" width="38" height="38" rx="8" fill="#f7f4ec" stroke="none" stroke-width="2"/>
+<g transform="translate(54 397)" fill="none" stroke="#0e2a43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M 5 1 H 19 L 27 9 V 29 H 5 Z M 19 1 V 9 H 27 M 10 15 H 22 M 10 21 H 22"/></g>
+<text x="50" y="457" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#0e2a43">Theme &amp; kit makers</text>
+<text x="50" y="491" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Themes, layouts, presets</text>
+<text x="50" y="520" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">kit compose: selected files</text>
+<text x="50" y="549" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">into a self-contained kit.</text>
+<text x="50" y="578" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Own or builtin references;</text>
+<text x="50" y="607" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">no live links to other kits.</text>
+</g>
+<g id="integrators" data-node="integrators">
+<rect x="32" y="678" width="480" height="184" rx="14" fill="#ffffff" stroke="#167d8d" stroke-width="2"/>
+<rect x="50" y="693" width="38" height="38" rx="8" fill="#f7f4ec" stroke="none" stroke-width="2"/>
+<g transform="translate(54 697)" fill="none" stroke="#0e2a43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="20" height="20" rx="3"/><rect x="10" y="10" width="10" height="10" rx="1"/><path d="M 10 0 V 5 M 20 0 V 5 M 10 25 V 30 M 20 25 V 30 M 0 10 H 5 M 0 20 H 5 M 25 10 H 30 M 25 20 H 30"/></g>
+<text x="50" y="757" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#0e2a43">Integrators</text>
+<text x="50" y="791" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">People or external agents</text>
+<text x="50" y="820" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">run CLI / CI / browser builds</text>
+<text x="50" y="849" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">and check outputs.</text>
+</g>
+<g id="readers" data-node="readers">
+<rect x="32" y="1262" width="480" height="160" rx="14" fill="#ffffff" stroke="#167d8d" stroke-width="2"/>
+<rect x="50" y="1277" width="38" height="38" rx="8" fill="#f7f4ec" stroke="none" stroke-width="2"/>
+<g transform="translate(54 1281)" fill="none" stroke="#0e2a43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="14" cy="7" r="5"/><path d="M 3 28 V 23 C 3 12 25 12 25 23 V 28"/></g>
+<text x="50" y="1341" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#0e2a43">Readers</text>
+<text x="50" y="1375" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Follow sources;</text>
+<text x="50" y="1404" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">choose reading views.</text>
+</g>
+<g id="presenters" data-node="presenters">
+<rect x="32" y="1474" width="480" height="160" rx="14" fill="#ffffff" stroke="#167d8d" stroke-width="2"/>
+<rect x="50" y="1489" width="38" height="38" rx="8" fill="#f7f4ec" stroke="none" stroke-width="2"/>
+<g transform="translate(54 1493)" fill="none" stroke="#0e2a43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="14" cy="7" r="5"/><path d="M 3 28 V 23 C 3 12 25 12 25 23 V 28"/></g>
+<text x="50" y="1553" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#0e2a43">Presenters</text>
+<text x="50" y="1587" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Navigate and zoom;</text>
+<text x="50" y="1616" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">browser print / PDF.</text>
+</g>
+<g id="publishers" data-node="publishers">
+<rect x="32" y="1686" width="480" height="160" rx="14" fill="#ffffff" stroke="#167d8d" stroke-width="2"/>
+<rect x="50" y="1701" width="38" height="38" rx="8" fill="#f7f4ec" stroke="none" stroke-width="2"/>
+<g transform="translate(54 1705)" fill="none" stroke="#0e2a43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="28" height="24" rx="2"/><path d="M 1 10 H 29 M 6 16 H 23 M 6 21 H 19"/></g>
+<text x="50" y="1765" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#0e2a43">Publishers</text>
+<text x="50" y="1799" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Share files or deploy</text>
+<text x="50" y="1828" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">a static site yourself.</text>
+</g>
+<g id="configured-build" data-node="configured-build">
+<rect x="80" y="936" width="440" height="252" rx="14" fill="#0e2a43" stroke="#0e2a43" stroke-width="2"/>
+<rect x="98" y="951" width="38" height="38" rx="8" fill="#ffc857" stroke="none" stroke-width="2"/>
+<g transform="translate(102 955)" fill="none" stroke="#0e2a43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="20" height="20" rx="3"/><rect x="10" y="10" width="10" height="10" rx="1"/><path d="M 10 0 V 5 M 20 0 V 5 M 10 25 V 30 M 20 25 V 30 M 0 10 H 5 M 0 20 H 5 M 25 10 H 30 M 25 20 H 30"/></g>
+<text x="98" y="1015" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#f7f4ec">LightWebPres</text>
+<text x="98" y="1049" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#f7f4ec">Build configured</text>
+<text x="98" y="1078" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#f7f4ec">content + appearance</text>
+<text x="98" y="1107" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#f7f4ec">into HTML + assets.</text>
+<text x="98" y="1136" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#f7f4ec">CLI or browser</text>
+</g>
+<text x="32" y="1894" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Commons is a collection, not an identity.</text>
+<text x="32" y="1924" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">People or agents can fill these roles.</text>
+<text x="32" y="1954" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Hosting is a separate step.</text>
+</svg>

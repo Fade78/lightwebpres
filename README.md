@@ -13,6 +13,15 @@ pages with slide navigation and a series index. Each article carries its CSS
 and JavaScript; readers need a browser, not LightWebPres, an account or a
 presentation service.
 
+<picture>
+  <source media="(max-width: 600px)" srcset="generated/authoring-workflow-mobile.svg">
+  <img src="generated/authoring-workflow.svg" alt="Three alternatives converge on the same editable source: a human writes, a human steers an external agent, or an autonomous agent writes from a task. LightWebPres builds those files into an HTML document and assets for reading, presenting and sharing." width="100%">
+</picture>
+
+Write the source yourself, direct an agent, or let an autonomous agent carry
+out an authoring task. All three paths produce the same files. **LightWebPres
+builds the document; it does not supply the agent.**
+
 **Just reading? No installation needed.** Explore the
 [presentation overview](generated/guide/guide.html), jump to the
 [complete manual](generated/guide/guide.html#guide-complet), or learn the
@@ -37,8 +46,8 @@ a slide. See the [complete first-article example](examples/first-article/README.
    Arrange a corpus into series, reuse canonical articles in different
    contexts, and check language or audience variants.
 3. **[Design and compose identities](GUIDE.md#3-design-and-compose-identities).**
-   Create a theme, design layouts and chrome, or combine resources into an
-   autonomous Identity Kit for other authors.
+   Create a theme, design layouts and chrome, or combine resources into a
+   self-contained Identity Kit for other authors.
 4. **[Read, present and share](GUIDE.md#4-read-present-and-share).**
    Navigate by keyboard, mouse or touch; use fullscreen, print to PDF, and
    share a series, article or individual slide.
@@ -110,6 +119,20 @@ composes layouts, marks and a theme from three independent source kits.
 Distribute themes as files and complete kits as directories or archives,
 through your own downloads or repositories. LightWebPres loads those files;
 no account is required.
+
+## A workflow for every role
+
+<picture>
+  <source media="(max-width: 600px)" srcset="generated/publishing-roles-mobile.svg">
+  <img src="generated/publishing-roles.svg" alt="Document architects organize articles and series; theme and kit makers provide appearance resources, including self-contained kits made with kit compose. Integrators and agents orchestrate the build. The resulting HTML serves readers, presenters and publishers; PDF printing happens in the browser and hosting is separate." width="100%">
+</picture>
+
+You can organize a documentary collection, design reusable identities, or
+integrate LWP into your own publishing tools. These roles can belong to one
+person, a team or external agents. Resource selection and build automation
+meet at the same engine; publishing the result remains a separate action.
+Follow the [six guide routes](GUIDE.md) or explore the
+[three-kit composition example](examples/kit-composition/README.md).
 
 ## Output you can keep
 

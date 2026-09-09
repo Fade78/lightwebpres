@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="diagram-title diagram-desc">
+<title id="diagram-title">From source to browser</title>
+<desc id="diagram-desc">Three alternatives, not sequential roles: a human writes, a human steers an external agent, or an autonomous external agent works from a brief or task. All write the same editable LWP Markdown, images and series.json configuration. LightWebPres builds these files through its CLI or browser interface, using the same executable, into HTML and assets to read, present and share. Agents are source authors, not native product features.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M 1 1 L 9 5 L 1 9 Z" fill="#167d8d"/></marker></defs>
+<rect x="0" y="0" width="1200" height="760" rx="0" fill="#f7f4ec" stroke="none" stroke-width="2"/>
+<text x="32" y="50" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700" fill="#0e2a43">From source to browser</text>
+<text x="32" y="86" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Three alternative ways to author.</text>
+<text x="32" y="116" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Agents are external to LightWebPres.</text>
+<path data-from="human" data-to="source" data-kind="alternative" d="M 352 232.0 L 380 232.0 L 380 434 L 406 434" fill="none" stroke="#167d8d" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path data-from="steered-agent" data-to="source" data-kind="alternative" d="M 352 434.0 L 380 434.0 L 380 434 L 406 434" fill="none" stroke="#167d8d" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path data-from="autonomous-agent" data-to="source" data-kind="alternative" d="M 352 636.0 L 380 636.0 L 380 434 L 406 434" fill="none" stroke="#167d8d" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path data-from="source" data-to="build" data-kind="resource" d="M 658 434.0 L 698 434.0" fill="none" stroke="#167d8d" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path data-from="build" data-to="document" data-kind="resource" d="M 908 434.0 L 944 434.0" fill="none" stroke="#167d8d" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<g id="human" data-node="human">
+<rect x="32" y="150" width="320" height="164" rx="14" fill="#ffffff" stroke="#167d8d" stroke-width="2"/>
+<rect x="50" y="165" width="38" height="38" rx="8" fill="#ffc857" stroke="none" stroke-width="2"/>
+<g transform="translate(54 169)" fill="none" stroke="#0e2a43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="14" cy="7" r="5"/><path d="M 3 28 V 23 C 3 12 25 12 25 23 V 28"/></g>
+<text x="50" y="229" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#0e2a43">Human writes</text>
+<text x="50" y="263" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Write and revise</text>
+<text x="50" y="292" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">the source.</text>
+</g>
+<g id="steered-agent" data-node="steered-agent">
+<rect x="32" y="352" width="320" height="164" rx="14" fill="#ffffff" stroke="#167d8d" stroke-width="2"/>
+<rect x="50" y="367" width="104" height="38" rx="8" fill="#ffc857" stroke="none" stroke-width="2"/>
+<g transform="translate(54 371)" fill="none" stroke="#0e2a43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="14" cy="7" r="5"/><path d="M 3 28 V 23 C 3 12 25 12 25 23 V 28"/></g>
+<text x="92" y="394" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#0e2a43">+</text>
+<g transform="translate(118 371)" fill="none" stroke="#0e2a43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="20" height="20" rx="3"/><rect x="10" y="10" width="10" height="10" rx="1"/><path d="M 10 0 V 5 M 20 0 V 5 M 10 25 V 30 M 20 25 V 30 M 0 10 H 5 M 0 20 H 5 M 25 10 H 30 M 25 20 H 30"/></g>
+<text x="50" y="431" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#0e2a43">Human steers an agent</text>
+<text x="50" y="465" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Brief, review and revise</text>
+<text x="50" y="494" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">with an external agent.</text>
+</g>
+<g id="autonomous-agent" data-node="autonomous-agent">
+<rect x="32" y="554" width="320" height="164" rx="14" fill="#ffffff" stroke="#167d8d" stroke-width="2"/>
+<rect x="50" y="569" width="38" height="38" rx="8" fill="#ffc857" stroke="none" stroke-width="2"/>
+<g transform="translate(54 573)" fill="none" stroke="#0e2a43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="20" height="20" rx="3"/><rect x="10" y="10" width="10" height="10" rx="1"/><path d="M 10 0 V 5 M 20 0 V 5 M 10 25 V 30 M 20 25 V 30 M 0 10 H 5 M 0 20 H 5 M 25 10 H 30 M 25 20 H 30"/></g>
+<text x="50" y="633" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#0e2a43">Autonomous agent</text>
+<text x="50" y="667" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">An external brief or task;</text>
+<text x="50" y="696" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">the agent writes the source.</text>
+</g>
+<text x="32" y="340" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#167d8d">OR</text>
+<text x="32" y="542" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#167d8d">OR</text>
+<g id="source" data-node="source">
+<rect x="406" y="322" width="252" height="224" rx="14" fill="#ffffff" stroke="#167d8d" stroke-width="2"/>
+<rect x="424" y="337" width="38" height="38" rx="8" fill="#f7f4ec" stroke="none" stroke-width="2"/>
+<g transform="translate(428 341)" fill="none" stroke="#0e2a43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M 5 1 H 19 L 27 9 V 29 H 5 Z M 19 1 V 9 H 27 M 10 15 H 22 M 10 21 H 22"/></g>
+<text x="424" y="401" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#0e2a43">Same editable files</text>
+<text x="424" y="435" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">LWP Markdown</text>
+<text x="424" y="464" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">+ images</text>
+<text x="424" y="493" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">series.json</text>
+<text x="424" y="522" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">(series config)</text>
+</g>
+<g id="build" data-node="build">
+<rect x="698" y="342" width="210" height="184" rx="14" fill="#0e2a43" stroke="#0e2a43" stroke-width="2"/>
+<rect x="716" y="357" width="38" height="38" rx="8" fill="#ffc857" stroke="none" stroke-width="2"/>
+<g transform="translate(720 361)" fill="none" stroke="#0e2a43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="20" height="20" rx="3"/><rect x="10" y="10" width="10" height="10" rx="1"/><path d="M 10 0 V 5 M 20 0 V 5 M 10 25 V 30 M 20 25 V 30 M 0 10 H 5 M 0 20 H 5 M 25 10 H 30 M 25 20 H 30"/></g>
+<text x="716" y="421" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#f7f4ec">LightWebPres</text>
+<text x="716" y="455" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#f7f4ec">CLI or browser</text>
+<text x="716" y="484" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#f7f4ec">Same executable</text>
+</g>
+<g id="document" data-node="document">
+<rect x="944" y="342" width="224" height="184" rx="14" fill="#ffffff" stroke="#167d8d" stroke-width="2"/>
+<rect x="962" y="357" width="38" height="38" rx="8" fill="#f7f4ec" stroke="none" stroke-width="2"/>
+<g transform="translate(966 361)" fill="none" stroke="#0e2a43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="28" height="24" rx="2"/><path d="M 1 10 H 29 M 6 16 H 23 M 6 21 H 19"/></g>
+<text x="962" y="421" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#0e2a43">Your document</text>
+<text x="962" y="455" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">HTML + assets</text>
+<text x="962" y="484" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">Read and present;</text>
+<text x="962" y="513" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#0e2a43">share the files.</text>
+</g>
+</svg>

@@ -90,6 +90,12 @@ in `DECISIONS.md`.
 
 ### Documentation Journeys
 
+Responsive README diagrams show human, supervised-agent and autonomous-agent
+authoring converging on the same editable sources, then a LightWebPres build
+and browser document. A second diagram connects documentary organization,
+theme and Identity Kit design, build automation, reading, presenting and
+publication. Both keep external agents and hosting distinct from the engine.
+
 The README and guide now route readers by task: create content, organize a
 documentary collection, design and compose identities, read and present,
 publish and maintain, or integrate and automate. The guide keeps operational

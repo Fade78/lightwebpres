@@ -47,6 +47,9 @@ class DocumentHTML(HTMLParser):
             self.links.append(attrs.get('href', ''))
         if tag == 'img':
             self.images.append(attrs.get('src', ''))
+        if tag in ('img', 'source') and attrs.get('srcset'):
+            self.images.extend(part.strip().split()[0]
+                               for part in attrs['srcset'].split(',') if part.strip())
 
 
 def markdown_headings(text):
