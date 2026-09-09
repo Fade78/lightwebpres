@@ -108,9 +108,18 @@ they declare preset defaults; they are not author metadata fields.
 ### Reading fields
 
 Only inside `series_meta.reading`. All fields are optional; unknown keys and
-invalid values are fatal. Runtime choices remain in the loaded page, including
-when Menu closes and reopens; they are not persisted across pages or reloads.
-The complete behavior is in §9.3.9.
+invalid values are fatal. **Menu > Size and tables** exposes reader controls.
+Its Back button or Escape returns focus to that item in the main menu;
+clicking outside closes the submenu. The complete behavior is in §9.3.9.
+
+Reading preferences use browser `localStorage`, scoped to the output directory
+path on the same origin, across articles, the index and reloads. The version-1
+record contains `v: 1`, `table_mode`, `text_fit`, `table_shrink`, `object_shrink`
+and `presentationZoom`, never the author's minimum scales. Invalid data or
+unavailable storage leaves author defaults and 100% zoom in effect; blocked
+saving does not disable controls. Storage availability and `file:` behavior
+vary by browser. No reader choice writes `series.json`; theme/preset choices
+retain their separate browser-session contract.
 
 | Field | Default | Description |
 |---|---|---|
@@ -123,7 +132,12 @@ The complete behavior is in §9.3.9.
 | `min_object_scale` | `0.85` | Minimum supported image/figure reduction factor, a finite number from `0.5` to `1` |
 
 Reduction factors never exceed `1`; reaching a floor need not make content fit.
-Presentation zoom is separate page-local magnification and can create overflow.
+Presentation zoom scales content fonts, line heights and images after fitting
+is solved at 100%, so fitting cannot cancel manual magnification. It does not
+apply root CSS zoom or scale frame widths, padding, borders, minimum heights
+or foreground controls. Native responsive sizing remains at 100%; long content
+can still grow or scroll. Native pinch remains browser zoom, and browser
+emulation does not establish physical-device behavior.
 Print clears runtime scales and expands table viewports without screen clipping.
 
 ## Series root fields
@@ -326,7 +340,8 @@ description; the terms are fixed here, in English.
 | **resource origin** | Loading scope computed by loaders: built-in, installed, user or series-local. It describes where a resource was found, not its collection or identity, and is never declared in a manifest. Kits carry no extension, inter-kit dependency, provenance, filiation or authenticity record. |
 | **kit composition** | `kit compose recipe.json --output directory` validates and publishes an autonomous `directory/id/version/` tree. The strict `lightwebpres.kit-composition/1` recipe has `schema`, `sources`, `manifest`, `files`; the final manifest explicitly names every final reference. No guessed remapping or dependency closure. |
 | **runtime presentation catalogue** | Ordered primary-plus-alternatives payload made by `presentation_presets` or `--presentation-presets`; it carries the rendered fragments, index variants, structure CSS and typed theme differences for the appearance picker. |
-| **appearance picker** | The `C` dialogue's Identity, Preset and Theme controls. Applicable / Current identity / All filter published choices only: typed compatibility, ownership, or all published resources, not brand approval. Preset and explicit theme choices persist across pages and the index in the browser session; Follow preset resets the runtime theme override. No resource cross-product is generated. |
+| **appearance picker** | The `C` dialogue offers Identity, Preset and Theme only when a real Identity Kit is published, even if native Standard is currently selected. Without a kit, including Commons-only presets, it offers Theme labels/help, no Identity/Preset axes and no Follow preset; selecting the primary actual theme restores the author's base. Hidden Commons preset choices are not restored. Available preset and explicit theme choices keep their browser-session persistence across articles and the index; in kit-aware mode, Follow preset resets the runtime theme override. No resource cross-product is generated. |
+| **Current identity filter** | Narrows published themes, not brand approval: native `builtin` includes published Commons/global themes, Light and native custom variants, excluding foreign kit themes; a real kit includes only its own qualified themes and custom variants, excluding unowned global themes and other kits. Commons availability to native LightWebPres is not declared kit membership. Applicable tests typed compatibility; All includes all published choices. |
 | **kit-qualified theme** | A runtime theme addressed as `kit:<id>@<version>/<theme>` under its owning kit (`kit:builtin/light` for native Light). All themes from selected kits are published, including those not used by a selected preset. |
 | **layout fragment** | Kit HTML fragment: exactly one `{{content}}`, `{{slide_header}}` and `{{slide_footer}}` for a slide; only `{{content}}` for the index. |
 | **chrome model** | JSON declaration of a header or footer, made of text, image or icon items and declared assets. |

@@ -46,7 +46,9 @@ class ReadingControls(unittest.TestCase):
                 'series_meta': {'default_tag': 'main'},
                 'presentation_presets': ['lightwebpres-docs@0.1.0/docs'],
                 'articles': [{'page_dest': 'controls.html', 'page_source': 'controls.md',
-                              'nav_title': 'Reading', 'nav_desc': 'Reading controls'}],
+                              'nav_title': 'Reading', 'nav_desc': 'Reading controls'},
+                             {'page_dest': 'next.html', 'page_source': 'next.md',
+                              'nav_title': 'Next reading', 'nav_desc': 'Same series'}],
             }), encoding='utf-8')
             table = ('| ' + ' | '.join('LongUnbreakableColumnHeading%d' % i for i in range(8))
                      + ' |\n| ' + ' | '.join(['---'] * 8) + ' |\n'
@@ -74,25 +76,49 @@ class ReadingControls(unittest.TestCase):
                 'note: Speaker notes remain readable without shrinking the chosen type size.\n\n---\n\n'
                 '<!-- lwp:slide:full-article -->\nslug: other-long\ntags: double\narticle: long.md\n',
                 encoding='utf-8')
+            (root / 'sources' / 'next.md').write_text(
+                (root / 'sources' / 'controls.md').read_text(encoding='utf-8')
+                .replace('page_dest: controls.html', 'page_dest: next.html'), encoding='utf-8')
+            other = root / 'other'
+            shutil.copytree(root / 'sources', other / 'sources')
+            author_defaults = {
+                'table_mode': 'overflow', 'text_fit': 'uniform',
+                'table_shrink': False, 'object_shrink': True,
+                'min_text_scale': 0.93, 'min_table_scale': 0.94, 'min_object_scale': 0.95,
+            }
+            (other / 'series.json').write_text(json.dumps({
+                'series_meta': {'reading': author_defaults, 'default_tag': 'main'},
+                'articles': [{'page_dest': 'controls.html', 'page_source': 'controls.md',
+                              'nav_title': 'Other series', 'nav_desc': 'Independent preferences'}],
+            }), encoding='utf-8')
+            originals = {directory: (directory / 'series.json').read_bytes()
+                         for directory in (root, other)}
             built = root / 'public'
-            build = subprocess.run(
-                ['python3', str(ROOT / 'lightwebpres'), 'build', str(root)],
-                env=env, capture_output=True, text=True, timeout=120)
-            self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
-            handler = functools.partial(_QuietHandler, directory=str(built))
+            for directory in (root, other):
+                build = subprocess.run(
+                    ['python3', str(ROOT / 'lightwebpres'), 'build', str(directory)],
+                    env=env, capture_output=True, text=True, timeout=120)
+                self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
+            handler = functools.partial(_QuietHandler, directory=str(root))
             server = ThreadingHTTPServer(('127.0.0.1', 0), handler)
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
                 check = subprocess.run(
                     ['node', str(ROOT / 'tests' / 'reading_controls_e2e.cjs'),
-                     'http://127.0.0.1:%d/controls.html' % server.server_port],
-                    env=env, capture_output=True, text=True, timeout=180)
+                     'http://127.0.0.1:%d/public/controls.html' % server.server_port,
+                     'http://127.0.0.1:%d/other/public/controls.html' % server.server_port,
+                     (built / 'controls.html').as_uri(),
+                     (other / 'public' / 'controls.html').as_uri()],
+                    env=env, capture_output=True, text=True, timeout=240)
                 if check.returncode == 77:
                     self.skipTest(check.stderr.strip())
                 self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
                 self.assertIn('390 mobile', check.stdout)
                 self.assertIn('768 desktop', check.stdout)
+                self.assertIn('preferences: HTTP and file directory scopes passed', check.stdout)
+                for directory, original in originals.items():
+                    self.assertEqual((directory / 'series.json').read_bytes(), original)
             finally:
                 server.shutdown()
                 thread.join()

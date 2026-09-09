@@ -141,12 +141,16 @@ If no engine or browser is available, report the missing check explicitly.
 Inspect a local build before any authorized distribution. `watch --serve`
 can rebuild and serve on `127.0.0.1`; launching it is an explicit local preview,
 not public hosting. The page's presenter menu and built-in help document
-controls. **C** selects appearance, **L** selects tags when available,
+controls. **C** opens Appearance when a real kit is published, otherwise Theme
+when theme alternatives are available; **L** selects tags when available,
 **N** toggles the speaker panel and **I** toggles scrolling duration.
 Check the active tag and browser-persisted choices when reproducing a view.
 
-**Menu** also offers presentation zoom **-**, **+**, **Reset**, wide-table
-handling, text fitting and independent table/image shrink switches. **O** cycles
+**Menu > Size and tables** (**Taille et tableaux** in French) opens the
+`readingMenu` submenu with presentation zoom **-**, **+**, **Reset**, wide-table
+handling, text fitting and independent table/image shrink switches. Back or
+Escape returns to the main menu's Size and tables item with focus restored;
+an outside click closes the submenu. **O** cycles
 `clip`, `overflow`, `scroll`; **A** cycles `fixed`, `uniform`, `per-slide`.
 Use local table scrolling to reach clipped columns without navigating the
 deck. `fixed` keeps responsive theme sizes without content fitting; uniform
@@ -156,10 +160,20 @@ while per-slide reduction measures each independently. Author limits live in
 for exact keys, defaults and validation. Content that still does not fit at
 the floor stays available to scroll rather than being removed.
 
-Record these reading choices separately: unlike Appearance choices, they and
-presentation zoom remain only in the loaded page, including after Menu closes
-and reopens. Zoom is independent magnification and can cause overflow; pinch
-remains native browser zoom. Check resize, tags, theme/preset changes and late
+Record reading preferences separately from Appearance's unchanged session
+choices. Reading uses `localStorage` per output directory path on the same
+origin, across articles, the index and reloads. It saves table/text modes,
+table/image shrink switches and presentation zoom, not authored minimum limits;
+it never writes `series.json`. Invalid or inaccessible stored data falls back
+to author defaults and 100% zoom; controls remain usable if saving is blocked.
+Check storage availability, and distinguish `file:` URLs from HTTP(S): browser
+policies can prevent persistence or sharing between pages.
+
+Zoom scales content fonts, line heights and images, not frame widths, padding,
+borders, minimum heights or controls; it does not use root CSS zoom. Native
+responsive sizing remains at 100%. Fitting is solved at 100% before manual
+magnification, which can still make long content grow or scroll. Pinch remains
+native browser zoom. Check resize, tags, theme/preset changes and late
 font/image loading. Browser touch emulation is not a physical-device check;
 report the actual test environment without claiming device verification.
 

@@ -321,10 +321,15 @@ async function main() {
 
     await page.keyboard.press('Home');
     await page.waitForTimeout(300);
+    const zoomHeadingSize = () => page.$eval('.slide h1, .slide h2', el => parseFloat(getComputedStyle(el).fontSize));
+    const originalHeadingSize = await zoomHeadingSize();
     await page.keyboard.press('Shift+=');
     await page.waitForTimeout(100);
-    let pageZoom = await page.evaluate(() => document.documentElement.style.zoom);
+    let pageZoom = await page.evaluate(() => document.documentElement.style.getPropertyValue('--lwp-presentation-zoom'));
     if (pageZoom !== '1.1') fail('plus should increase page zoom to 1.1, got ' + pageZoom);
+    if (Math.abs(await zoomHeadingSize() - originalHeadingSize * 1.1) > .01) {
+      fail('plus should enlarge actual content typography by 1.1');
+    }
     const zoomedSlide = await page.evaluate(() => {
       const rect = document.querySelector('.slide').getBoundingClientRect();
       return { height: rect.height, viewport: window.innerHeight };
@@ -343,13 +348,15 @@ async function main() {
     }
     await page.keyboard.press('-');
     await page.waitForTimeout(100);
-    pageZoom = await page.evaluate(() => document.documentElement.style.zoom);
+    pageZoom = await page.evaluate(() => document.documentElement.style.getPropertyValue('--lwp-presentation-zoom'));
     if (pageZoom !== '1') fail('minus should reduce page zoom to 1, got ' + pageZoom);
+    if (Math.abs(await zoomHeadingSize() - originalHeadingSize) > .01) fail('minus should restore content typography');
     await page.keyboard.press('Shift+=');
     await page.keyboard.press('=');
     await page.waitForTimeout(100);
-    pageZoom = await page.evaluate(() => document.documentElement.style.zoom);
+    pageZoom = await page.evaluate(() => document.documentElement.style.getPropertyValue('--lwp-presentation-zoom'));
     if (pageZoom !== '1') fail('equals should reset page zoom to 1, got ' + pageZoom);
+    if (Math.abs(await zoomHeadingSize() - originalHeadingSize) > .01) fail('equals should restore content typography');
     console.log('page zoom shortcuts OK: + / - / =');
 
     // Changing the viewport changes every slide's min-height. The active

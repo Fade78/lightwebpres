@@ -55,7 +55,12 @@ class RuntimeIdentityMetadata(unittest.TestCase):
         }])
         self.assertEqual(data['presets'][0]['label'], 'Standard')
         self.assertEqual(data['presets'][0]['identity'], 'builtin')
-        self.assertIn('identityOptions', self.lwp._presentation_picker_markup({}, data))
+        self.assertFalse(data['has_identity_kits'])
+        markup = self.lwp._presentation_picker_markup({}, data)
+        self.assertNotIn('identityOptions', markup)
+        self.assertNotIn('presentationOptions', markup)
+        self.assertNotIn('AxisTitle', markup)
+        self.assertIn('themeSource', markup)
         self.assertIsNone(self.lwp.build_theme_runtime(None, None, presets=[preset]))
 
     def test_native_commons_keeps_its_theme_origin_and_independent_digest(self):
@@ -73,12 +78,49 @@ class RuntimeIdentityMetadata(unittest.TestCase):
         self.assertEqual(descriptor['collection'], 'commons')
         self.assertEqual(descriptor['origin'], 'series')
         self.assertEqual(descriptor['label'], 'Commons ink')
+        self.assertFalse(data['has_identity_kits'])
         ink = data['vars'].index('--color-ink')
         self.assertEqual(dict(descriptor['theme_values'])[ink], '#123456FF')
         commons._digest = 'second'
         changed = self.lwp._presentation_runtime_context(
             [native, commons], context, None, None)
         self.assertNotEqual(data['catalog_digest'], changed['catalog_digest'])
+
+    def test_custom_themes_retain_the_target_identity(self):
+        native = self.lwp.DEFAULT_PRESENTATION_PRESET
+        kit = self.lwp.PresentationPackage(
+            'brand', '1.0.0', label='A brand', themes={'main': {
+                'props': {'color.ink': '#123456'},
+                'meta': {'label': 'Main', 'family': 'brand'},
+            }})
+        branded = self.lwp.PresentationPreset(
+            kit, 'slides', 'Slides', 'Brand slides', theme_id='main',
+            theme_props=kit.themes['main']['props'])
+        for preset in (native, branded):
+            for primary in (None, 'print-ink'):
+                with self.subTest(preset=preset.selector, primary=primary):
+                    data = self.lwp.build_theme_runtime(
+                        'all', primary, preset_props=preset.theme_props,
+                        presets=[preset], settings_props={'color.page': '#123456'})
+                    custom = data['themes'][0]
+                    self.assertEqual(custom['slug'], data['primary'])
+                    self.assertTrue(custom['slug'].startswith('custom('))
+                    self.assertEqual(custom['identity'], preset.package.selector)
+                    self.assertEqual(custom['identity_label'], preset.package.label)
+                    self.assertEqual(custom['collection'], 'custom')
+                    self.assertEqual({theme['slug'] for theme in data['themes']
+                                      if theme['collection'] == 'Commons'}, set(self.lwp.THEMES))
+        for presets in ([native, branded], [branded, native], [branded]):
+            data = self.lwp._presentation_runtime_context(
+                presets, ([presets[0].theme_props, {}], ''), None, None)
+            self.assertTrue(data['has_identity_kits'])
+            self.assertIn('identityOptions', self.lwp._presentation_picker_markup({}, data))
+        # A primary theme supplied as preset properties need not be in the kit map.
+        kit.themes = {}
+        data = self.lwp.build_theme_runtime(
+            'print-ink', None, preset_props=branded.theme_props, presets=[branded])
+        self.assertEqual(data['primary'], 'kit:brand@1.0.0/main')
+        self.assertEqual(data['themes'][0]['identity'], 'brand@1.0.0')
 
     def test_all_selected_kit_themes_are_qualified_independent_choices(self):
         kit = self.lwp.PresentationPackage(
@@ -295,6 +337,26 @@ class RuntimeThemesBrowser(unittest.TestCase):
             capture_output=True, text=True, timeout=60,
         )
         assert build.returncode == 0, build.stdout + build.stderr
+        foreign_package = (presentation_root / 'templates' / 'kits' / 'other' / '0.1.0')
+        shutil.copytree(package_source, foreign_package)
+        foreign_manifest_path = foreign_package / 'manifest.json'
+        foreign_manifest = json.loads(foreign_manifest_path.read_text(encoding='utf-8'))
+        foreign_manifest.update(id='other', label='Other identity')
+        foreign_manifest_path.write_text(json.dumps(foreign_manifest), encoding='utf-8')
+        foreign_css = foreign_package / 'structure.css'
+        foreign_css.write_text(foreign_css.read_text(encoding='utf-8').replace(
+            '.lwp-presentation--lightwebpres-docs', '.lwp-presentation--other'), encoding='utf-8')
+        presentation_series['presentation_presets'].append('other@0.1.0/docs')
+        presentation_series_path.write_text(json.dumps(presentation_series), encoding='utf-8')
+        (presentation_root / 'templates' / 'settings.conf').write_text(
+            'color.ink: #123456\n', encoding='utf-8')
+        build = subprocess.run(
+            ['python3', str(LWP), 'build', str(presentation_root),
+             '--output', str(presentation_output / 'multi-identity'),
+             '--no-essential-theme', '--themes', 'print-ink'],
+            capture_output=True, text=True, timeout=60,
+        )
+        assert build.returncode == 0, build.stdout + build.stderr
         cls.presentation_httpd = HTTPServer(
             ('127.0.0.1', 0),
             lambda *args: _QuietHandler(*args, directory=str(presentation_output)),
@@ -352,16 +414,23 @@ class RuntimeThemesBrowser(unittest.TestCase):
             'label': 'Night', 'description': 'Reference-aware Commons theme',
             'theme': 'dracula',
         }), encoding='utf-8')
+        (commons_dir / 'day.json').write_text(json.dumps({
+            'schema': 'lightwebpres.commons-preset/1', 'id': 'day',
+            'label': 'Day', 'description': 'Another native Commons preset',
+            'theme': 'print-ink',
+        }), encoding='utf-8')
         series_path = pinned_root / 'series.json'
         series = json.loads(series_path.read_text(encoding='utf-8'))
         for name, selector in [('native', 'builtin/standard'), ('commons', 'commons/night')]:
             series['series_meta']['presentation_preset'] = selector
+            series['presentation_presets'] = (['builtin/standard', 'commons/day']
+                                             if name == 'commons' else ['builtin/standard'])
             series_path.write_text(json.dumps(series), encoding='utf-8')
             for variant, settings in [('pinned', 'color.page: #123456FF\n'), ('raw', '')]:
                 (pinned_root / 'templates' / 'settings.conf').write_text(settings, encoding='utf-8')
                 result = subprocess.run(
                     ['python3', str(LWP), 'build', str(pinned_root), '--no-essential-theme',
-                     '--themes', 'print-ink', '--output', str(static_output / (name + '-' + variant))],
+                     '--themes', 'all', '--output', str(static_output / (name + '-' + variant))],
                     capture_output=True, text=True, timeout=60,
                 )
                 assert result.returncode == 0, result.stdout + result.stderr

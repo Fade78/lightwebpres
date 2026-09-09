@@ -2218,10 +2218,12 @@ présentateur. Le vocabulaire de ces touches vit dans le pack de langue
 saut par numéro n'a rien à viser : les chiffres y gardent leur sens
 ordinaire.
 
-**Zoom de présentation** : `+` agrandit toute la page par pas de 10 %, `-`
-la réduit, et `=` revient à 100 %. La valeur est bornée entre 50 % et 200 %,
-reste en mémoire seulement pour la page courante et ne remplace pas le zoom
-du navigateur déclenché par Ctrl/Cmd+`+` ou Ctrl/Cmd+`-`.
+**Presentation zoom**: `+` enlarges presentation text and images in 10% steps,
+`-` reduces them, and `=` returns to 100%, bounded between 50% and 200%.
+Frame geometry and foreground controls are not scaled. The value is a browser
+reading preference shared across the same output directory's articles, index
+and reloads when local storage is available (§9.3.9). It does not replace
+Ctrl/Cmd+`+`, Ctrl/Cmd+`-` or native browser pinch zoom.
 
 Un changement de taille de la fenêtre ou du `visual viewport` recalcule le
 cadre de la fiche courante et la repositionne par son bord haut. Si le
@@ -2949,14 +2951,12 @@ un seul niveau (cartes d'articles, §8.4) :
    Volontairement différent de Tab : Tab fonctionne
    partout et peut faire sortir la sélection de la page, alors que les
    flèches restent dans ce parcours à trois niveaux.
-3. **Défilement par incréments sur une fiche plus grande que l'écran** —
-   une fiche ne dépasse la hauteur de la fenêtre que par son propre contenu
-   (`.slide` fixe une `min-height` égale au viewport, compensée par le zoom de
-   présentation, jamais une hauteur figée) ; le cas courant est un
-   `full-article` (article complet inclus) suffisamment long, typiquement en
-   fin de série, mais
-   la détection ne dépend que de la hauteur réelle mesurée, jamais du
-   type ou de la position de la fiche.
+3. **Incremental scrolling within a slide taller than the viewport**:
+   a slide exceeds viewport height through its content, not through scaling
+   its frame. `.slide` retains a viewport-based `min-height`, never a fixed
+   height; presentation zoom does not scale that minimum. A sufficiently long
+   `full-article` is a common case, but detection uses actual measured height,
+   never the slide's type or position.
 
 Ordre exact d'un appui sur Bas : s'il reste une carte non visitée sur la
 fiche courante, focus sur la carte suivante ; sinon, si la fiche dépasse
@@ -3093,16 +3093,16 @@ prime la liste JSON. La valeur CLI est une liste séparée par des virgules ; la
 valeur JSON est une liste non vide de chaînes non vides (chaque chaîne peut aussi
 contenir des sélecteurs séparés par des virgules).
 
-Le primaire est ajouté en tête dans tous les cas, même s'il n'est pas répété dans
-la liste. Les doublons sont supprimés en conservant la première occurrence.
-`builtin/standard` peut être une alternative ; un sélecteur
-inconnu, vide ou mal typé échoue avant toute écriture. S'il ne reste que le
-primaire après déduplication, aucun payload de présentation ni axe supplémentaire
-du sélecteur n'est publié. Pour un primaire distinct de `builtin/standard`
-(kit ou Commons), le build ajoute implicitement
-`builtin/standard` après les alternatives explicites si les overrides de fiche
-sont compatibles. Sinon, il omet ce candidat avec avertissement ; une demande
-explicite incompatible reste une erreur.
+The primary is always inserted first, even when not repeated in the list.
+Duplicates retain their first occurrence. `builtin/standard` can be an
+alternative; unknown, empty or wrongly typed selectors fail before writing.
+If only the primary remains, its preset metadata is still published, without
+duplicate content fragments. Identity/Preset picker axes depend on whether a
+real Identity Kit is published, not on the number of presets. For a primary
+other than `builtin/standard` (kit or Commons), the build implicitly appends
+`builtin/standard` after explicit alternatives if slide overrides are
+compatible. Otherwise it omits that candidate with a warning; an explicit
+incompatible request remains an error.
 
 Pour chaque preset retenu, le build rend toutes les fiches et l'index. Le HTML
 statique, la feuille primaire et le repli sans JavaScript restent ceux du preset
@@ -3115,27 +3115,43 @@ contenu et les variables typées appartenant au preset. Les assets de tous les
 kits effectivement retenus sont publiés et fingerprintés dans le manifeste ;
 `--inline-images` les transforme en URI dans chaque fragment sans les copier.
 
-**C** ouvre le dialogue d'apparence lorsque des alternatives sont publiées.
-Ses contrôles sont **Identity**, **Preset**, **Theme**. Les filtres
-**Applicable**, **Current identity**, **All** ne portent que sur les choix
-publiés : compatibilité typée, appartenance à l'identité courante, ou totalité.
-La compatibilité ne juge pas la marque. Tous les thèmes de chaque kit retenu
-sont publiés sous des noms `kit:<id>@<version>/<theme>`, même s'ils ne sont le thème
-d'aucun preset sélectionné. Le build ne produit pas de produit cartésien des
-ressources. Le label d'identité reste fixe ; un marqueur de défaut ou de choix
-initial décrit la sélection, pas l'identité. Échap ferme le dialogue ;
-les flèches, Début et Fin parcourent les choix,
-et Entrée applique le choix focalisé. Le choix est mémorisé dans la
-`sessionStorage` du navigateur pour toutes les pages et l'index du même deck ;
-la clé inclut l'identité du deck, du catalogue et l'ordre des sélecteurs. Le primaire
-n'est pas persisté : le sélectionner retire la valeur mémorisée. Rien de cela
-ne modifie `series.json`, les sources ou les templates.
+**C** opens the picker when appearance alternatives are available. Its
+**Identity**, **Preset** and **Theme** axes are published only when the
+published preset catalogue includes a real Identity Kit
+(`has_identity_kits: true`). They remain available when the reader switches
+to native `builtin/standard`. With no real kit, including a catalogue of
+native and Commons presets, preset metadata remains but Identity/Preset axes
+are omitted from the picker markup. The picker and its menu/help use **Theme**
+labels, not Appearance; hidden Commons preset selections are not restored
+from session storage.
 
-Preset et Theme restent indépendants. Avec un `theme:` explicite dans
-`settings.conf`, changer de présentation conserve ce thème explicite. Sans ce
-champ, le thème typé du preset suit le choix de présentation ; choisir un thème
-explicite dans l'axe des thèmes le fige jusqu'à ce que le lecteur le réinitialise
-avec **Follow preset** pour suivre le thème du preset.
+**Applicable**, **Current identity** and **All** filter published themes only.
+Applicable means typed compatibility, not brand approval. For native `builtin`,
+Current identity includes published Commons/global themes, Light and native
+custom variants, and excludes foreign kit themes. For a real kit, it includes
+that kit's qualified themes and custom variants, excluding unowned global
+themes and other kits. Commons availability to native LightWebPres is not
+declared kit membership and does not make Commons an identity. All includes
+all published choices. Every selected kit's themes are published as
+`kit:<id>@<version>/<theme>`, even when no selected preset uses them. The build
+does not generate a resource cross-product. Identity labels stay fixed;
+default/initial markers describe selections, not identities.
+
+Escape closes the dialogue; arrows, Home and End navigate choices, and Enter
+applies the focused choice. Available preset choices retain their browser
+`sessionStorage` contract across all pages and the index of the same deck:
+the key includes deck identity, catalogue identity and selector order.
+Selecting the primary removes the stored preset choice. No reader choice
+modifies `series.json`, sources or templates.
+
+Preset and Theme remain independent. An explicit `theme:` in `settings.conf`
+stays fixed when the presentation changes. Without it, the preset's typed
+theme follows the presentation until the reader selects an explicit theme.
+In kit-aware mode, **Follow preset** clears that runtime override. In
+theme-only mode, Follow preset is absent: the actual theme is selected, and
+selecting the primary theme clears the runtime override and restores the
+author's base appearance. Theme choices retain the separate session contract
+below, not the reading-preference storage introduced in §9.3.9.
 
 La feuille CSS statique reste celle de la variante primaire : le thème de base
 seul, ou `custom(<thème>)` lorsque `settings.conf` porte des propriétés
@@ -3170,14 +3186,36 @@ absente du menu M.
 
 ### 9.3.9 Reader controls and bounded fitting
 
-The presenter menu (**M**, or the Menu button) exposes presentation zoom
-**-**, **+**, **Reset** and the current percentage, **Wide tables**, **Text
-size**, **Reduce tables as needed** and **Reduce images as needed**.
+The presenter menu (**M**, or the Menu button) has one **Size and tables**
+item (**Taille et tableaux** in French), which opens the dedicated `readingMenu`
+submenu. It contains presentation zoom **-**, **+**, **Reset** and the current
+percentage, **Wide tables**, **Text size**, **Reduce tables as needed** and
+**Reduce images as needed**. Back or Escape returns to the main menu with
+focus on its Size and tables item; clicking outside closes the submenu.
 Keyboard **-**, **+**, **=** reduce, enlarge and reset presentation zoom;
 **O** cycles `clip`, `overflow`, `scroll`; **A** cycles `fixed`, `uniform`,
-`per-slide`. These are reader controls, not source edits. Their state survives
-closing and reopening the menu in the loaded page only; reading choices and
-presentation zoom are not stored across pages or reloads.
+`per-slide`. These shortcuts remain available without opening the submenu.
+These are reader controls, not source edits.
+
+**Reader persistence.** Reading preferences use browser `localStorage` with
+the key `lwp-reading:<output-directory-path>`, where the path is
+`location.pathname` through its final slash. Storage is scoped by origin;
+the directory key shares preferences across articles, the index and reloads
+within that output directory while separating other series paths on the same
+origin. The strict version-1 record contains exactly `v: 1`, `table_mode`,
+`text_fit`, `table_shrink`, `object_shrink` and `presentationZoom`. The modes
+and switches use the values/types below; zoom is a finite number from `0.5`
+to `2`, inclusive. Authored minimum limits are never stored as reader choices.
+A valid record overrides initial modes, switches and 100% zoom, not those
+limits. Missing, malformed, unsupported or invalid records, or blocked reads,
+leave author defaults and 100% zoom in effect. Failed writes do not disable
+controls in the loaded page. Nothing writes back to `series.json` or other
+source files. This does not change theme/preset session persistence.
+
+Persistence depends on browser storage availability and policy. In particular,
+`file:` URL storage and sharing between files can differ from served HTTP(S)
+pages and between browsers; the directory key is not a guarantee that storage
+is available or shared on every browser or physical device.
 
 **Author configuration.** Only `series.json`'s `series_meta.reading` sets the
 initial reading policy. It is a strict object, not an article field, theme
@@ -3241,10 +3279,15 @@ enabled, the reader menu reports the number of visible marked slides through
 a localized polite live region. This is not a guarantee about every embedded
 object, and no notice is drawn over slide content or printed.
 
-**Zoom and print.** Explicit presentation zoom is independent magnification;
-fitting is solved at 100% presentation zoom so it does not cancel a reader's
-zoom choice. Magnification can create overflow. Browser Ctrl/Cmd zoom and
-native pinch remain browser features, not a custom LWP pinch implementation.
+**Zoom and print.** Presentation zoom changes content font sizes, line heights
+and images, not root CSS zoom. Frame widths, padding, borders and minimum
+heights retain their normal responsive geometry; foreground controls are not
+enlarged or shrunk. At 100%, native responsive sizing remains in effect.
+Content can still make a slide grow or require scrolling; unchanged frame
+geometry is not a fixed-height or guaranteed-fit promise. Fitting is solved
+at 100% before applying the manual zoom factor, so it does not cancel the
+reader's magnification. Browser Ctrl/Cmd zoom and native pinch remain browser
+features, not a custom LWP pinch implementation.
 Touch-event emulation tests do not establish behavior on physical devices.
 Printing clears runtime text/table/object fitting scales and presentation
 zoom; screen state is restored afterwards. Long slides can span several

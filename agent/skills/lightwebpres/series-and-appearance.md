@@ -148,7 +148,11 @@ omitted keys. Unknown keys and invalid values are fatal.
 | `min_table_scale` | Finite JSON number from `0.5` to `1`, inclusive | `0.85` |
 | `min_object_scale` | Finite JSON number from `0.5` to `1`, inclusive | `0.85` |
 
-**Menu** exposes the modes and independent table/image shrink switches;
+**Menu > Size and tables** (**Taille et tableaux** in French) opens the dedicated
+`readingMenu` submenu with zoom, modes and independent table/image shrink
+switches. Back or Escape returns focus to the main menu's Size and tables
+item; clicking outside closes the submenu. **-**, **+**, **=** reduce, enlarge
+and reset presentation zoom;
 **O** cycles table modes and **A** text modes in the order above. `clip` hides
 overflow visually, not cells in HTML; `scroll` contains navigation gestures
 inside the table. `fixed` keeps native responsive sizes without content fitting.
@@ -161,12 +165,24 @@ authored text is not enlarged. An unfit slide remains available to scroll at
 the floor, not hidden.
 
 `object_shrink` supports images/figures, not arbitrary iframes, players or
-buttons. Presentation zoom is independent magnification that can cause
-overflow; native browser pinch is not a custom presentation-zoom gesture.
-Reading choices and zoom survive closing/reopening Menu in the loaded page,
-not page navigation or reloads. They do not use the Appearance session-storage
-contract. Print clears runtime scales and expands table viewports without
-screen clipping. See specifications.md §9.3.9 for the complete contract.
+buttons. Presentation zoom scales content fonts, line heights and images,
+not the page root or frame widths, padding, borders, minimum heights or UI.
+At 100%, native responsive sizing remains in effect. Fitting is solved at
+100% before the manual factor, so it cannot cancel magnification; long content
+can still grow or scroll. Native pinch remains browser zoom, not a custom LWP
+gesture. Browser emulation is not a physical-device guarantee.
+
+Reading preferences use `localStorage` under `lwp-reading:<output-directory-path>`
+on the same origin, shared across articles, the index and reloads. The strict
+version-1 record contains `v: 1`, `table_mode`, `text_fit`, `table_shrink`,
+`object_shrink` and `presentationZoom` (a finite number from `0.5` to `2`).
+It never stores authored minimum limits or writes `series.json`. Invalid or
+inaccessible stored data leaves author defaults and 100% zoom in effect;
+controls still work if saving is blocked. Browser storage availability and
+`file:` handling vary; do not promise the same persistence as served HTTP(S).
+This does not change Appearance's session-storage contract. Print clears
+runtime scales and expands table viewports without screen clipping.
+See specifications.md §9.3.9 for the complete contract.
 
 ## Identities, Presets And Themes
 
@@ -246,19 +262,32 @@ Additional choices are declared at the root of `series.json`:
 to override that root list. Alternatives add to, not replace, the primary.
 The effective list keeps the primary first and removes duplicates.
 Missing/unknown selectors fail before writing output. Each article and
-index carries primary HTML plus inert fragments for alternatives. **C**
-opens Appearance; the reader's presentation choice applies across the series,
-stays in browser session storage and never rewrites source files.
+index carries primary HTML plus inert fragments for alternatives. Available
+reader presentation choices apply across the series, stay in browser session
+storage and never rewrite source files.
 
-The picker offers **Identity**, **Preset**, **Theme**. Applicable / Current
-identity / All filter published choices by typed compatibility or ownership,
-not brand approval. All themes of selected kits are published with
-kit-qualified names; no cross-product is generated. Identity labels name
-ownership, while default markers name initial choices.
+**C** offers **Identity**, **Preset**, **Theme** only when a real Identity Kit
+is published; selecting native `builtin/standard` does not remove those axes.
+Without a published kit, even with Commons presets, it offers only **Theme**
+with theme-specific labels/help, no Identity/Preset axes and no Follow preset.
+Preset metadata alone does not expose those axes, and hidden Commons preset
+choices are not restored from session storage. The actual theme is selected;
+choosing the primary theme restores the author's base appearance.
+
+Applicable / Current identity / All narrow published choices, not brand
+approval. Applicable means typed compatibility. For native `builtin`, Current
+identity includes published Commons/global themes, Light and native custom
+variants, excluding foreign kit themes. For a real kit, it includes only its
+own qualified themes and custom variants, excluding unowned global themes and
+other kits. Commons availability to native LightWebPres is not declared kit
+membership. All themes of selected kits are published with kit-qualified names;
+no cross-product is generated. Identity labels name ownership, while default
+markers name initial choices.
 
 An explicit `theme:` in `settings.conf` stays fixed when presentation changes.
 Without it, the preset's theme follows the selected presentation until the
-reader chooses an explicit runtime theme, which lasts until **Follow preset**.
+reader chooses an explicit runtime theme. In kit-aware mode, **Follow preset**
+clears that override; in theme-only mode, select the primary theme instead.
 Kit-only slide overrides may make implicit native Standard incompatible;
 it is then omitted with a warning. Explicit incompatible requests fail.
 

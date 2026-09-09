@@ -157,6 +157,12 @@ article: long.md
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             report = json.loads(result.stdout)
             self.assertGreaterEqual(len(report['checks']), 12, report)
+            self.assertEqual([sample['factor'] for sample in report['imageUnits']], [.5, 1, 2])
+            for sample in report['imageUnits']:
+                images = {image['id']: image for image in sample['images']}
+                for image_id, width, height in [('unit-em', 80, 40), ('unit-authored-zoom', 64, 32)]:
+                    self.assertEqual(images[image_id]['width'], width * sample['factor'])
+                    self.assertEqual(images[image_id]['height'], height * sample['factor'])
 
 
 if __name__ == '__main__':

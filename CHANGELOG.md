@@ -33,6 +33,37 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.57.1
+
+The **C** picker's Current identity filter includes all published Commons/global
+themes and native Light/custom choices when using native LightWebPres, without
+including foreign kit themes. For a real kit it retains that kit's qualified
+themes and custom variants. Without a published kit, the Identity/Preset boxes
+and headings are omitted and the picker simply selects a theme. Hidden Commons
+preset choices are not restored from session storage; selecting the primary
+theme restores the author's base appearance.
+
+Presentation zoom scales content fonts, line heights and images rather than
+the page root. Frame widths, padding, borders and minimum heights keep their
+normal responsive geometry, so reducing text makes more room within the same
+surface. Fitting is resolved at 100% before manual scaling, and genuinely long
+content can still grow or scroll. Font-relative images scale once rather than
+receiving the factor through both their inherited font and image zoom. Reset,
+theme changes and printing preserve the original authored styles.
+
+The main menu has one **Size and tables** item (**Taille et tableaux** in
+French), opening a dedicated submenu. Back and Escape return to the main item
+with keyboard focus; clicking outside closes the submenu. Existing zoom and
+reading shortcuts remain available, and native pinch remains browser zoom.
+
+Reading preferences survive navigation between a series' articles and index,
+and page reloads, through versioned browser `localStorage` scoped by output
+directory. Saved choices include zoom, table/text modes and shrink switches,
+not author minimum scales or source JSON. Invalid or blocked storage falls
+back to author defaults while controls remain usable. Persistence follows the
+browser's storage policy, including its handling of `file:` URLs; theme and
+preset choices keep their separate browser-session contract.
+
 ## Unreleased — 0.57.0
 
 ### Reader Controls

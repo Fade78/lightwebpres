@@ -16,6 +16,110 @@ async function run() {
     throw error;
   }
   try {
+    for (const [articleURL, otherURL] of [[process.argv[2], process.argv[3]],
+      [process.argv[4], process.argv[5]]]) {
+      const context = await browser.newContext({viewport: {width: 1100, height: 800}});
+      const page = await context.newPage();
+      const errors = [];
+      page.on('pageerror', error => errors.push(String(error)));
+      const keyFor = url => 'lwp-reading:' + new URL('.', url).pathname;
+      const key = keyFor(articleURL);
+      const otherKey = keyFor(otherURL);
+      assert.notEqual(key, otherKey);
+      const readControls = async () => {
+        await page.keyboard.press('m');
+        await page.locator('#menuReading').click();
+        return page.evaluate(() => ({
+          table_mode: document.getElementById('menuTableMode').value,
+          text_fit: document.getElementById('menuTextFit').value,
+          table_shrink: document.querySelector('[data-reading-option="table_shrink"]').checked,
+          object_shrink: document.querySelector('[data-reading-option="object_shrink"]').checked,
+          presentationZoom: Number(document.getElementById('menuZoomValue').textContent.replace('%', '')) / 100,
+        }));
+      };
+      const expected = {table_mode: 'scroll', text_fit: 'per-slide',
+        table_shrink: true, object_shrink: false, presentationZoom: 1.3};
+      const defaults = {table_mode: 'clip', text_fit: 'fixed',
+        table_shrink: false, object_shrink: false, presentationZoom: 1};
+      const author = {table_mode: 'overflow', text_fit: 'uniform',
+        table_shrink: false, object_shrink: true, presentationZoom: 1};
+      await page.goto(articleURL);
+      assert.deepEqual(await readControls(), defaults);
+      assert.equal(await page.evaluate(key => localStorage.getItem(key), key), null,
+        'reading author defaults must not create an override');
+      await page.locator('#menuTableMode').selectOption(expected.table_mode);
+      await page.locator('#menuTextFit').selectOption(expected.text_fit);
+      await page.locator('[data-reading-option="table_shrink"]').check();
+      for (let i = 0; i < 3; i++) await page.locator('[data-menu-action="zoom-in"]').click();
+      assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), key),
+        {v: 1, ...expected}, 'save exactly the four reader options and zoom, never author floors');
+      for (const destination of [null, new URL('next.html', articleURL).href,
+        new URL('index.html', articleURL).href]) {
+        if (destination) await page.goto(destination);
+        else await page.reload();
+        await page.waitForFunction(() => document.documentElement.dataset.lwpTableMode === 'scroll');
+        assert.equal(await page.evaluate(() =>
+          document.documentElement.style.getPropertyValue('--lwp-presentation-zoom')), '1.3');
+        assert.deepEqual(await readControls(), expected, 'reload, next article and index share preferences');
+      }
+      await page.goto(otherURL);
+      assert.deepEqual(await readControls(), author, 'another series starts with its author defaults');
+      assert.equal(await page.evaluate(key => localStorage.getItem(key), otherKey), null);
+      await page.goto(articleURL);
+      assert.deepEqual(await readControls(), expected, 'visiting another series must not overwrite this one');
+
+      // The whole versioned record is validated before applying any field.
+      await page.goto(otherURL);
+      const valid = {v: 1, ...expected};
+      const invalid = ['{', 'null', '[]', 'true', '1', '{}',
+        ...[{...valid, v: 2}, {...valid, v: '1'}, {...valid, table_mode: 'auto'},
+          {...valid, text_fit: 'grow'}, {...valid, table_shrink: 1},
+          {...valid, object_shrink: 'false'}, {...valid, presentationZoom: '1.3'},
+          {...valid, presentationZoom: 0.49}, {...valid, presentationZoom: 2.01},
+          {...valid, presentationZoom: null}, {...valid, min_text_scale: 0.1},
+          {...expected}].map(value => JSON.stringify(value)),
+        JSON.stringify(valid).replace('1.3', '1e999')];
+      for (const raw of invalid) {
+        await page.evaluate(({key, raw}) => localStorage.setItem(key, raw), {key: otherKey, raw});
+        await page.reload();
+        assert.deepEqual(await readControls(), author, `invalid saved override: ${raw}`);
+      }
+      for (const zoom of [0.5, 2]) {
+        await page.evaluate(({key, value}) => localStorage.setItem(key, JSON.stringify(value)),
+          {key: otherKey, value: {...valid, presentationZoom: zoom}});
+        await page.reload();
+        assert.deepEqual(await readControls(), {...expected, presentationZoom: zoom});
+        await page.waitForFunction(() => Number(document.querySelector('#long').dataset.lwpTextScale) >= 0.93);
+        const payload = await page.locator('#lwp-reading-data').textContent();
+        assert.equal(JSON.parse(payload).min_text_scale, 0.93);
+        assert.equal(JSON.parse(payload).min_table_scale, 0.94);
+        assert.equal(JSON.parse(payload).min_object_scale, 0.95);
+      }
+      assert.deepEqual(errors, []);
+      await context.close();
+    }
+    const blocked = await browser.newContext();
+    await blocked.addInitScript(() => {
+      Object.defineProperty(window, 'localStorage', {get() { throw new Error('Storage blocked'); }});
+    });
+    const blockedPage = await blocked.newPage();
+    const blockedErrors = [];
+    blockedPage.on('pageerror', error => blockedErrors.push(String(error)));
+    await blockedPage.goto(process.argv[2]);
+    await blockedPage.keyboard.press('m');
+    await blockedPage.locator('#menuReading').click();
+    await blockedPage.locator('#menuTableMode').selectOption('scroll');
+    await blockedPage.locator('[data-menu-action="zoom-in"]').click();
+    assert.equal(await blockedPage.locator('#menuTableMode').inputValue(), 'scroll');
+    assert.equal(await blockedPage.locator('#menuZoomValue').textContent(), '110%');
+    await blockedPage.reload();
+    await blockedPage.keyboard.press('m');
+    await blockedPage.locator('#menuReading').click();
+    assert.equal(await blockedPage.locator('#menuTableMode').inputValue(), 'clip');
+    assert.equal(await blockedPage.locator('#menuZoomValue').textContent(), '100%');
+    assert.deepEqual(blockedErrors, []);
+    await blocked.close();
+    console.log('preferences: HTTP and file directory scopes passed');
     for (const mobile of [true, false]) {
       const width = mobile ? 390 : 768;
       const context = await browser.newContext({
@@ -37,14 +141,52 @@ async function run() {
         if (mobile) await page.locator(selector).tap();
         else await page.locator(selector).click();
       };
-      const openMenu = async () => {
-        await page.keyboard.press('m');
+      const openMainMenu = async () => {
+        if (await page.locator('#readingMenu').isVisible()) await page.keyboard.press('Escape');
+        if (!await page.locator('#presenterMenu').isVisible()) await page.keyboard.press('m');
         await page.waitForSelector('#presenterMenu.open');
+      };
+      const openMenu = async () => {
+        await openMainMenu();
+        await activate('[data-menu-action="reading"]');
+        await page.waitForSelector('#readingMenu.open');
+      };
+      const closeMenu = async () => {
+        await page.keyboard.press('Escape');
+        await page.keyboard.press('Escape');
       };
       const value = () => page.locator('#menuZoomValue').textContent();
       const zoomIn = '[data-menu-action="zoom-in"]';
       const zoomOut = '[data-menu-action="zoom-out"]';
       const zoomReset = '[data-menu-action="zoom-reset"]';
+      await openMenu();
+      assert.equal(await page.locator('#readingMenuTitle').textContent(),
+        mobile ? 'Taille et tableaux' : 'Size and tables');
+      assert.equal(await page.locator('#presenterMenu .reading-controls').count(), 0);
+      assert.equal(await page.locator('#presenterMenu [data-menu-action="reading"]').count(), 1);
+      assert.equal(await page.locator('#presenterMenu [data-menu-action^="zoom-"]').count(), 0);
+      assert.equal(await page.locator('#readingMenu .reading-controls').count(), 1);
+      assert.equal(await page.locator('#presenterMenu').isVisible(), false);
+      assert.equal(await page.evaluate(() => document.activeElement.id), 'readingMenuBack');
+      await page.keyboard.press('Shift+Tab');
+      assert.equal(await page.evaluate(() => document.activeElement.dataset.readingOption), 'object_shrink');
+      await page.keyboard.press('Tab');
+      assert.equal(await page.evaluate(() => document.activeElement.id), 'readingMenuBack');
+      await activate('#readingMenuBack');
+      assert.equal(await page.locator('#readingMenu').isVisible(), false);
+      assert.equal(await page.locator('#presenterMenu').isVisible(), true);
+      assert.equal(await page.evaluate(() => document.activeElement.id), 'menuReading');
+      await page.keyboard.press('Enter');
+      await page.keyboard.press('Escape');
+      assert.equal(await page.evaluate(() => document.activeElement.id), 'menuReading');
+      await page.keyboard.press('Escape');
+      await activate('#navMenu');
+      await activate('#menuReading');
+      const beforeBackdrop = await state();
+      await page.locator('#readingMenu').click({position: {x: 2, y: 2}});
+      assert.equal(await page.locator('#readingMenu.open, #presenterMenu.open').count(), 0);
+      assert.equal(await page.evaluate(() => document.activeElement.id), 'navMenu');
+      assert.equal((await state()).active, beforeBackdrop.active);
       await openMenu();
       assert.equal(await value(), '100%');
       assert.equal(await page.locator('#menuZoomLabel').textContent(),
@@ -58,7 +200,7 @@ async function run() {
         && Math.abs(initialZoomButton.y - repeatedZoomButton.y) < 1,
       'repeated zoom taps must keep the button under the finger');
       assert.equal(await value(), '130%');
-      assert.equal(await page.locator('#presenterMenu.open').count(), 1);
+      assert.equal(await page.locator('#readingMenu.open').count(), 1);
       await page.keyboard.press('-');
       assert.equal(await value(), '120%');
       await page.keyboard.press('Shift+=');
@@ -126,7 +268,7 @@ async function run() {
       await openMenu();
       assert.equal(await page.locator('#menuTableMode').inputValue(), 'clip');
       await page.locator('#menuTableMode').selectOption('scroll');
-      await page.keyboard.press('Escape');
+      await closeMenu();
       await page.evaluate(() => document.activeElement.blur());
       await page.keyboard.press('2');
       await page.keyboard.press('Enter');
@@ -269,7 +411,7 @@ async function run() {
         assert(await page.evaluate(() => visualViewport.scale > 1.4));
         assert.equal((await state()).active, beforeNative.active);
         assert(Math.abs(await ratio() - beforeZoom) < 0.015, 'native scale must not reanchor at section top');
-        assert.equal(await page.evaluate(() => document.documentElement.style.zoom), '1');
+        assert.equal(await page.evaluate(() => document.documentElement.style.zoom), '');
         await session.send('Emulation.setPageScaleFactor', {pageScaleFactor: 1});
         await session.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: [
           {x: width / 2 - 30, y: 300, id: 1}, {x: width / 2 + 30, y: 300, id: 2},
@@ -285,7 +427,7 @@ async function run() {
         await settle();
         assert(await page.evaluate(() => visualViewport.scale > 1.2), 'CDP native pinch must zoom');
         assert.equal((await state()).active, beforeNative.active);
-        assert.equal(await page.evaluate(() => document.documentElement.style.zoom), '1');
+        assert.equal(await page.evaluate(() => document.documentElement.style.zoom), '');
         await session.send('Emulation.setPageScaleFactor', {pageScaleFactor: 1});
         await page.waitForTimeout(500);
         await session.detach();
@@ -321,6 +463,10 @@ async function run() {
         'touch help must omit unsupported Home/End/number-jump menu actions');
       await page.keyboard.press('Escape');
       await openMenu();
+      assert.equal(await page.locator('[data-reading-option="object_shrink"]').isChecked(), true,
+        'reloading a note fragment must preserve the object preference too');
+      await page.locator('[data-reading-option="object_shrink"]').uncheck();
+      await settle();
       const status = page.locator('#menuReadingStatus');
       assert.equal(await status.getAttribute('aria-live'), 'polite');
       assert.equal(await status.isVisible(), false, 'fixed-size reading must not show an autofit notice');
@@ -330,6 +476,7 @@ async function run() {
         'the real long-form fixture must exceed the fit floor');
       assert.equal(await status.isVisible(), true);
       const filter = async tag => {
+        await openMainMenu();
         await page.keyboard.press('l');
         await activate(`#tagMenu [data-tag="${tag}"]`);
         await settle();
@@ -404,7 +551,7 @@ async function run() {
       assert.equal(await status.isVisible(), false, 'the menu notice must not appear in print');
       await page.emulateMedia({media: 'screen'});
       await filter('main');
-      await page.keyboard.press('Escape');
+      await closeMenu();
       await page.evaluate(() => document.activeElement.blur());
       await page.keyboard.press('4');
       await page.keyboard.press('Enter');
@@ -473,16 +620,20 @@ async function run() {
             await activate(zoom > currentZoom ? zoomIn : zoomOut);
           }
           assert.equal(await value(), `${zoom}%`);
-          const rawFont = await page.locator('#after h2').evaluate(el => getComputedStyle(el).fontSize);
+          await settle();
+          const rawFont = await page.locator('#after h2').evaluate(el => parseFloat(getComputedStyle(el).fontSize));
           if (!sourceFont) sourceFont = rawFont;
-          assert.equal(rawFont, sourceFont, 'foreground fixes must not reduce source type sizes');
+          assert(Math.abs(rawFont / sourceFont - zoom / 100) < .02,
+            'reading zoom must resize content, not shrink source type to fit foreground controls');
           const buttonWidth = await page.locator('#navMenu').evaluate(el => el.getBoundingClientRect().width);
           if (!navWidth) navWidth = buttonWidth;
-          assert(Math.abs(buttonWidth / navWidth - zoom / 100) < .02, 'nav buttons keep their existing deck scaling');
+          assert(Math.abs(buttonWidth / navWidth - 1) < .02, 'reading zoom must not resize navigation controls');
+          await checkForeground('#readingMenu');
+          await openMainMenu();
           await checkForeground('#presenterMenu');
           for (const [action, selector] of [['share', '#sharePopover'], ['theme', '#themeMenu'],
             ['tags', '#tagMenu'], ['presenter', '#presenterPanel'], ['help', '#helpOverlay']]) {
-            if (!await page.locator('#presenterMenu').isVisible()) await openMenu();
+            if (!await page.locator('#presenterMenu').isVisible()) await openMainMenu();
             await activate(`[data-menu-action="${action}"]`);
             const font = await checkForeground(selector);
             if (!panelFonts[selector]) panelFonts[selector] = font;
@@ -509,13 +660,13 @@ async function run() {
             }
           }
           if (mobile && zoom === 200) {
-            await openMenu();
+            await openMainMenu();
             await activate('[data-menu-action="share"]');
             const session = await context.newCDPSession(page);
             await session.send('Emulation.setPageScaleFactor', {pageScaleFactor: 1.5});
             assert(await page.evaluate(() => visualViewport.scale > 1.4));
-            assert.equal(await page.locator('#sharePopover').evaluate(el => Number(getComputedStyle(el).zoom)), .5,
-              'foreground compensation must counter deck zoom, not native browser pinch');
+            assert.equal(await page.locator('#sharePopover').evaluate(el => Number(getComputedStyle(el).zoom)), 1,
+              'foreground needs no inverse zoom when only content is resized');
             await session.send('Emulation.setPageScaleFactor', {pageScaleFactor: 1});
             await session.detach();
             await page.keyboard.press('Escape');

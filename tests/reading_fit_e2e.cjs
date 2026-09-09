@@ -59,6 +59,129 @@ ${marker}`) });
     assert.equal(await page.$eval('#short .probe-text', el => getComputedStyle(el).fontSize), '30px');
     checks.push('fixed preserves authored typography');
 
+    await selectSlides(['short']);
+    await page.$eval('#short', slide => {
+      const fixture = document.createElement('div');
+      fixture.id = 'image-unit-fixture';
+      const source = document.querySelector('#author-image').src;
+      for (const [id, dimensions] of [
+        ['em', 'width: 4em; height: 2em'], ['ex', 'width: 8ex; height: 4ex'],
+        ['ch', 'width: 8ch; height: 4ch'], ['rem', 'width: 5rem; height: 2.5rem'],
+        ['percent', 'width: 40%; height: 40%'], ['px', 'width: 80px; height: 40px'],
+        ['authored-zoom', 'width: 4em; height: 2em; zoom: 0.8'],
+        ['authored-font', 'width: 4em; height: 2em; font-size: 15px !important; zoom: 0.8'],
+        ['authored-relative-font', 'width: 4em; height: 2em; font-size: 1.5em !important; zoom: 0.8'],
+        ['table', 'width: 4em; height: 2em; zoom: 0.8'],
+        ['caption', 'width: 4em; height: 2em; zoom: 0.8'],
+        ['theme', 'width: 4em; height: 2em'],
+      ]) {
+        const context = document.createElement(id === 'table' ? 'td' : id === 'caption' ? 'figcaption' : 'p');
+        context.style.cssText = 'font-size: 20px; line-height: 24px; width: 200px; height: 100px; margin: 0';
+        if (id === 'theme') context.style.fontSize = 'var(--image-unit-size, 20px)';
+        context.textContent = 'Image context ';
+        const image = document.createElement('img');
+        image.id = 'unit-' + id;
+        image.src = source;
+        image.alt = id;
+        image.style.cssText = dimensions + '; max-width: none';
+        context.appendChild(image);
+        if (id === 'table') {
+          const table = document.createElement('table');
+          table.style.cssText = 'width: 1600px; table-layout: fixed';
+          table.insertRow().appendChild(context);
+          fixture.appendChild(table);
+        } else if (id === 'caption') {
+          const figure = document.createElement('figure');
+          figure.appendChild(context);
+          fixture.appendChild(figure);
+        } else fixture.appendChild(context);
+      }
+      slide.appendChild(fixture);
+    });
+    await page.evaluate(() => Promise.all(Array.from(document.querySelectorAll('#image-unit-fixture img'), image => image.decode())));
+    await settle();
+    const unitImages = () => page.$$eval('#image-unit-fixture img', images => images.map(image => ({
+      id: image.id, width: image.getBoundingClientRect().width, height: image.getBoundingClientRect().height,
+      style: image.getAttribute('style'), font: getComputedStyle(image).fontSize,
+      priority: image.style.getPropertyPriority('font-size'),
+    })));
+    const unitBaseline = await unitImages();
+    assert.equal(unitBaseline[0].width, 80);
+    assert.equal(unitBaseline[0].height, 40);
+    await page.keyboard.press('m');
+    await page.locator('[data-menu-action="reading"]').click();
+    const menuZoom = async factor => {
+      await page.locator('#readingMenu [data-menu-action="zoom-reset"]').click();
+      for (let n = 0; n < Math.round(Math.abs(factor - 1) * 10); n++) {
+        await page.locator(`#readingMenu [data-menu-action="zoom-${factor < 1 ? 'out' : 'in'}"]`).click();
+      }
+      await settle();
+      assert.equal(await page.locator('#menuZoomValue').textContent(), `${factor * 100}%`);
+    };
+    const unitMeasurements = [];
+    for (const factor of [.5, 1, 2]) {
+      await menuZoom(factor);
+      unitMeasurements.push({ factor, images: await unitImages() });
+    }
+    for (const { factor, images } of unitMeasurements) {
+      for (const [index, image] of images.entries()) {
+        const baseline = unitBaseline[index];
+        // Percentage dimensions retain their existing responsive CSS-zoom
+        // behavior; the font context must not change that geometry either.
+        const scale = image.id === 'unit-percent' ? 1 : factor;
+        assert.ok(Math.abs(image.width - baseline.width * scale) < .15
+          && Math.abs(image.height - baseline.height * scale) < .15,
+        'image dimensions scale once: ' + JSON.stringify(unitMeasurements));
+      }
+    }
+    await menuZoom(1);
+    assert.deepEqual(await unitImages(), unitBaseline, 'reset restores exact authored image declarations');
+    for (const automatic of [false, true]) {
+      if (automatic) {
+        await page.locator('#menuTextFit').selectOption('per-slide');
+        await page.locator('[data-reading-option="table_shrink"]').check();
+        await page.locator('[data-reading-option="object_shrink"]').check();
+        await settle();
+        assert.ok(await page.$eval('#unit-table', image => Number(image.closest('table').style.zoom) < 1));
+        assert.ok(await page.$eval('#unit-caption', image => Number(image.closest('figure').style.zoom) < 1));
+      }
+      const fittedBaseline = await unitImages();
+      for (const factor of [.5, 2, .5, 1]) {
+        await menuZoom(factor);
+        const current = await unitImages();
+        for (const [index, image] of current.entries()) {
+          const scale = image.id === 'unit-percent' ? 1 : factor;
+          assert.ok(Math.abs(image.width - fittedBaseline[index].width * scale) < .15, image.id);
+          assert.ok(Math.abs(image.height - fittedBaseline[index].height * scale) < .15, image.id);
+        }
+        await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+        assert.deepEqual(await unitImages(), unitBaseline, 'print restores authored font, priority, zoom and dimensions');
+        await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+        await settle();
+        assert.deepEqual(await unitImages(), current, 'print and another layout do not accumulate scaling');
+      }
+    }
+    await page.locator('#menuTextFit').selectOption('fixed');
+    await page.locator('[data-reading-option="table_shrink"]').uncheck();
+    await page.locator('[data-reading-option="object_shrink"]').uncheck();
+    await menuZoom(2);
+    await page.evaluate(() => {
+      document.querySelector('#image-unit-fixture').style.setProperty('--image-unit-size', '30px');
+      document.fonts.dispatchEvent(new Event('loadingdone'));
+    });
+    await settle();
+    const refreshed = (await unitImages()).find(image => image.id === 'unit-theme');
+    assert.equal(refreshed.width, 240, 'new CSS font baseline is used even while zoomed');
+    assert.equal(refreshed.height, 120);
+    await menuZoom(1);
+    const restored = await unitImages();
+    assert.equal(restored.find(image => image.id === 'unit-theme').width, 120);
+    assert.deepEqual(restored.map(image => image.style), unitBaseline.map(image => image.style));
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    await page.$eval('#image-unit-fixture', fixture => fixture.remove());
+    checks.push('public menu scales em/ex/ch/rem/percent/pixel images once, restores authored fonts and zoom, and refreshes fitted table/caption baselines');
+
     await selectSlides(['short', 'dense']);
     await set('text_fit', 'uniform');
     let common = await scales();
@@ -119,11 +242,63 @@ ${marker}`) });
       assert.equal(fitted.childLine, fitted.parentLine);
       assert.equal(await page.$eval('#hidden-type', el => el.style.fontSize), '');
       assert.equal(await page.$eval('#svg-type', el => el.style.fontSize), '14px');
+      await page.evaluate(() => readingProbe.zoom(.5));
+      await settle();
+      const manualLine = await page.$eval('#inherited-container', el => ({
+        height: el.getBoundingClientRect().height,
+        parentSize: parseFloat(getComputedStyle(el).fontSize),
+        parentLine: parseFloat(getComputedStyle(el).lineHeight),
+        childSize: parseFloat(getComputedStyle(el.firstElementChild).fontSize),
+        childLine: parseFloat(getComputedStyle(el.firstElementChild).lineHeight),
+      }));
+      assert.ok(Math.abs(manualLine.height - fitted.height * .5) < .1);
+      assert.ok(Math.abs(manualLine.parentSize - fitted.parentSize * .5) < .01);
+      assert.ok(Math.abs(manualLine.parentLine - fitted.parentLine * .5) < .01);
+      assert.equal(manualLine.childSize, manualLine.parentSize);
+      assert.equal(manualLine.childLine, manualLine.parentLine);
+      await page.evaluate(() => readingProbe.zoom(1));
+      await settle();
       await set('text_fit', 'fixed');
       assert.ok(Math.abs(await page.$eval('#inherited-container', el =>
         el.getBoundingClientRect().height) - original.height) < .01);
     }
     checks.push('emphasis-only and link-only containers scale their line boxes without double inheritance');
+
+    await selectSlides(['dense']);
+    const capacity = () => page.$eval('#dense', slide => {
+      const text = slide.querySelector('.probe-text');
+      const rect = slide.getBoundingClientRect();
+      const lines = Array.from(text.childNodes).filter(node => node.nodeType === 3).flatMap(node => {
+        const range = document.createRange(); range.selectNodeContents(node);
+        return Array.from(range.getClientRects());
+      });
+      return { height: rect.height, width: text.getBoundingClientRect().width,
+        text: text.textContent, lines: lines.length,
+        visible: lines.filter(line => line.bottom <= rect.top + innerHeight - 60).length,
+        contained: lines.every(line => line.bottom <= rect.bottom - 60 + 1),
+        font: parseFloat(getComputedStyle(text).fontSize) };
+    });
+    const fullCapacity = await capacity();
+    assert.ok(fullCapacity.height > 700);
+    await page.evaluate(() => readingProbe.zoom(.5));
+    await settle();
+    const smallCapacity = await capacity();
+    assert.equal(smallCapacity.height, 700);
+    assert.equal(smallCapacity.width, fullCapacity.width);
+    assert.equal(smallCapacity.font, fullCapacity.font * .5);
+    assert.equal(smallCapacity.text, fullCapacity.text);
+    assert.equal(smallCapacity.lines, fullCapacity.lines);
+    assert.ok(smallCapacity.visible > fullCapacity.visible);
+    assert.ok(smallCapacity.contained);
+    await page.evaluate(() => readingProbe.zoom(2));
+    await settle();
+    const largeCapacity = await capacity();
+    assert.ok(largeCapacity.height > fullCapacity.height);
+    assert.ok(largeCapacity.contained, 'long content grows the card rather than clipping');
+    await page.evaluate(() => readingProbe.zoom(1));
+    await settle();
+    assert.deepEqual(await capacity(), fullCapacity);
+    checks.push('smaller text increases capacity in the same width; long content grows without loss');
 
     await selectSlides(['paired']);
     const pairGeometry = () => page.$eval('#paired-images', el => ({
@@ -271,6 +446,39 @@ ${marker}`) });
     assert.equal(await table.evaluate(el => el.style.zoom), '');
     checks.push('independent table shrink floor and restoration');
 
+    await page.$eval('#raw-table', el => {
+      const cell = el.rows[0].insertCell();
+      cell.id = 'generated-verdict';
+      cell.className = 'yes';
+      el.classList.add('comparison-table');
+    });
+    const tableType = () => page.$eval('#raw-table', el => ({
+      width: el.getBoundingClientRect().width,
+      viewport: el.parentElement.getBoundingClientRect().width,
+      font: parseFloat(getComputedStyle(el.querySelector('a')).fontSize),
+      pseudo: parseFloat(getComputedStyle(el.querySelector('.yes'), '::before').fontSize),
+      padding: getComputedStyle(el.rows[0].cells[0]).padding,
+      border: getComputedStyle(el.rows[0].cells[0]).borderBottomWidth,
+    }));
+    const tableBaseline = await tableType();
+    await page.evaluate(() => readingProbe.zoom(.5));
+    await settle();
+    const smallTable = await tableType();
+    assert.equal(smallTable.width, tableBaseline.width);
+    assert.equal(smallTable.viewport, tableBaseline.viewport);
+    assert.equal(smallTable.padding, tableBaseline.padding);
+    assert.equal(smallTable.border, tableBaseline.border);
+    assert.ok(Math.abs(smallTable.font - tableBaseline.font * .5) < .01);
+    assert.ok(Math.abs(smallTable.pseudo - tableBaseline.pseudo * .5) < .01);
+    await set('table_shrink', true);
+    assert.ok(Math.abs(await table.evaluate(el => Number(el.style.zoom)) - .85) < .001);
+    assert.equal((await tableType()).font, smallTable.font);
+    await set('table_shrink', false);
+    await page.evaluate(() => readingProbe.zoom(1));
+    await settle();
+    assert.deepEqual(await tableType(), tableBaseline);
+    checks.push('table text and generated verdict type zoom independently of cell padding and table fit');
+
     await selectSlides(['objects']);
     const originals = await page.$eval('#author-image', el => ({
       width: el.getAttribute('width'), height: el.getAttribute('height'), style: el.getAttribute('style'),
@@ -313,6 +521,34 @@ ${marker}`) });
     assert.equal(standalone.heightAttribute, '700');
     await set('object_shrink', false);
     assert.equal(await page.$eval('#standalone-image', el => el.style.zoom), '1.2');
+    await page.$eval('#standalone-image', el => {
+      el.style.width = '100px'; el.style.height = '50px';
+    });
+    const imageType = () => page.$eval('#standalone-image', el => ({
+      zoom: el.style.zoom, width: el.getBoundingClientRect().width,
+      height: el.getBoundingClientRect().height,
+      authoredWidth: el.style.width, authoredHeight: el.style.height,
+    }));
+    const imageBaseline = await imageType();
+    for (const factor of [.5, 2, 1]) {
+      await page.evaluate(factor => readingProbe.zoom(factor), factor);
+      await settle();
+      const image = await imageType();
+      assert.ok(Math.abs(Number(image.zoom) - 1.2 * factor) < .001);
+      assert.ok(Math.abs(image.width - imageBaseline.width * factor) < 1);
+      assert.ok(Math.abs(image.height - imageBaseline.height * factor) < 1);
+      assert.equal(image.authoredWidth, imageBaseline.authoredWidth);
+      assert.equal(image.authoredHeight, imageBaseline.authoredHeight);
+      assert.equal(await page.$eval('#author-player', el => el.style.zoom), '1.1');
+      if (factor === 2) {
+        await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+        assert.deepEqual(await imageType(), imageBaseline);
+        await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+        await settle();
+        assert.deepEqual(await imageType(), image);
+      }
+    }
+    assert.deepEqual(await imageType(), imageBaseline);
     await page.$eval('#standalone-image', el => el.remove());
     checks.push('image dimensions and author zoom survive; players untouched');
 
@@ -342,11 +578,21 @@ ${marker}`) });
     await selectSlides(['short', 'dense']);
     await set('text_fit', 'uniform');
     const beforeZoom = await scales();
+    const beforeZoomFont = await page.$eval('#dense .probe-text', el => parseFloat(getComputedStyle(el).fontSize));
     await page.evaluate(() => { readingProbe.zoom(1.5); readingProbe.schedule('zoom-probe'); });
     await settle();
     assert.deepEqual((await scales()).map(s => s.scale), beforeZoom.map(s => s.scale));
-    assert.equal(await page.evaluate(() => document.documentElement.style.zoom), '1.5');
-    checks.push('presentation zoom magnifies instead of cancelling fit');
+    assert.equal(await page.evaluate(() => document.documentElement.style.zoom), '');
+    assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--lwp-presentation-zoom')), '1.5');
+    assert.ok(Math.abs(await page.$eval('#dense .probe-text', el => parseFloat(getComputedStyle(el).fontSize))
+      - beforeZoomFont * 1.5) < .01);
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate(() => readingProbe.schedule('repeat'));
+      await settle();
+      assert.ok(Math.abs(await page.$eval('#dense .probe-text', el => parseFloat(getComputedStyle(el).fontSize))
+        - beforeZoomFont * 1.5) < .01);
+    }
+    checks.push('presentation zoom scales fitted content once instead of cancelling fit or accumulating');
 
     for (const theme of ['dracula', 'print-ink']) {
       assert.equal(await page.evaluate(theme => readingProbe.theme(theme, false), theme), true);
@@ -357,12 +603,26 @@ ${marker}`) });
       await set('text_fit', 'uniform');
       const fitted = await page.$eval('#dense h2', el => parseFloat(getComputedStyle(el).fontSize));
       assert.ok(Math.abs(fitted - baseline * (await scales())[0].scale) < .1);
+      const fittedScales = (await scales()).map(s => s.scale);
+      await page.evaluate(() => readingProbe.zoom(1));
+      await settle();
+      const unzoomed = await page.$eval('#dense h2', el => parseFloat(getComputedStyle(el).fontSize));
+      assert.ok(Math.abs(fitted - unzoomed * 1.5) < .01);
+      assert.deepEqual((await scales()).map(s => s.scale), fittedScales);
+      await page.evaluate(() => readingProbe.zoom(1.5));
+      await settle();
     }
     assert.equal(await page.evaluate(() => readingProbe.clearTheme(false)), true);
     await settle();
     assert.equal(await page.evaluate(() => readingProbe.preset('commons/roomy', false)), true);
     await settle();
     assert.ok(await page.$eval('#raw-table', el => el.parentElement.classList.contains('lwp-table-viewport')));
+    const presetFont = await page.$eval('#dense h2', el => parseFloat(getComputedStyle(el).fontSize));
+    await page.evaluate(() => readingProbe.zoom(1));
+    await settle();
+    assert.ok(Math.abs(presetFont - await page.$eval('#dense h2', el => parseFloat(getComputedStyle(el).fontSize)) * 1.5) < .01);
+    await page.evaluate(() => readingProbe.zoom(1.5));
+    await settle();
     checks.push('theme, default theme and preset DOM refresh');
 
     await set('table_shrink', true);
@@ -391,9 +651,31 @@ ${marker}`) });
       settings: { ...readingProbe.settings() },
       styles: Array.from(document.querySelectorAll('.slide [style]'), el => el.getAttribute('style')),
     })), beforePrint);
-    assert.equal(await page.evaluate(() => document.documentElement.style.zoom), '1.5');
+    assert.equal(await page.evaluate(() => document.documentElement.style.zoom), '');
+    assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--lwp-presentation-zoom')), '1.5');
     assert.ok(await page.$eval('#raw-table', el => el.parentElement.scrollLeft >= 159));
     checks.push('print removes scaling and foreground chrome, then restores without drift');
+    await set('text_fit', 'fixed');
+    await page.evaluate(() => {
+      readingProbe.zoom(1);
+      document.documentElement.style.setProperty('zoom', '1.1', 'important');
+    });
+    await settle();
+    const authorZoomFont = await page.$eval('#dense h2', el => parseFloat(getComputedStyle(el).fontSize));
+    await page.evaluate(() => readingProbe.zoom(.5));
+    await settle();
+    assert.ok(Math.abs(await page.$eval('#dense h2', el => parseFloat(getComputedStyle(el).fontSize))
+      - authorZoomFont * .5) < .01);
+    assert.deepEqual(await page.evaluate(() => ({
+      zoom: document.documentElement.style.zoom,
+      priority: document.documentElement.style.getPropertyPriority('zoom'),
+    })), { zoom: '1.1', priority: 'important' });
+    await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+    assert.equal(await page.evaluate(() => document.documentElement.style.zoom), '1.1');
+    await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+    await settle();
+    assert.equal(await page.evaluate(() => document.documentElement.style.zoom), '1.1');
+    checks.push('manual zoom and printing never replace unrelated author root zoom');
     assert.deepEqual(errors, []);
 
     const noJS = await browser.newPage({ javaScriptEnabled: false });
@@ -438,7 +720,9 @@ ${marker}`) });
       getComputedStyle(el.parentElement).overflowX), 'clip');
     checks.push('resolved Python payload drives configured scalar floors');
     await configured.close();
-    process.stdout.write(JSON.stringify({ checks }));
+    process.stdout.write(JSON.stringify({ checks, imageUnits: unitMeasurements.map(({ factor, images }) => ({
+      factor, images: images.map(({ id, width, height }) => ({ id, width, height })),
+    })) }));
   } finally {
     await browser.close();
   }

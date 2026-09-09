@@ -5716,8 +5716,9 @@ class ImageFiguresAndCaptions(unittest.TestCase):
         # Nothing left literal. The tell-tale of the old bug was the
         # typography engine treating the "!" of "![D]" as high
         # punctuation and slipping a non-breaking space in front of it.
-        self.assertNotIn('![', html)
-        self.assertNotIn(' ![', html)
+        visible_markup = re.sub(r'<script\b[^>]*>.*?</script>', '', html, flags=re.S)
+        self.assertNotIn('![', visible_markup)
+        self.assertNotIn(' ![', visible_markup)
 
     def test_heading_levels_4_5_6_in_fact_box(self):
         slide = ('<!-- lwp:slide -->\nslug: k96\nkicker: T\n## Title\nfact-label: The fact\n\n'
@@ -5736,7 +5737,8 @@ class ImageFiguresAndCaptions(unittest.TestCase):
                      '![Photo](https://example.org/p.png "Cap")\n',
                      'Inline ![icon](img/i.png) here.\n'):
             html = self._build_article_html(body)
-            self.assertNotIn('![', html)
+            visible_markup = re.sub(r'<script\b[^>]*>.*?</script>', '', html, flags=re.S)
+            self.assertNotIn('![', visible_markup)
 
     def test_inline_image_in_paragraph(self):
         html = self._build_article_html('Text with ![icon](img/i.png) inline.\n')
@@ -13015,16 +13017,21 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
     def test_presenter_actions_carry_icons_and_keyboard_shortcuts(self):
         lwp = load_lightwebpres_module()
+        menu = lwp.TEMPLATE_PAGE.split('id="presenterMenu"', 1)[1].split(
+            '<div class="theme-menu"', 1)[0]
         actions = re.findall(
             r'<button type="button" class="presenter-menu-action[^>]*" '
             r'id="([^"]+)"[^>]*data-menu-action="([^"]+)"([^>]*)>(.*?)'
-            r'</button>', lwp.TEMPLATE_PAGE, re.S)
-        self.assertEqual(len(actions), 13)
+            r'</button>', menu, re.S)
+        self.assertEqual(len(actions), 14)
         for button, action, attrs, body in actions:
             with self.subTest(action=action):
                 self.assertIn('<svg ', body, button)
                 self.assertIn('class="presenter-menu-label"', body, button)
-                if action == 'scroll':
+                if action == 'reading':
+                    self.assertIn('aria-controls="readingMenu"', attrs)
+                    self.assertIn('aria-haspopup="dialog"', attrs)
+                elif action == 'scroll':
                     self.assertIn('aria-keyshortcuts="I"', attrs, button)
                     self.assertIn('<kbd>I</kbd>', body, button)
                     self.assertIn('id="menuScrollValue"', body, button)
@@ -17001,12 +17008,9 @@ class ThemeEngineStaged(unittest.TestCase):
         # length property, so this test can also insist the one var it
         # tolerates is BACKED by the registry — a typo would previously
         # have produced a silently unset width.
-        # Two theme layout tokens, plus the runtime-only presentation zoom:
-        # the prose measure and the width of the boxes that are not prose
-        # must be registry-backed; the zoom is maintained by nav.js and is
-        # deliberately not an author/theme property.
-        allowed = {'--page-content-max', '--page-block-max',
-                   '--lwp-presentation-zoom'}
+        # Both layout tokens must be registry-backed. Manual zoom is content
+        # state only and must not enter the structural geometry rules.
+        allowed = {'--page-content-max', '--page-block-max'}
         for line in self.lwp.TEMPLATE_SKELETON.splitlines():
             for var in re.findall(r'var\((--[a-z-]+)', line):
                 self.assertIn(var, allowed, f'skeleton references {var}')
@@ -18308,15 +18312,13 @@ class ContentMeasure(unittest.TestCase):
         default = self.lwp.PROPERTY_REGISTRY['page.content-max'].default
         self.assertEqual(default, '84vw')
 
-    def test_slide_minimum_compensates_for_presentation_zoom(self):
+    def test_slide_minimum_is_independent_of_content_zoom(self):
         rule_start = self.lwp.TEMPLATE_SKELETON.index('.slide {')
         rule = self.lwp.TEMPLATE_SKELETON[rule_start:]
         rule = rule[:rule.index('}')]
         for unit in ('100vh', '100svh'):
-            self.assertIn(
-                f'min-height: calc({unit} / var(--lwp-presentation-zoom, 1));',
-                rule,
-            )
+            self.assertIn(f'min-height: {unit};', rule)
+        self.assertNotIn('--lwp-presentation-zoom', rule)
 
     def test_the_type_scale_has_no_ceiling_either(self):
         # The column and the type have to be uncapped TOGETHER. Capping one

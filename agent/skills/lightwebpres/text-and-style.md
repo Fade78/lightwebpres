@@ -57,8 +57,10 @@ start a blockquote and needs no escape.
 ## Tables And Reader Sizing
 
 The build keeps every table cell in HTML. Wide tables are visually clipped by
-default, not shortened or summarized. Readers can use **Menu > Wide tables**
-or **O** to choose clipping, overflow or local scrolling. In scroll mode,
+default, not shortened or summarized. Readers can use
+**Menu > Size and tables > Wide tables** or **O** to choose clipping, overflow
+or local scrolling. Back or Escape returns from the sizing submenu to its
+main-menu item with focus restored; clicking outside closes it. In scroll mode,
 focused keys, wheel and touch interactions stay inside the table viewport
 instead of accidentally navigating the deck. Print expands tables without
 screen clipping or local scroll limits; check physical paper width separately.
@@ -73,6 +75,22 @@ buttons. Runtime scales are cleared for print. Exact author defaults and
 limits belong to `series_meta.reading` in
 [Series and Appearance](series-and-appearance.md); do not shorten source data
 merely to imitate visual clipping.
+
+Presentation zoom (**-**, **+**, **=**) changes content fonts, line heights
+and images after fitting has been solved at 100%. It does not zoom the page
+root, frame widths, padding, borders, minimum heights or foreground controls.
+At 100%, normal responsive sizing remains; long content can still grow or
+scroll, and fitting does not cancel manual magnification. Native pinch remains
+browser zoom. Browser emulation alone does not verify a physical device.
+
+Reading modes, shrink switches and presentation zoom are reader preferences
+saved in `localStorage` per output directory path on the same origin, across
+articles, the index and reloads. Author minimum limits are not saved there,
+and controls never rewrite `series.json` or Markdown. Invalid or inaccessible
+stored data falls back to author defaults and 100% zoom; blocked saving leaves
+controls usable in the page. Persistence depends on browser storage policy,
+with `file:` behavior differing from HTTP(S) and between browsers. Appearance
+keeps its separate browser-session persistence.
 
 ## Raw HTML Blocks
 

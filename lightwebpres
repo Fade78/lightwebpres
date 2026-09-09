@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.57.0"
+VERSION = "0.57.1"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1275,6 +1275,8 @@ LANG_FR = r'''{
     "menu_scroll": "Défilement",
     "menu_share": "Partager",
     "menu_help": "Aide",
+    "menu_reading": "Taille et tableaux",
+    "menu_reading_back": "Retour au menu principal",
     "menu_zoom": "Zoom de présentation",
     "menu_zoom_out": "Réduire le zoom de présentation",
     "menu_zoom_in": "Agrandir le zoom de présentation",
@@ -1471,6 +1473,8 @@ LANG_EN = r'''{
     "menu_scroll": "Scroll",
     "menu_share": "Share",
     "menu_help": "Help",
+    "menu_reading": "Size and tables",
+    "menu_reading_back": "Back to main menu",
     "menu_zoom": "Presentation zoom",
     "menu_zoom_out": "Reduce presentation zoom",
     "menu_zoom_in": "Increase presentation zoom",
@@ -6725,12 +6729,21 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
         elif metadata_id == _THEME_RUNTIME_DEFAULT:
             theme_data.update(identity='builtin', identity_label='LightWebPres',
                               collection='builtin', origin='builtin')
+        elif (metadata_id == base_id and base_values is not None and presets
+              and presets[0].resource_collection != 'commons'):
+            package = presets[0].package
+            theme_data.update(identity=package.selector, identity_label=package.label,
+                              collection=('builtin' if package.id == 'builtin'
+                                          else 'kit'), origin=package.scope)
         else:
             theme_data.update(identity=None, collection='Commons',
                               origin=(catalog.scopes.get(metadata_id, 'embedded')
                                       if catalog is not None else 'embedded'))
         if theme_id == custom_id:
-            theme_data.update(identity=None, collection='custom', origin='series')
+            # Series pins belong to the target identity, even over a global theme.
+            package = presets[0].package if presets else DEFAULT_PRESENTATION_PACKAGE
+            theme_data.update(identity=package.selector, identity_label=package.label,
+                              collection='custom', origin='series')
         if label_key:
             theme_data['label_key'] = label_key
         if label_base is not None:
@@ -6884,6 +6897,7 @@ def _presentation_runtime_context(presets, style_context, catalog,
         'vars': variables,
         'pinned': sorted(indices[key] for key in pinned if key in indices),
         'presets': descriptors,
+        'has_identity_kits': any(preset.package.id != 'builtin' for preset in presets),
         'identities': list({preset.package.selector: {
             'selector': preset.package.selector,
             'label': preset.package.label,
@@ -6940,10 +6954,12 @@ def _page_css_markup(css, style_context=None, page_props=None,
 
 
 def _presentation_picker_markup(strings, runtime):
-    """Publish all three axes, even when only one preset is available."""
+    """Publish identity/preset axes only when a real identity kit is published."""
     if runtime is None:
         return ''
-    markup = '''<div class="theme-menu-title appearance-axis-title"
+    markup = ''
+    if runtime['has_identity_kits']:
+        markup = '''<div class="theme-menu-title appearance-axis-title"
      id="identityAxisTitle" data-lwp-i18n="appearance_identity">{{str_appearance_identity}}</div>
 <div class="theme-options" id="identityOptions" role="listbox"
      aria-label="{{str_appearance_identity}}"
@@ -6955,7 +6971,8 @@ def _presentation_picker_markup(strings, runtime):
      data-lwp-i18n-aria-label="appearance_presentation"></div>
 <div class="theme-menu-title appearance-axis-title" id="themeAxisTitle"
      data-lwp-i18n="appearance_theme" hidden>{{str_appearance_theme}}</div>
-<label for="themeSource" data-lwp-i18n="theme_source">{{str_theme_source}}</label>
+'''
+    markup += '''<label for="themeSource" data-lwp-i18n="theme_source">{{str_theme_source}}</label>
 <select class="theme-filter" id="themeSource">
   <option value="applicable" data-lwp-i18n="theme_source_applicable">{{str_theme_source_applicable}}</option>
   <option value="identity" data-lwp-i18n="theme_source_identity">{{str_theme_source_identity}}</option>
@@ -7971,15 +7988,15 @@ TEMPLATE_SKELETON = r'''/* LightWebPres skeleton — layout only: everything no 
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but the two theme measures or the
-       runtime presentation-zoom factor — a colour here would survive theming,
+     - no colour literal, and no var() but the two theme measures
+       — a colour here would survive theming,
        the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
    the output would read it as markup. */
 
-/* The skeleton consumes two engine-owned layout measures and one runtime
-   navigation variable. Every other variable comes from the engine. */
+/* The skeleton consumes two engine-owned layout measures.
+   Every other variable comes from the engine. */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -7988,11 +8005,10 @@ html.about-open, html.about-open body { overflow: hidden; }
 
 /* --- The slide frame --- */
 .slide {
-  /* `zoom` scales viewport units along with the content. Divide them by the
-     same runtime factor so a normal slide remains one visible viewport tall;
-     content that genuinely needs more space may still make it taller. */
-  min-height: calc(100vh / var(--lwp-presentation-zoom, 1));
-  min-height: calc(100svh / var(--lwp-presentation-zoom, 1));
+  /* Manual zoom changes content, not the responsive frame. Long content may
+     grow beyond this minimum without being clipped. */
+  min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -8745,9 +8761,8 @@ body.fs-noselect {
 .presenter-menu, .theme-menu, .tag-menu, .help-overlay, .about-overlay,
 .share-popover, .share-qr-modal, .presenter-panel, .tag-empty-state {
   overscroll-behavior: contain;
-  /* Foreground controls retain their layout and chosen type sizes. Only deck
-     zoom is canceled; native browser pinch still magnifies these surfaces. */
-  zoom: calc(1 / var(--lwp-presentation-zoom, 1));
+  /* Manual content zoom leaves controls alone; native browser pinch still
+     magnifies the whole page. */
   overflow-wrap: anywhere;
 }
 .presenter-menu-card, .theme-menu-card {
@@ -9187,7 +9202,6 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
    their own content (not 100vh) so a short slide does not blank a page. */
 @media print {
   html, body { overflow: visible !important; height: auto !important; }
-  html { zoom: 1 !important; }
   .nav-buttons, .nav-dots, .nav-btn, .tag-menu, .slide-counter,
   .pause-overlay, .presenter-menu, .theme-menu, .help-overlay, .about-overlay,
   .presenter-panel, .share-popover, .share-qr-modal { display: none !important; }
@@ -9927,6 +9941,42 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (e) {}
   }
 
+  // localStorage already isolates origins; the directory groups article and
+  // index pages, including distinct directories opened through file: URLs.
+  var readingPreferenceKey = 'lwp-reading:' + location.pathname.slice(
+    0, location.pathname.lastIndexOf('/') + 1);
+  try {
+    var savedReading = JSON.parse(window.localStorage.getItem(readingPreferenceKey));
+    if (savedReading && typeof savedReading === 'object' && !Array.isArray(savedReading)
+        && Object.keys(savedReading).sort().join(',')
+          === 'object_shrink,presentationZoom,table_mode,table_shrink,text_fit,v'
+        && savedReading.v === 1
+        && ['clip', 'overflow', 'scroll'].indexOf(savedReading.table_mode) !== -1
+        && ['fixed', 'uniform', 'per-slide'].indexOf(savedReading.text_fit) !== -1
+        && typeof savedReading.table_shrink === 'boolean'
+        && typeof savedReading.object_shrink === 'boolean'
+        && typeof savedReading.presentationZoom === 'number'
+        && isFinite(savedReading.presentationZoom)
+        && savedReading.presentationZoom >= PRESENTATION_ZOOM_MIN
+        && savedReading.presentationZoom <= PRESENTATION_ZOOM_MAX) {
+      ['table_mode', 'text_fit', 'table_shrink', 'object_shrink'].forEach(function (name) {
+        readingSettings[name] = savedReading[name];
+      });
+      presentationZoom = savedReading.presentationZoom;
+      document.documentElement.style.setProperty('--lwp-presentation-zoom', String(presentationZoom));
+    }
+  } catch (e) {}
+
+  function saveReadingPreferences() {
+    try {
+      window.localStorage.setItem(readingPreferenceKey, JSON.stringify({
+        v: 1, table_mode: readingSettings.table_mode, text_fit: readingSettings.text_fit,
+        table_shrink: readingSettings.table_shrink, object_shrink: readingSettings.object_shrink,
+        presentationZoom: presentationZoom
+      }));
+    } catch (e) {}
+  }
+
   function setReadingOption(name, value) {
     if (name === 'table_mode') {
       if (['clip', 'overflow', 'scroll'].indexOf(value) < 0) return false;
@@ -9936,6 +9986,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (typeof value !== 'boolean') return false;
     } else return false;
     readingSettings[name] = value;
+    saveReadingPreferences();
     scheduleReadingLayout('option');
     return true;
   }
@@ -9946,16 +9997,21 @@ document.addEventListener('DOMContentLoaded', function() {
     var ready = false;
     var pendingPosition = null;
     var changed = [];
+    var originals = new WeakMap();
     var printStyles = [];
     var printPosition = null;
     var printScroll = [];
     var viewports = new WeakMap();
 
     function remember(node, property) {
+      var properties = originals.get(node);
+      if (!properties) { properties = new Map(); originals.set(node, properties); }
+      if (properties.has(property)) return properties.get(property);
       var item = {node: node, property: property,
         value: node.style.getPropertyValue(property),
         priority: node.style.getPropertyPriority(property)};
       changed.push(item);
+      properties.set(property, item);
       return item;
     }
     function restore(items) {
@@ -10008,170 +10064,209 @@ document.addEventListener('DOMContentLoaded', function() {
       pendingPosition = null;
       restore(changed);
       changed = [];
+      originals = new WeakMap();
       enhanceTables();
       allSlides.forEach(function (slide) {
         slide.removeAttribute('data-lwp-fit-overflow');
         slide.removeAttribute('data-lwp-text-scale');
       });
-      // Solve at 100%, not against the magnified viewport. Replacing only these
-      // two properties synchronously avoids turning explicit zoom into autofit.
-      var root = document.documentElement;
-      var zoom = {node: root, property: 'zoom', value: root.style.getPropertyValue('zoom'),
-        priority: root.style.getPropertyPriority('zoom')};
-      var frameZoom = {node: root, property: '--lwp-presentation-zoom',
-        value: root.style.getPropertyValue('--lwp-presentation-zoom'),
-        priority: root.style.getPropertyPriority('--lwp-presentation-zoom')};
-      root.style.setProperty('zoom', '1', 'important');
-      root.style.setProperty('--lwp-presentation-zoom', '1');
-      try {
-        var visible = allSlides.filter(function (slide) {
-          return !slide.hidden && getComputedStyle(slide).display !== 'none';
-        });
-        var height = document.documentElement.clientHeight;
-        var candidates = visible.map(function (slide) {
-          var cs = getComputedStyle(slide);
-          var text = [];
-          var textByNode = new Map();
-          // Snapshot every baseline before writing any size: absolute theme
-          // sizes and em descendants must keep their original hierarchy.
-          Array.prototype.forEach.call(slide.querySelectorAll('*'), function (node) {
-            if (node.closest('[hidden], script, style, table, svg, iframe, video, audio, object, embed, .slide-num, .build-stamp, .slide-chrome')) return;
-            var ranges = [];
-            Array.prototype.forEach.call(node.childNodes, function (child) {
-              if (child.nodeType !== 3 || !child.textContent.trim()) return;
-              var range = document.createRange();
-              range.selectNodeContents(child);
-              ranges.push(range);
-            });
-            if (!ranges.some(function (range) { return range.getClientRects().length; })
-                || getComputedStyle(node).visibility !== 'visible') return;
-            // Inline descendants share their container's line boxes. A p
-            // containing only strong/a still owns the line-height strut.
-            // Stop at that formatting container, not unrelated outer blocks.
-            var container = node;
-            while (container && container !== slide) {
-              var style = getComputedStyle(container);
-              var item = textByNode.get(container);
-              if (!item) {
-                item = {node: container, ranges: [], size: parseFloat(style.fontSize),
-                  line: style.lineHeight === 'normal' ? null : parseFloat(style.lineHeight)};
-                textByNode.set(container, item);
-                text.push(item);
-              }
-              if (container === node) item.ranges = ranges;
-              if (style.display.indexOf('inline') !== 0 && style.display !== 'contents') break;
-              container = container.parentElement;
+      // Restore authored styles first: autofit always solves at 100%, then
+      // explicit zoom scales its result without changing frame geometry.
+      document.documentElement.style.setProperty('--lwp-presentation-zoom', String(presentationZoom));
+      var contentRoots = isIndex ? Array.prototype.slice.call(
+        document.querySelectorAll('.header, .intro, .article-card')) : allSlides;
+      var visible = contentRoots.filter(function (slide) {
+        return !slide.hidden && getComputedStyle(slide).display !== 'none';
+      });
+      var height = document.documentElement.clientHeight;
+      var candidates = visible.map(function (slide) {
+        var cs = getComputedStyle(slide);
+        var text = [];
+        var textByNode = new Map();
+        // Snapshot every baseline before writing any size: absolute theme
+        // sizes and em descendants must keep their original hierarchy.
+        [slide].concat(Array.prototype.slice.call(slide.querySelectorAll('*'))).forEach(function (node) {
+          if (node.closest('[hidden], script, style, svg, iframe, video, audio, object, embed, button, input, select, textarea, .slide-num, .build-stamp, .slide-chrome')) return;
+          var ranges = [];
+          Array.prototype.forEach.call(node.childNodes, function (child) {
+            if (child.nodeType !== 3 || !child.textContent.trim()) return;
+            var range = document.createRange();
+            range.selectNodeContents(child);
+            ranges.push(range);
+          });
+          if (getComputedStyle(node).visibility !== 'visible') return;
+          if (!ranges.some(function (range) { return range.getClientRects().length; })) {
+            // Relative generated type (including verdict marks in empty cells)
+            // follows its host font; empty decorative pseudo-elements do not.
+            if (!node.getClientRects().length || !['::before', '::after'].some(function (pseudo) {
+              var content = getComputedStyle(node, pseudo).content;
+              return content && ['none', 'normal', '""', "''"].indexOf(content) < 0
+                && content.indexOf('url(') !== 0;
+            })) return;
+          }
+          // Inline descendants share their container's line boxes. A p
+          // containing only strong/a still owns the line-height strut.
+          // Stop at that formatting container, not unrelated outer blocks.
+          var container = node;
+          while (container) {
+            var style = getComputedStyle(container);
+            var item = textByNode.get(container);
+            if (!item) {
+              item = {node: container, ranges: [], table: !!container.closest('table'),
+                size: parseFloat(style.fontSize),
+                line: style.lineHeight === 'normal' ? null : parseFloat(style.lineHeight)};
+              textByNode.set(container, item);
+              text.push(item);
             }
-          });
-          if (readingSettings.text_fit !== 'fixed') {
-            text.forEach(function (item) {
-              remember(item.node, 'font-size');
-              if (item.line !== null) remember(item.node, 'line-height');
-            });
+            if (container === node) item.ranges = ranges;
+            if (container === slide || (style.display.indexOf('inline') !== 0
+                && style.display !== 'contents')) break;
+            container = container.parentElement;
           }
-          // Tables have a separate scale; never shrink embedded controls.
-          var objects = [];
-          if (readingSettings.table_shrink) {
-            Array.prototype.forEach.call(slide.querySelectorAll('table'), function (node) {
-              // Nested tables follow the outer table, not a second multiplier.
-              if (!node.parentElement.closest('table')) objects.push([node, readingSettings.min_table_scale]);
-            });
-          }
-          if (readingSettings.object_shrink) {
-            Array.prototype.forEach.call(slide.querySelectorAll('figure, .figure, img'), function (node) {
-              if (node.parentElement.closest('figure, .figure, table')
-                  || node.querySelector('iframe, video, audio, object, embed')) return;
-              objects.push([node, readingSettings.min_object_scale]);
-            });
-          }
-          var objectFloor = 1;
-          objects = objects.map(function (entry) {
-            var node = entry[0];
-            var rect = node.getBoundingClientRect();
-            var parent = node.parentElement;
-            var parentStyle = getComputedStyle(parent);
-            var width = parent.clientWidth - parseFloat(parentStyle.paddingLeft)
-              - parseFloat(parentStyle.paddingRight);
-            objectFloor = Math.min(objectFloor, entry[1]);
-            return {node: node, minimum: entry[1],
-              maximum: Math.max(entry[1], Math.min(1, width / Math.max(1, rect.width))),
-              zoom: parseFloat(getComputedStyle(node).zoom) || 1,
-              original: remember(node, 'zoom')};
-          });
-          return {slide: slide, text: text, objects: objects, objectFloor: objectFloor,
-            left: parseFloat(cs.paddingLeft), right: parseFloat(cs.paddingRight)};
         });
+        if (!isIndex && readingSettings.text_fit !== 'fixed') {
+          text.forEach(function (item) {
+            if (item.table) return;
+            remember(item.node, 'font-size');
+            if (item.line !== null) remember(item.node, 'line-height');
+          });
+        }
+        // Tables have a separate scale; never shrink embedded controls.
+        var objects = [];
+        if (!isIndex && readingSettings.table_shrink) {
+          Array.prototype.forEach.call(slide.querySelectorAll('table'), function (node) {
+            // Nested tables follow the outer table, not a second multiplier.
+            if (!node.parentElement.closest('table')) objects.push([node, readingSettings.min_table_scale]);
+          });
+        }
+        if (!isIndex && readingSettings.object_shrink) {
+          Array.prototype.forEach.call(slide.querySelectorAll('figure, .figure, img'), function (node) {
+            if (node.parentElement.closest('figure, .figure, table')
+                || node.querySelector('iframe, video, audio, object, embed')) return;
+            objects.push([node, readingSettings.min_object_scale]);
+          });
+        }
+        var objectFloor = 1;
+        objects = objects.map(function (entry) {
+          var node = entry[0];
+          var rect = node.getBoundingClientRect();
+          var parent = node.parentElement;
+          var parentStyle = getComputedStyle(parent);
+          var width = parent.clientWidth - parseFloat(parentStyle.paddingLeft)
+            - parseFloat(parentStyle.paddingRight);
+          objectFloor = Math.min(objectFloor, entry[1]);
+          return {node: node, minimum: entry[1],
+            maximum: Math.max(entry[1], Math.min(1, width / Math.max(1, rect.width))),
+            zoom: parseFloat(getComputedStyle(node).zoom) || 1,
+            original: remember(node, 'zoom')};
+        });
+        return {slide: slide, text: text, objects: objects, objectFloor: objectFloor,
+          left: parseFloat(cs.paddingLeft), right: parseFloat(cs.paddingRight)};
+      });
 
-        function apply(candidate, scale) {
-          candidate.slide.setAttribute('data-lwp-text-scale', String(scale));
-          candidate.text.forEach(function (item) {
-            // Do not enlarge an authored size below 12px. Larger text keeps
-            // at least 12px even when the configured factor permits less.
-            var size = Math.max(Math.min(12, item.size), item.size * scale);
-            item.node.style.setProperty('font-size', size + 'px', 'important');
-            if (item.line !== null) item.node.style.setProperty(
-              'line-height', (item.line * size / item.size) + 'px', 'important');
-          });
-        }
-        function applyObjects(candidate, scale) {
-          candidate.objects.forEach(function (item) {
-            var factor = Math.max(item.minimum, Math.min(item.maximum, scale));
-            if (factor === 1) restore([item.original]);
-            else item.node.style.setProperty('zoom', String(item.zoom * factor), 'important');
-          });
-        }
-        function fits(candidate) {
-          var slide = candidate.slide;
-          var rect = slide.getBoundingClientRect();
-          if (rect.height > height + 1 || slide.scrollHeight > height + 1) return false;
-          // The slide's scrollWidth also includes intentionally overflowing
-          // tables. Measure text runs instead, including unbreakable tokens.
-          return candidate.text.every(function (item) {
-            return item.ranges.every(function (range) {
-              return Array.prototype.every.call(range.getClientRects(), function (run) {
-                return run.left >= rect.left + candidate.left - 1
-                  && run.right <= rect.right - candidate.right + 1;
-              });
+      function apply(candidate, scale) {
+        candidate.slide.setAttribute('data-lwp-text-scale', String(scale));
+        candidate.text.forEach(function (item) {
+          if (item.table) return;
+          // Do not enlarge an authored size below 12px. Larger text keeps
+          // at least 12px even when the configured factor permits less.
+          var size = Math.max(Math.min(12, item.size), item.size * scale);
+          item.node.style.setProperty('font-size', size + 'px', 'important');
+          if (item.line !== null) item.node.style.setProperty(
+            'line-height', (item.line * size / item.size) + 'px', 'important');
+        });
+      }
+      function applyObjects(candidate, scale) {
+        candidate.objects.forEach(function (item) {
+          var factor = Math.max(item.minimum, Math.min(item.maximum, scale));
+          if (factor === 1) restore([item.original]);
+          else item.node.style.setProperty('zoom', String(item.zoom * factor), 'important');
+        });
+      }
+      function fits(candidate) {
+        var slide = candidate.slide;
+        var rect = slide.getBoundingClientRect();
+        if (rect.height > height + 1 || slide.scrollHeight > height + 1) return false;
+        // The slide's scrollWidth also includes intentionally overflowing
+        // tables. Measure text runs instead, including unbreakable tokens.
+        return candidate.text.every(function (item) {
+          if (item.table) return true;
+          return item.ranges.every(function (range) {
+            return Array.prototype.every.call(range.getClientRects(), function (run) {
+              return run.left >= rect.left + candidate.left - 1
+                && run.right <= rect.right - candidate.right + 1;
             });
           });
-        }
-        function solve(group, low, applyScale) {
-          function test(scale) {
-            group.forEach(function (candidate) { applyScale(candidate, scale); });
-            return group.every(fits);
-          }
-          if (test(1)) return;
-          var high = 1;
-          if (!test(low)) return;
-          // Nine bisections bound the factor error below 0.001. Failed
-          // floor candidates remain readable and scroll, never disappear.
-          for (var i = 0; i < 9; i++) {
-            var mid = (low + high) / 2;
-            if (test(mid)) low = mid;
-            else high = mid;
-          }
-          test(low);
-        }
-        // Object bounds are individual; the shared factor is searched against
-        // the entire slide, so several individually small images can fit too.
-        // Spend the permitted object reduction before reducing any text.
-        candidates.forEach(function (candidate) {
-          if (candidate.objects.length) solve([candidate], candidate.objectFloor, applyObjects);
         });
-        if (readingSettings.text_fit === 'uniform') solve(candidates, readingSettings.min_text_scale, apply);
-        else if (readingSettings.text_fit === 'per-slide') {
-          candidates.forEach(function (candidate) { solve([candidate], readingSettings.min_text_scale, apply); });
+      }
+      function solve(group, low, applyScale) {
+        function test(scale) {
+          group.forEach(function (candidate) { applyScale(candidate, scale); });
+          return group.every(fits);
         }
+        if (test(1)) return;
+        var high = 1;
+        if (!test(low)) return;
+        // Nine bisections bound the factor error below 0.001. Failed
+        // floor candidates remain readable and scroll, never disappear.
+        for (var i = 0; i < 9; i++) {
+          var mid = (low + high) / 2;
+          if (test(mid)) low = mid;
+          else high = mid;
+        }
+        test(low);
+      }
+      // Object bounds are individual; the shared factor is searched against
+      // the entire slide, so several individually small images can fit too.
+      // Spend the permitted object reduction before reducing any text.
+      candidates.forEach(function (candidate) {
+        if (candidate.objects.length) solve([candidate], candidate.objectFloor, applyObjects);
+      });
+      if (!isIndex && readingSettings.text_fit === 'uniform') solve(candidates, readingSettings.min_text_scale, apply);
+      else if (!isIndex && readingSettings.text_fit === 'per-slide') {
+        candidates.forEach(function (candidate) { solve([candidate], readingSettings.min_text_scale, apply); });
+      }
+      candidates.forEach(function (candidate) {
+        // A uniform text factor may be constrained by another slide. Give
+        // objects their space back wherever that factor makes it available.
+        if (readingSettings.text_fit !== 'fixed' && candidate.objects.length) {
+          solve([candidate], candidate.objectFloor, applyObjects);
+        }
+        if (!isIndex && !fits(candidate)) candidate.slide.setAttribute('data-lwp-fit-overflow', 'true');
+      });
+      if (presentationZoom !== 1) {
+        // Snapshot the fitted sizes before writing any manual size: inherited
+        // inline line boxes and relative descendants must scale exactly once.
+        var manualText = [];
+        var manualImages = [];
         candidates.forEach(function (candidate) {
-          // A uniform text factor may be constrained by another slide. Give
-          // objects their space back wherever that factor makes it available.
-          if (readingSettings.text_fit !== 'fixed' && candidate.objects.length) {
-            solve([candidate], candidate.objectFloor, applyObjects);
-          }
-          if (!fits(candidate)) candidate.slide.setAttribute('data-lwp-fit-overflow', 'true');
+          candidate.text.forEach(function (item) {
+            var style = getComputedStyle(item.node);
+            manualText.push({node: item.node, size: parseFloat(style.fontSize),
+              line: style.lineHeight === 'normal' ? null : parseFloat(style.lineHeight)});
+          });
+          Array.prototype.forEach.call(candidate.slide.querySelectorAll('img'), function (node) {
+            if (node.closest('[hidden], svg, object, button, .slide-chrome')) return;
+            var style = getComputedStyle(node);
+            manualImages.push({node: node, font: style.fontSize, zoom: parseFloat(style.zoom) || 1});
+          });
         });
-      } finally {
-        restore([zoom, frameZoom]);
+        manualText.forEach(function (item) {
+          remember(item.node, 'font-size');
+          item.node.style.setProperty('font-size', (item.size * presentationZoom) + 'px', 'important');
+          if (item.line !== null) {
+            remember(item.node, 'line-height');
+            item.node.style.setProperty('line-height', (item.line * presentationZoom) + 'px', 'important');
+          }
+        });
+        manualImages.forEach(function (item) {
+          // Keep em/ex/ch dimensions in their fitted font context: the image's
+          // own zoom applies the manual factor, not its parent's resized font.
+          remember(item.node, 'font-size');
+          item.node.style.setProperty('font-size', item.font, 'important');
+          remember(item.node, 'zoom');
+          item.node.style.setProperty('zoom', String(item.zoom * presentationZoom), 'important');
+        });
       }
       if (position && !position.slide.hidden) reanchorPresentation(position);
       ready = true;
@@ -10236,12 +10331,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     presentationZoom = Math.max(PRESENTATION_ZOOM_MIN,
       Math.min(PRESENTATION_ZOOM_MAX, Math.round(value * 10) / 10));
-    // CSS zoom scales viewport units too. Keep the slide frame at one
-    // viewport while letting its content grow, so navigation measures the
-    // same frame the reader sees.
+    if (typeof saveReadingPreferences === 'function') saveReadingPreferences();
+    // State only: the reading runtime scales content after automatic fitting.
     document.documentElement.style.setProperty(
       '--lwp-presentation-zoom', String(presentationZoom));
-    document.documentElement.style.zoom = String(presentationZoom);
     updateReadingMenu();
     scheduleReadingLayout('zoom');
     schedulePresentationReanchor(position);
@@ -10375,7 +10468,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function presentationAlternatives() {
-    return !!(presentationData && presentationData.presets
+    // Theme-only decks retain preset metadata, not a hidden preset selection.
+    return !!(presentationData && presentationData.has_identity_kits
+      && presentationData.presets
       && presentationData.presets.length > 1);
   }
 
@@ -10420,7 +10515,8 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       var stored = window.sessionStorage.getItem(themeStorageKey);
       if (!themeBySlug(stored)) return false;
-      return presentationData ? true : stored !== themeData.primary;
+      return presentationData && presentationData.has_identity_kits
+        ? true : stored !== themeData.primary;
     } catch (e) {
       return false;
     }
@@ -10582,7 +10678,8 @@ document.addEventListener('DOMContentLoaded', function() {
     scheduleReadingLayout('theme');
     clearRuntimeVariables();
     themeExplicit = explicit === undefined
-      ? (presentationData ? true : slug !== themeData.primary)
+      ? (!!(presentationData && presentationData.has_identity_kits)
+        || slug !== themeData.primary)
       : explicit;
     themeCurrent = theme.slug;
     if (themeExplicit) {
@@ -11017,6 +11114,9 @@ document.addEventListener('DOMContentLoaded', function() {
   var aboutOverlay    = document.getElementById('aboutOverlay');
   var aboutClose      = document.getElementById('aboutClose');
   var presenterMenu   = document.getElementById('presenterMenu');
+  var readingMenu = document.getElementById('readingMenu');
+  var menuReadingAction = document.getElementById('menuReading');
+  var readingReturnFocus = null;
   var menuThemeAction = presenterMenu
     ? presenterMenu.querySelector('[data-menu-action="theme"]') : null;
   var menuThemeLabel = menuThemeAction
@@ -11099,7 +11199,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var active = presetDefault
         ? !themeExplicit
         : !!themeExplicit && button.getAttribute('data-theme') === themeCurrent;
-      if (!presentationData && !presetDefault) {
+      if ((!presentationData || !presentationData.has_identity_kits) && !presetDefault) {
         active = button.getAttribute('data-theme') === themeCurrent;
       }
       button.classList.toggle('active', active);
@@ -11120,7 +11220,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function updateAppearanceLabels() {
-    var multiple = !!presentationData;
+    var multiple = !!(presentationData && presentationData.has_identity_kits);
     if (menuThemeLabel) {
       var menuKey = multiple ? 'menu_appearance' : 'menu_theme';
       menuThemeLabel.setAttribute('data-lwp-i18n', menuKey);
@@ -11224,7 +11324,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function renderThemeOptions() {
     if (!themeOptionsBox) return;
     themeOptionsBox.innerHTML = '';
-    if (presentationData) {
+    if (presentationData && presentationData.has_identity_kits) {
       var presetDefault = document.createElement('button');
       presetDefault.type = 'button';
       presetDefault.className = 'theme-option';
@@ -11246,7 +11346,8 @@ document.addEventListener('DOMContentLoaded', function() {
     themeData.themes.forEach(function (theme) {
       // Every published typed theme is applicable; this is not brand approval.
       if (themeSource && themeSource.value === 'identity'
-          && (!selected || theme.identity !== selected.identity)) return;
+          && (!selected || (theme.identity !== selected.identity
+            && !(selected.identity === 'builtin' && theme.identity === null)))) return;
       var haystack = (theme.slug + ' ' + themeText(theme) + ' ' + (theme.family || '')).toLowerCase();
       if (query && haystack.indexOf(query) === -1) return;
       var button = document.createElement('button');
@@ -11450,6 +11551,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function openPresenterMenu() {
     if (!presenterMenu) return;
+    closeReadingMenu(false);
     updateAppearanceLabels();
     menuReturnFocus = document.activeElement === document.body
       ? btnMenu : document.activeElement;
@@ -11479,6 +11581,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (action === 'zoom-in') { changePresentationZoom(PRESENTATION_ZOOM_STEP); return; }
     if (action === 'zoom-out') { changePresentationZoom(-PRESENTATION_ZOOM_STEP); return; }
     if (action === 'zoom-reset') { setPresentationZoom(1); return; }
+    if (action === 'reading') { openReadingMenu(); return; }
+    if (action === 'reading-back') { returnFromReadingMenu(); return; }
+    closeReadingMenu(false);
     closePresenterMenu(false);
     if (action === 'prev' && btnPrev) btnPrev.click();
     else if (action === 'home') goHome();
@@ -11510,16 +11615,42 @@ document.addEventListener('DOMContentLoaded', function() {
     return true;
   }
 
+  function closeReadingMenu(restoreFocus) {
+    var wasOpen = readingMenu && readingMenu.classList.contains('open');
+    if (readingMenu) readingMenu.classList.remove('open');
+    if (menuReadingAction) menuReadingAction.setAttribute('aria-expanded', 'false');
+    if (wasOpen && restoreFocus !== false) focusIfVisible(readingReturnFocus);
+    readingReturnFocus = null;
+  }
+
+  function openReadingMenu() {
+    if (!readingMenu) return;
+    readingReturnFocus = menuReturnFocus || btnMenu;
+    closePresenterMenu(false);
+    updateReadingMenu();
+    readingMenu.classList.add('open');
+    if (menuReadingAction) menuReadingAction.setAttribute('aria-expanded', 'true');
+    var controls = focusablesWithin(readingMenu);
+    if (controls.length) controls[0].focus();
+  }
+
+  function returnFromReadingMenu() {
+    var returnFocus = readingReturnFocus;
+    openPresenterMenu();
+    menuReturnFocus = returnFocus;
+    focusIfVisible(menuReadingAction);
+  }
+
   function updateReadingMenu() {
-    if (!presenterMenu) return;
+    if (!readingMenu) return;
     var zoom = document.getElementById('menuZoomValue');
-    var zoomOut = presenterMenu.querySelector('[data-menu-action="zoom-out"]');
-    var zoomIn = presenterMenu.querySelector('[data-menu-action="zoom-in"]');
+    var zoomOut = readingMenu.querySelector('[data-menu-action="zoom-out"]');
+    var zoomIn = readingMenu.querySelector('[data-menu-action="zoom-in"]');
     if (zoom) zoom.textContent = Math.round(presentationZoom * 100) + '%';
     if (zoomOut) zoomOut.disabled = presentationZoom <= PRESENTATION_ZOOM_MIN;
     if (zoomIn) zoomIn.disabled = presentationZoom >= PRESENTATION_ZOOM_MAX;
     if (!readingSettings) return;
-    Array.prototype.forEach.call(presenterMenu.querySelectorAll('[data-reading-option]'),
+    Array.prototype.forEach.call(readingMenu.querySelectorAll('[data-reading-option]'),
       function (control) {
         var value = readingSettings[control.getAttribute('data-reading-option')];
         if (control.type === 'checkbox') control.checked = !!value;
@@ -11558,8 +11689,9 @@ document.addEventListener('DOMContentLoaded', function() {
     return true;
   }
 
-  if (presenterMenu) {
-    Array.prototype.forEach.call(presenterMenu.querySelectorAll('[data-reading-option]'),
+  [presenterMenu, readingMenu].forEach(function (menu) {
+    if (!menu) return;
+    Array.prototype.forEach.call(menu.querySelectorAll('[data-reading-option]'),
       function (control) {
         control.addEventListener('change', function () {
           setReadingOption(control.getAttribute('data-reading-option'),
@@ -11568,7 +11700,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       });
     Array.prototype.forEach.call(
-      presenterMenu.querySelectorAll('[data-menu-action]'), function (button) {
+      menu.querySelectorAll('[data-menu-action]'), function (button) {
         button.addEventListener('click', function (e) {
           // The document click handler closes an open help modal. Keep the
           // intentional menu-to-help transition from bubbling into it.
@@ -11577,10 +11709,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
     );
-    presenterMenu.addEventListener('click', function (e) {
-      if (e.target === presenterMenu) closePresenterMenu();
+    menu.addEventListener('click', function (e) {
+      if (e.target !== menu) return;
+      if (menu === readingMenu) closeReadingMenu();
+      else closePresenterMenu();
     });
-  }
+  });
   if (themeMenu) {
     themeMenu.addEventListener('click', function (e) {
       if (e.target === themeMenu) closeThemeMenu();
@@ -12038,7 +12172,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (focusedCard >= 0) { indexCards[focusedCard].blur(); focusedCard = -1; }
   }
 
-  // .slide sets a presentation-zoom-compensated viewport min-height
+  // .slide keeps a viewport min-height independent of manual content zoom
   // (specifications.md §9), so a slide's real height only exceeds the
   // viewport when its own content demands it — a long full-article slide
   // being the common case. This only ever looks at actual layout, never a
@@ -12402,6 +12536,30 @@ document.addEventListener('DOMContentLoaded', function() {
        }
        return;
      }
+      if (readingMenu && readingMenu.classList.contains('open')) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          returnFromReadingMenu();
+        } else if (e.key === 'm' || e.key === 'M') {
+          e.preventDefault();
+          closeReadingMenu();
+        } else if (e.key === 'Tab') {
+          var readingFocus = focusablesWithin(readingMenu);
+          if (readingFocus.length) {
+            e.preventDefault();
+            var readingAt = readingFocus.indexOf(document.activeElement);
+            var readingStep = e.shiftKey ? -1 : 1;
+            readingFocus[(readingAt + readingStep + readingFocus.length)
+              % readingFocus.length].focus();
+          }
+        } else if (e.target.tagName === 'SELECT'
+                   && ['+', '-', '=', 'o', 'O', 'a', 'A'].indexOf(e.key) === -1) {
+          return;
+        } else if (runMenuShortcut(e.key === '=' && e.shiftKey ? '+' : e.key)) {
+          e.preventDefault();
+        }
+        return;
+      }
       if (presenterMenu && presenterMenu.classList.contains('open')) {
        if (e.key === 'Escape' || e.key === 'm' || e.key === 'M') {
          e.preventDefault();
@@ -13685,10 +13843,11 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
   </div>
 </div>
 
-<div class="presenter-menu" id="presenterMenu" role="dialog" aria-modal="true"
-     aria-labelledby="presenterMenuTitle">
+<div class="presenter-menu" id="readingMenu" role="dialog" aria-modal="true"
+     aria-labelledby="readingMenuTitle">
   <div class="presenter-menu-card">
-    <div class="presenter-menu-title" id="presenterMenuTitle" data-lwp-i18n="menu_title">{{str_menu_title}}</div>
+    <div class="presenter-menu-title" id="readingMenuTitle" data-lwp-i18n="menu_reading">{{str_menu_reading}}</div>
+    <button type="button" class="presenter-menu-action" id="readingMenuBack" data-menu-action="reading-back" data-lwp-i18n="menu_reading_back">{{str_menu_reading_back}}</button>
     <div class="reading-controls">
       <div id="menuZoomLabel" data-lwp-i18n="menu_zoom">{{str_menu_zoom}}</div>
       <div class="reading-zoom" role="group" aria-labelledby="menuZoomLabel" aria-describedby="menuZoomHint">
@@ -13716,7 +13875,17 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
       <label><input type="checkbox" data-reading-option="object_shrink"> <span data-lwp-i18n="menu_object_shrink">{{str_menu_object_shrink}}</span></label>
       <p id="menuReadingStatus" aria-live="polite" aria-atomic="true" hidden></p>
     </div>
+  </div>
+</div>
+
+<div class="presenter-menu" id="presenterMenu" role="dialog" aria-modal="true"
+     aria-labelledby="presenterMenuTitle">
+  <div class="presenter-menu-card">
+    <div class="presenter-menu-title" id="presenterMenuTitle" data-lwp-i18n="menu_title">{{str_menu_title}}</div>
     <div class="presenter-menu-actions">
+      <button type="button" class="presenter-menu-action" id="menuReading" data-menu-action="reading" aria-haspopup="dialog" aria-controls="readingMenu" aria-expanded="false">
+        {{icon_theme}}<span class="presenter-menu-label" data-lwp-i18n="menu_reading">{{str_menu_reading}}</span>
+      </button>
       <button type="button" class="presenter-menu-action" id="menuPrev" data-menu-action="prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace">
         {{icon_prev}}<span class="presenter-menu-label" data-lwp-i18n="menu_prev">{{str_menu_prev}}</span><kbd>Page Up</kbd>
       </button>

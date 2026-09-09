@@ -2923,15 +2923,21 @@ navigateur.
 **Voir :** specifications.md §9.3.5 ; `lightwebpres` ;
 `tests/keyboard_nav_e2e.cjs`
 
-Le raccourci `+` agrandit le contenu de la page, mais ne doit pas transformer
-une fiche normale de 800 px en cadre de 880 px : `zoom` à la racine agrandit
-aussi les unités de viewport. La `min-height` du cadre est donc divisée par le
-facteur runtime avant ce zoom. Le contenu qui dépasse réellement cette boîte
-reste une fiche longue et conserve le parcours incrémental borné.
+Presentation zoom scales content, not the slide frame. The root-zoom approach
+compensated viewport height but still scaled viewport-relative content widths:
+at 390 pixels wide, the native fact box shrank from 327.6 to 163.8 pixels at
+50% zoom. Compensating only the outer slide's height was insufficient.
 
-**Ce qui est vérifié.** Le probe Chromium mesure une fiche normale à la hauteur
-du viewport après `+`, puis vérifie que le premier `ArrowDown` entre bien dans
-la fiche suivante ; les parcours des fiches réellement longues restent verts.
+The runtime now scales content fonts, line heights and images after optional
+fitting. Responsive frame widths, padding, borders and minimum heights retain
+their normal geometry. Font-relative image dimensions keep their pre-zoom font
+context so the manual factor applies once. Original inline declarations are
+restored on reset and print. Truly long content still grows and scrolls.
+
+**Guards.** `tests/zoom_geometry_e2e.cjs` measures native, documentation-kit and
+Field Notes frames at mobile and landscape sizes with 50%, 100% and 200% zoom.
+Reading and keyboard tests cover inherited typography, images, fitting,
+navigation, author styles and print restoration.
 
 ## B61 — Le redimensionnement repositionne la fiche courante
 
@@ -2945,16 +2951,17 @@ fenêtre passait de `1024×800` à `1024×600` : son haut se retrouvait à `-200
 et le lecteur voyait le milieu de la fiche. Le même défaut pouvait apparaître
 après le zoom de présentation, qui modifie lui aussi la géométrie.
 
-Le runtime regroupe maintenant les événements `resize` de la fenêtre et du
-`visualViewport` dans une frame, recalcule la fiche visible puis la replace au
-haut. Pendant un glissé, il conserve la destination déjà choisie au lieu de
-revenir à la fiche encore visible ; sur l'index, il révèle à nouveau la carte
-focalisée. Le parcours et les limites des fiches longues ne changent pas.
+Window resize is coalesced into one frame. Presentation cards are realigned
+to their top, while full articles retain their relative reading position,
+including across width/orientation changes. During a glide, navigation keeps
+the intended destination; the index reveals its focused card. Native
+visual-viewport pinch keeps the browser's focal point instead of scheduling
+a jump to the slide top.
 
-**Ce qui est vérifié.** Le probe Chromium vérifie `+`, `-` et `=` puis
-redimensionne une fiche longue active et exige que son bord haut revienne à
-`0px`; les scénarios existants de glissé, de fiches longues et d'index restent
-verts.
+**Guards.** Keyboard navigation verifies card alignment and glide targets.
+The reading-controls browser probe also verifies long-form reading position
+across zoom and viewport changes. These are Chromium checks, not a claim of
+physical-device or cross-browser certification.
 
 ## B62 — Le cover Lava reste sauvegardé dans Lava hot
 
@@ -3008,9 +3015,21 @@ dans `series.json`. L'axe des thèmes reste indépendant ; sans `theme:` explici
 le thème typé suit le preset, et avec une telle ligne il reste fixe. Un thème
 runtime explicite persiste jusqu'à **Follow preset**. Tous les thèmes de chaque
 kit sélectionné sont publiés avec qualification du kit, sans produit cartésien.
-Applicable / Current identity / All filtrent les choix publiés par compatibilité
-typée ou appartenance, jamais par approbation de marque. Le label d'identité
-reste fixe ; le marqueur initial décrit une sélection.
+Applicable / Current identity / All filter published choices, never certify
+brand approval. For native LightWebPres, Current identity includes available
+Commons/global themes and native Light/custom choices; a real kit exposes its
+own qualified themes and custom variants. Without any published real kit, the
+picker omits Identity/Preset axes and uses theme-only labels and selection.
+It does not restore an inaccessible Commons preset from an older session.
+Publishing a kit keeps the axes available even when native Standard is active.
+Identity labels remain fixed; an initial marker describes a selection.
+
+Reading preferences use a separate versioned localStorage record, scoped by
+output-directory path within the browser origin. Zoom, table/text modes and
+shrink switches follow the reader across articles, index and reloads; author
+minimum scales remain in source configuration. Invalid or unavailable storage
+falls back to author defaults. A Size and tables submenu keeps those controls
+out of the main menu while preserving Back/Escape focus navigation.
 
 **Gardes.** Ordre primaire, déduplication, `builtin/standard`, validation avant
 écriture, omission sûre d'un candidat natif implicite incompatible, fragments

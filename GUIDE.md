@@ -664,10 +664,10 @@ themes or a complete Identity Kit.
 
 ### Set initial reading choices
 
-Readers can change table handling and text fitting in **Menu**, alongside
-presentation zoom. Set their starting choices in `series.json`, not in a theme
-or article style. This complete `series_meta` fragment shows the defaults;
-merge it into the existing object rather than replacing other metadata:
+Readers can change table handling and text fitting in **Menu > Size and tables**,
+alongside presentation zoom. Set their starting choices in `series.json`, not
+in a theme or article style. This complete `series_meta` fragment shows the
+defaults; merge it into the existing object rather than replacing other metadata:
 
 ```json
 {
@@ -1055,14 +1055,23 @@ kit or Commons preset. If a slide uses a kit-only `slide-layout`, `slide-header`
 `slide-footer`, the implicit default is omitted with a warning; explicitly
 requesting `builtin/standard` keeps the normal validation error.
 
-When alternatives exist, **C** opens the Appearance picker with
-**Identity**, **Preset** and **Theme** controls. The selected preset changes the whole deck,
-including the index, and lasts across pages in the current browser session. It
+When a real Identity Kit is published, **C** opens the Appearance picker with
+**Identity**, **Preset** and **Theme** controls. These axes remain available
+when the reader selects native `builtin/standard`. Without a published kit,
+even with Commons presets, **C** offers only **Theme**, with theme-specific
+labels and help. Preset metadata alone does not expose Identity/Preset axes,
+and hidden Commons preset choices are not restored from the browser session.
+
+An available preset choice changes the whole deck, including the index, and
+lasts across pages in the current browser session. It
 does not edit the series. If `settings.conf` names an explicit `theme:`, that
 theme remains fixed; otherwise the preset's typed theme follows the selected
-presentation until the reader chooses an explicit theme. **Follow preset**
-resets that explicit runtime choice. All themes of every selected kit are
-published under kit-qualified names, even if no selected preset uses them.
+presentation until the reader chooses an explicit theme. In kit-aware mode,
+**Follow preset** resets that explicit runtime choice. In theme-only mode,
+there is no Follow preset option: the actual theme is selected, and choosing
+the primary theme restores the author's base appearance. All themes of every
+selected kit are published under kit-qualified names, even if no selected
+preset uses them.
 
 For example, a runtime theme ID is
 `kit:lightwebpres-docs@0.1.0/docs`, distinct from a global theme slug. An asset
@@ -1071,11 +1080,15 @@ reference into another kit. Keep those namespaces separate from the persisted
 preset selector `lightwebpres-docs@0.1.0/docs`.
 
 The **Applicable**, **Current identity** and **All** filters only narrow
-published choices. Applicable means typed compatibility, not brand matching;
-Current identity means resource ownership. Identity labels stay fixed when
-the preset or theme changes. The initial/default marker describes a selection,
-not another identity. The picker does not invent a cross-product of presets
-and themes or fetch additional catalogue entries.
+published choices. Applicable means typed compatibility, not brand matching.
+For native LightWebPres, Current identity includes published Commons/global
+themes, Light and native custom variants, but excludes foreign kit themes.
+For a real kit, it includes that kit's qualified themes and custom variants,
+not unowned global themes or another kit's themes. Commons availability to
+native `builtin` does not declare kit membership or make Commons an identity.
+Identity labels stay fixed when the preset or theme changes. The initial/default
+marker describes a selection, not another identity. The picker does not invent
+a cross-product of presets and themes or fetch additional catalogue entries.
 
 For color and typography changes, choose the smallest value override that
 does the job before adding CSS rules.
@@ -1372,28 +1385,41 @@ use the controls below to present it one slide at a time. The index uses the
 same controls, stepping one article card at a time.
 
 Use **H** for help, or open Menu in the bottom-right corner on touch. **L**
-selects an available content variant; **C** opens Appearance when alternatives
-were included. Identity, Preset and Theme choices change your view without
-editing the author's files. Select **Follow preset** to undo a separate theme
-choice. No control fetches a theme or preset the author did not publish.
+selects an available content variant; **C** opens Appearance when a kit was
+published, or Theme in a native/Commons-only publication with theme alternatives.
+These choices change your view without editing the author's files. In
+Appearance, **Follow preset** undoes a separate theme choice; in Theme, choose
+the primary theme to restore the author's base appearance. No control fetches
+a theme or preset the author did not publish.
 
 ### Adjust zoom, tables and text
 
-Open **Menu** with **M** or the bottom-right Menu button. These controls work
-with a mouse, keyboard or touch; no source edit or rebuild is needed:
+Open **Menu** with **M** or the bottom-right Menu button, then choose
+**Size and tables** (**Taille et tableaux** in French). This opens a dedicated
+submenu; **Back to main menu** or **Escape** returns to the main menu with focus on that
+item, while clicking outside closes the submenu. These controls work with a
+mouse, keyboard or touch; no source edit or rebuild is needed:
 
 | Control | What it changes |
 |---|---|
-| Presentation zoom: **-**, **+**, **Reset** | Reduce, enlarge or return to 100%; the current percentage is shown. Keyboard equivalents are **-**, **+**, **=**. |
+| Presentation zoom: **-**, **+**, **Reset** | Reduce or enlarge presentation text and images, or return to 100%, without scaling the slide frame or controls; the current percentage is shown. Keyboard equivalents are **-**, **+**, **=**. |
 | Wide tables | **Hide what does not fit** (`clip`, default), **Allow overflow** (`overflow`), or **Scroll inside the table** (`scroll`). **O** cycles in that order. |
 | Text size | **Keep the chosen size** (`fixed`, default), **Reduce all slides together** (`uniform`), or **Reduce each slide as needed** (`per-slide`). **A** cycles in that order. |
 | Reduce tables as needed | Independently allow bounded table shrinking; off by default. |
 | Reduce images as needed | Independently allow bounded shrinking of supported images/figures; off by default, not a control for arbitrary embedded widgets. |
 
 The author can choose different starting settings and reduction limits.
-Closing and reopening Menu keeps your choices in this loaded page. Reading
-choices and presentation zoom are page-local, not saved across pages or reloads;
-they do not change the author's files.
+Your table mode, text fitting, table/image shrink switches and presentation
+zoom are saved in browser `localStorage` for this output directory on the
+same origin. They follow you between articles and the index and survive
+reloads; another output directory has separate preferences. Author-defined
+minimum reduction limits are not saved as reader preferences. No choice
+rewrites `series.json` or other author files. Invalid saved data or unavailable
+storage falls back to the author's initial settings and 100% zoom; controls
+still work in the loaded page if saving is blocked. Persistence depends on
+browser storage availability, and `file:` URLs can behave differently from
+served HTTP(S) pages and across browsers. Appearance choices keep their
+separate browser-session contract.
 
 Choose **Scroll inside the table** to read every column of a wide table within
 its own viewport. Focus that region to use arrow keys, or scroll it horizontally
@@ -1413,13 +1439,18 @@ theme, preset, tags, fonts or loaded images change. If the minimum size still
 does not fit, the slide remains readable by scrolling; fitting never removes
 text or table cells to make a slide pass.
 
-When fitting or shrinking is enabled, Menu reports how many visible slides
-still need scrolling. It does not put a warning over the presentation itself.
+When fitting or shrinking is enabled, Size and tables reports how many visible
+slides still need scrolling. It does not put a warning over the presentation itself.
 
-Presentation zoom is separate, deliberate magnification. Fitting is calculated
-at 100% presentation zoom, so zooming in can create overflow rather than being
-silently cancelled by fitting. Ctrl/Cmd+plus/minus and native browser pinch
-zoom remain the browser's controls, not a custom LWP pinch gesture.
+Presentation zoom changes content font sizes, line heights and images, not
+the page root's CSS zoom. Frame widths, padding, borders and minimum heights
+keep their normal responsive geometry; the controls neither shrink nor grow
+with presentation zoom. At 100%, native responsive sizing remains in effect.
+Long content can still grow a slide or require scrolling. Fitting is calculated
+at 100% before the manual zoom factor is applied, so zooming in can create
+overflow rather than being silently cancelled by fitting. Ctrl/Cmd+plus/minus
+and native browser pinch remain browser zoom, not a custom LWP pinch gesture.
+Browser emulation is not verification on a physical device.
 
 ### Keyboard
 
@@ -1430,12 +1461,12 @@ zoom remain the browser's controls, not a custom LWP pinch gesture.
 | Home | Beginning of the page — first slide on an article; top on the index |
 | Ctrl/Cmd+Home | Back to the series index — on the index: top of the page |
 | End or Ctrl/Cmd+End | Last slide. On the index: last article card |
-| + / - / = | Enlarge / reduce / reset the page zoom (the page only; Ctrl/Cmd +/- remains the browser zoom) |
+| + / - / = | Enlarge / reduce / reset presentation content zoom; Ctrl/Cmd +/- remains browser zoom |
 | O | Cycle wide tables: clip, overflow, local scroll |
 | A | Cycle text fitting: fixed, uniform, per-slide |
 | F | Fullscreen (Esc to exit) |
 | I | Toggle between the configured smooth slide glide and an instant jump |
-| C | Open Appearance: the published identities, presets and themes |
+| C | Open Appearance when a kit is published, otherwise Theme; published choices only |
 | M | Open the presenter menu |
 | S | Open sharing for the series, article or current slide |
 | B | Black pause screen (press again to dismiss) |
@@ -1633,11 +1664,11 @@ switches between that configured duration and `0` and shows the active value.
 | Symptom | Reader action |
 |---|---|
 | The controls vanished | Move the mouse or double-tap on touch; idle controls fade intentionally. |
-| The text is hard to read | Open Appearance and try Monochrome, Monochrome Night or Print Ink if supplied; use page or browser zoom. |
-| A table loses its rightmost columns | Open Menu and choose **Scroll inside the table**, or press **O** until that mode is selected; the HTML still contains every cell. |
-| A slide is too tall | Try **Reduce each slide as needed** in Menu; optionally enable table/image shrinking. Scroll any content that still exceeds the author's reduction floor. |
+| The text is hard to read | Open Theme or Appearance and try Monochrome, Monochrome Night or Print Ink if supplied; use presentation or browser zoom. |
+| A table loses its rightmost columns | Open **Menu > Size and tables** and choose **Scroll inside the table**, or press **O** until that mode is selected; the HTML still contains every cell. |
+| A slide is too tall | Try **Reduce each slide as needed** in **Menu > Size and tables**; optionally enable table/image shrinking. Scroll any content that still exceeds the author's reduction floor. |
 | Every slide became smaller | **Reduce all slides together** includes all visible slides, even a long-form article. Choose independent reduction or **Keep the chosen size** instead. |
-| Enlarging the page causes overflow | Zoom is independent of fitting. Use **Reset** to return presentation zoom to 100%, or keep magnification and scroll. |
+| Enlarging presentation content causes overflow | Zoom is independent of fitting. Use **Reset** to return presentation zoom to 100%, or keep magnification and scroll. |
 | A language or article seems missing | Open the variant menu; a saved selection may differ from the author's initial choice. |
 | Arrow keys scroll a panel instead of the deck | Close help, or move focus out of the speaker panel. |
 | A numeric jump does nothing | It works on article decks of at least ten slides, not the index; there is no touch-number jump control. |
