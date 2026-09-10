@@ -94,6 +94,17 @@ Write newly authored documentation in English. Translate existing passages
 when revising them, but do not expand a targeted correction into a wholesale
 translation of the French specification.
 
+### Active Model Redesign
+
+Before changing logical-unit vocabulary, selectors, cascade resolution or the
+combined-HTML CLI, read **DECISIONS.md, B67**. It is the shared redesign record:
+agreed requirements, candidate names, current-mechanism simulations and the
+cross-document rollout checklist. Proposed syntax is not a shipped contract;
+`specifications.md` and `GLOSSARY.md` describe the current format until explicitly
+updated. Keep B67 synchronized as decisions settle, and keep disposable probes
+under `work/tmp/`. The owner has explicitly ruled out legacy handling for the
+planned `--single-page` rename; do not add aliases or a migration mechanism.
+
 ### Relevés datés (hors arborescence active)
 - Les audits datés et autres relevés sont conservés localement, hors de
   l'arborescence active et de la repo publique, avec leurs mesures et leurs

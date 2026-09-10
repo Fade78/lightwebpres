@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 10 · **à faire** 0 · **en cours** 1 · **terminé** 55 · **abandonné** 1 · **sans objet** 3
+**à étudier** 11 · **à faire** 0 · **en cours** 1 · **terminé** 55 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -115,6 +115,7 @@ gets its own entry and its own state**, however small.
 - **B64** — Historical fact-heading report needs its original case
 - **B65** — The historical pop-rose proposal has no recorded disposition
 - **B66** — Unreconciled archive design options remain deferred
+- **B67** — Logical units, scoped selectors and resolution policies
 
 ### en cours
 
@@ -3121,3 +3122,233 @@ The bounded cleanup leaves these dispositions explicitly undecided:
 This preserves uncertainty without labeling the whole archive either
 delivered or blocking. B64 and B65 own the two specific unresolved reports
 identified separately; all other dated evidence remains recoverable exactly.
+
+## B67 — Logical units, scoped selectors and resolution policies
+
+**État :** à étudier · **Depuis :** 2026-09-10
+
+**Scope: shared design and implementation tracking, not a shipped format.**
+The owner requested a coordinated redesign of vocabulary, selectors and cascade
+resolution. This entry is the shared starting point for agents. The current
+contracts remain in `specifications.md` and `GLOSSARY.md` until an implementation
+explicitly changes them. Do not publish proposed syntax as an available feature.
+
+### Agreed requirements
+
+- Logical series, coherent content units and slides remain distinct regardless
+  of how many HTML files hold their output. A combined HTML does not turn a
+  series into an article or collapse its logical ownership levels.
+- Rename `--single-page` to a name describing the physical output. The owner
+  explicitly requests **no legacy handling**: no alias, deprecation window,
+  migration handler or instructions teaching the old spelling in active docs.
+  This is a TODO, not a rename performed by this design entry.
+- User tag names are opaque selectors, not inferred editorial roles or language
+  codes. `hero`, `expert-fr` and `expert-en` are examples, not engine categories.
+- A common internal selector operates on the ordered collection supplied by its
+  caller. `*` means that entire collection, with no intrinsic status/type
+  exclusions. Earlier publication decisions determine what reaches an index;
+  a selector cannot restore an item absent from its input.
+- Selection data must preserve the logical origin of values. Ordinal levels
+  support traversal in either direction, not just most-specific-first.
+- Both general-first and specific-first resolution must be possible. The choice
+  must be explicit rather than an accidental consequence of implementation order.
+- The initial consumer under discussion is an article-level contents/index slide:
+  multiple indexes are allowed, each with a maximum column count (default 1)
+  and a selector for its entries. Explicit and automatic placement are requested.
+
+### Working vocabulary, pending owner confirmation
+
+**Recommended logical term: content unit / unité de contenu**, shortened to
+**unit** internally. It is a coherent authored support containing one deck and
+zero or more supporting long-form texts. A published view may expose the cards,
+the supporting text, or both; source membership and displayed forms are distinct.
+It is not defined by a physical HTML page. The proposed level names are
+`series`, `unit`, `slide`, with internal ranks 0, 1, 2 respectively. Public
+expressions should use names rather than require authors to memorize numbers.
+The treatment of long-form resources inside a unit remains to be specified;
+the three ranks do not by themselves create another content format.
+
+`module` is a credible alternative with identical French/English spelling,
+but has software/course connotations. `document` collides with the physical
+HTML/DOM document; `presentation` already participates in preset terminology;
+`article` conflates this unit with its supporting prose. No public field has
+been renamed to `unit_*` by this proposal.
+
+**Recommended flag: `--single-html [FILE]`.** It precisely names the combined
+HTML output, unlike `--single-container`, which could suggest an archive or a
+container runtime. Image embedding and resource independence remain separate
+choices; preserve the existing optional filename and title-derived default.
+The spelling recommendation is not yet the executable's accepted option.
+
+### Four independent dimensions
+
+An ordered scope is useful, but cannot replace these distinctions:
+
+| Dimension | Examples | Meaning |
+|---|---|---|
+| Logical scope | `series=0`, `unit=1`, `slide=2` | Which authored object owns a value |
+| Source authority | series-entry JSON, unit Markdown meta, CLI | Which declaration wins when several sources configure the same object |
+| Field policy | specific-first, general-first, source-order | How eligible declarations are considered |
+| Composition | scalar/slot replacement, per-key merge, intersection | What it means to combine the participating values |
+
+For example, `articles[i].status` in `series.json` and `status:` in its Markdown
+metadata both configure the same logical unit. Giving the JSON entry a `series`
+scope because of its filename would confuse source authority with ownership.
+The current report's origin label `series` denotes that JSON source; any new
+report must separate or clearly qualify these meanings.
+
+CLI options likewise have authority without being a fourth logical parent.
+Registry defaults are fallback values, not an outer scope that wins every
+general-first resolution. Preserve candidate values, contribution/absence state,
+source identity and a trace of the selected contributors.
+
+### Resolution before selection
+
+Recommended policy names are **`specific-first`** and **`general-first`**.
+They describe precedence without the viewpoint ambiguity of ascending/descending
+or top-down/bottom-up. A field may instead have an explicit **`source-order`**
+profile where logical distance cannot express its established precedence.
+
+These are resolution policies, not content tags. Assigning a tag such as
+`cascade_specific` to a slide would mix data with evaluation instructions and
+make the same item change interpretation between callers. A future query
+language may expose explicit resolution operations, but their behavior belongs
+to the resolver, not to tag membership.
+
+Conceptual operations, **not current CLI or selector syntax**:
+
+```text
+resolve(field, policy="specific-first")
+resolve(field, policy="general-first")
+select(items, predicate_on_resolved_values)
+```
+
+An unqualified field uses its declared resolution policy. An explicitly scoped
+field reads that level, resolving conflicts between sources at that level only.
+Inspecting the complete raw declaration list and testing the origin of an
+effective value are separate operations. An explicit scope must not silently
+fall back to another level.
+
+**Resolve before comparing.** If a unit JSON entry declares `status: draft`
+and its Markdown metadata declares `status: active`, the effective status is
+draft under current precedence. Filtering declarations for active before
+resolving them would incorrectly recover the masked value.
+
+Do not impose one empty-value rule: Boolean false can be a real override;
+ordinary metadata can fall back on an empty value; an explicitly empty chrome
+slot stops inheritance. Style maps merge per key, then resolve references;
+chrome slots replace complete models rather than recursively merge them.
+
+### Current mechanisms and simulation results
+
+The investigation used the engine at commit `e7fa595` (0.58.1), not hypothetical
+rules inferred from filenames. Source references are function names to avoid
+presenting line numbers as durable identities.
+
+| Mechanism | Current ordering/composition | Result of the proposed model |
+|---|---|---|
+| Notes placement/tooltips | Unit meta > series defaults > registry; resolve fields independently | Specific-first works, with field-specific handling of empty values |
+| Engraved slide numbers | Unit meta > CLI > series defaults > false | Needs a source-order profile; scope rank alone cannot place CLI |
+| Unit metadata | JSON entry > unit meta > field-specific fallback | Scope plus within-scope authority works; JSON is not a series-level override |
+| Typed appearance | Merge properties per key, then resolve references | Per-key resolution works; whole-map replacement or early reference resolution changes results |
+| Kit chrome | Preset all/type defaults, then each internally supplied layer's all/type slots, then explicit slide overrides | Requires slot replacement and an explicit-clear state; internal layers are not an accepted author-metadata cascade |
+| Reading tags | Unit gate AND slide acceptance; shared default slides | This is predicate composition, not choosing one winning tag list |
+| Status | JSON entry > unit meta > active | Currently unit-only; adding series/slide status is a new contract, not existing inheritance |
+| Runtime theme choices | Settings pins belong to custom variants; unit/custom-CSS pins remain protected | An authority/protection mechanism, not evidence of general-first logical inheritance |
+
+A disposable standard-library prototype under `work/tmp/` ran **23 tests**,
+with **0 failures, errors or skips**, and asserted **14 counterexamples** to
+overly simple models. It called the actual notes, numbering, metadata, style,
+tag and chrome helpers. General-first, scoped series/slide status and wildcard
+operations were explicitly hypothetical. The registry fallback stayed last
+in both directions; source authority stayed independent of direction.
+
+The chrome probes also exercised internal layer parameters which are not a
+public author cascade: current `slide_chrome` metadata is rejected. Passing
+such a prototype is not evidence that those inputs are accepted by the build.
+Runtime-theme authority was inspected in code/tests, not simulated in a browser
+by this prototype. No complete selector parser, regex engine, named-query
+resolver, new file format or CLI rename was implemented.
+
+The 14 asserted counterexamples retain these concrete distinctions:
+
+| Inputs or naive operation | Result that must be distinguished |
+|---|---|
+| Series notes local; unit notes page | Current resolution gives page; proposed general-first gives local |
+| Same-unit JSON author JSON; Markdown author Meta | JSON wins; sorting only by logical scope cannot explain the tie |
+| JSON display author is a single space | Current display metadata retains it; a global nonblank rule incorrectly falls back to Meta |
+| Unit slide numbering false; series true | False wins; a global truthiness filter incorrectly discards it |
+| Unit overrides only color.ink | Inherited color.call must survive; replacing the whole map loses it |
+| fact.strong.bg references mark; a later layer changes color.mark | Resolve the reference after merging; eager evaluation freezes the old color |
+| Registry color default plus explicit series/unit values | Registry remains fallback even with general-first; it must not mask explicit values |
+| Chrome model replaced by a text-only slot | The model disappears; recursively merging retains it incorrectly |
+| Explicitly empty slide header over inherited text | Empty clears the slot; blank-as-absent incorrectly restores inherited text |
+| Unit gate red; slide accepts blue | Blue remains unavailable; using only the nearest tag list bypasses the gate |
+| Slide tags contain only default; reader chooses red | Existing visibility accepts it; literal red membership is false |
+| Hypothetical series draft or slide ignored status | Neither is current unit-status inheritance; adding them changes behavior |
+| JSON status draft masks Markdown active | Effective active test is false; searching matching candidates first incorrectly returns true |
+| Upstream draft removed before passing live items to wildcard | Wildcard returns only the supplied live item; it cannot restore the draft |
+
+The local probe is `work/tmp/cascade-selector-simulations.py`, run with
+`TMPDIR="$PWD/work/tmp" python3 -B work/tmp/cascade-selector-simulations.py`.
+It is disposable evidence, not a shipped module or a required file for readers
+of this register. The tables above retain the reasoning independently of the
+local probe's availability.
+
+**Assessment:** shared records, provenance and resolution profiles are useful;
+one universal cascade is not. None of the examined current mechanisms establishes
+a general-first logical scalar cascade. Support that direction deliberately for
+new policies rather than relabel a same-scope JSON override or a parental gate.
+
+### Selector language and unresolved contracts
+
+No external language or library is selected. JSONPath RFC 9535 is a candidate
+for structured predicates and regex functions; its I-Regexp contract must not
+be equated with Python `re`. JMESPath lacks standard regex functions; jq adds
+an executable/runtime dependency. Evaluate the single-file standard-library
+and Pyodide requirements before choosing an implementation or a documented
+profile. Do not advertise a private subset as complete standard conformance.
+
+Still to specify: field codecs and cardinalities, missing versus explicitly
+cleared values, scope-qualified versus effective reads, registered system
+fields, Boolean grouping, regex resource limits, named-selector references and
+cycle errors. Named selectors should compose expressions rather than textual
+substitution, and should not ambiguously share the user-tag namespace.
+
+The build's publication policy chooses its input/output membership. A selector
+over already published content has a later universe. `-status:draft` over an
+unfiltered universe would retain ignored items; that is not the current default
+publication policy. Existing `--drafts-only` preview navigation also prevents a
+mechanical translation of every flag into one whole-publication predicate.
+
+### Coordinated rollout checklist
+
+- [ ] Confirm the replacement logical term and produce an old/new vocabulary
+  map distinguishing units, slides, long-form resources and physical HTML.
+- [ ] Rename `--single-page` to the agreed physical-output name, preferably
+  `--single-html`, without legacy handling. Update registry, help, completion,
+  tests and active documentation together; do not introduce a second mode.
+- [ ] Define scoped candidate records and per-field resolution/composition
+  policies. Promote the applicable simulation cases into maintained tests.
+- [ ] Choose the selector language and evaluate complete representative queries,
+  error diagnostics, regex cost and Python/browser consistency.
+- [ ] Integrate selection before dependent metadata, counts, navigation and
+  output inventories. Preserve explicit identity and manifest ownership.
+- [ ] Implement index slides only after their selector and insertion contracts
+  are settled; retain multiple indexes and maximum-columns default 1.
+- [ ] Synchronize `specifications.md`, `GLOSSARY.md`, the six-route `GUIDE.md`,
+  README and product-skill references. Keep proposed and delivered capabilities
+  distinguishable throughout the transition.
+- [ ] Update browser UI/help, `tools/guide-deck.md`, example sources, diagram
+  generators and regenerated guide/gallery/captures wherever vocabulary changes.
+  Inspect desktop, mobile, keyboard, mouse-remote and print workflows.
+- [ ] Review versioned reports and drafting contracts used by external clients;
+  record downstream GUI/site coordination without accessing another repository.
+  The optional sourced-presentation method is not a product-schema rewrite target.
+- [ ] Record actual delivery in CHANGELOG/version and close this entry only
+  after implementation, regression tests and documentation have been verified.
+
+Do not blindly replace every occurrence of `page`: DOM APIs and physical page
+layout vocabulary are not necessarily logical-unit names. Reuse sites must be
+classified before renaming. Update this entry as decisions settle; do not create
+an untracked proposal that becomes the only place an agent can learn the design.
