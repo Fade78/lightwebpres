@@ -269,20 +269,28 @@ class SingleDocument(unittest.TestCase):
         self.cli('verify', '--single-html', 'series.html')
 
     def test_inline_svg_images_include_alternate_identity_variants(self):
+        if __package__:
+            from .test_resource_factoring import image_sources, runtime_data
+        else:
+            from test_resource_factoring import image_sources, runtime_data
         kit = self.root / 'templates' / 'kits' / 'lightwebpres-docs' / '0.1.0'
         shutil.copytree(ROOT / 'examples' / 'kits' / 'lightwebpres-docs' / '0.1.0', kit)
         selector = 'lightwebpres-docs@0.1.0/docs'
         self.data['presentation_presets'] = [selector]
         self.save_series()
-        _, payload = self.bundle('--inline-images')
+        html, payload = self.bundle('--inline-images')
+        resources = runtime_data(html)
         view = next(v for v in payload['views'] if v['key'] == 'a.html')
-        native_images = [attrs['src'] for tag, attrs in _Markup(view['content']).elements
-                         if tag == 'img']
+        native_images = image_sources(view['content'], resources)
         self.assertIn('data:image/svg+xml;base64,' + base64.b64encode(
             self.svg.read_bytes()).decode('ascii'), native_images)
         variant = view['variants'][selector]
         variant_text = variant if isinstance(variant, str) else json.dumps(variant)
-        self.assertIn('data:image/svg+xml', variant_text)
+        variant_images = [src for section in variant['sections'].values()
+                          for src in image_sources(section, resources)]
+        self.assertTrue(variant_images)
+        self.assertTrue(all(src.startswith('data:image/svg+xml;base64,')
+                            for src in variant_images))
         self.assertNotIn('assets/presentations/', variant_text)
         manifest = json.loads((self.output / '.lwp-manifest.json').read_text(encoding='utf-8'))
         self.assertEqual(manifest['files'], ['series.html'])

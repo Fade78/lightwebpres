@@ -9231,6 +9231,10 @@ class PresentationPackages(unittest.TestCase):
             self.assertFalse(output.exists())
 
     def test_inline_images_apply_to_alternate_presentation_fragments(self):
+        if __package__:
+            from .test_resource_factoring import image_sources, runtime_data
+        else:
+            from test_resource_factoring import image_sources, runtime_data
         with tempfile.TemporaryDirectory() as tmp:
             root, _primary, _other, _simple, other = self._runtime_series(tmp)
             output = root / 'public'
@@ -9241,7 +9245,9 @@ class PresentationPackages(unittest.TestCase):
             data = self._presentation_data(article)
             other_selector = 'other@2.0.0/compact'
             fragment = data['variants'][other_selector]['sections']['a-cover']
-            self.assertIn('data:image/svg+xml;base64,', fragment)
+            images = image_sources(fragment, runtime_data(article))
+            self.assertTrue(images)
+            self.assertTrue(all(src.startswith('data:image/svg+xml;base64,') for src in images))
             self.assertFalse((output / 'assets' / 'presentations').exists())
 
     def test_verify_and_only_rebuild_notice_include_alternate_package_drift(self):

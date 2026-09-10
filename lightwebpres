@@ -9997,6 +9997,71 @@ function lwpChooseInitialLanguage() {
   lwpSetLanguage(code);
 }
 
+var lwpResourcePool = null;
+function lwpResourceFailure() {
+  if (!document.getElementById('lwp-resource-error')) {
+    var notice = document.createElement('p');
+    notice.id = 'lwp-resource-error';
+    notice.setAttribute('role', 'alert');
+    notice.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:white;color:black;padding:1em';
+    notice.textContent = 'Resource data is missing or invalid. Rebuild this HTML file.';
+    document.body.appendChild(notice);
+  }
+  throw new Error('Invalid LightWebPres resource data');
+}
+function lwpResource(kind, key) {
+  if (!lwpResourcePool) {
+    var node = document.getElementById('lwp-resource-data');
+    try { lwpResourcePool = node ? JSON.parse(node.textContent) : {version: 1, images: {}, css: {}}; }
+    catch (e) { return lwpResourceFailure(); }
+  }
+  if (!lwpResourcePool || lwpResourcePool.version !== 1 || !lwpResourcePool[kind]
+      || typeof key !== 'string' || !Object.prototype.hasOwnProperty.call(lwpResourcePool[kind], key)
+      || typeof lwpResourcePool[kind][key] !== 'string') return lwpResourceFailure();
+  var value = lwpResourcePool[kind][key];
+  if (kind === 'images' && !/^data:(?:image\/[a-zA-Z0-9.+-]+|application\/octet-stream);base64,[A-Za-z0-9+/]*={0,2}$/.test(value)) {
+    return lwpResourceFailure();
+  }
+  return value;
+}
+function lwpReadRuntimeData(node) {
+  var data = JSON.parse(node.textContent || '');
+  function css(owner, key) {
+    var value = owner[key];
+    if (value && typeof value === 'object') {
+      if (Object.keys(value).length !== 1 || !Object.prototype.hasOwnProperty.call(value, 'lwpCss')) return lwpResourceFailure();
+      owner[key] = lwpResource('css', value.lwpCss);
+    }
+  }
+  if (node.id === 'lwp-series-data') (data.views || []).forEach(function (view) { css(view, 'pageCss'); });
+  if (node.id === 'lwp-presentation-data') (data.presets || []).forEach(function (preset) { css(preset, 'structure_css'); });
+  return data;
+}
+function lwpHydrateImages(root) {
+  // Resolve all references before assigning any src. No blob lifetime, fetch,
+  // HTML execution or expansion of unrelated authored attributes is involved.
+  // Match _ResourceMarkup's opaque ancestors, including customized built-ins.
+  var opaque = ['pre', 'code', 'textarea', 'title', 'xmp', 'svg', 'math', 'picture',
+    'template', 'noscript', 'iframe', 'object', 'audio', 'video'];
+  var images = Array.prototype.filter.call(root.querySelectorAll('img[data-lwp-image], img[data-lwp-image-fragment]'), function (image) {
+    for (var parent = image.parentElement; parent; parent = parent.parentElement) {
+      var name = parent.localName.toLowerCase();
+      if (opaque.indexOf(name) !== -1 || name.indexOf('-') !== -1 || parent.hasAttribute('is')) return false;
+    }
+    return true;
+  }).map(function (image) {
+    var fragment = image.getAttribute('data-lwp-image-fragment') || '';
+    if (image.hasAttribute('src') || image.hasAttribute('srcset')
+        || (fragment && fragment.charAt(0) !== '#')) return lwpResourceFailure();
+    return [image, lwpResource('images', image.getAttribute('data-lwp-image')) + fragment];
+  });
+  images.forEach(function (entry) {
+    entry[0].removeAttribute('data-lwp-image');
+    entry[0].removeAttribute('data-lwp-image-fragment');
+    entry[0].setAttribute('src', entry[1]);
+  });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   lwpChooseInitialLanguage();
 (function(){
@@ -10005,7 +10070,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var seriesViews = null;
   if (seriesViewHost && seriesDataNode) {
     try {
-      var bundle = JSON.parse(seriesDataNode.textContent || '');
+      var bundle = lwpReadRuntimeData(seriesDataNode);
       if (bundle.version === 1 && Array.isArray(bundle.views)) {
         var views = new Map();
         bundle.views.forEach(function (view) {
@@ -10506,6 +10571,8 @@ document.addEventListener('DOMContentLoaded', function() {
             image.addEventListener('load', function () { schedule('image'); });
             image.addEventListener('error', function () { schedule('image'); });
           });
+          // Only reached after every eligible snapshot passed widget preflight.
+          lwpHydrateImages(host);
           Array.prototype.forEach.call(document.body.attributes, function (attribute) {
             if (attribute.name.indexOf('data-lwp-') === 0) doc.body.setAttribute(attribute.name, attribute.value);
           });
@@ -10806,7 +10873,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var presentationDataNode = document.getElementById('lwp-presentation-data');
   if (presentationDataNode) {
     try {
-      presentationData = JSON.parse(presentationDataNode.textContent || '');
+      presentationData = lwpReadRuntimeData(presentationDataNode);
     } catch (e) { presentationData = null; }
   }
   var presentationOptionsBox = document.getElementById('presentationOptions');
@@ -11011,6 +11078,7 @@ document.addEventListener('DOMContentLoaded', function() {
         allSlides[0].insertBefore(buildStamp, allSlides[0].firstChild);
       }
     }
+    lwpHydrateImages(contentRoot());
     remapSeriesLinks();
     if (returnContainer && returnHref !== null) {
       themeReturnFocus = Array.prototype.find.call(
@@ -14389,6 +14457,7 @@ document.addEventListener('DOMContentLoaded', function() {
       seriesCurrentKey = route.key;
       seriesActiveView = view;
       seriesViewHost.innerHTML = view.content;
+      lwpHydrateImages(seriesViewHost);
       isIndex = route.key === '';
       allSlides = Array.prototype.slice.call(seriesViewHost.querySelectorAll('section.slide'));
       slides = allSlides.slice();
@@ -16205,6 +16274,217 @@ def _page_script_blocks(html):
             return
         yield html[opening.end():opening_end - 1], html[opening_end:closing.start()]
         position = closing.end()
+
+
+class _ResourceMarkup(HTMLParser):
+    """Locate owned JSON and image attributes without reserializing author HTML."""
+
+    def __init__(self, text):
+        super().__init__(convert_charrefs=True)
+        self.scripts, self.images = [], []
+        self._lines = [0]
+        self._lines.extend(match.end() for match in re.finditer('\n', text))
+        self._script = None
+        self._opaque = []
+        self.feed(text)
+        self.close()
+
+    def handle_starttag(self, tag, attrs):
+        raw = self.get_starttag_text()
+        line, column = self.getpos()
+        offset = self._lines[line - 1] + column
+        values = dict(attrs)
+        if not self._opaque and tag == 'script' and values.get('type') == 'application/json':
+            name = values.get('id')
+            if name in ('lwp-series-data', 'lwp-presentation-data', 'lwp-resource-data'):
+                self._script = (name, offset, offset + len(raw))
+        if not self._opaque and tag == 'img':
+            # Scan attribute tokens, not substrings inside alt/title values.
+            tokens = list(re.finditer(
+                r'''([^\s/=>]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?''',
+                raw[4:-1]))
+            sources = [token for token in tokens if token[1].lower() == 'src']
+            span = ((offset + 4 + sources[0].start(), offset + 4 + sources[0].end())
+                    if len(sources) == 1 else None)
+            if 'is' in values or any(key.startswith('on') for key in values):
+                span = None
+            self.images.append((values, span))
+        if (tag in ('pre', 'code', 'textarea', 'title', 'xmp', 'svg', 'math', 'picture',
+                    'template', 'noscript', 'iframe', 'object', 'audio', 'video')
+                or '-' in tag or ('is' in values and tag not in VOID_ELEMENTS)):
+            self._opaque.append(tag)
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        self.handle_endtag(tag)
+
+    def handle_endtag(self, tag):
+        if tag == 'script' and self._script is not None:
+            name, start, body = self._script
+            line, column = self.getpos()
+            self.scripts.append((name, start, body, self._lines[line - 1] + column))
+            self._script = None
+        if tag in self._opaque:
+            del self._opaque[len(self._opaque) - 1 - self._opaque[::-1].index(tag):]
+
+
+def _resource_fields(name, data):
+    """Only these runtime fields contain HTML/CSS, never arbitrary JSON strings."""
+    layers = []
+    if name == 'lwp-series-data':
+        if not isinstance(data.get('views'), list):
+            raise PropertyError('invalid runtime resource views')
+        for view in data.get('views', []):
+            if not isinstance(view, dict) or not {'content', 'pageCss'} <= view.keys():
+                raise PropertyError('invalid runtime resource view')
+            yield view, 'content', 'images'
+            yield view, 'pageCss', 'css'
+            layers.append(view)
+    elif name == 'lwp-presentation-data':
+        layers.append(data)
+        if not isinstance(data.get('presets'), list):
+            raise PropertyError('invalid runtime resource presets')
+        for preset in data.get('presets', []):
+            if not isinstance(preset, dict) or 'structure_css' not in preset:
+                raise PropertyError('invalid runtime resource preset')
+            yield preset, 'structure_css', 'css'
+    for layer in layers:
+        if not isinstance(layer.get('variants', {}), dict):
+            raise PropertyError('invalid runtime resource variants')
+        for variant in layer.get('variants', {}).values():
+            if not isinstance(variant, dict) or not isinstance(variant.get('sections', {}), dict):
+                raise PropertyError('invalid runtime resource variant')
+            if 'index' in variant:
+                yield variant, 'index', 'images'
+            for key in variant.get('sections', {}):
+                yield variant['sections'], key, 'images'
+
+
+_RESOURCE_IMAGE_URI = re.compile(
+    r'data:(?:image/[a-zA-Z0-9.+-]+|application/octet-stream);base64,[A-Za-z0-9+/]*={0,2}\Z')
+
+
+def _runtime_resource_data(html):
+    """Read and validate the private per-HTML pool, including every owned reference."""
+    blocks = _ResourceMarkup(html).scripts
+    data = {}
+    for name, _start, body, end in blocks:
+        if name in data:
+            raise PropertyError('duplicate runtime resource payload: ' + name)
+        try:
+            data[name] = json.loads(html[body:end])
+        except (ValueError, RecursionError) as exc:
+            raise PropertyError('invalid runtime resource JSON: ' + name) from exc
+        if not isinstance(data[name], dict):
+            raise PropertyError('invalid runtime resource payload: ' + name)
+    pool = data.get('lwp-resource-data', {'version': 1, 'images': {}, 'css': {}})
+    if (pool.get('version') != 1 or not isinstance(pool.get('images'), dict)
+            or not isinstance(pool.get('css'), dict)):
+        raise PropertyError('invalid runtime resource pool')
+    for kind in ('images', 'css'):
+        for key, value in pool[kind].items():
+            if (not isinstance(value, str)
+                    or key != kind[0] + hashlib.sha256(value.encode('utf-8')).hexdigest()
+                    or (kind == 'images' and not _RESOURCE_IMAGE_URI.fullmatch(value))):
+                raise PropertyError('invalid runtime resource entry: ' + key)
+    for name, payload in data.items():
+        for owner, key, kind in _resource_fields(name, payload):
+            value = owner[key]
+            if kind == 'css':
+                if isinstance(value, dict) and set(value) == {'lwpCss'}:
+                    if not isinstance(value['lwpCss'], str) or value['lwpCss'] not in pool['css']:
+                        raise PropertyError('missing CSS resource: ' + str(value['lwpCss']))
+                elif not isinstance(value, str):
+                    raise PropertyError('invalid runtime CSS reference')
+            else:
+                if not isinstance(value, str):
+                    raise PropertyError('invalid runtime HTML fragment')
+                for attrs, _span in _ResourceMarkup(value).images:
+                    if 'data-lwp-image' in attrs or 'data-lwp-image-fragment' in attrs:
+                        reference = attrs.get('data-lwp-image')
+                        fragment = attrs.get('data-lwp-image-fragment', '')
+                        if (reference not in pool['images'] or 'src' in attrs or 'srcset' in attrs
+                                or not isinstance(fragment, str) or (fragment and not fragment.startswith('#'))):
+                            raise PropertyError('missing or invalid image resource: ' + str(reference))
+    return blocks, data, pool
+
+
+def _factor_runtime_resources(html):
+    """Intern profitable duplicates in inert payloads, never the primary live DOM."""
+    try:
+        blocks, data, pool = _runtime_resource_data(html)
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
+    if 'lwp-resource-data' in data:
+        return html
+    occurrences = {'images': {}, 'css': {}}
+    fields = []
+    for name, payload in data.items():
+        for owner, key, kind in _resource_fields(name, payload):
+            value = owner[key]
+            fields.append((owner, key, kind))
+            if kind == 'css':
+                occurrences[kind].setdefault(value, []).append(None)
+            else:
+                for attrs, span in _ResourceMarkup(value).images:
+                    uri, separator, fragment = (attrs.get('src') or '').partition('#')
+                    if span and 'srcset' not in attrs and _RESOURCE_IMAGE_URI.fullmatch(uri):
+                        occurrences[kind].setdefault(uri, []).append(
+                            (span[1] - span[0], separator + fragment))
+    for kind, values in occurrences.items():
+        for value, uses in values.items():
+            if len(uses) < 2:
+                continue
+            key = kind[0] + hashlib.sha256(value.encode('utf-8')).hexdigest()
+            cost = len(json.dumps({key: value}, ensure_ascii=True)) + 128
+            if kind == 'css':
+                saving = len(uses) * (len(json.dumps(value, ensure_ascii=True))
+                                     - len(json.dumps({'lwpCss': key})))
+            else:
+                saving = sum(length - len('data-lwp-image="' + key + '"')
+                             - (len(' data-lwp-image-fragment="' + html_escape(fragment, quote=True) + '"')
+                                if fragment else 0) for length, fragment in uses)
+            if saving > cost:
+                pool[kind][key] = value
+    if not any(pool[kind] for kind in ('images', 'css')):
+        return html
+    keys = {kind: {value: key for key, value in pool[kind].items()}
+            for kind in ('images', 'css')}
+    for owner, key, kind in fields:
+        value = owner[key]
+        if kind == 'css':
+            if value in keys[kind]:
+                owner[key] = {'lwpCss': keys[kind][value]}
+            continue
+        edits = []
+        for attrs, span in _ResourceMarkup(value).images:
+            uri, separator, fragment = (attrs.get('src') or '').partition('#')
+            if span and 'srcset' not in attrs and uri in keys[kind]:
+                replacement = 'data-lwp-image="' + keys[kind][uri] + '"'
+                if separator:
+                    replacement += ' data-lwp-image-fragment="' + html_escape('#' + fragment, quote=True) + '"'
+                edits.append((*span, replacement))
+        parts, previous = [], 0
+        for start, end, replacement in edits:
+            parts.extend((value[previous:start], replacement))
+            previous = end
+        parts.append(value[previous:])
+        owner[key] = ''.join(parts)
+    def encoded(value):
+        return json.dumps(value, ensure_ascii=True, separators=(',', ':')).replace('<', '\\u003c')
+    result = html
+    for name, _start, body, end in reversed(blocks):
+        result = result[:body] + encoded(data[name]) + result[end:]
+    insertion = blocks[0][1]
+    pool_markup = ('<script id="lwp-resource-data" type="application/json">'
+                   + encoded(pool) + '</script>\n')
+    result = result[:insertion] + pool_markup + result[insertion:]
+    # Even tiny images/escaping-heavy fragments must not grow the output.
+    if len(result.encode('utf-8')) >= len(html.encode('utf-8')):
+        return html
+    _runtime_resource_data(result)
+    return result
 
 
 def validate_page_scripts(html):
@@ -20014,6 +20294,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         return values
     html = fill_placeholders(html, values)
 
+    html = _factor_runtime_resources(html)
     validate_html(html, 'index.html')
     return html
 
@@ -20419,6 +20700,11 @@ def validate_html(html_text, filename):
     html.parser has no notion of full HTML5 conformance, only tag
     balance, but that is exactly the class of defect a rendering bug in
     this codebase would produce."""
+    try:
+        _runtime_resource_data(html_text)
+    except PropertyError as exc:
+        log('error', f'{filename}: {exc}')
+        sys.exit(1)
     checker = _HtmlBalanceChecker()
     checker.feed(html_text)
     checker.close()
@@ -21045,9 +21331,12 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
         return values
     html = fill_placeholders(html, values)
 
-    validate_html(html, current_file)
     if inline_images:
         validate_self_contained(html, current_file)
+    # Private/custom navigation does not implement the pool reader.
+    if nav_js == apply_strings(TEMPLATE_NAV_JS, strings):
+        html = _factor_runtime_resources(html)
+    validate_html(html, current_file)
     return html
 
 
@@ -22970,6 +23259,7 @@ def _render_single_html(ctx, build_stamp=''):
             + '<script id="lwp-series-data" type="application/json">' + payload + '</script>\n',
     })
     html = fill_placeholders(apply_strings(TEMPLATE_PAGE, ctx.strings, html_context=True), shell)
+    html = _factor_runtime_resources(html)
     validate_html(html, ctx.args['--single-html'])
     ok, detail = validate_page_scripts(html)
     if not ok:

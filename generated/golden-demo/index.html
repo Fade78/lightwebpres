@@ -3185,6 +3185,71 @@ function lwpChooseInitialLanguage() {
   lwpSetLanguage(code);
 }
 
+var lwpResourcePool = null;
+function lwpResourceFailure() {
+  if (!document.getElementById('lwp-resource-error')) {
+    var notice = document.createElement('p');
+    notice.id = 'lwp-resource-error';
+    notice.setAttribute('role', 'alert');
+    notice.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:white;color:black;padding:1em';
+    notice.textContent = 'Resource data is missing or invalid. Rebuild this HTML file.';
+    document.body.appendChild(notice);
+  }
+  throw new Error('Invalid LightWebPres resource data');
+}
+function lwpResource(kind, key) {
+  if (!lwpResourcePool) {
+    var node = document.getElementById('lwp-resource-data');
+    try { lwpResourcePool = node ? JSON.parse(node.textContent) : {version: 1, images: {}, css: {}}; }
+    catch (e) { return lwpResourceFailure(); }
+  }
+  if (!lwpResourcePool || lwpResourcePool.version !== 1 || !lwpResourcePool[kind]
+      || typeof key !== 'string' || !Object.prototype.hasOwnProperty.call(lwpResourcePool[kind], key)
+      || typeof lwpResourcePool[kind][key] !== 'string') return lwpResourceFailure();
+  var value = lwpResourcePool[kind][key];
+  if (kind === 'images' && !/^data:(?:image\/[a-zA-Z0-9.+-]+|application\/octet-stream);base64,[A-Za-z0-9+/]*={0,2}$/.test(value)) {
+    return lwpResourceFailure();
+  }
+  return value;
+}
+function lwpReadRuntimeData(node) {
+  var data = JSON.parse(node.textContent || '');
+  function css(owner, key) {
+    var value = owner[key];
+    if (value && typeof value === 'object') {
+      if (Object.keys(value).length !== 1 || !Object.prototype.hasOwnProperty.call(value, 'lwpCss')) return lwpResourceFailure();
+      owner[key] = lwpResource('css', value.lwpCss);
+    }
+  }
+  if (node.id === 'lwp-series-data') (data.views || []).forEach(function (view) { css(view, 'pageCss'); });
+  if (node.id === 'lwp-presentation-data') (data.presets || []).forEach(function (preset) { css(preset, 'structure_css'); });
+  return data;
+}
+function lwpHydrateImages(root) {
+  // Resolve all references before assigning any src. No blob lifetime, fetch,
+  // HTML execution or expansion of unrelated authored attributes is involved.
+  // Match _ResourceMarkup's opaque ancestors, including customized built-ins.
+  var opaque = ['pre', 'code', 'textarea', 'title', 'xmp', 'svg', 'math', 'picture',
+    'template', 'noscript', 'iframe', 'object', 'audio', 'video'];
+  var images = Array.prototype.filter.call(root.querySelectorAll('img[data-lwp-image], img[data-lwp-image-fragment]'), function (image) {
+    for (var parent = image.parentElement; parent; parent = parent.parentElement) {
+      var name = parent.localName.toLowerCase();
+      if (opaque.indexOf(name) !== -1 || name.indexOf('-') !== -1 || parent.hasAttribute('is')) return false;
+    }
+    return true;
+  }).map(function (image) {
+    var fragment = image.getAttribute('data-lwp-image-fragment') || '';
+    if (image.hasAttribute('src') || image.hasAttribute('srcset')
+        || (fragment && fragment.charAt(0) !== '#')) return lwpResourceFailure();
+    return [image, lwpResource('images', image.getAttribute('data-lwp-image')) + fragment];
+  });
+  images.forEach(function (entry) {
+    entry[0].removeAttribute('data-lwp-image');
+    entry[0].removeAttribute('data-lwp-image-fragment');
+    entry[0].setAttribute('src', entry[1]);
+  });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   lwpChooseInitialLanguage();
 (function(){
@@ -3193,7 +3258,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var seriesViews = null;
   if (seriesViewHost && seriesDataNode) {
     try {
-      var bundle = JSON.parse(seriesDataNode.textContent || '');
+      var bundle = lwpReadRuntimeData(seriesDataNode);
       if (bundle.version === 1 && Array.isArray(bundle.views)) {
         var views = new Map();
         bundle.views.forEach(function (view) {
@@ -3694,6 +3759,8 @@ document.addEventListener('DOMContentLoaded', function() {
             image.addEventListener('load', function () { schedule('image'); });
             image.addEventListener('error', function () { schedule('image'); });
           });
+          // Only reached after every eligible snapshot passed widget preflight.
+          lwpHydrateImages(host);
           Array.prototype.forEach.call(document.body.attributes, function (attribute) {
             if (attribute.name.indexOf('data-lwp-') === 0) doc.body.setAttribute(attribute.name, attribute.value);
           });
@@ -3994,7 +4061,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var presentationDataNode = document.getElementById('lwp-presentation-data');
   if (presentationDataNode) {
     try {
-      presentationData = JSON.parse(presentationDataNode.textContent || '');
+      presentationData = lwpReadRuntimeData(presentationDataNode);
     } catch (e) { presentationData = null; }
   }
   var presentationOptionsBox = document.getElementById('presentationOptions');
@@ -4199,6 +4266,7 @@ document.addEventListener('DOMContentLoaded', function() {
         allSlides[0].insertBefore(buildStamp, allSlides[0].firstChild);
       }
     }
+    lwpHydrateImages(contentRoot());
     remapSeriesLinks();
     if (returnContainer && returnHref !== null) {
       themeReturnFocus = Array.prototype.find.call(
@@ -7577,6 +7645,7 @@ document.addEventListener('DOMContentLoaded', function() {
       seriesCurrentKey = route.key;
       seriesActiveView = view;
       seriesViewHost.innerHTML = view.content;
+      lwpHydrateImages(seriesViewHost);
       isIndex = route.key === '';
       allSlides = Array.prototype.slice.call(seriesViewHost.querySelectorAll('section.slide'));
       slides = allSlides.slice();

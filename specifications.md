@@ -5560,6 +5560,18 @@ the resolved presentation kits follow the same rule: without the option they
 are copied under `public/assets/presentations/<id>/<version>/`; with it their
 URLs become data URIs and no new copy of that asset directory is written.
 
+With the built-in runtime, repeated data-URI images in inert unit-view and
+preset JSON share a deterministic, per-HTML resource pool when this reduces
+file size. MIME is part of resource identity; SVG fragments remain per image
+reference. Exact repeated runtime CSS strings can share that pool too, without
+merging unit styles or changing their cascade. Initial live HTML images and
+styles stay direct so their JavaScript-free display is preserved; repeated
+live image `src` values are intentionally not deduplicated. Runtime hydration
+restores ordinary data URIs, not blob URLs. Each physical HTML remains
+independent. Linked assets still share by output path, not by content hash.
+This optimization does not rewrite private navigation, authored code, widgets,
+`srcset`, or transitive CSS/media dependencies, and introduces no CLI option.
+
 SVG uses an `<img>` data URI containing the original vector bytes, not
 rasterization or interactive SVG DOM. SVG-as-image rendering blocks nested
 resource loading even when the parent SVG is online. Referenced local SVGs

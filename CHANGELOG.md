@@ -61,6 +61,15 @@ User and Series-local. The filter is labelled Show themes / Afficher les thèmes
 rather than Theme source. Raw JSON origins, palette source credits, selectors,
 collection and identity ownership, and filter behavior are unchanged.
 
+Repeated embedded images and exact stylesheets inside inert unit-view and
+preset payloads now share a deterministic resource pool within each HTML file
+when factoring saves space. Primary live images and styles remain directly
+renderable without JavaScript; their repeated image URLs are intentionally not
+pooled. Runtime references restore ordinary data URIs, including SVG fragments,
+without blob URLs or external requests. Preset switches, unit navigation and
+passive fitting use the same pool. Linked files remain path-based; arbitrary
+CSS, media, widgets and private navigation scripts are not rewritten.
+
 ## Unreleased — 0.59.0
 
 `--single-html [FILE]` replaces `--single-page` on `build`, `verify` and
