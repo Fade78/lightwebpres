@@ -61,8 +61,12 @@ default, not shortened or summarized. Readers can use
 **Menu > Display settings > Wide tables** or **O** to choose clipping, overflow
 or local scrolling. Back or Escape returns from the sizing submenu to its
 main-menu item with focus restored; clicking outside closes it. In scroll mode,
-focused keys, wheel and touch interactions stay inside the table viewport
-instead of accidentally navigating the deck. Print expands tables without
+focused keys, wheel and drags stay inside the table viewport, even at horizontal
+edges. A brief tap or left click on plain cells advances through bounded reading
+steps within a tall slide, then to the next slide after reaching the bottom.
+Table taps do not toggle navigation visibility. Links, images, native controls,
+text selection, long press, pinch and the right-click context menu keep their
+own behavior. Print expands tables without
 screen clipping or local scroll limits; check physical paper width separately.
 
 Text fitting is a reader setting, not a Markdown conversion or an article

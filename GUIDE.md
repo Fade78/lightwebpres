@@ -1761,9 +1761,18 @@ steps: the deck never treats a double click as anything else.
 | Press and hold | Select text and open the copy menu — the deck does not take it |
 | Pinch | Native browser zoom; not presentation zoom or slide navigation |
 
-In a table set to **Scroll inside the table**, touch gestures scroll the table
-instead of changing slides. Browser touch emulation can check event handling;
-it is not evidence of pinch behavior on a physical phone or tablet.
+In a table set to **Scroll inside the table**, a brief tap or left click on a
+plain cell advances just like ordinary content. On a table taller than the
+viewport, each step scrolls a bounded distance within the slide; only after its
+bottom is reached does the next step enter the next slide. No rows are removed.
+Drag to scroll the table instead: even a drag at a horizontal edge does not
+advance the deck. Long press, text selection, pinch, links, images and native
+controls keep their browser behavior. Focused-table keys and the wheel remain
+local; right-click keeps the native context menu. Table taps do not participate
+in the navigation-visibility double-tap gesture.
+
+Browser touch emulation can check event handling; it is not evidence of pinch
+behavior on a physical phone or tablet.
 
 ### Navigation buttons
 

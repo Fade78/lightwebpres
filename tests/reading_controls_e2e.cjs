@@ -1,12 +1,19 @@
 /* Real mouse, keyboard and emulated touch input. No physical-device claim. */
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
+const fs = require('node:fs');
+const path = require('node:path');
 
 async function run() {
   let browser;
+  const scratch = path.resolve(__dirname, '../work/tmp');
+  process.env.TMPDIR = scratch;
+  const work = fs.mkdtempSync(path.join(scratch, 'reading-browser-'));
+  const executablePath = process.env.PW_CHROMIUM_PATH || chromium.executablePath();
+  process.env.XDG_CACHE_HOME = path.join(work, 'cache');
+  process.env.XDG_CONFIG_HOME = path.join(work, 'config');
   try {
-    browser = await chromium.launch(process.env.PW_CHROMIUM_PATH
-      ? { executablePath: process.env.PW_CHROMIUM_PATH } : {});
+    browser = await chromium.launch({executablePath});
   } catch (error) {
     if (/Executable doesn't exist/.test(String(error))) {
       console.error('Browser check blocked: existing Chromium unavailable');
@@ -300,8 +307,15 @@ async function run() {
       await page.mouse.wheel(800, 800);
       await settle();
       assert(Math.abs((await state()).y - tableBefore.y) < 2, 'table wheel must not chain');
-      await activate('#wide .lwp-table-viewport');
-      assert.equal((await state()).active, tableBefore.active);
+      await viewport.evaluate(el => { el.scrollLeft = 0; });
+      await settle();
+      await activate('#wide tbody tr:first-child td:first-child');
+      await settle();
+      assert.notEqual((await state()).active, tableBefore.active, 'plain table tap advances');
+      await page.keyboard.press('2');
+      await page.keyboard.press('Enter');
+      await settle();
+      await viewport.focus();
       if (mobile) {
         const session = await context.newCDPSession(page);
         await viewport.evaluate(el => el.scrollTo({left: 0, behavior: 'instant'}));

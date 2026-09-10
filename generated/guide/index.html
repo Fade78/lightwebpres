@@ -5946,6 +5946,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // remaining distance), not the browser's smooth scroll, whose
   // duration varies with the distance and cannot be promised.
   var scrollRAF = null;
+  var scrollUnlockTimer = null;
   function navigationScrollBehavior() {
     return scrollDuration === 0 ? 'instant' : 'smooth';
   }
@@ -6067,9 +6068,10 @@ document.addEventListener('DOMContentLoaded', function() {
       isScrolling = true;
       animateScrollTo(targetY, duration);
       // The safety net: a frame dropped by the compositor must not leave
-      // the deck locked forever.
+      // the deck locked forever. An earlier glide must not unlock this one.
       var generation = seriesGeneration;
-      setTimeout(function(){
+      clearTimeout(scrollUnlockTimer);
+      scrollUnlockTimer = setTimeout(function(){
         if (generation === seriesGeneration) isScrolling = false;
       }, duration + 60);
     }
@@ -7246,14 +7248,70 @@ document.addEventListener('DOMContentLoaded', function() {
   function isFullscreen() {
     return !!currentFullscreenElement();
   }
-  function isInteractive(e) {
+  function isInteractive(e, allowTableClick) {
     return !!(e.target && e.target.closest && e.target.closest(
       '.nav-btn, .nav-dots, a, button, input, select, textarea, [contenteditable], img, .share-popover, .share-qr-modal, .tag-menu, .presenter-menu, .theme-menu, .about-overlay, .nav-buttons'))
-      || !!tableScrollViewport(e.target);
+      || (!!tableScrollViewport(e.target) && (!allowTableClick
+        || !!e.target.closest('audio, video, summary, label, [role~="button"], [role~="checkbox"], '
+          + '[role~="switch"], [role~="slider"], [role~="textbox"]')));
   }
   function tableScrollViewport(target) {
     return readingSettings.table_mode === 'scroll' && target && target.closest
       ? target.closest('.lwp-table-viewport') : null;
+  }
+  // Only the click path may leave a scrolling table. Pointer events measure
+  // intent without taking native pan, selection or pinch away from the browser;
+  // the touch swipe/double-tap handlers still treat the whole table as local.
+  var tableGesture = null;
+  document.addEventListener('pointerdown', function (e) {
+    if (!e.isPrimary) {
+      if (tableGesture) tableGesture.blocked = true;
+      return;
+    }
+    var viewport = tableScrollViewport(e.target);
+    tableGesture = viewport ? {
+      viewport: viewport, id: e.pointerId, x: e.clientX, y: e.clientY,
+      left: viewport.scrollLeft, top: viewport.scrollTop,
+      pageX: window.scrollX, pageY: window.scrollY, start: Date.now(), end: 0,
+      slop: e.pointerType === 'touch' ? TAP_SLOP_PX : 4,
+      blocked: e.button !== 0 || isInteractive(e, true)
+        || !e.target.closest('td, th') || !!String(window.getSelection())
+        || (e.pointerType === 'touch' && window.visualViewport && window.visualViewport.scale > 1),
+      used: false
+    } : null;
+  }, {passive: true});
+  ['pointermove', 'pointerup', 'pointercancel'].forEach(function (type) {
+    document.addEventListener(type, function (e) {
+      var gesture = tableGesture;
+      if (!gesture || gesture.id !== e.pointerId) return;
+      if (e.type === 'pointercancel' || Math.abs(e.clientX - gesture.x) > gesture.slop
+          || Math.abs(e.clientY - gesture.y) > gesture.slop) gesture.blocked = true;
+      if (e.type !== 'pointermove') {
+        gesture.end = Date.now();
+        if (gesture.end - gesture.start >= TAP_MAX_MS) gesture.blocked = true;
+      }
+    }, {passive: true});
+  });
+  document.addEventListener('scroll', function (e) {
+    if (tableGesture && !tableGesture.used && (e.target === document
+        || (e.target.contains && e.target.contains(tableGesture.viewport)))) {
+      tableGesture.blocked = true;
+    }
+  }, true);
+  function tableClickAllowed(e) {
+    var gesture = tableGesture;
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey
+        || !e.target.closest('td, th') || String(window.getSelection())) return false;
+    // Assistive/programmatic activation has no pointer coordinates. Honor it,
+    // except within the existing 450ms compatibility-click quarantine.
+    if (e.detail === 0 && !e.pointerType) {
+      return !gesture || (!!gesture.end && Date.now() - gesture.end >= 450);
+    }
+    if (!gesture || gesture.used || !gesture.end) return false;
+    gesture.used = true;
+    return !gesture.blocked && gesture.viewport === tableScrollViewport(e.target)
+      && gesture.left === gesture.viewport.scrollLeft && gesture.top === gesture.viewport.scrollTop
+      && gesture.pageX === window.scrollX && gesture.pageY === window.scrollY;
   }
   // Consume compatibility clicks in capture phase, including clicks on links
   // and controls. Touch events themselves remain passive: native pinch wins.
@@ -7363,7 +7421,7 @@ document.addEventListener('DOMContentLoaded', function() {
       closeHelp();
       return;
     }
-    if (isInteractive(e)) return;
+    if (isInteractive(e, true)) return;
     // A click the touch side has already answered for. See
     // swallowClicksUntil.
     if (Date.now() < swallowClicksUntil) return;
@@ -7380,13 +7438,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // highlight, not to move on. The second press of a pair is exempt:
     // the pair itself selects the word under the pointer, so the
     // selection at press time is the gesture's own, not a dismissal.
-    if (e.detail < 2 && hadSelectionAtPress) return;
+    var tableClick = !!tableScrollViewport(e.target);
+    if (!tableClick && tableGesture && e.detail > 0) return;
+    if (tableClick && !tableClickAllowed(e)) return;
+    if (!tableClick && e.detail < 2 && hadSelectionAtPress) return;
     // The drag guards say "a click that ends a drag is not a step".
     // A click that lands DURING a glide is exempt: the pair (press of
     // the first click, then press of this one) has already selected the
     // word under the pointer by the time this event fires, and blocking
     // on it would make the mid-glide jump unreachable with the mouse.
-    if (e.detail < 2 && endedADrag(e)) return;
+    if (!tableClick && e.detail < 2 && endedADrag(e)) return;
     // At rest, the click follows the same natural journey as the arrows:
     // cards first, then bounded scrolling inside a tall slide, then the
     // next slide. A click during a glide is the deliberate two-click
@@ -7522,6 +7583,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // cost of catching one tap too many.
   var DOUBLE_TAP_MS = 350;
   var TAP_SLOP_PX = 20;
+  var TAP_MAX_MS = 500;
   var touchPairScrollX = 0, touchPairScrollY = 0;
   var touchPairCurrent = 0, touchPairFocusedCard = -1;
   var touchPairHref = '';
@@ -7529,6 +7591,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function discardMultiTouch(e) {
     if (e.touches.length > 1) multiTouchActive = true;
     if (!multiTouchActive && e.type !== 'touchcancel') return false;
+    if (tableGesture) tableGesture.blocked = true;
     multiTouchActive = e.touches.length > 0;
     touchStartX = touchStartY = null;
     touchStartT = lastTapT = 0;
@@ -7590,7 +7653,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // gesture. One gesture that means two things depending on a state
     // the reader cannot see coming is not a gesture, it is a lottery.
     if (isInteractive(e)) { lastTapT = 0; return; }
-    if (dt >= 500 || Math.abs(dx) > TAP_SLOP_PX || Math.abs(dy) > TAP_SLOP_PX) {
+    if (dt >= TAP_MAX_MS || Math.abs(dx) > TAP_SLOP_PX || Math.abs(dy) > TAP_SLOP_PX) {
       lastTapT = 0;
       return;
     }

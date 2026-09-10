@@ -152,8 +152,10 @@ handling, text fitting and independent table/image shrink switches. Back or
 Escape returns to the main menu's Display settings item with focus restored;
 an outside click closes the submenu. **O** cycles
 `clip`, `overflow`, `scroll`; **A** cycles `fixed`, `uniform`, `per-slide`.
-Use local table scrolling to reach clipped columns without navigating the
-deck. `fixed` keeps responsive theme sizes without content fitting; uniform
+Drag to scroll a table and reach clipped columns without navigating the deck.
+A brief tap or left click on plain cells instead follows bounded reading steps
+through the tall slide before entering the next one; links, controls and text
+selection stay native. `fixed` keeps responsive theme sizes without content fitting; uniform
 reduction measures all tag-visible slides in the current article by default.
 Series-wide measurement supports static content. Executable HTML, media, frames
 or custom widgets in an eligible article return the control to article scope

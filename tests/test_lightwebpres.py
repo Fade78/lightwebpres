@@ -20477,7 +20477,7 @@ class RegressionFixes(unittest.TestCase):
     def test_b4_nav_buttons_in_is_interactive(self):
         with tempfile.TemporaryDirectory() as tmp:
             html = self._build_html(tmp)
-            i = html.find('function isInteractive(e)')
+            i = html.find('function isInteractive(')
             self.assertNotEqual(i, -1)
             end = html.find('\n  }', i)
             self.assertNotEqual(end, -1)

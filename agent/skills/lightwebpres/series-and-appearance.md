@@ -222,8 +222,11 @@ switches. Back or Escape returns focus to the main menu's Display settings
 item; clicking outside closes the submenu. **-**, **+**, **=** reduce, enlarge
 and reset presentation zoom;
 **O** cycles table modes and **A** text modes in the order above. `clip` hides
-overflow visually, not cells in HTML; `scroll` contains navigation gestures
-inside the table. `fixed` keeps native responsive sizes without content fitting.
+overflow visually, not cells in HTML; `scroll` keeps drag gestures, wheel and
+focused keys local, while a brief plain-cell tap or left click advances through
+the ordinary bounded reading steps without truncating a tall table. Selection,
+long press, pinch, links, images, controls and right-click remain native.
+`fixed` keeps native responsive sizes without content fitting.
 `uniform` measures all tag-visible slides in the current article by default
 and applies one shared factor. Combined-HTML output shows **Uniform fit scope**
 only while this mode is selected: **Current article** (default) or **Entire

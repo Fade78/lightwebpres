@@ -90,6 +90,7 @@ async function main() {
     await press(cardVisibilityPage, 'ArrowDown'); // cover -> standard
     await press(cardVisibilityPage, 'ArrowDown'); // standard -> series-nav
     const cardViewportMargin = 24;
+    const visibleCardHrefs = ['b.html', 'c.html', 'index.html'];
     for (let i = 0; i < 3; i++) {
       await cardVisibilityPage.keyboard.press('ArrowDown');
       const cardBounds = await cardVisibilityPage.evaluate(() => {
@@ -97,14 +98,17 @@ async function main() {
         const rect = card.getBoundingClientRect();
         return {
           isCard: card.classList.contains('series-link'),
+          href: card.getAttribute('href'),
           top: rect.top,
           bottom: rect.bottom,
           viewport: window.innerHeight,
         };
       });
-      if (!cardBounds.isCard || cardBounds.top < cardViewportMargin - 1
+      if (!cardBounds.isCard || cardBounds.href !== visibleCardHrefs[i]
+          || cardBounds.top < cardViewportMargin - 1
           || cardBounds.bottom > cardBounds.viewport - cardViewportMargin + 1) {
-        fail('the selected series-nav card is not fully visible with a margin: '
+        fail('series-nav ArrowDown #' + (i + 1) + ' expected ' + visibleCardHrefs[i]
+             + ' focused and fully visible with a margin: '
              + JSON.stringify(cardBounds));
       }
       await cardVisibilityPage.waitForTimeout(200);
@@ -127,6 +131,38 @@ async function main() {
     }
     console.log('series-nav card visibility OK in both directions');
     await cardVisibilityPage.close();
+
+    // A previous glide's safety timeout must not unlock a newer glide.
+    // Use a separate context for the clock and drop the second glide's frames
+    // so scroll detection observes the old slide when that timeout expires.
+    const glidePage = await browser.newPage({ viewport: { width: 1024, height: 500 } });
+    collectConsoleErrors(glidePage, consoleErrors);
+    glidePage.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
+    await glidePage.clock.install({ time: new Date('2026-01-01T00:00:00Z') });
+    await glidePage.goto(navArticleUrl);
+    await glidePage.waitForSelector('.nav-dots a');
+    await glidePage.clock.pauseAt(new Date('2026-01-01T00:01:00Z'));
+    await glidePage.keyboard.press('ArrowDown');
+    await glidePage.clock.runFor(220); // glide finished, 260ms safety timeout still pending
+    await glidePage.evaluate(() => { window.requestAnimationFrame = () => 0; });
+    await glidePage.keyboard.press('ArrowDown');
+    await glidePage.evaluate(() => window.dispatchEvent(new Event('scroll')));
+    await glidePage.clock.runFor(80); // old timeout at 260ms, scroll detection at 300ms
+    const glideTarget = await activeDotIndex(glidePage);
+    if (glideTarget !== 2) {
+      fail('an earlier glide timeout released the current glide: expected slide 2, got ' + glideTarget);
+    }
+    await glidePage.clock.runFor(180); // the current glide's own safety timeout at 480ms
+    await glidePage.evaluate(() => window.dispatchEvent(new Event('scroll')));
+    await glidePage.clock.runFor(80);
+    const unlockedSlide = await activeDotIndex(glidePage);
+    if (unlockedSlide !== 1) {
+      fail('the current glide safety timeout did not release dropped frames: got slide ' + unlockedSlide);
+    }
+    if (glideTarget === 2 && unlockedSlide === 1) {
+      console.log('glide safety timeout belongs only to the current transition OK');
+    }
+    await glidePage.close();
 
     // --- 1. A slide taller than the viewport gets scrolled in
     // increments before the arrow key advances to the next slide ------

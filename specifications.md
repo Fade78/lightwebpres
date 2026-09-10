@@ -3488,11 +3488,21 @@ author's minimum scales.
 **Hide what does not fit**) clips visually at the table viewport; it does not
 truncate data during build. `overflow` (**Allow overflow**) removes that local
 clipping. `scroll` (**Scroll inside the table**) provides a focusable local
-scrolling region. Its navigation keys, wheel and touch interactions stay in
-the table viewport, including at its edges, rather than accidentally advancing
-or scrolling the deck. Links and other interactive content retain their own
-actions. Print expands the viewport without screen clipping or local scroll
-limits; it does not promise that every table fits a sheet of paper.
+scrolling region. Its navigation keys, wheel and drag gestures stay local,
+including at horizontal edges. A brief unmodified left click or tap on a plain
+cell follows the ordinary forward reading step: bounded scrolling within an
+oversized slide, then the next slide only after reaching the bottom. Touch taps
+use the existing under-500 ms duration and 20 CSS-pixel per-axis slop; mouse and
+pen clicks retain the 4 CSS-pixel drag guard. Maximum displacement, scrolling
+during the gesture, selection, long holds, cancellation and multiple contacts
+disqualify the click, including delayed compatibility clicks. Table touches do
+not enter the deck swipe or navigation-visibility double-tap recognizer. A
+coordinate-free assistive or programmatic click may advance, except during the
+450 ms compatibility-click quarantine after a pointer gesture. Links, images,
+native controls, modified clicks, text selection and pinch retain their own
+actions; right-click keeps the native context menu. Print expands the viewport
+without screen clipping or local scroll limits; it does not promise that every
+table fits a sheet of paper.
 
 **Text fitting.** `fixed` (**Keep the chosen size**) preserves native responsive
 CSS sizing with no content-based fit. `uniform` (**Reduce all slides together**)

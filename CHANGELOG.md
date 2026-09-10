@@ -35,6 +35,9 @@ link to the originals. They are at
 
 ## Unreleased — 0.59.1
 
+Cancel obsolete glide safety timers before starting another transition, so a
+late timeout cannot reset navigation to the previously visible slide.
+
 Space now follows the same slide, navigation-card and bounded long-slide steps
 as the arrow keys, instead of accumulating native page-scroll offsets.
 Shift+Space steps backward, and held Space uses the existing keyboard cooldown.
@@ -43,6 +46,14 @@ activation; Enter still follows their links. Ordinary links keep native Space
 scrolling, controls keep their own activation or editing, and foreground panels
 retain Space even when focused speaker notes do not overflow. The mouse-only
 second-click shortcut during a glide is unchanged.
+
+In scroll-mode tables, a brief left click or tap on plain cells now advances
+through the same bounded reading steps as ordinary content. Tall tables remain
+complete: repeated taps read down the slide before entering the next one.
+Dragging still scrolls locally, including at horizontal edges, without a stray
+navigation click. Long presses, text selection, native links and controls,
+pinch, wheel and focused-table keyboard handling retain their own behavior;
+right-click still opens the table's native context menu.
 
 Theme subtitles now use one localized loading-origin vocabulary: Built-in
 (Intégré) for both shipped Commons themes and native Light, plus Installed,
