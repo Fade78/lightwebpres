@@ -33,6 +33,52 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.59.0
+
+`--single-html [FILE]` replaces `--single-page` on `build`, `verify` and
+`watch`, preserving the optional filename and title-derived default. The old
+spelling has no alias, deprecation path or special migration handler.
+
+Add `unit-index` slides: an ordered, linked contents list for one logical
+content unit, with an optional title, selector and responsive maximum column
+count (default 1). Multiple explicit indexes are allowed. Automatic insertion
+is opt-in through `unit_index` or `--unit-index on`; metadata overrides CLI,
+then series defaults. It inserts after the first non-excluded cover, or at the
+start, without writing sources. Any explicit index, even excluded, suppresses
+insertion. The generated `lwp-index` slug obeys prefixes and collision checks.
+Existing kits may omit the new layout and use their standard layout with chrome;
+no manifest rewrite is needed. Long lists remain complete on screen and in print.
+
+Indexes use a shared build-time selector core with `series`, `unit` and `slide`
+scopes, separate source authority, specific-first/general-first views and origin
+traces. Compact Boolean expressions support literal tags, scoped fields, named
+queries and bounded regex search. A documented JSONPath filter profile adds
+scalar comparisons, existence and nested array-filter existence, plus `match`
+and `search`; it is not full RFC 9535 or I-Regexp. Limits include 4,096-character
+queries, depth 32, 256 AST nodes, 64 reachable names, 512-character regexes,
+256 NFA states, repeat bounds of 64, 8,192-character regex inputs, arrays of
+1,024 items, 16,384 evaluation steps and 4,000,000 regex work units per record.
+Invalid syntax and exhausted budgets fail rather than broaden or truncate results.
+
+`*` selects every supplied published item, including the index itself, other
+indexes, covers, long-form slides and generated endnotes. Literal tag predicates
+do not inherit the reader filter's shared-default behavior. Index entries are
+fixed at build time; following a link uses existing tag-aware anchor reveal,
+not a new reading-journey mode. Existing notes and numbering resolution reuse
+the core while preserving their field-specific results.
+
+Generated endnotes now participate in tag inventories, card visibility and
+previews as well as index selection. Index title matching precedes display
+typography and excludes footnote-call markers. Parallel test discovery fails
+explicitly on import errors instead of rescheduling incomplete test modules.
+
+The live drafting contract is now `lightwebpres.slide-draft/2`, with five slide
+types. Documentation and a source-only unit-index example cover both selector
+syntaxes and named queries. Logical units are not physical HTML pages:
+`articles[]`, `page_source`, `page_dest` and related persisted names remain the
+canonical format, not aliases. No global `build --select` is introduced; broader
+wire migration and publication filtering remain open in B67.
+
 ## Unreleased — 0.58.1
 
 `--single-page` now accepts an optional filename on `build`, `verify` and

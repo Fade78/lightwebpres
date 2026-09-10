@@ -97,13 +97,15 @@ translation of the French specification.
 ### Active Model Redesign
 
 Before changing logical-unit vocabulary, selectors, cascade resolution or the
-combined-HTML CLI, read **DECISIONS.md, B67**. It is the shared redesign record:
-agreed requirements, candidate names, current-mechanism simulations and the
-cross-document rollout checklist. Proposed syntax is not a shipped contract;
-`specifications.md` and `GLOSSARY.md` describe the current format until explicitly
-updated. Keep B67 synchronized as decisions settle, and keep disposable probes
-under `work/tmp/`. The owner has explicitly ruled out legacy handling for the
-planned `--single-page` rename; do not add aliases or a migration mechanism.
+combined-HTML CLI, read **DECISIONS.md, B67**. Its first increment is implemented:
+`--single-html [FILE]`, logical selection scopes and unit indexes. The owner
+authorized the physical-output rename in this first lot and explicitly ruled
+out legacy handling; preserve that decision, with no alias or migration handler.
+`specifications.md` and `GLOSSARY.md` describe the current contract. Persisted
+`articles[]`, `page_source`, `page_dest` and related fields remain canonical,
+not aliases. Broader wire vocabulary and publication-filter replacement remain
+open in B67. Keep its delivery checklist synchronized and disposable probes
+under `work/tmp/`; never infer that a proposed follow-up is already available.
 
 ### Relevés datés (hors arborescence active)
 - Les audits datés et autres relevés sont conservés localement, hors de

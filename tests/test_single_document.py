@@ -87,7 +87,7 @@ class SingleDocument(unittest.TestCase):
         return result
 
     def bundle(self, *options, filename='series.html'):
-        self.cli('build', '--single-page', filename, *options)
+        self.cli('build', '--single-html', filename, *options)
         html = (self.output / filename).read_text(encoding='utf-8')
         matches = PAYLOAD.findall(html)
         self.assertEqual(len(matches), 1, 'Exactly one inert series payload is required')
@@ -96,6 +96,12 @@ class SingleDocument(unittest.TestCase):
     def snapshot(self):
         return {str(path.relative_to(self.root)): (path.stat().st_mtime_ns, path.read_bytes())
                 for path in self.root.rglob('*') if path.is_file()}
+
+    def test_removed_option_is_unknown_without_legacy_handling(self):
+        before = self.snapshot()
+        result = self.cli('build', '--single-' + 'page', 'old.html', success=False)
+        self.assertIn('Unknown option:', result.stderr)
+        self.assertEqual(self.snapshot(), before)
 
     def test_default_remains_multipage_and_output_remains_a_directory(self):
         self.output = self.root / 'output.html'
@@ -137,21 +143,21 @@ class SingleDocument(unittest.TestCase):
             self.assertEqual(ids.count('intro'), 1)
             self.assertEqual(ids.count('detail'), 1)
         self.assertEqual({p.name for p in self.output.glob('*.html')}, {'series.html'})
-        self.cli('verify', '--single-page', 'series.html')
+        self.cli('verify', '--single-html', 'series.html')
 
     def test_invalid_filename_and_unsupported_combinations_refuse_before_writes(self):
-        invalid = [('--single-page', name) for name in
+        invalid = [('--single-html', name) for name in
                     ('', '../escape.html', 'nested/file.html', 'nested\\file.htm',
                      str(self.root / 'absolute.html'), 'series.txt', 'series.html#intro',
                      'series.html?x=1')]
-        invalid += [('--single-page', 'series.html', flag)
+        invalid += [('--single-html', 'series.html', flag)
                     for flag in ('--no-index', '--drafts-only')]
         before = self.snapshot()
         for command in ('build', 'verify', 'watch'):
             for options in invalid:
                 with self.subTest(command=command, options=options):
                     result = self.cli(command, *options, success=False)
-                    self.assertIn('--single-page', result.stderr)
+                    self.assertIn('--single-html', result.stderr)
                     self.assertNotIn('Unknown option', result.stderr)
                     self.assertEqual(self.snapshot(), before)
         self.assertFalse(self.output.exists())
@@ -159,25 +165,25 @@ class SingleDocument(unittest.TestCase):
     def test_omitted_filename_uses_the_series_title_with_build_verify_parity(self):
         self.data['series_meta']['title'] = '<b>\u00c9nergie</b> & Soci\u00e9t\u00e9 / 2026'
         self.save_series()
-        self.cli('build', '--single-page', '--inline-images')
+        self.cli('build', '--single-html', '--inline-images')
         filename = 'energie-societe-2026.html'
         self.assertTrue((self.output / filename).is_file())
         self.assertIn(filename + '#lwp/a/a.html', (self.root / 'README.md').read_text())
         manifest = json.loads((self.output / '.lwp-manifest.json').read_text())
         self.assertEqual(manifest['files'], [filename])
-        self.cli('verify', '--single-page', '--inline-images')
+        self.cli('verify', '--single-html', '--inline-images')
         self.bundle('--inline-images', filename='explicit.htm')
-        self.cli('verify', '--single-page=explicit.htm', '--inline-images')
+        self.cli('verify', '--single-html=explicit.htm', '--inline-images')
 
     def test_bare_option_does_not_consume_the_series_directory(self):
-        for options in (['--single-page', str(self.root)],
-                        ['--single-page', '--inline-images', str(self.root)],
-                        ['--single-page', '--', str(self.root)]):
+        for options in (['--single-html', str(self.root)],
+                        ['--single-html', '--inline-images', str(self.root)],
+                        ['--single-html', '--', str(self.root)]):
             with self.subTest(options=options):
                 result = fixtures.run('build', *options, env=self.env, cwd=ROOT)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertTrue((self.output / 'bundled-series.html').is_file())
-        result = fixtures.run('build', '--single-page', env=self.env, cwd=self.root)
+        result = fixtures.run('build', '--single-html', env=self.env, cwd=self.root)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_derived_name_handles_empty_unicode_reserved_and_long_titles(self):
@@ -192,10 +198,10 @@ class SingleDocument(unittest.TestCase):
             with self.subTest(title=title):
                 self.data['series_meta']['title'] = title
                 self.save_series()
-                args = {'--single-page': True}
+                args = {'--single-html': True}
                 ctx = lwp.load_build_context(str(self.root), args)
-                self.assertEqual(ctx.args['--single-page'], expected)
-                self.assertIs(args['--single-page'], True, 'watch must retain automatic naming')
+                self.assertEqual(ctx.args['--single-html'], expected)
+                self.assertIs(args['--single-html'], True, 'watch must retain automatic naming')
 
     def test_watch_opens_the_derived_name_and_recomputes_it_after_a_title_change(self):
         lwp = fixtures.load_lightwebpres_module()
@@ -206,10 +212,10 @@ class SingleDocument(unittest.TestCase):
             raise KeyboardInterrupt
         with mock.patch.object(lwp, '_cmd_watch_poll', changes), \
                 mock.patch('webbrowser.open') as opened:
-            self.assertEqual(lwp.cmd_watch(str(self.root), {'--single-page': True, '--open': True}), 0)
+            self.assertEqual(lwp.cmd_watch(str(self.root), {'--single-html': True, '--open': True}), 0)
         opened.assert_called_once_with((self.output / 'bundled-series.html').as_uri())
         self.assertTrue((self.output / 'renamed-series.html').is_file())
-        self.cli('verify', '--single-page')
+        self.cli('verify', '--single-html')
 
     def test_include_drafts_no_nav_no_readme_and_htm_filename(self):
         html, payload = self.bundle('--include-drafts', '--no-nav', '--no-readme',
@@ -222,7 +228,7 @@ class SingleDocument(unittest.TestCase):
             self.assertNotIn('class="series-item', view['content'])
             self.assertIn('class="series-list"', view['content'])
         self.assertFalse((self.root / 'README.md').exists())
-        self.cli('verify', '--single-page', 'collection.htm', '--include-drafts',
+        self.cli('verify', '--single-html', 'collection.htm', '--include-drafts',
                  '--no-nav', '--no-readme')
 
     def test_only_validates_selection_but_rebuilds_the_entire_bundle(self):
@@ -234,11 +240,11 @@ class SingleDocument(unittest.TestCase):
         self.assertEqual(payload['order'], ['a.html', 'b.html'])
         self.assertIn('Changed unselected article.',
                       next(v['content'] for v in payload['views'] if v['key'] == 'b.html'))
-        self.cli('verify', '--single-page', 'series.html')
+        self.cli('verify', '--single-html', 'series.html')
         before = self.snapshot()
         for selected in ('missing.html', 'draft.html'):
             with self.subTest(selected=selected):
-                self.cli('build', '--single-page', 'series.html', '--only', selected, success=False)
+                self.cli('build', '--single-html', 'series.html', '--only', selected, success=False)
                 self.assertEqual(self.snapshot(), before)
 
     def test_manifest_owns_physical_bundle_and_images_and_clean_removes_old_pages(self):
@@ -260,7 +266,7 @@ class SingleDocument(unittest.TestCase):
             self.assertFalse((self.output / name).exists())
         self.assertTrue((self.output / 'series.html').is_file())
         self.assertTrue((self.output / 'img/mark.svg').is_file())
-        self.cli('verify', '--single-page', 'series.html')
+        self.cli('verify', '--single-html', 'series.html')
 
     def test_inline_svg_images_include_alternate_identity_variants(self):
         kit = self.root / 'templates' / 'kits' / 'lightwebpres-docs' / '0.1.0'
@@ -280,11 +286,11 @@ class SingleDocument(unittest.TestCase):
         self.assertNotIn('assets/presentations/', variant_text)
         manifest = json.loads((self.output / '.lwp-manifest.json').read_text(encoding='utf-8'))
         self.assertEqual(manifest['files'], ['series.html'])
-        self.cli('verify', '--single-page', 'series.html', '--inline-images')
+        self.cli('verify', '--single-html', 'series.html', '--inline-images')
         mark = kit / 'assets' / 'lightwebpres-mark.svg'
         mark.write_text(mark.read_text(encoding='utf-8').replace('</svg>',
                        '<!-- changed alternate SVG -->\n</svg>'), encoding='utf-8')
-        result = self.cli('verify', '--single-page', 'series.html', '--inline-images', success=False)
+        result = self.cli('verify', '--single-html', 'series.html', '--inline-images', success=False)
         self.assertIn('series.html', result.stdout + result.stderr)
 
     def test_verify_detects_article_and_svg_drift_without_writing(self):
@@ -296,14 +302,14 @@ class SingleDocument(unittest.TestCase):
                 original = source.read_text(encoding='utf-8')
                 source.write_text(original.replace('Unique body b.', 'Content drift.'), encoding='utf-8')
                 before = self.snapshot()
-                result = self.cli('verify', '--single-page', 'series.html', *options, success=False)
+                result = self.cli('verify', '--single-html', 'series.html', *options, success=False)
                 self.assertIn('series.html', result.stdout + result.stderr)
                 self.assertEqual(self.snapshot(), before)
                 source.write_text(original, encoding='utf-8')
                 svg = self.svg.read_text(encoding='utf-8')
                 self.svg.write_text(svg.replace('red', 'blue'), encoding='utf-8')
                 before = self.snapshot()
-                self.cli('verify', '--single-page', 'series.html', *options, success=False)
+                self.cli('verify', '--single-html', 'series.html', *options, success=False)
                 self.assertEqual(self.snapshot(), before)
                 self.svg.write_text(svg, encoding='utf-8')
 
@@ -316,26 +322,26 @@ class SingleDocument(unittest.TestCase):
         bundle = self.output / 'series.html'
         bundle.write_text(changed, encoding='utf-8')
         for options in ((), ('--build-stamp',)):
-            self.cli('verify', '--single-page', 'series.html', *options)
+            self.cli('verify', '--single-html', 'series.html', *options)
         self.assertIn('Unique body b.', changed)
         bundle.write_text(changed.replace('Unique body b.', 'Tampered body b.'), encoding='utf-8')
-        self.cli('verify', '--single-page', 'series.html', success=False)
+        self.cli('verify', '--single-html', 'series.html', success=False)
 
     def test_dry_run_and_custom_navigation_refusal_do_not_write(self):
         before = self.snapshot()
-        self.cli('build', '--single-page', 'series.html', '--inline-images', '--dry-run')
+        self.cli('build', '--single-html', 'series.html', '--inline-images', '--dry-run')
         self.assertEqual(self.snapshot(), before)
         self.assertFalse(self.output.exists())
         nav = self.root / 'templates' / 'nav.js'
         nav.write_text('// Custom navigation\n', encoding='utf-8')
         before = self.snapshot()
-        result = self.cli('build', '--single-page', 'series.html', success=False)
+        result = self.cli('build', '--single-html', 'series.html', success=False)
         self.assertIn('nav.js', result.stderr)
         self.assertEqual(self.snapshot(), before)
         nav.write_text(fixtures.load_lightwebpres_module().TEMPLATE_NAV_JS, encoding='utf-8')
         self.bundle()
         before = self.snapshot()
-        self.cli('build', '--single-page', 'series.html', '--inline-images', '--dry-run')
+        self.cli('build', '--single-html', 'series.html', '--inline-images', '--dry-run')
         self.assertEqual(self.snapshot(), before)
 
     def test_index_named_article_and_contents_have_distinct_routes(self):
@@ -345,12 +351,12 @@ class SingleDocument(unittest.TestCase):
         self.assertEqual(payload['order'], ['index.html', 'b.html'])
         for view in payload['views'][1:]:
             self.assertIn('href="#lwp/index"', view['content'])
-        self.cli('verify', '--single-page', 'series.html')
+        self.cli('verify', '--single-html', 'series.html')
 
     def test_index_extensions_are_refused_without_changes(self):
         (self.root / 'templates' / 'index_extra.html').write_text('<p>Custom extension</p>', encoding='utf-8')
         before = self.snapshot()
-        result = self.cli('build', '--single-page', 'series.html', success=False)
+        result = self.cli('build', '--single-html', 'series.html', success=False)
         self.assertIn('index_extra.html', result.stderr)
         self.assertEqual(self.snapshot(), before)
 
@@ -358,7 +364,7 @@ class SingleDocument(unittest.TestCase):
         env = {**os.environ, **self.env}
         process = subprocess.Popen(
             [sys.executable, '-u', str(ROOT / 'lightwebpres'), 'watch', str(self.root),
-             '--output', str(self.output), '--single-page', '--inline-images'],
+             '--output', str(self.output), '--single-html', '--inline-images'],
             cwd=ROOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         observed = False
         try:
@@ -388,7 +394,7 @@ class SingleDocument(unittest.TestCase):
                 stdout, stderr = process.communicate()
         self.assertTrue(observed, stdout + stderr)
         self.assertEqual(process.returncode, 0, stdout + stderr)
-        self.cli('verify', '--single-page', '--inline-images')
+        self.cli('verify', '--single-html', '--inline-images')
 
 
 class SingleDocumentBrowser(unittest.TestCase):

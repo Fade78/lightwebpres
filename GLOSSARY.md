@@ -11,6 +11,23 @@ including in this sentence.
 Excludes LWP's structural markers (`<!-- lwp:meta -->`, `<!-- lwp:slide:TYPE
 -->`, `---`) — see `specifications.md` §4.1 for those.
 
+## Logical vocabulary
+
+| Term | Meaning |
+|---|---|
+| **series** | Ordered collection of content units, logical scope 0 |
+| **content unit** / **unit** | Coherent deck and optional supporting long-form texts, logical scope 1; the persisted format calls it an article, not an HTML page |
+| **slide** | An authored card or generated reading section inside a unit, logical scope 2 |
+| **physical HTML document** | Output container: one unit per document by default, or a series combined by `--single-html [FILE]` |
+| **source authority** | Precedence between declarations of the same logical object; an article entry and its Markdown meta both own unit values |
+| **selector** | Build-time predicate over supplied ordered records, with no intrinsic publication exclusions; not the runtime reading-tag filter (§3.4) |
+| **unit index** | A `unit-index` slide linking selected published slides in its own unit; not the series index page (§3.3.6) |
+
+`articles[]`, `page_source`, `page_dest`, `page_title` and related persisted
+fields remain canonical, not aliases for hypothetical `unit_*` replacements.
+`unit_index*` are new settings, not a rename of existing fields. Broader wire
+vocabulary and global publication selectors remain open in DECISIONS.md B67.
+
 ## Naming conventions
 
 **A name's shape says what level it is set at.** Settled in v0.7.0 and
@@ -46,7 +63,8 @@ report (below).
 ## Machine-readable draft contract
 
 `lightwebpres contract` exposes the slide grammar as the versioned
-`lightwebpres.slide-draft/1` contract. It is generated from the same
+`lightwebpres.slide-draft/2` contract. Its five types are `cover`, `standard`,
+`series-nav`, `full-article` and `unit-index`. It is generated from the same
 `SLIDE_TYPES` registry as the parser and reports the canonical type order,
 accepted and required fields, cardinalities, empty-value rules, reserved IDs
 and a complete source skeleton for each type. JSON is the default output;
@@ -77,7 +95,7 @@ Consumers of earlier report schemas must adapt (§11.18).
 
 `comment` is recognized at every level below — a `series.json` entry, the
 `series_meta` object, an article's meta block, and the header of a slide
-of **any** type (cover, standard, series-nav, full-article) — but never
+of **any** type (cover, standard, series-nav, full-article, unit-index) — but never
 read by any renderer: parsed, then discarded. Use it to leave an editorial note in the source (a reviewer flag,
 a TODO) without it ever reaching the built output, not even in the page's
 raw HTML source (unlike an HTML comment, which LWP passes through
@@ -101,6 +119,7 @@ Once per series, in `series.json`'s `series_meta` object.
 | `reading` | `{}` resolves to the defaults below | Strict object of initial reader choices and reduction limits, only in `series_meta`; not a theme property or article cascade (§9.3.9) |
 | `lang_tags` | `{}` — no tag selects a typography pack | Object mapping a slide tag to a typography pack name, e.g. `{"fr": "fr", "en": "en"}`; the first mapped tag on a slide selects its engine (§20.5) |
 | `presentation_preset` | omitted: implicit `builtin/standard` | One initial reference for the whole series and index: `builtin/standard`, `commons/<id>` or `id@MAJOR.MINOR.PATCH/preset`. Identity is inferred, not persisted separately. Both `init --preset` and `series preset set` persist an explicit selection, including `builtin/standard`; plain `init` leaves the field absent |
+| `selectors` | `{}` | Named expression strings used by `selector:name`; validates mapping shape, then only reachable expression syntax/cycles/budgets. Compact and bounded JSONPath filter profiles, not full RFC 9535 (§3.4) |
 
 `slide_layouts` and `slide_chrome` belong to Identity Kit manifests, where
 they declare preset defaults; they are not author metadata fields.
@@ -201,6 +220,9 @@ taking priority when both are set (§20.3.1).
 | `typo_units` | meta block only | Unset — rule stays on | `off` disables only the units/`×`/`≈` typography rule, for this article only |
 | `typo_thousands` | meta block only | Unset — rule stays on | `off` disables only the thousands-grouping typography rule, for this article only |
 | `slide_page_numbers` | meta block, `series_meta`, or `--slides-page-numbers` | `off` (§3.3.5) | Engraves the top-right `NN / NN` slide number on every slide; cascade: meta block > CLI flag > `series_meta` > `off` |
+| `unit_index` | meta block, `series_meta`, or `--unit-index` | `off` (§20.5.5) | Opt-in automatic contents after the first non-excluded cover, or at the start; any explicit index, even excluded, suppresses it. Meta > CLI > series > default; no source writes |
+| `unit_index_max_columns` | meta block, `series_meta`, or `--unit-index-max-columns` | `1` (§20.5.5) | Positive integer responsive ceiling for an automatic index; same cascade, Boolean invalid |
+| `unit_index_selector` | meta block, `series_meta`, or `--unit-index-selector` | `*` (§20.5.5) | Automatic index's entry expression; same cascade, not a global publication predicate |
 
 A preset cannot be selected in an `articles[]` entry or an `lwp:meta` block:
 only `series_meta.presentation_preset` selects it for the whole series.
@@ -270,10 +292,54 @@ navigation cards are generated from `series.json`; it accepts the shared
 on every other card. `comment` is documented above because it is accepted on
 every slide type and is never rendered.
 
+## Unit-index slide fields
+
+`<!-- lwp:slide:unit-index -->` accepts no free body and has no cardinality
+limit. It selects from every published slide in its unit, including itself,
+other indexes, covers, full-article slides and generated endnotes (§3.3.6).
+
+| Field | Default | Description |
+|---|---|---|
+| `slug` | Required | Stable authored identity, ordinary prefix/collision rules; automatic insertion uses `lwp-index` |
+| `slide_title` - written `## Heading` | Localized Contents | Optional index heading; no literal `slide_title:` field |
+| `kicker` | `''` | Optional label above the title |
+| `summary` | `''` | Optional summary below the title |
+| `tags` | `default` | Controls this slide's reader visibility, not its entry selector |
+| `note` | `''` | Speaker cue, including indented continuations; hidden but public HTML |
+| `index-max-columns` | `1` | Positive integer responsive column ceiling; empty uses default, Boolean invalid; print keeps a source-ordered list |
+| `index-selector` | `*` | Build-time selector (§3.4); empty uses default. No automatic exclusion of indexes and no refiltering by the current reader tag |
+
+`comment` and the shared presentation fields below are also accepted. An index
+with no matches displays a localized empty message. Links use the existing
+tag-aware anchor reveal policy, not a new navigation mode.
+
+## Selector record fields
+
+These are query views, not new author keys or a versioned public report schema.
+`series`, `unit`, `slide`, `effective`, `specific`, `general` and `origin` are
+specified in §3.4.1. Source fields are registered parsed values; unknown metadata
+and `comment` are absent. Scoped reads never fall back to another scope.
+
+| Field | Meaning in a slide selection record |
+|---|---|
+| `type` | Authored type, or `notes` for generated endnotes |
+| `title` | Computed plain heading/fallback, separate from original source fields |
+| `slug` | Authored unprefixed slug; `notes` for generated endnotes |
+| `id` | Effective target anchor including any slug prefix |
+| `tags` | Normalized slide tags; effective tags do not merge the unit reading gate |
+| `status` | Resolved unit status; implicit `active` exists in resolved views only, not in an undeclared `unit.status` |
+
+`origin.<field>` holds the effective `value`, numeric `scope`, `source` and
+`candidates` trace with eligibility, including rejected candidates. Source
+authority is separate from scope in both resolution directions. Blank metadata
+may be ineligible, while real Boolean false overrides remain eligible where
+the field requires them. Missing comparison operands are false even for `!=`;
+false/null/empty values still satisfy a path-existence test (§3.4.3).
+
 ## Shared Identity Kit fields
 
 `slide-layout`, `slide-header` and `slide-footer` are accepted in the headers
-of all four types (`cover`, standard, `series-nav`, `full-article`). They
+of all five types (`cover`, standard, `series-nav`, `full-article`, `unit-index`). They
 override the series preset's defaults for one slide. They do not define the
 page shell or navigation, and do not form an author-level JSON cascade.
 
@@ -285,7 +351,8 @@ page shell or navigation, and do not form an author-level JSON cascade.
 
 The preset alone owns layout and chrome defaults; slide fields override them
 last. See `specifications.md` §9.9 and §20.5.3 for the manifest, fragments,
-assets and validation rules.
+assets and validation rules. A kit may omit the `unit-index` layout: it then
+uses the standard layout with chrome, without rewriting the kit manifest.
 
 The historical `tag:` field is not an alias for either current field. Use
 `kicker:` for the visible label above a slide title, and `tags:` for tag

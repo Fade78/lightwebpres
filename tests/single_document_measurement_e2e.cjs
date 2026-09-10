@@ -67,7 +67,7 @@ ${body}
 
 <img alt="Delayed static SVG" src="https://measurement.invalid/late.svg">
 `);
-    cli('build', series, '--lang', 'en', '--scroll-duration', '0', '--single-page', 'series.html');
+    cli('build', series, '--lang', 'en', '--scroll-duration', '0', '--single-html', 'series.html');
     const page = await browser.newPage({viewport: {width: 1100, height: 700}});
     const errors = [], widgetRequests = [];
     page.on('pageerror', error => errors.push(error.message));

@@ -40,7 +40,8 @@ that leave their logical root. Filename validation is not a symlink sandbox.
 `series_meta`, beside `articles`, holds series-wide `title`, `subtitle`,
 `version`, `intro`, `author`, `license`, `default_tag`, `scroll_duration`,
 `lang_tags`, `notes_placement`, `notes_tooltip`, `slide_page_numbers`,
-`slug_prefix`, `presentation_preset`, `reading`. The first four drive the generated
+`slug_prefix`, `presentation_preset`, `reading`, `selectors`, `unit_index`,
+`unit_index_max_columns`, `unit_index_selector`. The first four drive the generated
 index and README; `author`/`license` provide article fallbacks. `comment`
 also works here, or on an article entry, and is never read or rendered.
 
@@ -94,6 +95,73 @@ the presence of tag names. Status is participation, not factual or editorial
 approval. A documentary collection may span multiple series; LWP has no
 cross-series corpus database or corpus command. Inventory each series
 explicitly and keep any collection-wide editorial index outside this schema.
+
+## Scoped Selectors
+
+`unit-index` is the current consumer of the common build-time selector core.
+Do not invent `build --select` or replace publication status/flags with an
+index expression. A selector cannot restore an item excluded from its input.
+
+Compact syntax: `*` selects all supplied records; `expert-en` means literal
+`tag:expert-en` (also `tags:expert-en`), with no shared-default rule. Tags are
+user names, not implicit editorial/language roles. Whitespace is AND, `|` OR,
+leading `-` NOT; parentheses group, quotes preserve spaces/punctuation. NOT
+binds before AND, then OR. `AND`, `OR`, `NOT` are ordinary literal tags.
+`field:value` reads effective fields; `view:field:value` reads that view only.
+Colons have no surrounding whitespace. `/regex/` values perform search.
+
+Views are `series`, `unit`, `slide`, `effective`, `specific`, `general` and
+`origin`. Logical ranks are series 0, unit 1, slide 2. The JSON article entry
+and Markdown meta both own unit values; source authority, not rank, makes JSON
+win for supported fields. `specific` is specific-first and `general` is
+general-first, preserving within-scope authority. Effective tags remain
+slide-owned, not a union with the unit gate. Scoped reads never inherit another
+scope. Effective status defaults to active, but `unit:status:active` requires
+an eligible declaration. Blank metadata can be ineligible; Boolean false is
+preserved where the field requires it. `origin` retains rejected candidates.
+
+Record fields are registered parsed source values, not unknown metadata or
+`comment`. Slide records also expose `type`, plain computed `title`, authored
+`slug`, prefixed `id`, normalized `tags`; source fields such as `summary` remain
+separate. Do not select by display-only typography. Generated endnotes have
+`type:notes`, but are not another authored slide type.
+
+```text
+index-selector: (expert-fr | expert-en) -type:unit-index
+index-selector: series:author:"Editorial team" slide:title:/^Evidence/
+index-selector: $[? @.slide.type == "standard" && @.slide.tags[? @ == "expert-en"]]
+index-selector: $[? search(@.slide.title, "Evidence")]
+```
+
+These are alternative lines. Repeating the field retains only the last one.
+The JSONPath **filter profile** accepts `$[*]`, `$[? ...]`, scalar comparisons
+`== != < <= > >=`, `&& || !`, parentheses, scoped dot/bracket paths, existence,
+nested array-filter existence with relative `@`, and `match` (full string) /
+`search` with constant regexes. Missing operands make every comparison false,
+including `!=`; false/null/empty values still exist. Not full RFC 9535 or
+I-Regexp: no projection, array indexing, recursion, arithmetic or dynamic regex.
+
+Name queries in `series_meta.selectors`, a mapping of nonempty names to strings:
+
+```json
+{"selectors": {"evidence": "type:standard", "english": "$[? @.slide.tags[? @ == \"expert-en\"]]", "english-evidence": "selector:evidence selector:english"}}
+```
+
+Use `index-selector: selector:english-evidence`. References compose shared ASTs,
+never textual substitution. Mapping shape is checked; only reachable expressions
+are compiled. Unknown reachable names, cycles and exhausted budgets are errors,
+not fallback to `*` or truncated results.
+
+Regex uses a case-sensitive Unicode NFA, not backtracking or Python `re`:
+literals, dot except LF, classes/ranges/negation, absolute `^`/`$`, `* + ?`,
+`{m}`, `{m,n}`, `{m,}`, punctuation escapes and `\n \r \t`. No groups,
+alternation, shorthand classes, lookarounds, backreferences or flags. Limits:
+query 4096 characters per expression, depth 32, AST 256 nodes, 64 reachable
+names, regex 512 characters, NFA 256 states, repeat bound 64, regex input 8192
+characters, evaluated array 1024 items, 16384 evaluation steps and 4000000
+aggregate regex work units per record. String/array limits apply when evaluated.
+Both syntaxes use the same Python core in CPython and Pyodide, never `eval`.
+See specifications.md §3.4 for the complete profile.
 
 ## Languages And Scrolling
 
@@ -157,7 +225,7 @@ and reset presentation zoom;
 overflow visually, not cells in HTML; `scroll` contains navigation gestures
 inside the table. `fixed` keeps native responsive sizes without content fitting.
 `uniform` measures all tag-visible slides in the current article by default
-and applies one shared factor. Single-page output shows **Uniform fit scope**
+and applies one shared factor. Combined-HTML output shows **Uniform fit scope**
 only while this mode is selected: **Current article** (default) or **Entire
 series**. Series scope measures tag-eligible slides across all articles using
 their actual geometry, styles, presets and settings pins, then shares the
@@ -190,7 +258,7 @@ controls still work if saving is blocked. Browser storage availability and
 This does not change Appearance's session-storage contract. Print clears
 runtime scales and expands table viewports without screen clipping.
 
-Single-page uniform scope stores `article` or `series` separately at
+Combined-HTML uniform scope stores `article` or `series` separately at
 `readingPreferenceKey + ':fit-scope'`, that is,
 `lwp-reading:<output-directory-path>:fit-scope`. Missing/invalid values or
 blocked reads fall back to `article`; failed writes leave the control usable.
@@ -229,7 +297,10 @@ that choice. `slide_layouts` and `slide_chrome` declare defaults **in the
 manifest only**. References are local files or native `builtin:standard`
 layouts and `builtin:light` themes. Native layouts in a kit keep its chrome.
 Kits neither extend nor depend on other kits or Commons. Loaders compute
-origins; no declared provenance or authenticity is implied.
+origins; no declared provenance or authenticity is implied. The `unit-index`
+layout is optional: an existing kit falls back to its standard layout with
+chrome, without a manifest rewrite. A dedicated layout uses `default` unless
+the preset selects a variant.
 
 Commons themes live under `themes/` and `templates/themes/`, with
 `LWP_THEMES_DIR` for the user catalogue. Commons presets live under

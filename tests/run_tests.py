@@ -128,6 +128,10 @@ def _class_groups(suite):
     """
     groups = {}
     for case in _iter_cases(suite):
+        if isinstance(case, unittest.loader._FailedTest):
+            # Rescheduling this synthetic class loses its original import error
+            # and can report success without ever loading the broken module.
+            raise RuntimeError('Test discovery failed: ' + case.id()) from case._exception
         cls = type(case)
         module = cls.__module__
         if module.startswith('test_'):

@@ -2235,7 +2235,7 @@ class SlideDraftContract(unittest.TestCase):
 
     def test_contract_types_and_sources_round_trip_through_the_parser(self):
         contract = self.lwp.slide_draft_contract(('taken', 'notes'))
-        self.assertEqual(contract['schema'], 'lightwebpres.slide-draft/1')
+        self.assertEqual(contract['schema'], 'lightwebpres.slide-draft/2')
         self.assertEqual(contract['lightwebpres_version'], self.lwp.VERSION)
         self.assertEqual(
             contract['canonical_order'],
@@ -2320,7 +2320,7 @@ class SlideDraftContract(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             contract = json.loads(result.stdout)
             self.assertEqual(contract['schema'],
-                             'lightwebpres.slide-draft/1')
+                              'lightwebpres.slide-draft/2')
             self.assertNotIn('existing', {
                 descriptor['draft']['slug']
                 for descriptor in contract['types']
@@ -2328,7 +2328,7 @@ class SlideDraftContract(unittest.TestCase):
 
             result = run('contract', str(root), '--format', 'text')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('lightwebpres.slide-draft/1', result.stdout)
+            self.assertIn('lightwebpres.slide-draft/2', result.stdout)
             self.assertIn('cover (any)', result.stdout)
             self.assertIn('series-nav (0 to 1)', result.stdout)
 
@@ -11536,7 +11536,7 @@ class SkillDocumentsWhatTheCodeAccepts(unittest.TestCase):
         takes. The rows are matched by the type name, so reordering the
         table is free and dropping a row is not."""
         types = self.lwp.SLIDE_TYPES
-        self.assertEqual(len(types), 4, 'the type list moved')
+        self.assertEqual(len(types), 5, 'the type list moved')
         rows = [line for line in self.skill.splitlines()
                 if line.startswith('|') and line.count('|') >= 4]
         for t in types:
@@ -11790,6 +11790,12 @@ class ContrastFloors(unittest.TestCase):
         selectors = [m.group(1) for m in re.finditer(
             r'([^{}]*)\{[^{}]*(?:text-decoration:\s*underline'
             r'|text-decoration-color:\s*var\(--link-decoration-color\))', css)]
+        index_hover = {'.lwp-unit-index-link:hover .lwp-unit-index-title',
+                       '.lwp-unit-index-link:focus-visible .lwp-unit-index-title'}
+        interaction_rules = [selector for selector in selectors
+                             if {part.strip() for part in selector.split(',')} == index_hover]
+        self.assertEqual(len(interaction_rules), 1)
+        selectors = [selector for selector in selectors if selector not in interaction_rules]
         self.assertEqual(len(selectors), 2,
                          'the body-link treatment moved: ' + repr(selectors))
         # Checked part by part, not by looking for names that must be
@@ -17010,7 +17016,7 @@ class ThemeEngineStaged(unittest.TestCase):
         # have produced a silently unset width.
         # Both layout tokens must be registry-backed. Manual zoom is content
         # state only and must not enter the structural geometry rules.
-        allowed = {'--page-content-max', '--page-block-max'}
+        allowed = {'--page-content-max', '--page-block-max', '--lwp-index-columns'}
         for line in self.lwp.TEMPLATE_SKELETON.splitlines():
             for var in re.findall(r'var\((--[a-z-]+)', line):
                 self.assertIn(var, allowed, f'skeleton references {var}')
@@ -19616,7 +19622,8 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                             'license', 'default_tag', 'scroll_duration',
                             'lang_tags', 'notes_placement', 'notes_tooltip',
                              'slide_page_numbers', 'slug_prefix',
-                             'presentation_preset', 'reading'})
+                            'presentation_preset', 'reading', 'selectors',
+                            'unit_index', 'unit_index_max_columns', 'unit_index_selector'})
         self.assertEqual(set(report['presentation']),
                          {'schema', 'selector', 'id', 'label', 'description',
                           'native_renderer', 'package', 'theme', 'slide_layouts',

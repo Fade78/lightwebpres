@@ -13,6 +13,14 @@ pages with slide navigation and a series index. Each article carries its CSS
 and JavaScript; readers need a browser, not LightWebPres, an account or a
 presentation service.
 
+Add a **contents slide inside a content unit** with `unit-index`, or request
+automatic insertion with `--unit-index on`. Select entries with literal tags,
+scoped fields, named queries or a bounded JSONPath filter profile; choose a
+responsive column ceiling without shortening the list. A logical unit keeps
+its deck and supporting text together whether published separately or in one
+series-wide HTML document. See the [contents tutorial](GUIDE.md#add-a-unit-index)
+and [source-only example](examples/unit-index/README.md).
+
 <picture>
   <source media="(max-width: 600px)" srcset="generated/authoring-workflow-mobile.svg">
   <img src="generated/authoring-workflow.svg" alt="Three alternatives converge on the same editable source: a human writes, a human steers an external agent, or an autonomous agent writes from a task. LightWebPres builds those files into an HTML document and assets for reading, presenting and sharing." width="100%">
@@ -139,16 +147,16 @@ Follow the [six guide routes](GUIDE.md) or explore the
 - **A site, not an application server.** Publish the complete `public/` tree:
   HTML plus referenced `img/` and identity assets. `--inline-images` can embed
   supported images and kit assets, but does not bundle every external dependency.
-- **A series in one HTML file.** `build my-series --single-page`
+- **A series in one HTML file.** `build my-series --single-html`
   combines the series contents and articles with deliberate article switching,
   not continuous scrolling through the whole collection. Add `--inline-images`
   to embed supported images; `--output` still names a directory. The filename
-  comes from the series title, or pass `--single-page collection.html` to choose
+  comes from the series title, or pass `--single-html collection.html` to choose
   it explicitly. Fullscreen survives article switches, and printing includes
   only the active filtered
   article, or only the series contents when that view is active. Uniform text
   fitting can cover the current article or the entire series, selected in
-  Display settings. See the [single-page guide](GUIDE.md#publish-a-series-in-one-html-file) for extension
+  Display settings. See the [combined-HTML guide](GUIDE.md#publish-a-series-in-one-html-file) for extension
   restrictions, links and portability limits.
 - **An index when you need one.** `series.json` determines article order and
   navigation. A lone article can claim `index.html`; `--no-index` lets you
@@ -203,7 +211,7 @@ Use `comment:` for source-only review notes; those are not published.
 Tags are viewing filters, not access control.
 
 Before publishing, inspect the output and use matching build/verify options,
-including `--single-page [FILE]` and `--inline-images` when used. Removing an
+including `--single-html [FILE]` and `--inline-images` when used. Removing an
 article or asset from the sources does not itself delete an old published
 file. Review `clean` and the host's stale files as described in
 [Publish and maintain](GUIDE.md#5-publish-and-maintain). Keep the source project

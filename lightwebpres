@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.58.1"
+VERSION = "0.59.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1232,6 +1232,8 @@ LANG_FR = r'''{
     "nav_next": "Planche suivante",
     "nav_dot_fallback": "Fiche",
     "series_nav_title": "Cette série",
+    "unit_index_title": "Sommaire",
+    "unit_index_empty": "Aucune fiche correspondante.",
     "series_read": "Lire l'article",
     "series_current_status": "En cours de lecture",
     "series_back_to_index": "Retour à l'index",
@@ -1433,6 +1435,8 @@ LANG_EN = r'''{
     "nav_next": "Next slide",
     "nav_dot_fallback": "Slide",
     "series_nav_title": "This series",
+    "unit_index_title": "Contents",
+    "unit_index_empty": "No matching slides.",
     "series_read": "Read the article",
     "series_current_status": "Currently reading",
     "series_back_to_index": "Back to index",
@@ -3493,7 +3497,8 @@ THEME_COMPONENTS = [
     ]),
     ThemeComponent('series-nav.label', '.series-label', [
         ThemeProp('series-nav.label.fg',        PROP_COLOR,  'ink-quiet', css='color'),
-        ThemeProp('series-nav.label.font',      PROP_FONT,   'ui',        css='font-family'),
+        ThemeProp('series-nav.label.font',      PROP_FONT,   'ui',        css='font-family',
+                  selector='.series-label, .lwp-unit-index'),
         ThemeProp('series-nav.label.size',      PROP_LENGTH, 'max(12px, 1.5vmin)',      css='font-size'),
         ThemeProp('series-nav.label.weight',    PROP_WEIGHT, 'bold',      css='font-weight'),
         ThemeProp('series-nav.label.tracking',  PROP_LENGTH, '1.5px',     css='letter-spacing'),
@@ -4205,7 +4210,7 @@ COMMONS_PRESET_SCHEMA = 'lightwebpres.commons-preset/1'
 _PRESENTATION_ID_RE = re.compile(r'^[a-z][a-z0-9-]*$')
 _PRESENTATION_VERSION_RE = re.compile(r'^\d+\.\d+\.\d+$')
 _PRESENTATION_SLIDE_TYPES = (
-    'cover', 'standard', 'series-nav', 'full-article',
+    'cover', 'standard', 'series-nav', 'full-article', 'unit-index',
 )
 _PRESENTATION_LAYOUT_SLOTS = frozenset({
     'content', 'slide_header', 'slide_footer',
@@ -4254,6 +4259,8 @@ class PresentationPackage:
         return f'{self.id}@{self.version}'
 
     def layout(self, slide_type, variant='default'):
+        if slide_type == 'unit-index' and slide_type not in self.layouts:
+            slide_type = 'standard'
         variants = self.layouts.get(slide_type, {})
         if variant not in variants:
             known = ', '.join(sorted(variants)) or '(none)'
@@ -4579,7 +4586,11 @@ def _validate_presentation_chrome_value(value, slot, package, origin):
 
 def _presentation_layouts(preset):
     """The preset owns the complete per-type layout map."""
-    return dict(preset.slide_layouts)
+    layouts = dict(preset.slide_layouts)
+    layouts.setdefault('unit-index',
+                       'default' if 'unit-index' in preset.package.layouts
+                       else layouts.get('standard', 'default'))
+    return layouts
 
 
 def validate_article_presentation(entry, preset, slides=()):
@@ -5086,6 +5097,8 @@ def _load_presentation_package(root, scope):
     if not isinstance(raw_layouts, dict):
         _presentation_error(manifest_path, 'layouts must be an object')
     for slide_type in _PRESENTATION_SLIDE_TYPES:
+        if slide_type == 'unit-index' and slide_type not in raw_layouts:
+            continue
         variants = raw_layouts.get(slide_type)
         if not isinstance(variants, dict) or not variants:
             _presentation_error(manifest_path, f'layouts.{slide_type} must be a non-empty object')
@@ -5239,7 +5252,8 @@ def _load_presentation_package(root, scope):
         layout_defaults = _parse_slide_layout_config(
             descriptor['slide_layouts'],
             f'{manifest_path}: presets.{preset_id}.slide_layouts')
-        missing = sorted(set(_PRESENTATION_SLIDE_TYPES) - set(layout_defaults))
+        missing = sorted(set(_PRESENTATION_SLIDE_TYPES) - {'unit-index'}
+                         - set(layout_defaults))
         if missing:
             _presentation_error(
                 manifest_path,
@@ -7998,15 +8012,13 @@ TEMPLATE_SKELETON = r'''/* LightWebPres skeleton — layout only: everything no 
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but the two theme measures
-       — a colour here would survive theming,
-       the exact defect the registry kills.
+      - no colour literal: inherit theme ink and use engine-owned measures
+        and the UI font. The index column limit is authored layout state.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
    the output would read it as markup. */
 
-/* The skeleton consumes two engine-owned layout measures.
-   Every other variable comes from the engine. */
+/* Theme variables come from the engine; index columns come from its markup. */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -8052,6 +8064,7 @@ html.about-open, html.about-open body { overflow: hidden; }
 /* Route focus identifies a reading destination, not an interactive control.
    Keep link/control focus rings, but do not outline an entire contents view. */
 #lwp-series-view:focus, #lwp-series-view > .slide:focus { outline: none; }
+.slide-unit-index:focus, .lwp-unit-index:focus { outline: none; }
 .article-card[hidden], .series-item[hidden] { display: none; }
 /* The number sits over the COLUMN, not over the card.
 
@@ -8363,6 +8376,53 @@ html:not([data-lwp-table-mode]) body[data-lwp-table-mode="scroll"] .lwp-table-vi
 .series-label { margin-bottom: 4px; }
 .series-title { margin-bottom: 4px; }
 .series-desc { margin-bottom: 8px; }
+
+/* --- Unit contents: a reading list, not a second set of boxed cards. --- */
+.lwp-unit-index {
+  max-width: var(--page-content-max);
+  min-width: 0;
+  font-size: max(16px, 2vmin);
+  line-height: 1.45;
+}
+.lwp-unit-index-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0 1.5rem;
+  /* The authored count is a ceiling. Narrow columns collapse without JS;
+     row-major placement keeps visual, keyboard and source order identical. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(14rem,
+    calc((100% - (var(--lwp-index-columns, 1) - 1) * 1.5rem)
+      / var(--lwp-index-columns, 1)))), 1fr));
+}
+.lwp-unit-index-list > li { min-width: 0; }
+.lwp-unit-index-link {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75em;
+  min-height: 44px;
+  height: 100%;
+  padding: 0.65em 0.25em;
+  border-bottom: 1px solid;
+  border-color: color-mix(in srgb, currentColor 20%, transparent);
+  color: inherit;
+  text-decoration: none;
+  scroll-margin-block: 24px;
+}
+.lwp-unit-index-number {
+  flex: 0 0 2.5ch;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85em;
+}
+.lwp-unit-index-title { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.lwp-unit-index-link:hover .lwp-unit-index-title,
+.lwp-unit-index-link:focus-visible .lwp-unit-index-title {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.lwp-unit-index-link:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.lwp-unit-index-empty { padding-block: 0.65em; }
 
 /* --- Navigation chrome. The opacities below fade a control's glyph, not
    running text, which is why they are allowed to stay literal. --- */
@@ -9238,6 +9298,11 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
      sheets, four printed five. A rule that selects nothing is invisible
      in the source and obvious in the paper tray. */
   .slide:last-of-type { page-break-after: auto; break-after: auto; }
+  /* A long contents list continues on paper in source order, without a
+     grid row or flex item making the entire list an unbreakable object. */
+  .slide-unit-index { display: block; }
+  .lwp-unit-index-list { display: block; }
+  .lwp-unit-index-link { height: auto; break-inside: avoid; }
   @page { margin: 1.5cm; }
 }
 
@@ -9892,6 +9957,18 @@ function lwpSetLanguage(code, targetDocument) {
     var action = lwpString(button.getAttribute('data-lwp-share-title'));
     var scope = lwpString(button.getAttribute('data-lwp-share-scope'));
     if (action && scope) button.title = action + ' — ' + scope;
+  });
+  // Index entries are authored selections, not a runtime tag-filtered list.
+  // Only generated target labels follow UI language; authored titles stay put.
+  Array.prototype.forEach.call(languageDocument.querySelectorAll('.lwp-unit-index'), function (nav) {
+    var heading = nav.closest('.slide').querySelector('h2');
+    if (heading) nav.setAttribute('aria-label', heading.textContent);
+    Array.prototype.forEach.call(nav.querySelectorAll('.lwp-unit-index-link'), function (link) {
+      var target = languageDocument.getElementById(link.getAttribute('data-lwp-index-target'));
+      var label = target && target.querySelector('h2[data-lwp-i18n]');
+      var title = link.querySelector('.lwp-unit-index-title');
+      if (label && title) title.textContent = label.textContent;
+    });
   });
   // Source labels are followed by authored text, so update only the leading
   // text node and preserve the build's typographic spacing before the colon.
@@ -10607,7 +10684,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     window.addEventListener('resize', function () { schedule('resize'); });
     schedule('initial');
-    return {schedule: schedule, reset: function () {
+    return {schedule: schedule, navigate: function (slide, position) {
+      // Tag reveal may already have queued a layout against the old slide.
+      // Explicit navigation wins over that saved reading position.
+      if (frame !== null) pendingPosition = position || {slide: slide, ratio: 0};
+    }, reset: function () {
       if (frame !== null) cancelAnimationFrame(frame);
       frame = null;
       pendingPosition = null;
@@ -11415,6 +11496,9 @@ document.addEventListener('DOMContentLoaded', function() {
         window.history.replaceState(null, '', fragment);
         if (seriesViews) seriesLastHash = location.hash;
         readingPosition = captureReadingPosition();
+        if (readingRuntime) readingRuntime.navigate(target, {
+          slide: target, ratio: readingPosition ? readingPosition.ratio : 0, anchor: id
+        });
       }
     }
   }
@@ -12438,8 +12522,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var rect = slide.getBoundingClientRect();
     var targetY = rect.top + (window.pageYOffset || document.documentElement.scrollTop)
       + (position ? position.ratio * rect.height : 0);
-    if (seriesViews && seriesTarget) {
-      var anchor = document.getElementById(seriesTarget);
+    var anchorId = (seriesViews && seriesTarget) || (position && position.anchor);
+    if (anchorId) {
+      var anchor = document.getElementById(anchorId);
       if (anchor && anchor !== slide && anchor.closest('section.slide') === slide) {
         targetY = window.pageYOffset + anchor.getBoundingClientRect().top
           - navigableCardViewportMargin;
@@ -12479,6 +12564,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (idx === current && isScrolling) return;
     current = idx;
     focusedCard = -1;
+    if (readingRuntime) readingRuntime.navigate(slides[idx]);
     recordSlideInUrl(idx);
     var targetY = slides[idx].getBoundingClientRect().top
                   + (window.pageYOffset || document.documentElement.scrollTop);
@@ -12499,12 +12585,24 @@ document.addEventListener('DOMContentLoaded', function() {
     updateUI();
   }
 
-  // The series-nav slide's cards, in document order (includes the "back
-  // to index" link, itself an .series-link — it's a legitimate stop in
-  // the same keyboard journey). Empty on every other slide.
+  // Navigation links in source order. Unit indexes retain their build-time
+  // selection, including targets outside the active reading tag.
   function slideCards(idx) {
-    return Array.prototype.slice.call(slides[idx].querySelectorAll('.series-list a.series-link'));
+    return Array.prototype.slice.call(slides[idx].querySelectorAll(
+      '.series-list a.series-link, .lwp-unit-index a.lwp-unit-index-link'));
   }
+  document.addEventListener('focusin', function (event) {
+    if (!event.target.matches('.lwp-unit-index-link')) return;
+    var idx = slides.indexOf(event.target.closest('.slide'));
+    if (idx < 0) return;
+    // Tab and pointer focus join the same cursor as remote card stepping.
+    if (idx !== current) {
+      current = idx;
+      recordSlideInUrl(idx);
+      updateUI();
+    }
+    focusedCard = slideCards(idx).indexOf(event.target);
+  });
 
   // The index page's own cards — the whole journey, where on an article
   // the same journey belongs to the series-nav slide.
@@ -16715,7 +16813,8 @@ def _is_paragraph_continuation(line, lines, idx, n):
 
 def convert_markdown(md_text, typo_engine=None, disabled=None,
                      notes=None, strings=None, absorb_punct=False,
-                     inline_images=False, sources_dir=None, table_candidates=None):
+                     inline_images=False, sources_dir=None, table_candidates=None,
+                     heading_capture=None):
     """Converts the Markdown body to HTML.
 
     `notes` is the NoteScope this text's notes belong to. A deferred scope
@@ -17013,6 +17112,12 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             f'{align_depth} unclosed {{align:...}} block(s): every opener '
             f'needs a {{/align}} alone on its own line')
     html = '\n'.join(out)
+    if heading_capture is not None:
+        heading = re.search(r'<h[12]\b[^>]*>(.*?)</h[12]>', html, re.DOTALL)
+        if heading:
+            # Index labels describe the heading, not its eventual footnote
+            # number or the deferred markers used by page-wide note resolution.
+            heading_capture.append(_NOTE_CALL_RE.sub('', heading.group(1)))
     # A local scope closes here: its calls get their numbers and its bodies
     # follow the text they belong to. A deferred one has only been filling
     # up -- the page closes it, once every card and the article have been
@@ -17056,6 +17161,748 @@ SLIDE_FIELD_NAMES = (
 _PRESENTATION_SLIDE_FIELDS = ('slide-layout', 'slide-header', 'slide-footer')
 
 
+# Logical selection is independent of physical output and publication policy.
+from collections.abc import Mapping
+from enum import IntEnum
+
+
+class LogicalScope(IntEnum):
+    SERIES = 0
+    UNIT = 1
+    SLIDE = 2
+
+
+def resolve_scoped(candidates, policy='specific-first', default=None, accept=None):
+    """Resolve before matching; trace eligibility without mutating declarations.
+
+    Larger priority wins within a scope (or globally for source-order). Ties
+    retain input order. fallback defaults to scope is None; all fallback
+    candidates follow explicit sources. An unscoped nonfallback source (CLI)
+    is valid only with source-order, not either logical traversal policy.
+    accept(value) is field-specific; by default false, None and empty all count.
+    The synthetic default is unconditional and last. 'contributes' records
+    eligibility, not whether the candidate won.
+    """
+    if policy not in ('specific-first', 'general-first', 'source-order'):
+        raise ValueError('Unknown resolution policy: %s' % policy)
+    trace = []
+    for candidate in candidates:
+        item = dict(candidate)
+        scope = item.get('scope')
+        if scope is not None:
+            if isinstance(scope, bool) or not isinstance(scope, int):
+                raise ValueError('Logical scope must be 0, 1, 2 or None')
+            scope = int(LogicalScope(scope))
+        fallback = item.get('fallback', scope is None)
+        if not isinstance(fallback, bool):
+            raise ValueError('Candidate fallback must be a boolean')
+        if scope is None and not fallback and policy != 'source-order':
+            raise ValueError('Unscoped nonfallback sources require source-order')
+        priority = item.get('priority', 0)
+        if isinstance(priority, bool) or not isinstance(priority, int):
+            raise ValueError('Source priority must be an integer')
+        present = item.get('present', 'value' in item)
+        contributes = bool(present and item.get('contributes', True))
+        if contributes and accept is not None:
+            contributes = bool(accept(item.get('value')))
+        item.update(scope=scope, fallback=fallback, priority=priority, present=bool(present),
+                    contributes=contributes)
+        trace.append(item)
+
+    def precedence(item):
+        scope = item['scope']
+        distance = 0 if item['fallback'] or policy == 'source-order' else scope
+        if policy == 'specific-first':
+            distance = -distance
+        return (item['fallback'], distance, -item['priority'])
+
+    trace.sort(key=precedence)
+    trace.append({'scope': None, 'fallback': True, 'source': 'default', 'priority': 0,
+                  'value': default, 'present': True, 'contributes': True})
+    winner = next(item for item in trace if item['contributes'])
+    return {'value': winner.get('value'), 'scope': winner['scope'],
+            'source': winner.get('source'), 'candidates': trace}
+
+
+def _structural_setting_present(value):
+    """The notes/numbering metadata blank rule; false and None are not blanks."""
+    return bool(str(value).strip())
+
+
+def _article_selector_field_policies():
+    """Eligibility from the existing metadata resolvers, not a universal rule.
+
+    Resolve the registries at call time: their declarations follow this core.
+    Tags and chrome are deliberately absent: an empty gate/slot is a value.
+    """
+    policies = dict.fromkeys(_RESOLVED_FIELDS + _EDITORIAL_FIELDS + ('status',), bool)
+    policies.update(dict.fromkeys(tuple(_NOTES_FIELD_DEFAULTS) + ('slide_page_numbers',),
+                                  _structural_setting_present))
+    policies['slug_prefix'] = lambda value: value is not None and bool(str(value).strip())
+    return policies
+
+
+def make_selector_record(series_fields, unit_sources, slide_fields, field_policies=None):
+    """Build query views from owned fields, never from inherited unit defaults.
+
+    unit_sources contains {source, priority, values}; callers supply only known
+    authored/derived fields, not arbitrary parser metadata. Status defaults to
+    active only in resolved views. Effective tags are slide-owned, not a union
+    with the independent unit reading gate. origin[field] is the effective
+    resolution trace, including value, numeric scope, source and candidates.
+    field_policies optionally maps field names to accept(value) predicates;
+    omitted fields retain false/empty/None. Eligibility applies before all
+    scoped and resolved reads, and rejected declarations remain in the trace.
+    A scoped field with no eligible declaration is absent, not inherited.
+    """
+    sources = [(LogicalScope.SERIES, 'series', 0, series_fields)]
+    sources.extend((LogicalScope.UNIT, item['source'], item['priority'],
+                    item['values']) for item in unit_sources)
+    sources.append((LogicalScope.SLIDE, 'slide', 0, slide_fields))
+    fields = {}
+    for scope, source, priority, values in sources:
+        for field, value in values.items():
+            fields.setdefault(field, []).append(
+                {'scope': scope, 'source': source, 'priority': priority,
+                 'value': value})
+    record = {view: {} for view in ('series', 'unit', 'slide', 'effective',
+                                   'specific', 'general', 'origin')}
+    fields.setdefault('status', [])
+    fields.setdefault('tags', [])
+    for field, candidates in fields.items():
+        default = 'active' if field == 'status' else None
+        accept = (field_policies or {}).get(field)
+        for scope in LogicalScope:
+            owned = [item for item in candidates if item['scope'] == scope]
+            if owned:
+                resolved = resolve_scoped(owned, accept=accept)
+                if resolved['scope'] is not None:
+                    record[scope.name.lower()][field] = resolved['value']
+        specific = resolve_scoped(candidates, default=default, accept=accept)
+        general = resolve_scoped(candidates, 'general-first', default=default, accept=accept)
+        effective = specific
+        if field == 'tags':
+            effective = resolve_scoped(
+                [item for item in candidates if item['scope'] == LogicalScope.SLIDE],
+                default=[], accept=accept)
+        record['specific'][field] = specific['value']
+        record['general'][field] = general['value']
+        record['effective'][field] = effective['value']
+        record['origin'][field] = effective
+    return record
+
+
+class SelectorError(ValueError):
+    """Invalid or over-budget selector, never an implicit wildcard."""
+
+
+_SELECTOR_VIEWS = frozenset(('series', 'unit', 'slide', 'effective',
+                             'specific', 'general', 'origin'))
+_SELECTOR_MISSING = object()
+_SELECTOR_LIMITS = {'query': 4096, 'depth': 32, 'nodes': 256, 'names': 64,
+                    'regex': 512, 'states': 256, 'repeat': 64,
+                    'input': 8192, 'array': 1024, 'steps': 16384,
+                    'regex_work': 4000000}
+
+
+class _SelectorRegex:
+    """Bounded Thompson NFA, NOT Python re or RFC I-Regexp.
+
+    Case-sensitive Unicode literals, dot (except LF), classes/ranges/negation,
+    absolute start/end anchors ^/$ (not line anchors), *, +, ?,
+    {m}, {m,n}, {m,} are supported. Escapes: punctuation and n/r/t only.
+    No groups, alternation, shorthand classes, flags, backrefs or lookaround.
+    Evaluation uses O(states) memory, no backtracking. Work is linear in input
+    length times compiled transitions and class ranges, with an aggregate cap.
+    """
+
+    def __init__(self, pattern):
+        if len(pattern) > _SELECTOR_LIMITS['regex']:
+            raise SelectorError('Regex length limit exceeded')
+        self.edges = [[]]
+        self.pattern = pattern
+        self.pos = 0
+        current = 0
+        while self.pos < len(pattern):
+            char = pattern[self.pos]
+            self.pos += 1
+            if char in '^$':
+                if (char == '^' and self.pos != 1 or
+                        char == '$' and self.pos != len(pattern)):
+                    raise SelectorError('Regex anchors must be at the ends')
+                target = self._state()
+                self.edges[current].append((char, None, target))
+                current = target
+                continue
+            if char == '.':
+                atom = ('dot', None)
+            elif char == '[':
+                negate = self.pos < len(pattern) and pattern[self.pos] == '^'
+                self.pos += int(negate)
+                ranges = []
+                while self.pos < len(pattern) and pattern[self.pos] != ']':
+                    low = self._character()
+                    high = low
+                    if (self.pos + 1 < len(pattern) and pattern[self.pos] == '-'
+                            and pattern[self.pos + 1] != ']'):
+                        self.pos += 1
+                        high = self._character()
+                        if ord(low) > ord(high):
+                            raise SelectorError('Reversed regex character range')
+                    ranges.append((ord(low), ord(high)))
+                if not ranges or self.pos == len(pattern):
+                    raise SelectorError('Empty or unclosed regex character class')
+                self.pos += 1
+                atom = ('class', (negate, ranges))
+            elif char == '\\':
+                self.pos -= 1
+                atom = ('literal', self._character())
+            elif char in '()*+?{}|]':
+                raise SelectorError('Unsupported regex syntax: %s' % char)
+            else:
+                atom = ('literal', char)
+            minimum, maximum = 1, 1
+            if self.pos < len(pattern):
+                quantifier = pattern[self.pos]
+                if quantifier in '*+?':
+                    minimum, maximum = {'*': (0, None), '+': (1, None),
+                                        '?': (0, 1)}[quantifier]
+                    self.pos += 1
+                elif quantifier == '{':
+                    self.pos += 1
+                    start = self.pos
+                    while self.pos < len(pattern) and pattern[self.pos] in '0123456789':
+                        self.pos += 1
+                    if self.pos == start:
+                        raise SelectorError('Invalid regex repetition')
+                    minimum = int(pattern[start:self.pos])
+                    maximum = minimum
+                    if self.pos < len(pattern) and pattern[self.pos] == ',':
+                        self.pos += 1
+                        start = self.pos
+                        while self.pos < len(pattern) and pattern[self.pos] in '0123456789':
+                            self.pos += 1
+                        maximum = int(pattern[start:self.pos]) if self.pos > start else None
+                    if self.pos == len(pattern) or pattern[self.pos] != '}':
+                        raise SelectorError('Unclosed regex repetition')
+                    self.pos += 1
+                    if (minimum > _SELECTOR_LIMITS['repeat'] or
+                            maximum is not None and (maximum < minimum or
+                            maximum > _SELECTOR_LIMITS['repeat'])):
+                        raise SelectorError('Regex repetition limit or range invalid')
+            for unused in range(minimum):
+                target = self._state()
+                self.edges[current].append((atom[0], atom[1], target))
+                current = target
+            if maximum is None:
+                self.edges[current].append((atom[0], atom[1], current))
+                target = self._state()
+                self.edges[current].append(('epsilon', None, target))
+                current = target
+            else:
+                for unused in range(maximum - minimum):
+                    target = self._state()
+                    self.edges[current].extend((('epsilon', None, target),
+                                                (atom[0], atom[1], target)))
+                    current = target
+        self.end = current
+        # Include class-range scans in the bound, not just transition count.
+        self.cost = sum(1 + (len(value[1]) if kind == 'class' else 0)
+                        for edges in self.edges for kind, value, target in edges)
+
+    def _state(self):
+        if len(self.edges) >= _SELECTOR_LIMITS['states']:
+            raise SelectorError('Regex state limit exceeded')
+        self.edges.append([])
+        return len(self.edges) - 1
+
+    def _character(self):
+        char = self.pattern[self.pos]
+        self.pos += 1
+        if char != '\\':
+            return char
+        if self.pos == len(self.pattern):
+            raise SelectorError('Trailing regex escape')
+        char = self.pattern[self.pos]
+        self.pos += 1
+        if char in 'nrt':
+            return {'n': '\n', 'r': '\r', 't': '\t'}[char]
+        if char.isalnum():
+            raise SelectorError('Unsupported regex escape: \\' + char)
+        return char
+
+    def test(self, text, full=False, budget=None):
+        if not isinstance(text, str):
+            return False
+        if len(text) > _SELECTOR_LIMITS['input']:
+            raise SelectorError('Regex input length limit exceeded')
+        if budget is not None:
+            budget[0] -= (len(text) + 1) * (self.cost + len(self.edges))
+            if budget[0] < 0:
+                raise SelectorError('Selector regex work limit exceeded')
+        active = {0}
+        for pos in range(len(text) + 1):
+            if not full:
+                active.add(0)
+            pending = list(active)
+            while pending:
+                for kind, value, target in self.edges[pending.pop()]:
+                    if (kind == 'epsilon' or kind == '^' and pos == 0 or
+                            kind == '$' and pos == len(text)) and target not in active:
+                        active.add(target)
+                        pending.append(target)
+            if self.end in active and (not full or pos == len(text)):
+                return True
+            if pos == len(text):
+                break
+            char = text[pos]
+            following = set()
+            for state in active:
+                for kind, value, target in self.edges[state]:
+                    matches = kind == 'literal' and char == value or kind == 'dot' and char != '\n'
+                    if kind == 'class':
+                        negate, ranges = value
+                        matches = any(low <= ord(char) <= high for low, high in ranges) != negate
+                    if matches:
+                        following.add(target)
+            active = following
+        return False
+
+
+class _SelectorCompiler:
+    """Two bounded spelling frontends sharing tuple predicate nodes."""
+
+    def __init__(self, selectors):
+        if selectors is not None and not isinstance(selectors, Mapping):
+            raise SelectorError('Named selectors must be a mapping')
+        self.selectors = selectors or {}
+        self.named = {}
+        self.stack = []
+        self.nodes = 0
+        self.depth = 0
+
+    def node(self, kind, *args):
+        self.nodes += 1
+        if self.nodes > _SELECTOR_LIMITS['nodes']:
+            raise SelectorError('Selector AST node limit exceeded')
+        return (kind,) + args
+
+    def compile(self, expression):
+        if not isinstance(expression, str) or not expression.strip():
+            raise SelectorError('Selector must be a nonempty string')
+        if len(expression) > _SELECTOR_LIMITS['query']:
+            raise SelectorError('Selector query length limit exceeded')
+        return _SelectorParser(self, expression.strip()).parse()
+
+    def reference(self, name):
+        if name in self.stack:
+            raise SelectorError('Named selector cycle: ' + ' -> '.join(self.stack + [name]))
+        if name not in self.selectors:
+            raise SelectorError('Unknown named selector: ' + name)
+        if name not in self.named:
+            if len(self.stack) >= _SELECTOR_LIMITS['depth']:
+                raise SelectorError('Named selector depth limit exceeded')
+            if len(self.named) + len(self.stack) >= _SELECTOR_LIMITS['names']:
+                raise SelectorError('Named selector count limit exceeded')
+            self.stack.append(name)
+            self.named[name] = self.compile(self.selectors[name])
+            self.stack.pop()
+        return self.named[name]
+
+
+class _SelectorParser:
+    def __init__(self, compiler, text):
+        self.compiler = compiler
+        self.text = text
+        self.pos = 0
+        self.relative = 0
+        self.jsonpath = text.startswith('$')
+
+    def error(self, message):
+        raise SelectorError('%s at selector offset %d' % (message, self.pos))
+
+    def space(self):
+        start = self.pos
+        while self.pos < len(self.text) and self.text[self.pos].isspace():
+            self.pos += 1
+        return self.pos > start
+
+    def take(self, token):
+        if self.text.startswith(token, self.pos):
+            self.pos += len(token)
+            return True
+        return False
+
+    def require(self, token):
+        self.space()
+        if not self.take(token):
+            self.error('Expected ' + token)
+
+    def parse(self):
+        if self.jsonpath:
+            self.require('$[')
+            self.space()
+            if self.take('*'):
+                result = self.compiler.node('all')
+            else:
+                self.require('?')
+                result = self.disjunction()
+            self.require(']')
+        else:
+            result = self.disjunction()
+        self.space()
+        if self.pos != len(self.text):
+            self.error('Unsupported selector syntax')
+        return result
+
+    def disjunction(self):
+        result = self.conjunction()
+        while True:
+            self.space()
+            if not self.take('||' if self.jsonpath else '|'):
+                return result
+            result = self.compiler.node('or', result, self.conjunction())
+
+    def conjunction(self):
+        result = self.unary()
+        while True:
+            gap = self.space()
+            if self.jsonpath:
+                more = self.take('&&')
+            else:
+                more = gap and self.pos < len(self.text) and self.text[self.pos] not in '|)'
+            if not more:
+                return result
+            result = self.compiler.node('and', result, self.unary())
+
+    def unary(self):
+        self.space()
+        self.compiler.depth += 1
+        if self.compiler.depth > _SELECTOR_LIMITS['depth']:
+            self.error('Selector nesting depth limit exceeded')
+        if self.take('!' if self.jsonpath else '-'):
+            result = self.compiler.node('not', self.unary())
+        elif self.take('('):
+            result = self.disjunction()
+            self.require(')')
+        else:
+            result = self.json_predicate() if self.jsonpath else self.compact_term()
+        self.compiler.depth -= 1
+        return result
+
+    def quoted(self):
+        quote = self.text[self.pos]
+        self.pos += 1
+        result = []
+        while self.pos < len(self.text):
+            char = self.text[self.pos]
+            self.pos += 1
+            if char == quote:
+                # Combine JSON UTF-16 surrogate pairs without changing literal Unicode.
+                value = ''.join(result)
+                try:
+                    return value.encode('utf-16-le', 'surrogatepass').decode('utf-16-le')
+                except UnicodeError:
+                    self.error('Unpaired Unicode surrogate')
+            if ord(char) < 32:
+                self.error('Control character in quoted string')
+            if char == '\\':
+                if self.pos == len(self.text):
+                    self.error('Trailing string escape')
+                char = self.text[self.pos]
+                self.pos += 1
+                escapes = {'n': '\n', 'r': '\r', 't': '\t', 'b': '\b',
+                           'f': '\f', '\\': '\\', '/': '/', '"': '"', "'": "'"}
+                if char == 'u':
+                    digits = self.text[self.pos:self.pos + 4]
+                    if len(digits) != 4 or any(c not in '0123456789abcdefABCDEF' for c in digits):
+                        self.error('Invalid Unicode escape')
+                    char = chr(int(digits, 16))
+                    self.pos += 4
+                elif char in escapes:
+                    char = escapes[char]
+                else:
+                    self.error('Unsupported string escape')
+            result.append(char)
+        self.error('Unclosed quoted string')
+
+    def compact_value(self):
+        if self.pos == len(self.text):
+            self.error('Missing term value')
+        if self.text[self.pos] in '\'"':
+            return self.quoted(), False
+        if self.take('/'):
+            chars = []
+            while self.pos < len(self.text):
+                char = self.text[self.pos]
+                self.pos += 1
+                if char == '/':
+                    return _SelectorRegex(''.join(chars)), True
+                if char == '\\' and self.pos < len(self.text):
+                    following = self.text[self.pos]
+                    self.pos += 1
+                    chars.append('/' if following == '/' else '\\' + following)
+                else:
+                    chars.append(char)
+            self.error('Unclosed regex literal')
+        start = self.pos
+        while (self.pos < len(self.text) and not self.text[self.pos].isspace()
+               and self.text[self.pos] not in ':|()'):
+            if self.text[self.pos] in '\\[]$@&!\'"':
+                self.error('Quote punctuation in compact literals')
+            self.pos += 1
+        if self.pos == start:
+            self.error('Missing term value')
+        return self.text[start:self.pos], False
+
+    def compact_term(self):
+        if self.take('*'):
+            return self.compiler.node('all')
+        first, regex = self.compact_value()
+        view, field = 'effective', 'tags'
+        value = first
+        if self.take(':'):
+            if regex:
+                self.error('Regex cannot name a field')
+            if first == 'selector':
+                name, is_regex = self.compact_value()
+                if is_regex:
+                    self.error('Named selector requires a literal name')
+                return self.compiler.reference(name)
+            if first in _SELECTOR_VIEWS:
+                view = first
+                field, is_regex = self.compact_value()
+                if is_regex:
+                    self.error('Regex cannot name a field')
+                if not self.take(':'):
+                    self.error('Expected scope:field:value without spaces')
+            else:
+                field = first
+            value, regex = self.compact_value()
+            if self.pos < len(self.text) and self.text[self.pos] == ':':
+                self.error('Unknown scope or unexpected colon')
+        if field == 'tag':
+            field = 'tags'
+        if field == 'tags' and not regex:
+            value = value.casefold()
+        path = self.compiler.node('path', (view, field))
+        return self.compiler.node('term', path, value, regex)
+
+    def identifier(self):
+        start = self.pos
+        if self.pos < len(self.text) and (self.text[self.pos].isalpha() or self.text[self.pos] == '_'):
+            self.pos += 1
+            while self.pos < len(self.text) and (self.text[self.pos].isalnum() or self.text[self.pos] == '_'):
+                self.pos += 1
+        if start == self.pos:
+            self.error('Expected identifier')
+        return self.text[start:self.pos]
+
+    def path(self):
+        self.require('@')
+        fields = []
+        while True:
+            if self.take('.'):
+                fields.append(self.identifier())
+            elif self.text.startswith("['", self.pos) or self.text.startswith('["', self.pos):
+                self.pos += 1
+                fields.append(self.quoted())
+                self.require(']')
+            else:
+                break
+            if len(fields) > _SELECTOR_LIMITS['depth']:
+                self.error('Selector path depth limit exceeded')
+        if not self.relative and (len(fields) < 2 or fields[0] not in _SELECTOR_VIEWS):
+            self.error('Record paths require a known view and field')
+        return self.compiler.node('path', tuple(fields))
+
+    def scalar(self):
+        self.space()
+        if self.pos == len(self.text):
+            self.error('Expected scalar')
+        if self.text[self.pos] in '\'"':
+            return self.compiler.node('literal', self.quoted())
+        for word, value in (('true', True), ('false', False), ('null', None)):
+            if self.take(word):
+                return self.compiler.node('literal', value)
+        # JSON's numeric grammar, bounded by the query limit; no user regex runs.
+        match = re.match(r'-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?', self.text[self.pos:])
+        if match:
+            self.pos += len(match.group())
+            value = json.loads(match.group())
+            if isinstance(value, float) and (value == float('inf') or value == -float('inf')):
+                self.error('Nonfinite numeric literal')
+            return self.compiler.node('literal', value)
+        self.error('Expected JSON scalar literal')
+
+    def operand(self):
+        self.space()
+        return self.path() if self.text.startswith('@', self.pos) else self.scalar()
+
+    def json_predicate(self):
+        self.space()
+        for name in ('match', 'search'):
+            if self.text.startswith(name + '(', self.pos):
+                self.pos += len(name) + 1
+                operand = self.operand()
+                self.require(',')
+                self.space()
+                if self.pos == len(self.text) or self.text[self.pos] not in '\'"':
+                    self.error('Regex function requires a constant quoted pattern')
+                pattern = _SelectorRegex(self.quoted())
+                self.require(')')
+                return self.compiler.node('regex', operand, pattern, name == 'match')
+        left = self.operand()
+        self.space()
+        if self.take('[?'):
+            if left[0] != 'path':
+                self.error('Array filter requires a path')
+            self.relative += 1
+            self.compiler.depth += 1
+            predicate = self.disjunction()
+            self.compiler.depth -= 1
+            self.relative -= 1
+            self.require(']')
+            return self.compiler.node('exists_filter', left, predicate)
+        for operator in ('==', '!=', '<=', '>=', '<', '>'):
+            if self.take(operator):
+                return self.compiler.node('compare', operator, left, self.operand())
+        if left[0] != 'path':
+            self.error('A scalar alone is not a predicate')
+        return self.compiler.node('exists', left)
+
+
+class _CompiledSelector:
+    """Reusable callable over one record; no mutable per-record state is retained."""
+
+    def __init__(self, ast):
+        self.ast = ast
+
+    def __call__(self, record):
+        cache = {}
+        steps = [0]
+        regex_budget = [_SELECTOR_LIMITS['regex_work']]
+
+        def evaluate(node, context):
+            key = (id(node), id(context))
+            if key in cache:
+                return cache[key]
+            steps[0] += 1
+            if steps[0] > _SELECTOR_LIMITS['steps']:
+                raise SelectorError('Selector evaluation step limit exceeded')
+            kind = node[0]
+            if kind == 'all':
+                result = True
+            elif kind == 'literal':
+                result = node[1]
+            elif kind == 'path':
+                result = context
+                for field in node[1]:
+                    if not isinstance(result, dict) or field not in result:
+                        result = _SELECTOR_MISSING
+                        break
+                    result = result[field]
+            elif kind == 'and':
+                result = evaluate(node[1], context) and evaluate(node[2], context)
+            elif kind == 'or':
+                result = evaluate(node[1], context) or evaluate(node[2], context)
+            elif kind == 'not':
+                result = not evaluate(node[1], context)
+            elif kind == 'exists':
+                result = evaluate(node[1], context) is not _SELECTOR_MISSING
+            elif kind == 'exists_filter':
+                values = evaluate(node[1], context)
+                result = False
+                if isinstance(values, list):
+                    if len(values) > _SELECTOR_LIMITS['array']:
+                        raise SelectorError('Selector array length limit exceeded')
+                    result = any(evaluate(node[2], value) for value in values)
+            elif kind == 'regex':
+                result = node[2].test(evaluate(node[1], context), full=node[3],
+                                      budget=regex_budget)
+            elif kind == 'term':
+                values = evaluate(node[1], context)
+                values = values if isinstance(values, list) else [values]
+                if len(values) > _SELECTOR_LIMITS['array']:
+                    raise SelectorError('Selector array length limit exceeded')
+                if not node[3] and node[1][1][-1] == 'tags':
+                    values = [value.casefold() if isinstance(value, str) else value for value in values]
+                result = any(node[2].test(value, budget=regex_budget) if node[3] else
+                             isinstance(value, str) and value == node[2] for value in values)
+            elif kind == 'compare':
+                operator = node[1]
+                left, right = evaluate(node[2], context), evaluate(node[3], context)
+                scalar_types = (str, int, float, bool, type(None))
+                missing = left is _SELECTOR_MISSING or right is _SELECTOR_MISSING
+                scalar = isinstance(left, scalar_types) and isinstance(right, scalar_types)
+                numbers = (type(left) in (int, float) and type(right) in (int, float))
+                same_type = type(left) is type(right) or numbers
+                if missing or not scalar:
+                    result = False
+                elif operator in ('==', '!='):
+                    equal = same_type and left == right
+                    result = equal if operator == '==' else not equal
+                elif same_type and (numbers or isinstance(left, str)):
+                    if operator == '<':
+                        result = left < right
+                    elif operator == '>':
+                        result = left > right
+                    elif operator == '<=':
+                        result = left <= right
+                    else:
+                        result = left >= right
+                else:
+                    result = False
+            else:
+                raise SelectorError('Unknown predicate node')
+            cache[key] = result
+            return result
+
+        return bool(evaluate(self.ast, record))
+
+
+def compile_selector(expression, selectors=None):
+    """Compile to a reusable record -> bool callable, raising SelectorError.
+
+    Compact: *; bare tag; tag:value; field:value; view:field:value;
+    selector:name; /regex/ values (search); -NOT, whitespace AND, | OR, ().
+    AND/OR/NOT words are literal tags. Quote values with JSON-style escapes.
+    Precedence is NOT > AND > OR in both syntaxes. Compact colons have no
+    surrounding whitespace; tag is an alias for tags, not a special field type.
+
+    JSONPath FILTER PROFILE ONLY: $[*], $[? predicate]; && || ! (); scalar
+    comparisons == != < <= > >=; @.view.field and @['view']['field']; path
+    existence; path[? predicate] array existence with relative @; match(value,
+    "constant regex") full match and search(value, "constant regex"). No
+    projection, indexing, recursion, arithmetic, dynamic regex or full RFC
+    conformance. Missing operands make ALL comparisons false (including !=);
+    false/null/empty fields exist. Compact values match strings/list members.
+
+    Query length is per expression/definition; AST size and nesting are shared
+    across reachable names. Regex work and evaluation steps are per record;
+    array and string lengths are checked when their predicates are evaluated.
+    Limits in _SELECTOR_LIMITS are hard failures, not truncation. Names compile
+    as shared ASTs, never textual substitution; only reachable definitions are
+    compiled. The same expression and regex engines run in CPython and Pyodide.
+    """
+    return _CompiledSelector(_SelectorCompiler(selectors).compile(expression))
+
+
+def select_records(records, expression, selectors=None):
+    """Select in caller order, once per object identity; no implicit exclusions."""
+    predicate = compile_selector(expression, selectors)
+    result = []
+    seen = {}
+    for record in records:
+        identity = id(record)
+        if identity not in seen:
+            # Retain rejected objects too: a generator can otherwise reuse ids.
+            seen[identity] = record
+            if predicate(record):
+                result.append(record)
+    return result
+
+
 class SlideType:
     """One slide type: what it is called, how it carries its own title,
     which fields it accepts, what free text becomes on it, and what a
@@ -17075,11 +17922,12 @@ class SlideType:
         self.max_count = max_count
 
 
-# The four slide types, and the only place that list is written. Both the
+# The slide types, and the only place that list is written. Both the
 # validator and `--help` read it, so a type cannot be recognized by one and
 # missing from the other — and neither can drift from a description written
 # somewhere else. `comment` is on every type on purpose: it is parsed
 # everywhere and rendered nowhere (GLOSSARY.md).
+_UNIT_INDEX_FIELDS = ('index-max-columns', 'index-selector')
 SLIDE_TYPES = (
     SlideType(
         'cover', '#', ('slug', 'kicker', 'tags', 'summary',
@@ -17102,6 +17950,12 @@ SLIDE_TYPES = (
         'Pulls in a long-form .md file named by its `article:` field, '
         'which is required for publication. A page may carry several, each '
         'with its own file (§22.8).', required_fields=('slug', 'article')),
+    SlideType(
+        'unit-index', '##', ('slug', 'kicker', 'tags', 'summary',
+                             *_UNIT_INDEX_FIELDS, *_PRESENTATION_SLIDE_FIELDS,
+                             'comment', 'note'), None,
+        'An index of selected published slides in this unit. Multiple indexes '
+        'are allowed; the selector defaults to * and maximum columns to 1.'),
 )
 
 SLIDE_TYPES_BY_NAME = {t.name: t for t in SLIDE_TYPES}
@@ -17112,17 +17966,22 @@ SLIDE_TYPES_BY_NAME = {t.name: t for t in SLIDE_TYPES}
 # asking where it is set does not care which branch read it.
 _SLIDE_FIELD_ATTRS = {name: name.replace('-', '_') for name in SLIDE_FIELD_NAMES}
 _SLIDE_FIELD_ATTRS['article'] = 'article_file'
+_SLIDE_FIELD_ATTRS.update({name: name.replace('-', '_')
+                          for name in _UNIT_INDEX_FIELDS})
 
 
 # The versioned machine contract consumed by authoring clients. This is kept
 # beside the parser registry so a new type cannot be added to the grammar
 # without appearing in the contract as well.
-SLIDE_DRAFT_SCHEMA = 'lightwebpres.slide-draft/1'
+SLIDE_DRAFT_SCHEMA = 'lightwebpres.slide-draft/2'
 SLIDE_DRAFT_EMPTY_RULES = {
     'ordinary': 'an empty value is the same as an absent field',
     'tags': 'an empty value resolves to the default tag',
     'slug': 'the engine generates a non-empty value',
     'full-article.article': 'an empty value warns and omits the slide',
+    'unit-index.title': 'an empty title uses the localized unit index title',
+    'unit-index.index-max-columns': 'an empty value uses 1; otherwise a positive integer is required',
+    'unit-index.index-selector': 'an empty value uses *',
     'slide-layout': 'an empty value is invalid',
     'slide-header': 'an exact "" suppresses inherited chrome; an unquoted empty value is invalid',
     'slide-footer': 'an exact "" suppresses inherited chrome; an unquoted empty value is invalid',
@@ -17249,9 +18108,9 @@ def _slide_draft_source(slide_type, slug):
 
 
 def slide_draft_contract(existing_slugs=()):
-    """Return the versioned draft contract for all four slide types.
+    """Return the versioned draft contract for every slide type.
 
-    ``existing_slugs`` belongs to the target article. Four values are minted
+    ``existing_slugs`` belongs to the target article. Unique values are minted
     in one pass so every returned draft remains safe if a caller keeps more
     than one of them while composing a document.
     """
@@ -17416,6 +18275,8 @@ class Slide:
         self.extra_content = None  # series-nav/full-article only: unrecognized lines (fatal)
         self.article_file = None  # For full-article
         self.article_field_present = False
+        self.index_max_columns = 1
+        self.index_selector = '*'
         self.raw_meta = {}  # Raw metadata
 
 
@@ -17602,13 +18463,17 @@ def parse_markdown_extended(md_text):
             # ':' instead of preserving it as the value's first character
             # (§7.6).
             field_match = re.match(
-                r'^(' + '|'.join(SLIDE_FIELD_NAMES) + r'):[ \t]*(.*)', stripped)
+                r'^(' + '|'.join((*SLIDE_FIELD_NAMES, *_UNIT_INDEX_FIELDS))
+                + r'):[ \t]*(.*)', stripped)
             if field_match and not in_content:
                 key = field_match.group(1)
                 value = strip_ws(field_match.group(2)) or None
+                slide.raw_meta[key] = strip_ws(field_match.group(2))
                 if key in _PRESENTATION_SLIDE_FIELDS:
                     _set_presentation_slide_field(slide, key,
                                                   field_match.group(2))
+                elif key in _UNIT_INDEX_FIELDS:
+                    setattr(slide, _SLIDE_FIELD_ATTRS[key], value)
                 elif key == 'slug':
                     slide.slug = value
                 elif key == 'kicker':
@@ -17804,17 +18669,60 @@ def collect_article_slide_tags(slides, filename, strict=True):
     return tags
 
 
-def _slide_preview_title(slide, number):
+def _slide_preview_title(slide, number, strings=None):
     """Returns the plain title the tag menu can show for one source slide."""
     if slide.slide_type == 'series-nav':
         return ''
+    if slide.slide_type == 'unit-index' and not slide.h2:
+        return (strings or {}).get('unit_index_title', 'Contents')
     title = slide.h1 if slide.slide_type == 'cover' else slide.h2
     title = title or slide.h1 or slide.h2 or slide.kicker or slide.slug
     title = strip_ws(re.sub(r'<[^<>]+>', ' ', str(title or '')))
     return title or f'Slide {number}'
 
 
-def _collect_article_slide_details(slides, filename, strict=True):
+def _unit_has_page_endnotes(slides, meta, series_meta, sources_dir):
+    """Probe note definitions with the converter, without rendering a page.
+
+    Missing includes and invalid content remain the build/audit render's job.
+    No typography or image inspection runs here, so the metadata pass neither
+    reads presentation resources nor repeats their diagnostics.
+    """
+    placement = resolve_scoped([
+        {'scope': scope, 'source': origin, 'value': source.get('notes_placement'),
+         'present': 'notes_placement' in source}
+        for scope, source, origin in ((LogicalScope.UNIT, meta, 'unit-meta'),
+                                      (LogicalScope.SERIES, series_meta, 'series'))
+    ], default='local', accept=_structural_setting_present)['value']
+    if str(placement).strip().lower() != 'page':
+        return False
+    notes = NoteScope('p', endnotes=True, deferred=True)
+    for slide in slides:
+        if 'excluded' in _slide_tag_set(slide) or _is_incomplete_full_article(slide):
+            continue
+        text = None
+        if slide.slide_type == 'standard':
+            text = slide.fact_content
+        elif (slide.slide_type == 'full-article' and slide.article_file
+              and _is_safe_relative_filename(slide.article_file)):
+            path = _resolve_contained(sources_dir, slide.article_file)
+            if path is not None:
+                text = _read_article_source(path)
+        if not text or '[^' not in text:
+            continue
+        try:
+            convert_markdown(text, notes=notes, sources_dir=None)
+        except PropertyError:
+            # A partially converted body is not evidence of emitted endnotes.
+            notes = NoteScope('p', endnotes=True, deferred=True)
+            continue
+        if notes.bodies:
+            return True
+    return False
+
+
+def _collect_article_slide_details(slides, filename, strict=True, strings=None,
+                                    has_endnotes=False):
     """Returns the tag vocabulary and visible slide metadata for an article."""
     tags = []
     seen = set()
@@ -17833,10 +18741,19 @@ def _collect_article_slide_details(slides, filename, strict=True):
                 seen.add(tag)
                 tags.append(tag)
         details.append({
-            'title': _slide_preview_title(slide, number),
+            'title': _slide_preview_title(slide, number, strings),
             'type': slide.slide_type,
             'tags': visible_tags,
             'untagged': not slide_tags,
+        })
+    if has_endnotes:
+        if 'default' not in seen:
+            tags.append('default')
+        details.append({
+            'title': (strings or {}).get('notes_section_title', 'Notes'),
+            'type': 'notes',
+            'tags': ['default'],
+            'untagged': False,
         })
     return tags, details
 
@@ -17926,6 +18843,24 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
         normalize_slide_tags(slide, filename, i)
         if 'excluded' in slide.tags:
             continue
+
+        if slide.slide_type != 'unit-index':
+            unsupported = set(_UNIT_INDEX_FIELDS) & set(slide.raw_meta)
+            if unsupported:
+                log('error', f'{filename}: slide {i} ({slide.slide_type}) '
+                    f'does not accept {", ".join(sorted(unsupported))}.')
+                sys.exit(1)
+        else:
+            unsupported = set(slide.raw_meta) - set(
+                SLIDE_TYPES_BY_NAME['unit-index'].fields)
+            if unsupported or slide.fact_content:
+                log('error', f'{filename}: slide {i} (unit-index) accepts only '
+                    'its declared fields and an optional ## title; no free body '
+                    f'or unsupported fields ({", ".join(sorted(unsupported))}).')
+                sys.exit(1)
+            slide.index_max_columns = _unit_index_columns(
+                slide.index_max_columns, f'{filename}: slide {i}: index-max-columns')
+            slide.index_selector = slide.index_selector or '*'
 
         for field in _PRESENTATION_SLIDE_FIELDS:
             if field not in slide.raw_meta:
@@ -18053,18 +18988,28 @@ def resolve_notes_settings(meta, series_meta, source_name, errors=None):
     default would leave an author reading a page that ignores what they
     asked for, with nothing to tell them why."""
     def pick(key, allowed, default):
-        for source, origin in ((meta, source_name), (series_meta, 'series.json')):
-            if key in source and str(source[key]).strip():
-                value = str(source[key]).strip().lower()
-                if value not in allowed:
-                    log('error', f'{origin}: {key}: {value!r} is not a valid '
-                          f'value ({" | ".join(sorted(allowed))}).')
-                    if errors is None:
-                        sys.exit(1)
-                    errors.append(key)
-                    continue
+        candidates = [
+            {'scope': scope, 'source': origin, 'value': source.get(key),
+             'present': key in source}
+            for scope, source, origin in ((LogicalScope.UNIT, meta, source_name),
+                                         (LogicalScope.SERIES, series_meta, 'series.json'))]
+        while True:
+            resolved = resolve_scoped(candidates, policy='specific-first', default=default,
+                                      accept=_structural_setting_present)
+            value = str(resolved['value']).strip().lower()
+            if value in allowed:
                 return value
-        return default
+            origin = resolved['source']
+            log('error', f'{origin}: {key}: {value!r} is not a valid '
+                  f'value ({" | ".join(sorted(allowed))}).')
+            if errors is None:
+                sys.exit(1)
+            errors.append(key)
+            # Audit recovers after reporting an invalid winner. Never validate
+            # a masked value: an authoritative valid declaration shields it.
+            for candidate in candidates:
+                if candidate['scope'] == resolved['scope']:
+                    candidate['contributes'] = False
 
     placement = pick('notes_placement', ('local', 'page'), 'local')
     tooltip = pick('notes_tooltip', ('on', 'off'), 'off')
@@ -18074,7 +19019,7 @@ def resolve_notes_settings(meta, series_meta, source_name, errors=None):
 def resolve_slide_page_numbers(meta, series_meta, source_name, args):
     """Whether the engraved top-right slide number (.slide-num) is rendered.
 
-    Cascade (most specific wins), mirroring resolve_notes_settings():
+    Source-order cascade (authority, not a fourth logical scope):
     article front-matter > CLI `--slides-page-numbers` > series.json >
     built-in default (off). The bottom-left live counter (.slide-counter) is
     independent and always shown, so turning this off never loses the
@@ -18090,15 +19035,89 @@ def resolve_slide_page_numbers(meta, series_meta, source_name, args):
             sys.exit(1)
         return s in ('on', 'true', 'yes', '1')
 
-    if 'slide_page_numbers' in meta and str(meta['slide_page_numbers']).strip():
-        return parse(meta['slide_page_numbers'], source_name)
     cli = args.get('--slides-page-numbers') if args else None
-    if cli is not None:
-        return parse(cli, 'command line')
-    if ('slide_page_numbers' in series_meta
-            and str(series_meta['slide_page_numbers']).strip()):
-        return parse(series_meta['slide_page_numbers'], 'series.json')
-    return False
+    key = 'slide_page_numbers'
+    candidates = [
+        {'scope': scope, 'source': origin, 'priority': priority,
+         'value': source.get(key), 'present': key in source,
+         'contributes': _structural_setting_present(source.get(key, ''))}
+        for scope, source, origin, priority in (
+            (LogicalScope.UNIT, meta, source_name, 30),
+            (LogicalScope.SERIES, series_meta, 'series.json', 10))]
+    candidates.append({'scope': None, 'fallback': False, 'source': 'command line',
+                       'priority': 20, 'value': cli, 'present': cli is not None})
+    resolved = resolve_scoped(candidates, policy='source-order', default=False)
+    return parse(resolved['value'], resolved['source'])
+
+
+def _unit_index_columns(value, origin):
+    """Parse the shared source/CLI column bound without accepting booleans."""
+    if value is None or value == '':
+        return 1
+    if isinstance(value, bool) or not re.fullmatch(r'[0-9]+', str(value)):
+        log('error', f'{origin}: must be a positive integer.')
+        sys.exit(1)
+    try:
+        columns = int(value)
+    except ValueError:
+        columns = 0
+    if columns < 1:
+        log('error', f'{origin}: must be a positive integer.')
+        sys.exit(1)
+    return columns
+
+
+_UNIT_INDEX_DEFAULTS = {'unit_index': 'off', 'unit_index_max_columns': 1,
+                        'unit_index_selector': '*'}
+
+
+def _resolve_unit_index_setting(key, meta, series_meta, source_name, args=None):
+    """One field's build/report policy, with unscoped CLI authority."""
+    option = '--' + key.replace('_', '-')
+    candidates = [
+        {'scope': scope, 'source': label, 'priority': priority,
+         'fallback': False, 'present': field in source, 'value': source.get(field)}
+        for source, label, field, scope, priority in (
+            (meta, source_name, key, LogicalScope.UNIT, 30),
+            (args or {}, 'command line', option, None, 20),
+            (series_meta, 'series.json', key, LogicalScope.SERIES, 10))]
+    resolved = resolve_scoped(candidates, 'source-order', _UNIT_INDEX_DEFAULTS[key],
+                              accept=_structural_setting_present)
+    value, origin = resolved['value'], resolved['source']
+    if key == 'unit_index':
+        token = str(value).strip().lower()
+        if token not in ('on', 'off', 'true', 'false', 'yes', 'no', '1', '0'):
+            log('error', f'{origin}: unit_index: {value!r} is not a valid value (on | off).')
+            sys.exit(1)
+        value = token in ('on', 'true', 'yes', '1')
+    elif key == 'unit_index_max_columns':
+        value = _unit_index_columns(value, f'{origin}: {key}')
+    elif not isinstance(value, str):
+        log('error', f'{origin}: {key} must be a selector string.')
+        sys.exit(1)
+    resolved['value'] = value
+    return resolved
+
+
+def _prepare_unit_slides(slides, meta, series_meta, source_name, args=None):
+    """Insert an optional in-memory index without changing authored identities.
+
+    An empty source stays empty so insertion cannot conceal an invalid deck.
+    Explicit indexes, including excluded ones, suppress automatic insertion.
+    """
+    settings = {key: _resolve_unit_index_setting(key, meta, series_meta, source_name, args)['value']
+                for key in _UNIT_INDEX_DEFAULTS}
+    if (not slides or not settings['unit_index']
+            or any(slide.slide_type == 'unit-index' for slide in slides)):
+        return slides
+    index = Slide('unit-index')
+    index.slug = 'lwp-index'
+    index.index_max_columns = settings['unit_index_max_columns']
+    index.index_selector = settings['unit_index_selector']
+    position = next((number + 1 for number, slide in enumerate(slides)
+                     if slide.slide_type == 'cover'
+                     and 'excluded' not in _slide_tag_set(slide)), 0)
+    return slides[:position] + [index] + slides[position:]
 
 
 def _render_slide_default(slide, slide_num, total_slides, typo_engine, strings,
@@ -18178,21 +19197,28 @@ def _render_slide_default(slide, slide_num, total_slides, typo_engine, strings,
                 # right where this token ends.
                 + f'{{FULL_ARTICLE_PLACEHOLDER:s{slide_num}}}\n</section>')
 
-    else:  # standard
+    else:  # standard and unit-index share their native content structure
         kicker = apply_typo(typo_engine, escape_amps(slide.kicker or ''), disabled)
-        h2 = apply_typo(typo_engine, escape_amps(slide.h2 or ''), disabled)
+        index_title = (strings.get('unit_index_title', 'Contents')
+                       if slide.slide_type == 'unit-index' else '')
+        h2 = apply_typo(typo_engine, escape_amps(slide.h2 or index_title), disabled)
         summary = apply_typo(typo_engine, escape_amps(slide.summary or ''), disabled)
 
-        parts = [f'<section class="slide" id="{ident}" '
+        classes = 'slide slide-unit-index' if slide.slide_type == 'unit-index' else 'slide'
+        parts = [f'<section class="{classes}" id="{ident}" '
                  f'data-tags="{data_tags}">']
         if show_slide_num:
             parts.append(f'  <span class="slide-num">{num_str}</span>')
         if kicker:
             parts.append(f'  <span class="slide-kicker">{kicker}</span>')
         if h2:
-            parts.append(f'  <h2>{h2}</h2>')
+            i18n = (' data-lwp-i18n="unit_index_title"'
+                    if index_title and not slide.h2 else '')
+            parts.append(f'  <h2{i18n}>{h2}</h2>')
         if summary:
             parts.append(f'  <p class="summary">{summary}</p>')
+        if slide.slide_type == 'unit-index':
+            parts.append(f'  {{UNIT_INDEX_PLACEHOLDER:s{slide_num}}}')
 
         # Highlight — no empty caption span when there is no caption
         # (§12.3: the caption is emitted only if present)
@@ -18387,7 +19413,9 @@ def _resolve_presentation_chrome(slide, preset, chrome_layers, typo_engine,
     package = preset.package
     values = {}
     for config in (preset.slide_chrome, *chrome_layers):
-        for key in ('all', slide.slide_type):
+        chrome_type = ('standard' if slide.slide_type == 'unit-index'
+                       and 'unit-index' not in config else slide.slide_type)
+        for key in ('all', chrome_type):
             values.update(config.get(key, {}))
     for field, slot in (('slide-header', 'header'), ('slide-footer', 'footer')):
         if field in slide.raw_meta:
@@ -18406,7 +19434,8 @@ def _wrap_presentation_slide(default_html, slide, preset, layout_variants,
     """Keep LWP's section shell and replace only the package-owned interior."""
     package = preset.package
     requested_layout = (slide.slide_layout
-                        or layout_variants.get(slide.slide_type, 'default'))
+                        or layout_variants.get(slide.slide_type)
+                        or _presentation_layouts(preset).get(slide.slide_type, 'default'))
     package_fields = (requested_layout != 'default'
                       or any(chrome_layers)
                       or bool({'slide-header', 'slide-footer'} & set(slide.raw_meta)))
@@ -18894,7 +19923,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     return html
 
 
-def build_readme(series_data, sd, output_dir, strings, single_page=None):
+def build_readme(series_data, sd, output_dir, strings, single_html=None):
     """Generates README.md content: series title/subtitle/intro from
     series_meta, then a numbered list of articles linking to their built
     HTML file (spec §8.3)."""
@@ -18920,8 +19949,8 @@ def build_readme(series_data, sd, output_dir, strings, single_page=None):
         article_desc = entry.get('nav_desc', '')
         # as_posix(): os.path.relpath yields backslashes on Windows,
         # which are broken Markdown link separators.
-        link = Path(os.path.relpath(output_dir / (single_page or entry['page_dest']), start=sd)).as_posix()
-        if single_page:
+        link = Path(os.path.relpath(output_dir / (single_html or entry['page_dest']), start=sd)).as_posix()
+        if single_html:
             from urllib.parse import quote
             link += '#lwp/a/' + quote(entry['page_dest'], safe='')
         if article_desc:
@@ -19440,6 +20469,11 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     md_text = read_text_file(source_path)
     meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
     validate_slides(slides, source_path.name, has_meta_block, content_before_meta)
+    slides = _prepare_unit_slides(
+        slides, meta, series_meta_of(series_data), source_path.name, args)
+    for number, slide in enumerate(slides, 1):
+        if not isinstance(slide.tags, list):
+            normalize_slide_tags(slide, source_path.name, number)
 
     # The article layer of the cascade: style.* meta keys restyle THIS page,
     # recomposed over the same series layers. Same vocabulary, same types,
@@ -19572,7 +20606,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     if include_nav:
         series_nav_html = build_series_nav(
             current_file, series_data, strings, typo_engine,
-            contents_href='#lwp/index' if args and args.get('--single-page') else 'index.html')
+            contents_href='#lwp/index' if args and args.get('--single-html') else 'index.html')
     else:
         series_nav_html = ''
     slides_html = slides_html.replace('{SERIES_NAV_PLACEHOLDER}', series_nav_html)
@@ -19589,6 +20623,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # decision about the format, only a guard around that substitution.
     articles_here = sum(1 for s in visible_slides
                         if s.slide_type == 'full-article')
+    long_form_titles = {}
     for i, slide in enumerate(visible_slides, 1):
         if slide.slide_type == 'full-article' and slide.article_file:
             # The name-shape guard already ran at parse time. A symlink target
@@ -19632,16 +20667,20 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
                 # `public/img/` was deliberately not copied, so the one
                 # option whose whole contract is "this file travels alone"
                 # produced a page with a dangling reference (BACKLOG B23).
+                headings = []
                 article_html = convert_markdown(article_md, slide_typo_engine,
                                                 article_disabled_rules, article_notes,
                                                 strings,
                                                 inline_images=inline_images,
-                                                sources_dir=sources_dir)
+                                                sources_dir=sources_dir,
+                                                heading_capture=headings)
             except PropertyError as exc:
                 log('error', f'{slide.article_file}: {exc}')
                 sys.exit(1)
             slides_html = slides_html.replace(
                 f'{{FULL_ARTICLE_PLACEHOLDER:s{i}}}', article_html)
+            if headings:
+                long_form_titles[i] = headings[0]
 
     # `notes_placement: page`: the whole page is one locality, so nothing
     # could be numbered until now -- a call in card 2 to a body defined in
@@ -19649,11 +20688,13 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # is a section of the page like the article's, with its own heading,
     # its own anchor and its own nav dot; "a separate notes page" was never
     # outside the document (ARCHI-NOTES §2).
+    has_endnotes = False
     if page_notes is not None:
         page_notes.apply_typography(article_typo_engine, disabled_rules)
         slides_html = page_notes.resolve(slides_html)
         bodies = page_notes.render_bodies(strings)
         if bodies:
+            has_endnotes = True
             heading = html_escape(strings.get('notes_section_title', 'Notes'))
             notes_content = _wrap_presentation_content(
                 f'  <h2 data-lwp-i18n="notes_section_title">{heading}</h2>\n{bodies}',
@@ -19661,6 +20702,97 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
             slides_html += (
                 f'\n\n<section class="slide notes-section" id="notes" '
                 f'role="doc-endnotes">\n{notes_content}\n</section>')
+
+    # Selection sees the final published universe, including generated endnotes.
+    # Record identity stays private so selector result order is used verbatim.
+    if any(slide.slide_type == 'unit-index' for slide in visible_slides):
+        def plain_label(value, engine=None, disabled=None):
+            text = html_unescape(re.sub(r'<[^<>]+>', ' ', str(value or '')))
+            text = re.sub(r'[ \t\r\n]+', ' ', text)
+            text = apply_typo(engine, html_escape(text), disabled)
+            return html_unescape(re.sub(r'<[^<>]+>', '', text)).strip()
+
+        unit_sources = (own_entry.get('_lwp_selection_sources', [])
+                        if own_entry else [
+                            {'source': 'unit-meta', 'priority': 10,
+                             'values': dict(meta)}])
+        unit_sources = [dict(source, values=dict(source['values']))
+                        for source in unit_sources]
+        for source in unit_sources:
+            values = source['values']
+            values.pop('comment', None)
+            if values.get('status'):
+                values['status'] = str(values['status']).strip().lower()
+            if 'tags' in values:
+                values['tags'] = normalize_article_tags(
+                    values['tags'], source_path.name)
+        series_fields = {field: value for field, value in series_meta_of(series_data).items()
+                         if field in _SERIES_META_FIELDS}
+        records, targets = [], {}
+        for number, (slide, identity) in enumerate(zip(visible_slides, identities), 1):
+            engine = typo_engine_for_slide(
+                slide, article_typo_engine, article_lang_tag_engines)
+            candidates = (long_form_titles.get(number),
+                          (strings.get('series_nav_title', 'This series')
+                           if slide.slide_type == 'series-nav' else None),
+                          (strings.get('unit_index_title', 'Contents')
+                           if slide.slide_type == 'unit-index' and not slide.h2 else None),
+                          slide.h1 if slide.slide_type == 'cover' else slide.h2,
+                          slide.kicker, slide.slug, f'Slide {number}')
+            source_title = next(label for label in map(plain_label, candidates) if label)
+            title_html = apply_typo(engine, html_escape(source_title), disabled_for(engine))
+            title = html_unescape(re.sub(r'<[^<>]+>', '', title_html))
+            fields = {field: getattr(slide, attr)
+                      for field, attr in _SLIDE_FIELD_ATTRS.items()
+                      if field != 'comment'
+                      and field in SLIDE_TYPES_BY_NAME[slide.slide_type].fields
+                      and getattr(slide, attr) is not None}
+            fields.update(type=slide.slide_type, title=source_title, slug=slide.slug,
+                          id=identity, tags=list(slide.tags))
+            record = make_selector_record(series_fields, unit_sources, fields,
+                                          field_policies=_article_selector_field_policies())
+            records.append(record)
+            targets[id(record)] = (number, identity, title, slide.tags)
+        if has_endnotes:
+            title = plain_label(strings.get('notes_section_title', 'Notes'))
+            record = make_selector_record(series_fields, unit_sources,
+                                          {'type': 'notes', 'title': title,
+                                           'slug': 'notes', 'id': 'notes',
+                                           'tags': ['default']},
+                                          field_policies=_article_selector_field_policies())
+            records.append(record)
+            targets[id(record)] = (len(records), 'notes', title, ['default'])
+        for number, slide in enumerate(visible_slides, 1):
+            if slide.slide_type != 'unit-index':
+                continue
+            try:
+                selected = select_records(records, slide.index_selector,
+                                          selectors=series_meta_of(series_data).get('selectors'))
+            except SelectorError as exc:
+                log('error', f'{source_path.name}: slide {number}: index-selector: {exc}')
+                sys.exit(1)
+            label = plain_label(slide.h2) or strings.get('unit_index_title', 'Contents')
+            columns = slide.index_max_columns
+            parts = [f'<nav class="lwp-unit-index" data-lwp-index-columns="{columns}" '
+                     f'style="--lwp-index-columns:{columns}" aria-label="{html_escape(label, quote=True)}">',
+                     '<ol class="lwp-unit-index-list">']
+            for record in selected:
+                ordinal, identity, title, tags = targets[id(record)]
+                anchor = html_escape(identity, quote=True)
+                tag_text = html_escape(' '.join(tags), quote=True)
+                parts.append(
+                    f'<li><a class="lwp-unit-index-link" href="#{anchor}" '
+                    f'data-lwp-index-target="{anchor}" data-lwp-target-tags="{tag_text}">'
+                    f'<span class="lwp-unit-index-number">{ordinal}</span>'
+                    f'<span class="lwp-unit-index-title">{html_escape(title)}</span></a></li>')
+            parts.append('</ol>')
+            if not selected:
+                empty = html_escape(strings.get('unit_index_empty', 'No matching slides.'))
+                parts.append('<p class="lwp-unit-index-empty" '
+                             f'data-lwp-i18n="unit_index_empty">{empty}</p>')
+            parts.append('</nav>')
+            slides_html = slides_html.replace(
+                f'{{UNIT_INDEX_PLACEHOLDER:s{number}}}', '\n'.join(parts))
 
     # Page title — the already-resolved page_title (series.json > article
     # meta > cover slide's own slide_title > page_dest, see
@@ -20234,11 +21366,12 @@ _SERIES_META_STRING_FIELDS = (
     'default_tag', 'slug_prefix', 'presentation_preset',
 )
 _SERIES_META_INTEGER_FIELDS = ('scroll_duration',)
-_SERIES_META_OBJECT_FIELDS = ('reading',)
+_SERIES_META_OBJECT_FIELDS = ('reading', 'selectors')
 _SERIES_META_FIELDS = (_SERIES_META_STRING_FIELDS
                         + _SERIES_META_INTEGER_FIELDS
                         + ('lang_tags', 'notes_placement', 'notes_tooltip',
-                           'slide_page_numbers', 'slug_prefix')
+                            'slide_page_numbers', 'slug_prefix', 'unit_index',
+                            'unit_index_max_columns', 'unit_index_selector')
                         + _SERIES_META_OBJECT_FIELDS)
 DEFAULT_SCROLL_DURATION_MS = 200
 DEFAULT_READING_SETTINGS = {
@@ -20373,6 +21506,12 @@ def series_meta_of(series_data, tolerate_invalid=False, errors=None):
                     f'(got {type(meta[field]).__name__}).')
             if tolerate_invalid:
                 meta.pop(field, None)
+    if isinstance(meta.get('selectors'), dict):
+        for name, expression in list(meta['selectors'].items()):
+            if not isinstance(name, str) or not name.strip() or not isinstance(expression, str) or not expression.strip():
+                invalid('series.json: series_meta.selectors requires nonempty names and selector strings.')
+                if tolerate_invalid:
+                    meta['selectors'].pop(name, None)
     if 'reading' in meta:
         try:
             resolve_reading_settings(meta)
@@ -20693,7 +21832,8 @@ def _resolve_article_presentation(entry, meta, series_meta, source_name):
                     f'{origin}: {field} belongs in a kit preset, not an article.')
 
 
-def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=True):
+def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=True,
+                           build_args=None, build_strings=None):
     """Resolves `page_dest` and the display/editorial fields for every
     entry, per §20.3.1. Mutates each entry in place so downstream
     renderers (build_article, build_series_nav, build_index,
@@ -20756,17 +21896,43 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
     series_meta = series_meta or {}
     resolution = []
     for entry in articles:
+        selection_entry = dict(next(
+            (source['values'] for source in entry.get('_lwp_selection_sources', ())
+             if source['source'] == 'series-entry'),
+            {key: value for key, value in entry.items()
+              if not key.startswith('_lwp_')}))
+        selection_entry = {key: value for key, value in selection_entry.items()
+                           if key in _RESOLVED_FIELDS + _EDITORIAL_FIELDS + ('page_source', 'status')}
         source_path = _resolve_contained(sources_dir, entry['page_source'])
         text = (_read_article_source(source_path)
                 if source_path is not None else None)
         meta, slides = {}, []
         if text is not None:
             meta, slides, _, _ = parse_markdown_extended(text)
+            try:
+                slides = _prepare_unit_slides(
+                    slides, meta, series_meta, entry['page_source'], build_args)
+            except SystemExit:
+                if strict_tags:
+                    raise
+                # Audit's later render reports this fatal input as a finding;
+                # its preliminary source inventory must remain available.
+        selection_derived = {}
+        entry['_lwp_selection_sources'] = [
+            {'source': 'series-entry', 'priority': 20, 'values': selection_entry},
+            {'source': 'unit-meta', 'priority': 10,
+             'values': {key: value for key, value in meta.items()
+                        if key != 'comment' and (key in ARTICLE_META_KEYS or key.startswith('style.'))}},
+            {'source': 'derived', 'priority': 0, 'values': selection_derived},
+        ]
         entry['_lwp_article_tags'] = normalize_article_tags(
             meta.get('tags', ''), entry['page_source'], strict=strict_tags)
         entry['_lwp_slide_tags'], entry['_lwp_tag_slides'] = (
             _collect_article_slide_details(
-                slides, entry['page_source'], strict=strict_tags))
+                slides, entry['page_source'], strict=strict_tags,
+                strings=build_strings,
+                has_endnotes=_unit_has_page_endnotes(
+                    slides, meta, series_meta, sources_dir)))
         entry['_lwp_default_tag'] = series_meta.get('default_tag', 'default')
         cover = _find_cover_slide(slides)
         cover_summary = cover.summary if cover and cover.summary else ''
@@ -20795,13 +21961,17 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
             resolver."""
             tried = []
             if include_entry:
-                tried.append(('series', entry.get(field) or ''))
+                tried.append(('series', selection_entry.get(field) or ''))
             tried.append(('article', meta.get(field) or ''))
             for level, value in ((_SERIES_DEFAULT_ORIGIN, series_default),
                                  ('content', content), ('derived', derived)):
                 if value is not None:
                     tried.append((level, value))
             candidates[field] = tried
+            for value in (content, derived):
+                if value:
+                    selection_derived[field] = value
+                    break
             for level, value in tried:
                 if value:
                     origins[field] = level
@@ -21154,16 +22324,16 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     non-breaking space already in it) reaches the output completely
     unchanged, not just that the new rules stay quiet."""
     args = dict(args)
-    if '--single-page' in args:
-        filename = args['--single-page']
+    if '--single-html' in args:
+        filename = args['--single-html']
         if filename is not True and (not _is_safe_relative_filename(filename)
                 or not filename.lower().endswith(('.html', '.htm'))
                 or '#' in filename or '?' in filename):
-            log('error', '--single-page requires a plain .html or .htm filename, not a path or URL.')
+            log('error', '--single-html requires a plain .html or .htm filename, not a path or URL.')
             sys.exit(1)
         for option in ('--drafts-only', '--no-index'):
             if args.get(option):
-                log('error', f'--single-page cannot be combined with {option}.')
+                log('error', f'--single-html cannot be combined with {option}.')
                 sys.exit(1)
     (sd, sources_dir, templates_dir, lang_dir, interface_dir,
      typography_dir, output_dir, lang, language_file) = resolve_paths(
@@ -21189,7 +22359,7 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     series_data = (series_data_override if series_data_override is not None
                     else load_series_data(sd))
     series_meta = series_meta_of(series_data)
-    if args.get('--single-page') is True:
+    if args.get('--single-html') is True:
         import unicodedata
         title = html_unescape(re.sub(r'<[^<>]+>', ' ', str(series_meta.get('title') or '')))
         stem = ''
@@ -21202,7 +22372,7 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
                 break
         if stem in {'con', 'prn', 'aux', 'nul'} or re.fullmatch(r'(?:com|lpt)[1-9]', stem):
             stem = 'series-' + stem
-        args['--single-page'] = stem + '.html'
+        args['--single-html'] = stem + '.html'
     try:
         presentation_catalog = load_presentation_catalog(templates_dir)
         series_preset = presentation_catalog.resolve_preset(
@@ -21322,7 +22492,8 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     try:
         validate_series(articles)
         resolve_article_fields(articles, sources_dir, series_meta,
-                               strict_tags=strict_tags)
+                               strict_tags=strict_tags, build_args=args,
+                               build_strings=strings)
         for entry in articles:
             source_path = _resolve_contained(sources_dir, entry['page_source'])
             source_text = (_read_article_source(source_path)
@@ -21643,18 +22814,18 @@ def _render_index(ctx, index_extra='', build_stamp='', validate_scripts=False,
     return index_html
 
 
-def _render_single_page(ctx, build_stamp=''):
+def _render_single_html(ctx, build_stamp=''):
     """Assemble one shell from render fragments, with only one mounted view.
 
     Inactive fragments are inert JSON, not hidden DOM. Local author IDs and CSS
     therefore keep their article scope without rewriting arbitrary markup/CSS.
     """
     if ctx.nav_js != apply_strings(TEMPLATE_NAV_JS, ctx.strings):
-        log('error', '--single-page requires the built-in navigation: templates/nav.js differs. '
+        log('error', '--single-html requires the built-in navigation: templates/nav.js differs. '
             'Use `template update` to preserve it as a backup and restore the native runtime.')
         sys.exit(1)
     if _index_extra(ctx).strip():
-        log('error', '--single-page does not support templates/index_extra.html yet; '
+        log('error', '--single-html does not support templates/index_extra.html yet; '
             'its script lifecycle requires multipage publication. Keep the default build for this extension.')
         sys.exit(1)
     contents = _render_index(ctx, build_stamp=build_stamp, fragment_only=True)
@@ -21704,7 +22875,7 @@ def _render_single_page(ctx, build_stamp=''):
             + '<script id="lwp-series-data" type="application/json">' + payload + '</script>\n',
     })
     html = fill_placeholders(apply_strings(TEMPLATE_PAGE, ctx.strings, html_context=True), shell)
-    validate_html(html, ctx.args['--single-page'])
+    validate_html(html, ctx.args['--single-html'])
     ok, detail = validate_page_scripts(html)
     if not ok:
         log('error', 'Build aborted: single-document JavaScript is invalid.\n' + detail)
@@ -22127,7 +23298,7 @@ def _manifest_paths(manifest, key, output_dir, manifest_path):
 
 
 def _write_manifest(output_dir, articles_built, include_index=True,
-                    images=(), presentation_presets=(), single_page=None):
+                    images=(), presentation_presets=(), single_html=None):
     """Writes .lwp-manifest.json in public/ listing every file the build
     produced, so `clean` can purge orphans without guessing.
 
@@ -22136,7 +23307,7 @@ def _write_manifest(output_dir, articles_built, include_index=True,
     exists now; the pair says what stopped existing, and only the second
     question has an answer that can be acted on without touching a file
     the tool never made."""
-    files = [single_page] if single_page else [e['page_dest'] for e in articles_built]
+    files = [single_html] if single_html else [e['page_dest'] for e in articles_built]
     if include_index:
         files.append('index.html')
     # What copy_images says it published, from the SOURCE. This used to
@@ -22363,7 +23534,7 @@ def cmd_watch(series_dir, args):
         httpd = http.server.HTTPServer(('127.0.0.1', port), handler)
         threading.Thread(target=httpd.serve_forever, daemon=True).start()
         from urllib.parse import quote
-        url = f'http://127.0.0.1:{port}/' + (quote(entry_name) if args.get('--single-page') else '')
+        url = f'http://127.0.0.1:{port}/' + (quote(entry_name) if args.get('--single-html') else '')
         progress(f'[watch] serving {output_dir} at {url}')
         if args.get('--open'):
             webbrowser.open(url)
@@ -22423,15 +23594,15 @@ def cmd_build(series_dir, args):
     else:
         build_stamp = ''
 
-    if args.get('--single-page'):
+    if args.get('--single-html'):
         if args.get('--only'):
             _resolve_only_entry(ctx, args['--only'])
-        html, inventory = _render_single_page(ctx, build_stamp)
+        html, inventory = _render_single_html(ctx, build_stamp)
         _mkdir(ctx.output_dir, parents=True, exist_ok=True)
-        _write_file(ctx.output_dir / args['--single-page'], html)
+        _write_file(ctx.output_dir / args['--single-html'], html)
         if not args.get('--no-readme'):
             _write_file(ctx.sd / 'README.md', build_readme(
-                ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings, args['--single-page']))
+                ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings, args['--single-html']))
         images = []
         if not args.get('--inline-images'):
             images = copy_images(ctx.sources_dir, ctx.output_dir, referenced_images=set(inventory))
@@ -22439,15 +23610,15 @@ def cmd_build(series_dir, args):
                 _presentation_packages_for_output(ctx, ctx.articles, False), ctx.output_dir))
         _write_manifest(ctx.output_dir, ctx.articles, include_index=False, images=images,
                         presentation_presets=ctx.presentation_presets,
-                        single_page=args['--single-page'])
+                        single_html=args['--single-html'])
         # Do not let a later multipage --only reuse a fingerprint from before
         # this topology switch. The ordinary missing-cache path rebuilds it.
         save_nav_cache(args.get('--nav-cache') or default_nav_cache_path(ctx.sd), {})
-        progress(f'Build complete: {len(ctx.articles)} articles in {args["--single-page"]} -> {ctx.output_dir}')
+        progress(f'Build complete: {len(ctx.articles)} articles in {args["--single-html"]} -> {ctx.output_dir}')
         if args.get('--open'):
             import webbrowser
-            webbrowser.open((ctx.output_dir / args['--single-page']).resolve().as_uri())
-        return args['--single-page']
+            webbrowser.open((ctx.output_dir / args['--single-html']).resolve().as_uri())
+        return args['--single-html']
 
     # §11.3.3, decided before anything is written and before the --only
     # fast path (which writes the index too): when an index is requested, more
@@ -22496,6 +23667,7 @@ def cmd_build(series_dir, args):
             name: args.get(name)
             for name in ('--no-typography', '--no-nav', '--inline-images',
                          '--include-drafts', '--drafts-only',
+                          '--unit-index', '--unit-index-max-columns', '--unit-index-selector',
                          '--slides-page-numbers', '--scroll-duration',
                          '--themes', '--presentation-presets',
                          '--no-essential-theme',
@@ -22603,7 +23775,7 @@ def cmd_check(series_dir, args):
     # is refused here too, with the same message and before any per-file
     # line is printed, rather than after a screenful of comparisons that
     # describe an arrangement no build will produce.
-    claimant = (None if args.get('--single-page') else resolve_index_claim(
+    claimant = (None if args.get('--single-html') else resolve_index_claim(
         ctx.claim_articles, ctx.articles, index_enabled=not args.get('--no-index')))
 
     ok_count = 0
@@ -22653,17 +23825,17 @@ def cmd_check(series_dir, args):
             print(f'[DRIFT] {name}')
             diff_count += 1
 
-    if args.get('--single-page'):
-        generated, inventory = _render_single_page(ctx)
-        compare(args['--single-page'], generated,
-                _optional_contained_file(ctx.output_dir, args['--single-page'], args['--single-page']))
+    if args.get('--single-html'):
+        generated, inventory = _render_single_html(ctx)
+        compare(args['--single-html'], generated,
+                _optional_contained_file(ctx.output_dir, args['--single-html'], args['--single-html']))
         if not args.get('--inline-images'):
             for relative in inventory:
                 source = _resolve_contained(ctx.sources_dir, relative)
                 if source is not None and source.is_file():
                     compare_asset(relative, source,
                                   _optional_contained_file(ctx.output_dir, relative, relative))
-    for entry in ([] if args.get('--single-page') else ctx.articles):
+    for entry in ([] if args.get('--single-html') else ctx.articles):
         source_path = _resolve_contained(ctx.sources_dir, entry['page_source'])
         if source_path is None:
             log('error', f'Source path traversal: {ctx.sources_dir / entry["page_source"]} '
@@ -22683,14 +23855,14 @@ def cmd_check(series_dir, args):
     # and diffing it against that page would report a [DRIFT] on a series
     # that is correctly built and that no rebuild could ever settle: the
     # CI gate would stay red for as long as the arrangement lasts.
-    if claimant is None and not args.get('--single-page') and not args.get('--no-index'):
+    if claimant is None and not args.get('--single-html') and not args.get('--no-index'):
         compare('index.html',
                 _render_index(ctx, _index_extra(ctx)),
                 _optional_contained_file(ctx.output_dir, 'index.html',
                                          'index.html'))
     if not args.get('--no-readme'):
         compare('README.md',
-                build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings, args.get('--single-page')),
+                build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings, args.get('--single-html')),
                 _optional_contained_file(ctx.sd, 'README.md', 'README.md'))
     if not args.get('--inline-images'):
         for package in _presentation_packages_for_output(ctx, ctx.articles, False):
@@ -23978,7 +25150,8 @@ def cmd_audit(series_dir, args):
     validation_errors = []
     articles = validate_series(articles, tolerate_invalid=True,
                                errors=validation_errors)
-    resolve_article_fields(articles, sources_dir, series_meta, strict_tags=False)
+    resolve_article_fields(articles, sources_dir, series_meta, strict_tags=False,
+                           build_args=args)
 
     warnings = (default_tag_warnings + len(meta_errors)
                 + len(validation_errors) + symlink_warnings
@@ -26719,7 +27892,8 @@ _ARTICLE_LEVEL_NAMES = frozenset(
 # and resolves this at call time.
 ARTICLE_META_KEYS = (frozenset(_ARTICLE_LEVEL_NAMES)
                       | {'comment', 'presentation_preset', 'slide_layouts',
-                          'slide_chrome'})
+                          'slide_chrome', 'unit_index', 'unit_index_max_columns',
+                          'unit_index_selector'})
 
 
 def _chain_link(level, value, note=None):
@@ -26853,7 +28027,7 @@ def resolve_series_field(name, series_meta):
         default = 'default'
     elif name == 'presentation_preset':
         default = 'default'
-    elif name == 'lang_tags':
+    elif name in ('lang_tags', 'selectors'):
         default = {}
     else:
         default = ''
@@ -26997,7 +28171,8 @@ def print_resolve_text(report):
                 print(f"        {line}")
         return
 
-    print(f"  value: {resolution['value'] if resolution['value'] else '(empty)'}")
+    value = resolution['value']
+    print(f"  value: {value if value is not None and value != '' else '(empty)'}")
     print(f"  from:  {resolution['source']}")
     if resolution.get('hops'):
         print(f"  via:   {' -> '.join(resolution['hops'])}")
@@ -27107,6 +28282,26 @@ def cmd_resolve(series_dir, name, args):
                       f'ones that resolve are: {", ".join(known)}.')
                 sys.exit(1)
             resolution, unread = survey_slide_field(name, articles, sources_dir, only)
+        elif name in _UNIT_INDEX_DEFAULTS:
+            resolved = _resolve_unit_index_setting(name, article_meta or {}, series_meta,
+                                                   only or 'article')
+            chain = []
+            crowned = False
+            for candidate in resolved['candidates']:
+                if candidate['source'] == 'command line':
+                    continue
+                level = ('article' if candidate['scope'] == LogicalScope.UNIT else
+                         _SERIES_DEFAULT_ORIGIN if candidate['scope'] == LogicalScope.SERIES else 'default')
+                link = _chain_link(level, candidate['value'])
+                link['present'] = candidate['contributes']
+                link['winner'] = candidate['contributes'] and not crowned
+                crowned = crowned or link['winner']
+                if level == 'article' and only is None:
+                    link['note'] = 'not consulted — pass --article'
+                chain.append(link)
+            resolution = {'value': resolved['value'],
+                          'source': next(link['level'] for link in chain if link['winner']),
+                          'chain': chain}
         elif name in _NOTES_FIELD_DEFAULTS:
             resolution = resolve_notes_field(name, series_meta, article_meta)
         elif name == 'slide_page_numbers':
@@ -27881,7 +29076,7 @@ COMMANDS
     theme property, snake_case = article field, kebab-case = slide
     field (see §11.12)
   lightwebpres contract [directory] [--article file.md] [--format text|json]
-    Prints the versioned slide-draft contract and four engine-generated
+    Prints the versioned slide-draft contract and engine-generated
     draft sources (see §11.17)
   lightwebpres series theme set [directory] --theme name
     Changes an existing series' theme (see §11.10)
@@ -28041,7 +29236,7 @@ OPTIONS
   --no-nav
     build/watch/verify: do not generate the series navigation block
   --no-index
-    build/verify/watch: do not generate index.html (not with --single-page)
+    build/verify/watch: do not generate index.html (not with --single-html)
   --no-readme
     build/verify/watch: do not generate README.md
   --open
@@ -28049,15 +29244,24 @@ OPTIONS
   --inline-images
     build/verify/watch: embed local Markdown and kit images, including SVG,
     as data URIs (no img/ directory copied). External dependencies may remain.
-  --single-page [filename.html]
+  --single-html [filename.html]
     build/verify/watch: publish the series in one HTML, with deliberate
     article switching and printing of the active article. Combine with
     --inline-images to embed supported images. --output remains a directory.
     Without a filename, derive it from series_meta.title (directory name
     fallback): lowercase, accent-folded, hyphen-separated, with .html appended.
     Before the series directory, a separate filename must end in .html/.htm;
-    use --single-page=filename.html or -- to disambiguate.
+    use --single-html=filename.html or -- to disambiguate.
     Requires native navigation; excludes --no-index and --drafts-only.
+  --unit-index on|off
+    build/verify/watch: insert a contents slide after the first cover, or at
+    the start without a cover. Explicit unit-index slides suppress insertion.
+    Unit metadata overrides CLI, then series_meta, then off.
+  --unit-index-max-columns N
+    build/verify/watch: maximum columns for the automatic index (default: 1).
+  --unit-index-selector expression
+    build/verify/watch: selector for the automatic index (default: *).
+    Quote the expression in the shell. Selectors inspect published slides only.
   --strict
     audit: exit non-zero if any warnings are emitted — the complete CI
     gate, editorial warnings and everything the render raises alike
@@ -28343,7 +29547,8 @@ where this tool is published and can be downloaded.'''
 # out-of-place option is a fatal error instead of a silent no-op, and
 # `--opt=value` is accepted as equivalent to `--opt value`.
 _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
-                              '--single-page',
+                              '--unit-index', '--unit-index-max-columns', '--unit-index-selector',
+                              '--single-html',
                              '--theme', '--themes', '--presentation-presets',
                              '--only', '--nav-cache',
                              '--polarity', '--hue', '--family',
@@ -28357,7 +29562,8 @@ _COMMAND_OPTIONS = {
                 '--no-starter'},
     'demo': {'--lang', '--output'},
     'build': {'--lang', '--output', '--language-file', '--no-typography',
-              '--single-page',
+              '--unit-index', '--unit-index-max-columns', '--unit-index-selector',
+              '--single-html',
               '--themes', '--presentation-presets', '--no-essential-theme',
               '--include-drafts', '--only', '--nav-cache',
               '--build-stamp', '--build-stamp-minimal',
@@ -28365,7 +29571,8 @@ _COMMAND_OPTIONS = {
               '--open', '--inline-images', '--slides-page-numbers',
               '--scroll-duration'},
     'check': {'--lang', '--output', '--language-file', '--no-typography',
-              '--single-page', '--inline-images', '--no-index', '--no-readme',
+              '--unit-index', '--unit-index-max-columns', '--unit-index-selector',
+              '--single-html', '--inline-images', '--no-index', '--no-readme',
               '--slides-page-numbers', '--build-stamp', '--build-stamp-minimal', '--drafts-only',
               '--themes', '--presentation-presets', '--no-essential-theme',
               '--include-drafts', '--no-nav', '--scroll-duration'},
@@ -28400,7 +29607,8 @@ _COMMAND_OPTIONS = {
     # actual output. The env var LWP_OUTPUT_DIR was the sole way in.
     'clean': {'--force', '--dry-run', '--output'},
     'watch': {'--lang', '--output', '--serve', '--port', '--no-typography',
-              '--single-page', '--inline-images', '--include-drafts', '--language-file',
+              '--unit-index', '--unit-index-max-columns', '--unit-index-selector',
+              '--single-html', '--inline-images', '--include-drafts', '--language-file',
               '--themes', '--presentation-presets', '--no-essential-theme',
               '--open', '--slides-page-numbers',
               '--no-nav', '--no-index', '--no-readme', '--drafts-only',
@@ -28840,7 +30048,7 @@ def parse_cli_options(command, rest, global_opts=None):
                       f'Run `lightwebpres --help` for the option list.')
                 sys.exit(1)
             if name in _VALUE_OPTIONS:
-                if (name == '--single-page' and not eq
+                if (name == '--single-html' and not eq
                         and (i + 1 == len(rest) or rest[i + 1].startswith('--')
                              or (not positional and not rest[i + 1].lower().endswith(('.html', '.htm'))))):
                     # A bare switch must not consume the following series directory.

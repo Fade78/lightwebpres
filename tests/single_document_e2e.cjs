@@ -1,4 +1,4 @@
-// Standalone browser probe of the real --single-page --inline-images build.
+// Standalone browser probe of the real --single-html --inline-images build.
 // Resolve the supplied browser before redirecting XDG scratch. Callers that
 // already redirected XDG must pass their previously resolved PW_CHROMIUM_PATH.
 const assert = require('node:assert/strict');
@@ -80,7 +80,7 @@ ${name === 'b' ? '<table id="scroll-table" style="min-width: 1600px"><tr><td>Wid
 `);
     }
     cli('build', series, '--themes', 'print-ink,dracula', '--scroll-duration', '200',
-      '--single-page', 'series.html', '--inline-images');
+      '--single-html', 'series.html', '--inline-images');
     const publicDir = path.join(series, 'public');
     server = http.createServer((request, response) => {
       const file = path.join(publicDir, decodeURIComponent(new URL(request.url, 'http://localhost').pathname));
@@ -479,7 +479,7 @@ article: long.md
 `);
     fs.writeFileSync(path.join(fitting, 'sources/long.md'), '# Long form\n\n' + 'Long paragraph.\n\n'.repeat(80));
     cli('build', fitting, '--lang', 'en', '--themes', 'print-ink,dracula', '--scroll-duration', '0', '--output', path.join(fitting, 'multi'));
-    cli('build', fitting, '--lang', 'en', '--themes', 'print-ink,dracula', '--scroll-duration', '0', '--single-page', 'series.html');
+    cli('build', fitting, '--lang', 'en', '--themes', 'print-ink,dracula', '--scroll-duration', '0', '--single-html', 'series.html');
     for (const mobile of [false, true]) {
       const probe = await browser.newPage(mobile
         ? {viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true}

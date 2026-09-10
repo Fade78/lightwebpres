@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 11 · **à faire** 0 · **en cours** 1 · **terminé** 55 · **abandonné** 1 · **sans objet** 3
+**à étudier** 10 · **à faire** 0 · **en cours** 2 · **terminé** 55 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -115,11 +115,11 @@ gets its own entry and its own state**, however small.
 - **B64** — Historical fact-heading report needs its original case
 - **B65** — The historical pop-rose proposal has no recorded disposition
 - **B66** — Unreconciled archive design options remain deferred
-- **B67** — Logical units, scoped selectors and resolution policies
 
 ### en cours
 
 - **B62** — Le cover Lava reste sauvegardé dans Lava hot
+- **B67** — Logical units, scoped selectors and resolution policies
 
 ### terminé
 
@@ -3125,13 +3125,16 @@ identified separately; all other dated evidence remains recoverable exactly.
 
 ## B67 — Logical units, scoped selectors and resolution policies
 
-**État :** à étudier · **Depuis :** 2026-09-10
+**État :** en cours · **Depuis :** 2026-09-10
 
-**Scope: shared design and implementation tracking, not a shipped format.**
+**Scope: first increment implemented; broader redesign still open.**
 The owner requested a coordinated redesign of vocabulary, selectors and cascade
-resolution. This entry is the shared starting point for agents. The current
-contracts remain in `specifications.md` and `GLOSSARY.md` until an implementation
-explicitly changes them. Do not publish proposed syntax as an available feature.
+resolution. The commissioned execution plan below follows the design-only
+tracking commit `d41802a`. Version 0.59.0 implements logical scopes, bounded
+selectors, unit indexes and the authorized physical-output rename. Current
+contracts are in `specifications.md` and `GLOSSARY.md`. Historical proposals and
+simulation results below retain their original evidence; they are not proof
+that the remaining wire-vocabulary or publication-filter work has shipped.
 
 ### Agreed requirements
 
@@ -3141,7 +3144,8 @@ explicitly changes them. Do not publish proposed syntax as an available feature.
 - Rename `--single-page` to a name describing the physical output. The owner
   explicitly requests **no legacy handling**: no alias, deprecation window,
   migration handler or instructions teaching the old spelling in active docs.
-  This is a TODO, not a rename performed by this design entry.
+  Completed in the first increment as `--single-html [FILE]`, by explicit owner
+  authorization; ordinary unknown-option handling rejects the removed spelling.
 - User tag names are opaque selectors, not inferred editorial roles or language
   codes. `hero`, `expert-fr` and `expert-en` are examples, not engine categories.
 - A common internal selector operates on the ordered collection supplied by its
@@ -3156,13 +3160,13 @@ explicitly changes them. Do not publish proposed syntax as an available feature.
   multiple indexes are allowed, each with a maximum column count (default 1)
   and a selector for its entries. Explicit and automatic placement are requested.
 
-### Working vocabulary, pending owner confirmation
+### Vocabulary decision and retained alternatives
 
-**Recommended logical term: content unit / unité de contenu**, shortened to
+**Adopted logical term: content unit / unité de contenu**, shortened to
 **unit** internally. It is a coherent authored support containing one deck and
 zero or more supporting long-form texts. A published view may expose the cards,
 the supporting text, or both; source membership and displayed forms are distinct.
-It is not defined by a physical HTML page. The proposed level names are
+It is not defined by a physical HTML page. The implemented level names are
 `series`, `unit`, `slide`, with internal ranks 0, 1, 2 respectively. Public
 expressions should use names rather than require authors to memorize numbers.
 The treatment of long-form resources inside a unit remains to be specified;
@@ -3174,11 +3178,11 @@ HTML/DOM document; `presentation` already participates in preset terminology;
 `article` conflates this unit with its supporting prose. No public field has
 been renamed to `unit_*` by this proposal.
 
-**Recommended flag: `--single-html [FILE]`.** It precisely names the combined
+**Implemented flag: `--single-html [FILE]`.** It precisely names the combined
 HTML output, unlike `--single-container`, which could suggest an archive or a
 container runtime. Image embedding and resource independence remain separate
 choices; preserve the existing optional filename and title-derived default.
-The spelling recommendation is not yet the executable's accepted option.
+The first increment preserves that behavior under the new spelling only.
 
 ### Four independent dimensions
 
@@ -3239,7 +3243,7 @@ ordinary metadata can fall back on an empty value; an explicitly empty chrome
 slot stops inheritance. Style maps merge per key, then resolve references;
 chrome slots replace complete models rather than recursively merge them.
 
-### Current mechanisms and simulation results
+### Historical mechanisms and simulation results
 
 The investigation used the engine at commit `e7fa595` (0.58.1), not hypothetical
 rules inferred from filenames. Source references are function names to avoid
@@ -3300,20 +3304,25 @@ one universal cascade is not. None of the examined current mechanisms establishe
 a general-first logical scalar cascade. Support that direction deliberately for
 new policies rather than relabel a same-scope JSON override or a parental gate.
 
-### Selector language and unresolved contracts
+### Selected profile and remaining publication work
 
-No external language or library is selected. JSONPath RFC 9535 is a candidate
-for structured predicates and regex functions; its I-Regexp contract must not
-be equated with Python `re`. JMESPath lacks standard regex functions; jq adds
-an executable/runtime dependency. Evaluate the single-file standard-library
-and Pyodide requirements before choosing an implementation or a documented
-profile. Do not advertise a private subset as complete standard conformance.
+The first increment selects a compact predicate language and an explicitly
+bounded JSONPath **filter profile**, not complete RFC 9535 or I-Regexp.
+No external runtime/library or `eval` is added. Queries run in the same Python
+core under CPython and Pyodide; regexes use a case-sensitive, non-backtracking
+NFA, not Python `re`. The exact supported syntax, typed/missing comparisons,
+registered field views, AST-based named references, reachable cycle errors and
+resource limits are specified in §3.4. No unsupported-expression fallback or
+silent truncation is permitted. The measured code constant for aggregate regex
+work is 4,000,000 per record, separate from the 16,384-step evaluation budget.
 
-Still to specify: field codecs and cardinalities, missing versus explicitly
-cleared values, scope-qualified versus effective reads, registered system
-fields, Boolean grouping, regex resource limits, named-selector references and
-cycle errors. Named selectors should compose expressions rather than textual
-substitution, and should not ambiguously share the user-tag namespace.
+The implementation distinguishes `series`, `unit`, `slide`, `effective`,
+`specific`, `general` and `origin` views. Scoped reads do not fabricate defaults;
+implicit active status exists only in resolved views. Raw unit declarations
+remain separate from resolved display metadata; registered field eligibility
+ignores empty metadata where appropriate and retains false where required.
+Origin traces include rejected candidates. Existing notes/numbering consumers
+reuse the common resolver without changing their established results.
 
 The build's publication policy chooses its input/output membership. A selector
 over already published content has a later universe. `-status:draft` over an
@@ -3323,32 +3332,121 @@ mechanical translation of every flag into one whole-publication predicate.
 
 ### Coordinated rollout checklist
 
-- [ ] Confirm the replacement logical term and produce an old/new vocabulary
-  map distinguishing units, slides, long-form resources and physical HTML.
-- [ ] Rename `--single-page` to the agreed physical-output name, preferably
-  `--single-html`, without legacy handling. Update registry, help, completion,
-  tests and active documentation together; do not introduce a second mode.
-- [ ] Define scoped candidate records and per-field resolution/composition
-  policies. Promote the applicable simulation cases into maintained tests.
-- [ ] Choose the selector language and evaluate complete representative queries,
-  error diagnostics, regex cost and Python/browser consistency.
+- [x] Adopt logical unit/series/slide vocabulary separately from physical HTML;
+  document retained canonical `articles[]`, `page_source`, `page_dest` wires.
+- [x] Rename combined physical output to `--single-html [FILE]` in the first
+  increment, preserving filename behavior and adding no legacy handling.
+- [x] Implement scoped candidates, source authority, both traversal directions,
+  origin traces and field eligibility; maintain selector/resolver tests.
+- [x] Select and document the compact/JSONPath filter profile, named AST queries,
+  bounded NFA and explicit failures; no claim of full standards conformance.
 - [ ] Integrate selection before dependent metadata, counts, navigation and
   output inventories. Preserve explicit identity and manifest ownership.
-- [ ] Implement index slides only after their selector and insertion contracts
-  are settled; retain multiple indexes and maximum-columns default 1.
-- [ ] Synchronize `specifications.md`, `GLOSSARY.md`, the six-route `GUIDE.md`,
+- [x] Implement multiple explicit indexes, responsive maximum columns default 1,
+  selector default `*`, automatic insertion and existing-kit layout fallback.
+- [x] Synchronize `specifications.md`, `GLOSSARY.md`, the six-route `GUIDE.md`,
   README and product-skill references. Keep proposed and delivered capabilities
   distinguishable throughout the transition.
-- [ ] Update browser UI/help, `tools/guide-deck.md`, example sources, diagram
-  generators and regenerated guide/gallery/captures wherever vocabulary changes.
-  Inspect desktop, mobile, keyboard, mouse-remote and print workflows.
-- [ ] Review versioned reports and drafting contracts used by external clients;
-  record downstream GUI/site coordination without accessing another repository.
-  The optional sourced-presentation method is not a product-schema rewrite target.
-- [ ] Record actual delivery in CHANGELOG/version and close this entry only
-  after implementation, regression tests and documentation have been verified.
+- [x] Deliver the first-increment browser UI/help, `tools/guide-deck.md` index,
+  example sources and regenerated guide/gallery/captures. Inspect desktop,
+  mobile, keyboard, mouse-remote and print workflows.
+- [ ] Complete the broader terminology sweep, including diagram generators,
+  alongside the remaining persisted/report vocabulary decisions.
+- [x] Advance the live draft contract to `lightwebpres.slide-draft/2`, with five
+  authored types; record the schema impact in product references.
+- [ ] Specify broader persisted/report wire migration and coordinate downstream
+  GUI/site consumers without accessing another repository. The optional
+  sourced-presentation method is not a product-schema rewrite target.
+- [x] Record the implemented increment in VERSION/CHANGELOG as Unreleased 0.59.0.
+- [x] Complete first-increment generated-output synchronization and the full
+  regression run. Keep B67 open until the broader redesign checklist is complete.
 
 Do not blindly replace every occurrence of `page`: DOM APIs and physical page
 layout vocabulary are not necessarily logical-unit names. Reuse sites must be
 classified before renaming. Update this entry as decisions settle; do not create
 an untracked proposal that becomes the only place an agent can learn the design.
+
+### Implementation plan commissioned on 2026-09-10
+
+The owner requested committing/pushing this record, then planning and executing
+an implementation. The design-only record was published as d41802a. The first
+functional increment adopts **unit** for logical selection records and
+**--single-html** for combined physical output. No old CLI alias is added.
+
+Execution order and acceptance:
+
+1. Rename the combined-output option in code, command help, completion inputs,
+   tests and active product documentation. Preserve optional filename behavior.
+   Ordinary unknown-option handling rejects the removed spelling.
+2. Implement ordered scope records, separate source authority and traceable
+   specific-first/general-first resolution. Exercise real existing cascades;
+   retain field-specific blank, false and explicit-clear rules.
+3. Implement a bounded common selector evaluator. Document its supported query
+   profile explicitly; no eval, implicit status exclusion, regex backtracking
+   hazard, or unsupported-expression fallback. Scoped and effective reads remain
+   distinct. Evaluate author queries at build time, not separately in JavaScript.
+4. Add unit-index slides with index-selector and index-max-columns (default 1),
+   multiple explicit indexes, optional automatic insertion after the first cover
+   or at the start, and stable target anchors. Indexes select from published
+   content, including themselves when selected; the wildcard has no exception.
+5. Integrate native/kit rendering, responsive columns, keyboard/touch links,
+   tag-aware anchor navigation, preset replacement, printing and single HTML.
+   Existing kits need a defined standard-layout fallback for the new slide type.
+6. Synchronize the specification, glossary, product skill, guide, live draft
+   contract, examples and generated outputs. Run the parallel full suite with
+   8 workers and actual desktop/mobile browser checks before claiming delivery.
+
+This increment does not silently rewrite persisted author fields or arrays:
+articles[], page_source/page_dest and related metadata remain their canonical
+source spellings, not compatibility aliases. The selection model exposes their
+logical unit ownership separately. A later wire-vocabulary change and broader
+publication-selector replacement still need their own contract and consumer
+rollout; B67 stays open until its full checklist is complete. New slide types and
+query/report interfaces must state their schema/version impact explicitly.
+
+### First-increment delivery and verification
+
+Execution steps 1-6 are implemented and verified locally for 0.59.0. The guide
+now contains its own unit-index, and source-only `examples/unit-index/` provides
+multiple explicit selections. Authoring documentation, glossary, product skill,
+live draft contract and generated guide/gallery/capture manifests are synchronized.
+This first-increment delivery follows the separately commissioned design-only
+commit d41802a. Build defaults remain multipage HTML and referenced images;
+the proposed default-policy change and inverse options are a subsequent task.
+
+The index universe is all published content in its unit, including itself,
+other indexes, covers, full-article slides and generated endnotes. No wildcard
+exceptions or runtime tag refiltering apply. Anchor reveal may choose a tag to
+show a linked target; no new journey mode was introduced. Automatic defaults
+resolve meta > CLI > series > off/1/*, insert after the first non-excluded cover
+or at the start, and use collision-checked `lwp-index` with ordinary prefixes.
+Any explicit index, even excluded, suppresses insertion. Existing kits may
+omit the new layout and use standard with chrome, without manifest rewriting.
+
+Verification on 2026-09-10 passed **1,414 tests across 227 classes with 8 workers**
+in approximately 224 seconds. The full run includes the new selector, index,
+browser and test-discovery guards; its local log is
+`work/tmp/unit-index-release-check.log`. Compilation, whitespace, 231-section
+reference checks and generated-artifact freshness checks passed too.
+
+Browser coverage includes native and documentation-kit indexes, 1/2/3-column
+ceilings at 1100 x 700 and one column at 390 x 844, long titles, targets of at
+least 44 pixels, empty results, preset replacement, fullscreen, keyboard and
+left/right mouse navigation. A native PDF contains all 38 long-list entries in
+source order across three sheets. These are observations on the supplied
+Chromium environment, not certification of other engines or physical devices.
+
+Review-driven regressions cover heading selection before typography, removing
+footnote markers from index labels, generated endnotes in visibility metadata,
+and preserving an internal anchor when a queued layout follows navigation.
+Automatic-index reports reuse the build's field resolver. Compact tag literals
+follow existing case folding; general string comparisons and regex stay
+case-sensitive. Discovery import errors now fail the parallel runner rather
+than becoming empty successful worker classes.
+
+Still open: broader `unit_*` wire vocabulary, publication-selector replacement
+before dependent metadata/counts/navigation/inventories, downstream consumer
+coordination and the corresponding terminology sweep. In particular,
+no global `build --select` exists. The owner authorized the physical-output
+rename in this first lot; that does not authorize silently migrating persisted
+author fields or adding compatibility aliases.

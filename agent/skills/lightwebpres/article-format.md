@@ -17,7 +17,7 @@ a blank line starts another paragraph.
 The switch from fields to prose is **one-way and permanent within a slide**.
 The first unrecognized non-blank header line starts the body. A later
 `kicker: something` is text, not a field. Put all fields before body text.
-Only the first `#` on a cover or `##` on a standard slide captures its title,
+Only the first `#` on a cover or `##` on a standard/unit-index slide captures its title,
 and only before the body begins. A second heading, or the wrong level, becomes
 content. A bare `#` or `##` still declares an empty title.
 
@@ -77,7 +77,7 @@ An empty meta block is valid. A bare `---` separates slides everywhere in
 this file, including inside body text or a code example. Use `<hr>` for a
 visual rule. `<!-- lwp:slide:TYPE -->` opens a typed slide; the standard
 spelling is `<!-- lwp:slide -->` (explicit `<!-- lwp:slide:standard -->`
-also works). A misspelt type is fatal and names the rank, token and four types.
+also works). A misspelt type is fatal and names the rank, token and five types.
 
 ## Metadata And Cascades
 
@@ -95,13 +95,13 @@ The following chains run from strongest to weakest:
 Invalid `page_dest` values are fatal: not ending in `.html`/`.htm`, not a bare
 filename (`sub/x.html` is rejected), a case-insensitive collision with another
 article's destination, or `index.html` in a multipage series of several articles
-when an index is generated. `--no-index` removes that last collision; single-page
+when an index is generated. `--no-index` removes that last collision; combined-HTML
 mode has no separate index file and keeps `page_dest` as an article route key.
 In multipage output, a series of exactly one article may choose `index.html`;
 no series index is then generated and `build` prints `[no index]`. Leave the default article
 filename when another page or generator owns that directory's index.
 The normative cascade is in specifications.md §20.3.1; index ownership is
-in §11.3.3. Single-page routes and restrictions are in §11.3.8 and
+in §11.3.3. Combined-HTML routes and restrictions are in §11.3.8 and
 [Operations](operations.md).
 
 Ask the engine rather than calculating a cascade by hand:
@@ -138,6 +138,9 @@ an `articles[]` entry:
 - `notes_tooltip: on | off`: `on` also puts the note body's text on the call as a tooltip; it never removes the body. Default `off`; combines with either placement. Unknown values are fatal.
 - `slide_page_numbers: true | false`: opt-in engraved top-right `<span class="slide-num">NN / NN</span>`, except on generated `series-nav` furniture. Meta > `--slides-page-numbers on|off` > `series_meta.slide_page_numbers` > off. Invalid values are fatal. The always-on bottom-left live `X / N` counter is independent.
 - `slug_prefix:`: a namespace before every card ID on the page; the article overrides the series value.
+- `unit_index: on | off`: automatic unit contents, default off. Meta > `--unit-index` > `series_meta` > off. JSON Booleans work; true/false, yes/no and 1/0 are also accepted.
+- `unit_index_max_columns`: positive integer, default 1. Meta > `--unit-index-max-columns` > series > default; not a Boolean.
+- `unit_index_selector`: expression string, default `*`. Meta > `--unit-index-selector` > series > default. See Series and Appearance for the bounded query profile.
 
 Unknown meta keys silently do nothing during `build`: `page-title:` does
 not mean `page_title:`. `audit` names the unused key and suggests the nearest
@@ -155,6 +158,7 @@ layer and the `typo`, `typo_units`, `typo_thousands` opt-outs.
 | standard (default, or explicit `<!-- lwp:slide -->`) | `slug`, `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note`, then free Markdown text | As many as you want |
 | `series-nav` | `slug`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `comment` | 0 or 1 per article; navigation generated from `series.json` |
 | `full-article` | `slug`, `article: filename.md`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `comment` | Any number, each with its own file; `article` is required for publication. Explicit empty `article:` warns and omits the unfinished slide. |
+| `unit-index` | `slug`, `kicker`, `tags`, `## Title`, `summary`, `index-max-columns`, `index-selector`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note` | Any number, anywhere; generated contents for this logical unit, no free body |
 
 All fields other than `slug` and `full-article`'s `article` are optional.
 Ordinary empty scalars behave as absent; empty `tags:` receives `default`.
@@ -163,7 +167,7 @@ Appearance. An empty `article:` is an omitted draft slide; an absent line is
 fatal. Several `full-article` slides are valid; under local placement each
 numbers its own notes from 1. A second `series-nav` is fatal, never an override.
 Neither type accepts free body text or a title; unrecognized non-blank lines
-are fatal. `note:` is only for cover and standard slides.
+are fatal. `note:` is for cover, standard and unit-index slides.
 
 `slug` is required on every card. It is a stable URL identity, not a rank or
 title, and survives reordering, inserted/excluded cards and changed headings.
@@ -199,6 +203,37 @@ blockquotes, code, links and raw HTML all work. Body headings are smaller
 than the card's own title. Once the body starts, a heading is body content,
 not a redefinition of that title (specifications.md §22.2).
 
+## Unit Contents
+
+```markdown
+<!-- lwp:slide:unit-index -->
+slug: contents
+## Explore the evidence
+index-max-columns: 2
+index-selector: -type:unit-index
+```
+
+Only `slug` is required. Absent/empty `index-max-columns` defaults to `1`;
+otherwise it must be a positive integer. Absent/empty `index-selector` is `*`.
+The title is optional and defaults to localized Contents. No free body is
+accepted. This list may include every published slide, itself and other indexes,
+covers, long-form slides and generated endnotes. Use `-type:unit-index` if those
+index entries are unwanted. Zero matches show a localized message; no item
+limit truncates the result. Columns are responsive ceilings, links wrap long
+titles, and print keeps the source-ordered list.
+
+Automatic insertion uses the settings above after the first non-excluded cover,
+or at the start; any explicit index, including an excluded one, suppresses it.
+An empty source stays empty. The generated `lwp-index` slug follows normal
+prefix/collision checks and never causes a source write. Explicit indexes use
+their own fields rather than inheriting automatic index defaults.
+
+The entry set is computed at build time, not refiltered by the reader's tag.
+Clicking a link follows the existing tag-aware reveal policy, which may select
+a tag to show the target. No new journey mode is introduced. See
+[Series and Appearance](series-and-appearance.md#scoped-selectors) for queries
+and specifications.md §3.3.6, §3.4 and §20.5.5 for exact contracts.
+
 ## Comments And Speaker Notes
 
 `comment:` is a source-only review note, accepted on every slide, in meta,
@@ -220,7 +255,7 @@ note: Mention the 2020 study; the audience asked for it last time.
   If time runs short, skip the appendix.
 ```
 
-On cover/standard slides a `note:` or `comment:` continuation begins with
+On cover/standard/unit-index slides a `note:` or `comment:` continuation begins with
 whitespace. An indented blank line preserves a paragraph break; the first
 non-indented non-empty line ends the block. Extra lines stay in the field,
 not the visible body. Other fields are single-line values. In the example
@@ -237,8 +272,8 @@ removed and theme colours retained; inspect the PDF rather than assuming fit.
 ## Live Draft Contract
 
 `lightwebpres contract [directory]` is the read-only authoring-client
-interface. Its default JSON uses `lightwebpres.slide-draft/1`, generated
-from the parser registry: four types, fields and order, required fields,
+interface. Its default JSON uses `lightwebpres.slide-draft/2`, generated
+from the parser registry: five types, fields and order, required fields,
 cardinalities, empty rules, reserved IDs and a draft source per type.
 Skeletons include non-empty generated slugs; `--article file.md` avoids
 slugs declared by an existing source. `--format text` gives a readable view.

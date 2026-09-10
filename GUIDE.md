@@ -190,15 +190,19 @@ build result. **Refresh the browser yourself: there is no automatic browser
 reload.** Stop with Ctrl+C. Serving is opt-in on `127.0.0.1`; change `--port`
 if 8000 is occupied. This is an author preview, not a public deployment server.
 
-### Understand page anatomy
+### Understand content-unit anatomy
 
-A page is a sequence of **slides**, separated by `---`, preceded by one
-metadata block. There are four slide types, and inside a standard slide a
+A **content unit** is a sequence of slides, separated by `---`, preceded by one
+metadata block, with optional supporting long-form texts. It is not an HTML
+page: `--single-html [FILE]` can combine several units without merging their
+ownership. The source format still calls a unit an article and uses canonical
+`articles[]`, `page_source` and `page_dest` fields, not new aliases.
+There are five slide types, and inside a standard slide a
 small set of named components. This section names them and says how you
 reach each one; `agent/skills/lightwebpres/SKILL.md` carries the exact
 syntax and every edge case.
 
-**The four slide types.**
+**The five slide types.**
 
 | Type | Carries | How many |
 |---|---|---|
@@ -206,9 +210,10 @@ syntax and every edge case.
 | standard *(the default)* | `slug`, `kicker`, `tags:`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note`, then free Markdown | as many as you want |
 | `series-nav` | `slug`, `tags:`, `slide-layout`, `slide-header`, `slide-footer`, `comment:` — the navigation itself is generated from `series.json` | 0 or 1 per article |
 | `full-article` | `slug`, `article: filename.md`, `tags:`, `slide-layout`, `slide-header`, `slide-footer` and `comment:` | any number, each with its own file |
+| `unit-index` | `slug`, optional `## Title`, `kicker`, `summary`, `tags`, `note`, `comment`, `index-max-columns`, `index-selector`, `slide-layout`, `slide-header`, `slide-footer`; no free body | any number, anywhere |
 
-Four, and only four. Mistype one — `<!-- lwp:slide:covre -->` — and the
-build stops and tells you which slide, what you wrote, and what the four
+Five, and only five. Mistype one, such as `<!-- lwp:slide:covre -->`, and the
+build stops and tells you which slide, what you wrote, and what the five
 names are. You will not find out from the page.
 
 **The components inside a standard slide.**
@@ -312,11 +317,11 @@ Register every article that should appear in navigation in
 
 `comment:` is a source-only review field, accepted on every slide and in
 article/series metadata. It is never published, not even in the HTML source.
-`note:` is different: on a cover or standard slide it is embedded in the HTML
+`note:` is different: on a cover, standard or unit-index slide it is embedded in the HTML
 for the speaker panel (route 4). Both support indented continuation lines.
 
 For editor or agent integrations, `lightwebpres contract --format text`
-describes the versioned `lightwebpres.slide-draft/1` contract: accepted and
+describes the versioned `lightwebpres.slide-draft/2` contract for all five types: accepted and
 required fields, cardinalities, source order, empty-value rules, reserved IDs
 and parseable skeletons. JSON is the default. `--article first-page.md` avoids
 slugs already declared in that source. It writes nothing.
@@ -537,6 +542,119 @@ refers to `typography/<name>.json`, or to the legacy
 change this typography choice. `audit` reports invalid tags and missing packs
 without blocking, while `build` rejects malformed declarations.
 
+### Add a unit index
+
+The automatic settings can also be inspected with `resolve`, for example
+`lightwebpres resolve my-series unit_index_max_columns --article brief.md`.
+The report uses the same field policy as the build, without a CLI override.
+
+Use a `unit-index` slide when readers need a linked overview inside one unit.
+It is distinct from the series index, which links different articles. Add this
+block between `---` separators, normally after the cover:
+
+```markdown
+<!-- lwp:slide:unit-index -->
+slug: contents
+## Choose a section
+kicker: Reading guide
+summary: Follow a link or continue through the deck.
+index-max-columns: 2
+index-selector: -type:unit-index
+```
+
+Only `slug` is required. There is no free body. Without a title, the interface
+supplies Contents; without the two index fields, the defaults are one column
+and `*`. A column count is a responsive maximum, not a forced desktop grid on
+a phone. Long titles wrap, long lists remain complete, and print keeps the
+source-ordered list. Existing kits can use their standard layout with chrome;
+no manifest rewrite is required.
+
+**Choose the entries explicitly.** `*` means every published slide in this
+unit, including the index itself, other indexes, covers, long-form slides and
+generated page-end notes. `-type:unit-index` omits indexes. Several explicit
+indexes may use different selectors; none changes publication membership.
+
+Compact selectors combine literal tags and fields:
+
+```text
+index-selector: expert-en -type:unit-index
+index-selector: (expert-en | expert-fr) -type:cover -type:unit-index
+index-selector: series:author:"Editorial team" slide:title:/^Evidence/
+```
+
+Space is AND, `|` is OR, `-` is NOT; parentheses group and quotes preserve
+spaces or punctuation. `expert-en` is exactly `tag:expert-en`, not an engine
+language category. Unlike the reader filter, it does not include shared
+`default` slides unless they carry that literal tag. Unqualified fields read
+the effective value; `series:`, `unit:` and `slide:` read only that scope.
+The JSON entry and Markdown metadata both own unit values, with entry authority
+for supported fields. `status:draft` tests effective status;
+`unit:status:draft` requires a declared unit value. Implicit `active` is not
+invented in the scoped view.
+
+For typed comparisons or array membership, use the **JSONPath filter profile**:
+
+```text
+index-selector: $[? @.slide.type == "standard" && @.slide.tags[? @ == "expert-en"]]
+index-selector: $[? search(@.slide.title, "Evidence")]
+```
+
+Each line above is an alternative, not several fields to stack: repeated
+fields keep only the last value. The profile supports `$[*]`, `$[? ...]`,
+scalar comparisons, `&&`, `||`, `!`, scoped paths, existence, nested array
+filter existence, and `match`/`search`. A missing operand makes even `!=`
+false; false/null/empty fields still exist. It is not full RFC 9535 or
+I-Regexp. Regexes are case-sensitive and bounded: no groups, alternation,
+shorthand classes, lookarounds, backreferences or flags. Queries use parsed
+source values; computed `title` is plain text, not HTML or display typography.
+The exact grammar and hard budgets are in specifications.md §3.4.
+
+Name reusable queries in `series.json`, merging these settings into the
+existing object rather than replacing the rest of the series:
+
+```json
+{
+  "series_meta": {
+    "selectors": {
+      "evidence": "type:standard -type:unit-index",
+      "english": "$[? @.slide.tags[? @ == \"expert-en\"]]",
+      "english-evidence": "selector:evidence selector:english"
+    }
+  },
+  "articles": [{"page_source": "brief.md"}]
+}
+```
+
+Then write `index-selector: selector:english-evidence`. References compose
+expressions, not text. Reachable unknown names, cycles, unsupported syntax
+and exceeded budgets stop the build; unused definitions are shape-checked
+but their expressions are not compiled.
+
+**Prefer automatic insertion when the default position is enough.** Set
+`unit_index: on` in the unit's meta block, or `"unit_index": true` in
+`series_meta`, or use:
+
+```bash
+./lightwebpres build my-series --unit-index on --unit-index-max-columns 2 --unit-index-selector '-type:unit-index'
+./lightwebpres verify my-series --unit-index on --unit-index-max-columns 2 --unit-index-selector '-type:unit-index'
+./lightwebpres watch my-series --unit-index on --unit-index-max-columns 2 --unit-index-selector '-type:unit-index' --serve --open
+```
+
+The settings `unit_index`, `unit_index_max_columns`, `unit_index_selector`
+resolve independently: unit meta > CLI > `series_meta` > `off` / `1` / `*`.
+They do not go in an `articles[]` entry. Insertion is after the first
+non-excluded cover, or at the start. Any explicit index, even excluded,
+suppresses automatic insertion. Its generated `lwp-index` slug takes the
+normal prefix and collides fatally rather than being renamed. No source is
+written. Explicit indexes keep their own column and selector fields.
+
+The entry list is fixed at build time, not refiltered when a reader changes
+tags. Following a link may select an available tag to reveal the target using
+the existing anchor policy; arrows and mouse-remote controls retain their
+ordinary navigation. There is no new journey mode and no global `build --select`.
+Try the [complete source-only example](examples/unit-index/README.md), including
+an automatic second unit, named queries, long-form text and an empty result.
+
 ### Register articles and inspect resolved metadata
 
 `series.json` lists the articles and holds series-wide metadata:
@@ -694,7 +812,7 @@ The other table modes are `clip` and `overflow`; the other text modes are
 `fixed` retains the theme's native responsive sizes; it disables content-based
 text fitting, not responsiveness. `uniform` measures all tag-visible slides in
 the current article, including long-form and series-navigation slides, and uses
-one shared reduction factor. In single-page output, readers can extend that
+one shared reduction factor. In combined-HTML output, readers can extend that
 scope to all articles in Display settings. `per-slide` solves each visible
 slide separately without propagating its factor to other slides or articles.
 Fitting measures actual browser layout at the current viewport and repeats
@@ -791,7 +909,8 @@ to be initial. Its optional `default_preset` names a local preset, otherwise
 the first preset in manifest order is used. `slide_layouts` and `slide_chrome`
 declare preset defaults in that manifest only.
 
-`slide-layout`, `slide-header` and `slide-footer` work on all four slide types.
+`slide-layout`, `slide-header` and `slide-footer` work on all five slide types.
+Existing kits may omit a dedicated `unit-index` layout and use standard with chrome.
 They override the selected preset's defaults for one slide, not through an
 author JSON cascade. The preset's theme supplies the typed base unless
 `settings.conf` explicitly selects another theme. Precedence is: base theme
@@ -1407,7 +1526,7 @@ mouse, keyboard or touch; no source edit or rebuild is needed:
 | Presentation zoom: **-**, **+**, **Reset** | Reduce or enlarge presentation text and images, or return to 100%, without scaling the slide frame or controls; the current percentage is shown. Keyboard equivalents are **-**, **+**, **=**. |
 | Wide tables | **Hide what does not fit** (`clip`, default), **Allow overflow** (`overflow`), or **Scroll inside the table** (`scroll`). **O** cycles in that order. |
 | Text size | **Keep the chosen size** (`fixed`, default), **Reduce all slides together** (`uniform`), or **Reduce each slide as needed** (`per-slide`). **A** cycles in that order. |
-| Uniform fit scope | Single-page output only, while text size is `uniform`: **Current article** (default) or **Entire series**. |
+| Uniform fit scope | Combined-HTML output only, while text size is `uniform`: **Current article** (default) or **Entire series**. |
 | Reduce tables as needed | Independently allow bounded table shrinking; off by default. |
 | Reduce images as needed | Independently allow bounded shrinking of supported images/figures; off by default, not a control for arbitrary embedded widgets. |
 
@@ -1425,7 +1544,7 @@ served HTTP(S) pages and across browsers. Appearance choices keep their
 separate browser-session contract.
 
 In French, the scope control is **Portée de la réduction uniforme**, with
-**Article courant** and **Série entière** as its choices. In single-page output,
+**Article courant** and **Série entière** as its choices. In combined-HTML output,
 scope is saved separately from the other reading settings for the same output
 directory. Missing or invalid
 stored scope, or blocked storage reads, starts with **Current article**;
@@ -1567,7 +1686,7 @@ without screen clipping or local scroll limits, and runtime fitting scales and
 presentation zoom are cleared for print. The screen choices return afterwards;
 print expansion does not guarantee that a wide table fits the physical paper.
 
-In single-page series output, printing includes only the active article with
+In combined-HTML series output, printing includes only the active article with
 its current tag filter, never the whole collection. If the series contents
 view is active, only those contents print. Switch to the intended article
 before opening print preview.
@@ -1752,8 +1871,8 @@ whitespace), exiting non-zero when output differs. Run it before `build` to
 catch a `public/` that was hand-edited or never rebuilt after a source change.
 
 Use the same supported rendering options as the build, including `--lang`,
-`--themes`, `--no-essential-theme`, `--single-page [FILE]` and `--inline-images`
-when used. `verify` reproduces both inline-image and single-page output; no
+`--themes`, `--no-essential-theme`, `--single-html [FILE]` and `--inline-images`
+when used. `verify` reproduces both inline-image and combined-HTML output; no
 separate non-inline build is needed for this CI check.
 
 ### Asking why a value is what it is
@@ -1846,14 +1965,14 @@ is checked for tag balance before writing; that is not a security sanitizer.
 ### Publish a series in one HTML file
 
 ```bash
-./lightwebpres build my-series --lang en --single-page --inline-images
-./lightwebpres verify my-series --lang en --single-page --inline-images
-./lightwebpres build my-series --lang en --single-page collection.html --inline-images
-./lightwebpres verify my-series --lang en --single-page collection.html --inline-images
-./lightwebpres watch my-series --lang en --single-page collection.html --inline-images --serve --open
+./lightwebpres build my-series --lang en --single-html --inline-images
+./lightwebpres verify my-series --lang en --single-html --inline-images
+./lightwebpres build my-series --lang en --single-html collection.html --inline-images
+./lightwebpres verify my-series --lang en --single-html collection.html --inline-images
+./lightwebpres watch my-series --lang en --single-html collection.html --inline-images --serve --open
 ```
 
-`--single-page [FILE]` accepts an optional filename on `build`, `verify` and
+`--single-html [FILE]` accepts an optional filename on `build`, `verify` and
 `watch`. Without one, it derives a `.html` filename from `series_meta.title`:
 strip HTML, decode entities, lowercase, fold accents and replace punctuation
 with hyphens, retaining Unicode letters. For example, `Café & Climate` becomes
@@ -1863,10 +1982,10 @@ to 100 characters and 200 UTF-8 bytes; reserved Windows names receive a
 `series-` prefix.
 
 An explicit bare `.html` or `.htm` filename takes precedence; paths, URLs and
-empty values are invalid. `--single-page=collection.html` is also supported.
+empty values are invalid. `--single-html=collection.html` is also supported.
 Before the positional series directory, the next separate argument is a
 filename only if it ends in `.html` or `.htm`; otherwise it remains the series
-directory. Use `build --single-page -- archive.html` for a series directory
+directory. Use `build --single-html -- archive.html` for a series directory
 whose name looks like a filename. After the positional directory, any next
 non-option argument is treated as an explicit filename and validated.
 
@@ -1879,7 +1998,7 @@ explicit filename if the published address must stay stable.
 Omit `--inline-images` to keep supported images and presentation assets as
 copied files beside the combined
 HTML; include them when distributing it. Image embedding has the portability
-limits described above. Without `--single-page`, output remains multipage.
+limits described above. Without `--single-html`, output remains multipage.
 
 The combined document opens on series contents. Readers deliberately switch
 to an article and back, rather than scrolling continuously through all articles.
@@ -1892,7 +2011,7 @@ Any `templates/nav.js` must match the built-in runtime. Nonempty
 `templates/index_extra.html` is rejected in this initial mode, and arbitrary
 widget script lifecycles are unsupported. Use default multipage output for
 those extensions rather than expecting their scripts to restart on each switch.
-`--no-index` and `--drafts-only` are refused in single-page mode.
+`--no-index` and `--drafts-only` are refused in combined-HTML mode.
 `--include-drafts`, `--no-nav` and `--no-readme` remain supported.
 `build --only ARTICLE` validates the target but rebuilds the complete combined
 file, not an incremental fragment.
@@ -1905,7 +2024,7 @@ the `introduction` target in `first-page.html`. Encode each component separately
 
 ### Review stale output
 
-The single-page build manifest records the physical combined HTML file and
+The combined-HTML build manifest records the physical combined HTML file and
 copied images/presentation assets unless inlined, not one file per virtual
 article. Changing publication mode or the combined filename, including an
 automatic name after a title change, does not automatically remove old files
@@ -1985,7 +2104,7 @@ python3 restored-series/lightwebpres build restored-series --lang en --output /t
 ```
 
 Skip the initial `verify` if the backup has no generated output. Match the
-original `--single-page [FILE]`, `--inline-images`, theme, preset-alternative or
+original `--single-html [FILE]`, `--inline-images`, theme, preset-alternative or
 typography flags rather than assuming the defaults in this example.
 `.lwp-cache/` is rebuildable state; retain output manifests with a published tree if you want
 `clean` to know which files it owns.
@@ -2069,7 +2188,7 @@ python3 lightwebpres series slug my-series --format json
 python3 lightwebpres resolve my-series page_title --article first-page.md --format json
 ```
 
-`contract` returns `lightwebpres.slide-draft/1`, with required fields, allowed
+`contract` returns `lightwebpres.slide-draft/2` for five types, with required fields, allowed
 order, cardinality and parseable skeletons. Its generated slugs avoid those
 already declared in the named article; that is not a request to rename existing
 slides. Only run `series slug set` if filling missing slugs is authorized,
@@ -2086,13 +2205,13 @@ schema rather than guessing its meaning.
 
 | Interface | Contract or result | Consumer obligation |
 |---|---|---|
-| `contract --format json` | `lightwebpres.slide-draft/1` | Use the engine's field rules and skeletons. |
+| `contract --format json` | `lightwebpres.slide-draft/2` | Use the engine's field rules and skeletons for all five types. |
 | `status --format json` | `lightwebpres.series-info/4` | Preserve article order and inspect `source_read`, not only the exit code. |
 | `series tags --format json` | `lightwebpres.series-tags/1` | Check `default_output` and active-only per-tag `output`, not just tag names. |
 | `series preset --format json` | `lightwebpres.series-preset/2`, containing a `lightwebpres.presentation-preset/2` object | Read the nested `preset` selector and resources; `native_renderer` describes rendering, not the initial selection. |
 | `build` | Non-zero on fatal structural/render errors | Read warnings too; exit 0 is not editorial approval. |
 | `audit` | Reports warnings and render failures; normally exits 0 | Read the report, or use `--strict` for a failing gate. |
-| `verify` | Non-zero on drift or failure | Match rendering flags, including `--single-page [FILE]` and `--inline-images` when used. |
+| `verify` | Non-zero on drift or failure | Match rendering flags, including `--single-html [FILE]` and `--inline-images` when used. |
 
 `status` can succeed with **incomplete source information**. A missing,
 unreadable or non-UTF-8 article stays in the report with `source_read: false`,
@@ -2245,8 +2364,8 @@ check it **before** rebuilding, so build does not erase evidence of drift:
 
 A fresh checkout with no committed output needs a build, not that initial
 drift gate. Match rendering options in `verify`, including language, themes
-and `--no-essential-theme`, plus `--single-page [FILE]` and `--inline-images`
-when used.
+and `--no-essential-theme`, plus `--single-html [FILE]`, `--inline-images`,
+`--unit-index`, `--unit-index-max-columns` and `--unit-index-selector` when used.
 
 ### Target builds and record build stamps
 
@@ -2260,7 +2379,7 @@ in route 1; it does not reload the browser.
 `--only` targets one article only when the navigation cache is safe. It still
 refreshes derived outputs (index, README and assets according to options,
 manifest and cache); changes affecting index/navigation trigger a full build.
-With `--single-page [FILE]`, it validates the target and always rebuilds the
+With `--single-html [FILE]`, it validates the target and always rebuilds the
 complete combined document.
 The cache is bound to its output directory. Switching output directories, or
 losing retained pages or declared assets, also triggers a full build rather

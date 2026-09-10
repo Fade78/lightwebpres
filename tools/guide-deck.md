@@ -14,6 +14,16 @@ summary: One source for reading and presenting. Choose a route, or <a href="#gui
 
 ---
 
+<!-- lwp:slide:unit-index -->
+slug: guide-contents
+kicker: Contents
+index-max-columns: 2
+index-selector: -type:cover -type:unit-index
+## Find your route
+summary: Jump to a workflow card or to the complete manual. This list is generated from the guide's own slides.
+
+---
+
 <!-- lwp:slide -->
 slug: trois-commandes
 kicker: Create content

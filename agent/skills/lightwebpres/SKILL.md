@@ -5,7 +5,7 @@ description: >
   select or compose presentation identities, diagnose builds, and integrate
   or maintain a publishing workflow. Supplies the exact article grammar and
   bounded references for series.json, text conversion and appearance. Use
-  when a task mentions LWP, fact-box, highlight, series-nav, full-article,
+   when a task mentions LWP, fact-box, highlight, series-nav, full-article, unit-index,
   or a project has series.json and a lightwebpres executable. Not generic
   Markdown, an editorial research method, or permission to publish.
 ---
@@ -18,7 +18,10 @@ one deck `.md` per article. It is a single Python 3.8+ standard-library
 executable, published and downloadable at
 <https://github.com/Fade78/lightwebpres>. If it is absent, ask before assuming
 an installation or downloading one. Use the current executable, not remembered
-syntax from an older installed skill.
+syntax from an older installed skill. A logical content unit groups a deck
+and its supporting text, independently of physical HTML output. Persisted
+`articles[]`, `page_source`, `page_dest` and related names remain canonical,
+not aliases. The live draft schema is `lightwebpres.slide-draft/2` with five types.
 
 ## Start With Scope
 
@@ -41,7 +44,7 @@ with this entry when the whole `lightwebpres/` directory is copied:
 | Reference | Read For |
 |---|---|
 | [Article Format](article-format.md) | Deck anatomy, metadata cascades, every slide type and field, slugs and speaker notes |
-| [Series and Appearance](series-and-appearance.md) | Registration, order, status, tags, languages, presets, kits and runtime choices |
+| [Series and Appearance](series-and-appearance.md) | Registration, order, status, tags, scoped/named selectors, languages, presets, kits and runtime choices |
 | [Text and Style](text-and-style.md) | The exact converter subset, images, source notes, typography and styling hooks |
 | [Operations](operations.md) | Scoped workflows, diagnosis, validation, composition, maintenance and automation |
 
@@ -116,7 +119,8 @@ Human walkthrough: [Integrate and automate](https://github.com/Fade78/lightwebpr
 - The field-to-prose switch is **one-way** within a slide. Put all fields first; scalar values occupy one physical line. Only slide `comment:` and `note:` support indented continuation.
 - Fields are values, not Markdown. Raw HTML is trusted and passed through, including scripts. Sanitize untrusted input upstream; the build is not a security filter.
 - Free text uses the documented LWP subset, **not generic CommonMark**. Markdown links require HTTP(S); `---` splits a deck, not a visual rule.
-- Every card needs a stable `slug:`. Only standard slides accept a free body; `full-article` references a separate file without LWP markers.
+- Every card needs a stable `slug:`. Only standard slides accept a free body; `full-article` references a separate file without LWP markers. `unit-index` generates a list, not prose.
+- Index `*` includes every supplied published slide, including itself. Literal tags have no reader shared-default magic; selectors do not replace global publication filters.
 - Speaker `note:` content is public in the HTML, even when hidden from normal view. `comment:` stays out of generated pages, but not out of a published source repository.
 - Keep research and editorial approval separate from format validation. An optional, externally maintained `sourced-presentation` skill can supply a method; it is not a build requirement.
 
@@ -134,7 +138,8 @@ journals planned effects; it is **not proof of rendered output**. Plain
 `audit` reports warnings and render failures without failing; `audit --strict`
 makes them a CI gate. Read findings, then build and inspect within scope.
 `verify` compares existing output with an in-memory rebuild using matching
-supported flags, including `--single-page [FILE]` and `--inline-images` when
+supported flags, including `--unit-index`, `--unit-index-max-columns`,
+`--unit-index-selector`, `--single-html [FILE]` and `--inline-images` when
 used. Report commands, options, findings and any unperformed visual or deployment
 checks; never call an unbuilt draft verified.
 

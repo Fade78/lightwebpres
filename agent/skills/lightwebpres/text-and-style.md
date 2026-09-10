@@ -68,7 +68,7 @@ screen clipping or local scroll limits; check physical paper width separately.
 Text fitting is a reader setting, not a Markdown conversion or an article
 `style.*` key. `fixed` keeps the native responsive sizes without content fitting;
 `uniform` fits all tag-visible slides in the current article together by
-default. In single-page output only, **Uniform fit scope** in Display settings
+default. In combined-HTML output only, **Uniform fit scope** in Display settings
 can extend that group to tag-eligible slides across the entire series, using
 the smallest measured factor. Long-form and series-navigation slides participate
 even if they still overflow at the floor. `per-slide` fits each independently,
@@ -119,7 +119,7 @@ a field can still enter the page.
 **Trust boundary:** raw HTML, including `<script>`, reaches published pages.
 LWP trusts author-controlled text; `templates/custom.css` is also appended
 verbatim, and `template write nav.js` can hand over the page script.
-Single-page mode requires that script to match the built-in runtime; arbitrary
+Combined-HTML mode requires that script to match the built-in runtime; arbitrary
 widget script lifecycles are unsupported. Use multipage output for those
 extensions; see [Operations](operations.md).
 Sanitize untrusted CMS exports, database text, translations or another

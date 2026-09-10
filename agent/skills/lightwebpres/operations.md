@@ -124,8 +124,8 @@ alternatives. Read warnings even when build exits zero.
 
 `verify` needs the same supported rendering flags and environment as the
 build, including language, themes, presentation alternatives, typography,
-draft inclusion, navigation, scroll duration, `--single-page [FILE]` and
-`--inline-images` where applicable. Both image embedding and single-page output
+draft inclusion, navigation, scroll duration, `--single-html [FILE]` and
+`--inline-images` where applicable. Both image embedding and combined-HTML output
 are reproducible by `verify`; consult `verify --help` for its accepted options.
 Build-stamp differences and surrounding whitespace are ignored, not arbitrary
 body differences. Audit has its own smaller option
@@ -161,7 +161,7 @@ with an explanation. Inactive measurement must not disturb active selection,
 focus or media. Shell-dependent author CSS may not measure identically in the
 isolated measurement documents.
 
-In single-page output only, **Uniform fit scope** appears while `uniform` is
+In combined-HTML output only, **Uniform fit scope** appears while `uniform` is
 selected: choose **Current article** or **Entire series**. Series scope uses
 the smallest measured factor across all tag-eligible article slides, respecting
 each article's styles, preset and settings pins. Long-form and series-navigation
@@ -181,7 +181,7 @@ to author defaults and 100% zoom; controls remain usable if saving is blocked.
 Check storage availability, and distinguish `file:` URLs from HTTP(S): browser
 policies can prevent persistence or sharing between pages.
 
-Single-page uniform scope is saved separately at
+Combined-HTML uniform scope is saved separately at
 `readingPreferenceKey + ':fit-scope'`, with `article` as the fallback for
 missing/invalid values or blocked reads. Blocked saving leaves the control
 usable. It is not an author reading field and does not affect multipage output.
@@ -217,13 +217,20 @@ CSS, fonts, scripts and media are not a complete portable bundle. See the
 ### Publish A Series In One HTML File
 
 ```bash
-lightwebpres build my-series --single-page --inline-images
-lightwebpres verify my-series --single-page --inline-images
-lightwebpres build my-series --single-page collection.html --inline-images
-lightwebpres verify my-series --single-page collection.html --inline-images
+lightwebpres build my-series --single-html --inline-images
+lightwebpres verify my-series --single-html --inline-images
+lightwebpres build my-series --single-html collection.html --inline-images
+lightwebpres verify my-series --single-html collection.html --inline-images
 ```
 
-`--single-page [FILE]` accepts an optional filename on `build`, `verify` and
+`--unit-index on|off`, `--unit-index-max-columns N` and
+`--unit-index-selector expression` are supported by `build`, `verify` and
+`watch`, including combined HTML. Match them when verifying output. Unit
+metadata wins over CLI, then series defaults; explicit indexes suppress
+automatic insertion even when excluded. See [Article Format](article-format.md#unit-contents)
+and [Series and Appearance](series-and-appearance.md#scoped-selectors).
+
+`--single-html [FILE]` accepts an optional filename on `build`, `verify` and
 `watch`; `--output` remains a directory. Without a filename, it derives one
 from `series_meta.title`: strip HTML, decode entities, lowercase, fold accents
 and replace punctuation with hyphens, retaining Unicode letters. An empty
@@ -232,10 +239,10 @@ result falls back to the series directory name, then `series`, not a translated
 bytes, reserved Windows names receive `series-`, and `.html` is appended.
 
 An explicit bare `.html` or `.htm` filename always wins; paths, URLs and empty
-values are invalid. `--single-page=collection.html` also works. Before the
+values are invalid. `--single-html=collection.html` also works. Before the
 positional series directory, a next separate value is a filename only when it
 ends in `.html` or `.htm`; otherwise it remains the directory. For a directory
-that looks like a filename, use `build --single-page -- archive.html`. After
+that looks like a filename, use `build --single-html -- archive.html`. After
 the positional directory, any next non-option value is an explicit filename
 and is validated. Match the automatic or explicit choice in `verify`. `watch`
 rederives automatic names after title changes; use an explicit name for a
@@ -248,7 +255,7 @@ is deliberate, not continuous scrolling. Article styles, notes and IDs remain
 local, and one root runtime preserves fullscreen across switches. Print uses
 the active tag-filtered article; the contents view prints only series contents.
 
-Single-page mode requires any `templates/nav.js` override to match the built-in
+Combined-HTML mode requires any `templates/nav.js` override to match the built-in
 runtime and rejects nonempty `templates/index_extra.html`. Arbitrary widget
 script lifecycles are unsupported; keep multipage output for those extensions.
 `--no-index` and `--drafts-only` are refused; `--include-drafts`, `--no-nav`

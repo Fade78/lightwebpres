@@ -13,11 +13,11 @@
 
 **§3. Niveaux d'objets**
 
-3.1 Niveau série (le site) · 3.2 Niveau article (la page) · 3.3 Niveau fiche (slide)
+3.1 Niveau série (le site) · 3.2 Content unit (article) · 3.3 Niveau fiche (slide) · 3.4 Scoped selectors
 
 **§4. Format Markdown étendu**
 
-4.1 Syntaxe générale · 4.2 Exemple complet · 4.3 Champs d'une fiche standard · 4.4 Types de slides · 4.5 Désactiver la typographie automatique pour un article · 4.6 Notes de relecture (`comment`) · 4.7 Contrat machine de brouillon
+4.1 Syntaxe générale · 4.2 Exemple complet · 4.3 Champs d'une fiche standard · 4.4 Types de slides · 4.5 Désactiver la typographie automatique pour un article · 4.6 Notes de relecture (`comment`) · 4.7 Machine-readable draft contract
 
 **§5. Inclusions**
 
@@ -43,7 +43,7 @@
 
 **§11. Commandes de l'exécutable**
 
-11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --only` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.3.8 `--single-page [FILE]`: one document per series · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.9.2 Le catalogue externe · 11.10 `series theme set` · 11.11 `status` et `series status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy · 11.17 `contract` · 11.18 `preset` et `series preset` · 11.19 `kit compose`
+11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --only` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.3.8 `--single-html [FILE]`: one document per series · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.9.2 Le catalogue externe · 11.10 `series theme set` · 11.11 `status` et `series status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy · 11.17 `contract` · 11.18 `preset` et `series preset` · 11.19 `kit compose`
 
 **§12. Algorithme du build**
 
@@ -75,7 +75,7 @@
 
 **§20. Schéma formel de `series.json`**
 
-20.0 Nomenclature : la forme d'un nom dit son niveau · 20.1 Structure · 20.2 Champs des articles · 20.3 Règles de validation · 20.4 Métadonnées de la série (`series_meta`) · 20.5 Champs de `series_meta` · 20.5.1 Typographie par tag de langue · 20.5.2 Tag initial et persistance · 20.5.3 Sélection de preset de présentation · 20.5.4 Alternatives runtime de présentation · 20.6 Statut d'un article (`status`)
+20.0 Nomenclature : la forme d'un nom dit son niveau · 20.1 Structure · 20.2 Champs des articles · 20.3 Règles de validation · 20.4 Métadonnées de la série (`series_meta`) · 20.5 Champs de `series_meta` · 20.5.1 Typographie par tag de langue · 20.5.2 Tag initial et persistance · 20.5.3 Sélection de preset de présentation · 20.5.4 Alternatives runtime de présentation · 20.5.5 Automatic unit indexes · 20.6 Statut d'un article (`status`)
 
 **§21. Cas de validation informel (contenu privé, hors dépôt)**
 
@@ -96,7 +96,7 @@ scrollable cards of several types, optionally followed by long-form text,
 with navigation between articles. Long-form text need not be a sourced article:
 the format began with documented presentations but is not limited to them.
 Default output is a set of HTML files with embedded CSS and JavaScript,
-deployable on a static server. `--single-page [FILE]` combines a series into one
+deployable on a static server. `--single-html [FILE]` combines a series into one
 document with deliberate article switching (§11.3.8). Referenced images and
 author-supplied external resources still need to be distributed or reachable;
 image embedding is not a complete dependency bundle (§11.3.7, §13.2).
@@ -543,9 +543,9 @@ d'une commande vont sur **stdout**. C'est ce qui permet à
 ```bash
 lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--preset builtin/standard|commons/id|id@version/preset] [--no-starter] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--single-page [FILE]] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
-lightwebpres watch [répertoire] [--lang fr] [--output public/] [--single-page [FILE]] [--inline-images] [--include-drafts] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
-lightwebpres verify [répertoire] [--lang fr] [--output public/] [--single-page [FILE]] [--inline-images] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres build [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--language-file path.json] [--no-typography] [--include-drafts] [--only article] [--nav-cache path] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres watch [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--include-drafts] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres verify [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--language-file path.json] [--no-typography] [--include-drafts] [--no-nav] [--no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
 lightwebpres template show <nav.js|fr.json|en.json|interface/...|typography/...>
@@ -577,11 +577,12 @@ lightwebpres --help
 - `[répertoire]` : le chemin du répertoire de série (défaut : `.`, ou `$LWP_SERIES_DIR`). `theme show` sans slug lit la série courante de la même façon ; avec un slug, il lit le catalogue global intégré/ installé/ utilisateur.
 - `--lang` : la langue — règles typographiques et chaînes d'interface (défaut : `fr`, ou `$LWP_LANG`)
 - `--output`: `demo` / `build` / `verify` / `watch` output directory (default:
-  `public/`, or `$LWP_OUTPUT_DIR`); it remains a directory with `--single-page`.
+  `public/`, or `$LWP_OUTPUT_DIR`); it remains a directory with `--single-html`.
   `theme gallery` takes an HTML destination, `theme create` a `.conf` filename,
   and `kit compose` the output root for `directory/id/version/`. A relative
   path is resolved from the working directory, not the series directory.
-- `--single-page [FILE]`: `build` / `verify` / `watch` publish or compare one combined HTML file with deliberate article switching (§11.3.8). The optional filename overrides the automatic name derived from the series title.
+- `--single-html [FILE]`: `build` / `verify` / `watch` publish or compare one combined HTML file with deliberate article switching (§11.3.8). The optional filename overrides the automatic name derived from the series title.
+- `--unit-index on|off`, `--unit-index-max-columns N`, `--unit-index-selector expression`: `build` / `verify` / `watch` automatic unit contents (§20.5.5); unit metadata overrides CLI, then series defaults. These do not filter global publication.
 - `--inline-images`: `build` / `verify` / `watch` embed supported local Markdown and kit images as data URIs, not a complete dependency bundle (§11.3.7).
 - `--scaffold` : `template update` seulement — régénère la surface
   commentée de `settings.conf` aux valeurs du thème de base résolu, en
@@ -603,7 +604,7 @@ lightwebpres --help
 - `--themes` : `build`/`verify`/`watch`/`theme vendor` — embarque ou vend des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules ; les slugs viennent du catalogue effectif et le thème de base effectif (celui de `settings.conf`, ou celui du preset) reste toujours le premier pour un build, précédé de `custom(<thème>)` si le fichier porte des pins (§9.3.7)
 - `--presentation-presets` : `build`/`verify`/`watch` — publie des alternatives de présentation séparées par des virgules dans le sélecteur runtime ; le preset primaire de la série reste toujours le premier, et l'option CLI prime la liste racine `series.json["presentation_presets"]` (§9.3.8)
 - `--no-essential-theme` : `build`/`verify`/`watch` seulement — ne pas embarquer le lot `essential` par défaut (§9.3.7); une sélection explicite `--themes` reste appliquée
-- `--only`: `build` rebuilds one article (§11.3.1); with `--single-page`, it validates the target then rebuilds the complete combined file (§11.3.8).
+- `--only`: `build` rebuilds one article (§11.3.1); with `--single-html`, it validates the target then rebuilds the complete combined file (§11.3.8).
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
 - `--format text|json` : `status`, `series status`, `series tags`, `resolve`,
@@ -656,7 +657,13 @@ options acceptées et lesquelles prennent une valeur :
 
 ## 3. Niveaux d'objets
 
-Le système gère trois niveaux d'objets :
+The system has three logical scopes: `series` (internal `LogicalScope` rank 0),
+`unit` (1), and `slide` (2). A content unit groups a deck and its optional
+supporting long-form texts; it is not a physical HTML page. Multipage and
+`--single-html [FILE]` output preserve the same ownership. The existing author
+format calls these units articles: `articles[]`, `page_source`, `page_dest`,
+`page_title` and related fields remain canonical, not aliases for new `unit_*`
+fields. HTML/DOM pages and CSS `page.*` properties retain their physical meaning.
 
 ### 3.1 Niveau série (le site)
 
@@ -696,39 +703,32 @@ champs d'affichage listés ci-dessus, c'est le bloc meta de chaque article
 qui fait foi par défaut ; `series.json` ne sert qu'à corriger un cas
 particulier sans toucher au fichier de l'article (§20.3.1).
 
-### 3.2 Niveau article (la page)
+### 3.2 Content unit (article)
 
-Chaque article est décrit par un fichier Markdown étendu (ex. `snapchat.md`).
-Ce fichier contient :
+Each unit is described by an extended Markdown file, such as `snapchat.md`:
 
-1. **Un bloc de métadonnées** en haut (`<!-- lwp:meta -->` ... `---`) qui porte
-   les valeurs d'affichage par défaut de cet article — `series.json` ne les
-   répète que pour en surcharger une (§20.3.1). Il ne choisit pas de preset de
-   présentation : cette sélection est propre à `series_meta` et vaut pour toute
-   la série (§9.9).
-2. **Une suite de fiches** (slides) séparées par `---`.
-3. **Une fiche spéciale `series-nav`** qui déclenche la génération de la
-   navigation inter-articles (calculée depuis le fichier de série).
-4. **Une fiche spéciale `full-article`** qui inclut un fichier Markdown
-   externe (l'article de fond).
+1. A leading metadata block (`<!-- lwp:meta -->` ... `---`) supplies default
+   display values. The `articles[]` entry repeats fields only to override them
+   (§20.3.1). Presentation selection remains series-wide (§9.9).
+2. Slides separated by `---`, in authored order.
+3. Optionally, one `series-nav` slide for generated inter-unit navigation.
+4. Optionally, any number of `full-article` slides including separate Markdown
+   texts, and any number of `unit-index` slides for intra-unit contents.
 
-La page HTML générée contient :
-- Le `<head>` avec `<meta>`, `<title>`, le CSS inline
-- Les slides (fiches) en HTML
-- La navigation de série (bloc calculé)
-- L'article de fond (inclus et converti)
-- Le JavaScript de navigation inline
+Default output puts a unit in its own HTML document with head metadata,
+inline CSS, rendered slides and inline navigation JavaScript. Combined HTML
+retains logical units and their route identities inside one physical document
+(§11.3.8), rather than redefining a unit as the whole series.
 
 ### 3.3 Niveau fiche (slide)
 
 Chaque fiche est une `<section class="slide">` dans le HTML final. Les types de
 fiches sont :
 
-Un kit d'identité sélectionné ne remplace pas cette section : il
-enveloppe seulement son contenu LWP déjà rendu. Le `<head>`, le `<body>`, la
-navigation, le script et l'identité de la fiche restent ceux de l'outil. Les
-trois champs `slide-layout`, `slide-header` et `slide-footer` sont acceptés sur
-les quatre types de fiche (§9.9.3).
+A selected Identity Kit wraps the rendered LWP content without replacing this
+section. LWP still owns `<head>`, `<body>`, navigation, scripts and slide
+identity. All five slide types accept `slide-layout`, `slide-header` and
+`slide-footer` (§9.9.3).
 
 #### 3.3.1 Fiche de couverture (`cover`)
 
@@ -815,7 +815,7 @@ directive `article:` dans le Markdown étendu.
 #### 3.3.5 Numéros de slide gravés (opt-in)
 
 Le `<span class="slide-num">NN / NN</span>` en haut à droite de chaque
-fiche (`cover`, `standard`, `full-article` — pas `series-nav`) est
+fiche (`cover`, `standard`, `full-article`, `unit-index` — pas `series-nav`) est
 **opt-in**. Par défaut il est **absent** du HTML. Il n'apparaît que si les
 numéros de slide sont activés, selon la cascade (la plus spécifique gagne) :
 
@@ -834,6 +834,207 @@ faite une fois par article (`resolve_slide_page_numbers`) et transmise à
 chaque renderer (§12.3).
 
 ---
+
+#### 3.3.6 Unit contents (`unit-index`)
+
+An explicit `<!-- lwp:slide:unit-index -->` generates a linked contents list
+for its own content unit, not the series index page (§8.1).
+
+```markdown
+<!-- lwp:slide:unit-index -->
+slug: contents
+## Explore the evidence
+kicker: Reading guide
+summary: Choose a slide, or continue in source order.
+index-max-columns: 2
+index-selector: -type:unit-index
+note: Introduce the available sections before continuing.
+```
+
+Only `slug` is required. Optional fields are `kicker`, `summary`, `tags`,
+`note`, `comment`, `index-max-columns`, `index-selector`, and the shared
+`slide-layout`, `slide-header`, `slide-footer` fields; the optional title uses
+the first `##` heading. No free body is accepted. There is no cardinality limit:
+several indexes may select different subsets. Absent or empty columns default
+to `1`; otherwise the value must be a positive integer, not a Boolean.
+Absent or empty selector defaults to `*`. An empty title uses the interface's
+`unit_index_title` (English: Contents); zero matches show `unit_index_empty`
+(English: No matching slides.).
+
+The input universe is **all published slides of this unit** after exclusions
+and incomplete long-form omissions, plus generated page-end notes when present.
+It includes covers, full-article and series-nav slides, this index and other
+indexes. `*` has no exception; use `-type:unit-index` to omit all indexes or
+`-slug:contents` to omit that authored slug only. `type:notes` selects generated
+endnotes; `notes` is not a sixth authored slide type. Publication status and
+build flags choose the unit first; an index cannot recover unpublished content.
+
+Entries retain source order, published ordinals and stable target IDs, including
+`slug_prefix`. Their labels use plain titles (HTML stripped, entities decoded),
+with generated/localized headings or kicker/slug fallbacks when appropriate.
+The list is computed at build time and is **not refiltered by the current reader
+tag**. Index-slide visibility itself still follows its `tags`. Following a link
+uses the existing anchor reveal policy, which may select a tag to show its
+target; it does not create a new journey or change arrow-navigation semantics.
+
+Columns are a responsive ceiling, not a promise to force a fixed layout. The
+native layout supports 1/2/3-column ceilings at 1100 x 700 and collapses to one
+column at 390 x 844. Links retain at least 44 CSS pixels of target height, wrap
+long titles, and preserve list order. No item limit truncates the list: long
+content may scroll on screen and continues in print. Print uses the complete
+source-ordered list without the screen column layout. Kit fallback and chrome
+are specified in §9.9.3; automatic insertion and CLI defaults are in §20.5.5.
+
+### 3.4 Scoped selectors
+
+Selectors operate on an ordered collection supplied by their caller. The common
+core (`compile_selector`, `select_records`) evaluates author expressions in
+Python, including under Pyodide, not in a separate browser query engine. The
+current public content consumer is `unit-index.index-selector` (§3.3.6).
+This is not a global publication filter: **there is no `build --select`**.
+Existing `--include-drafts`, `--drafts-only`, status and excluded-slide rules
+retain their contracts. Selection returns matching objects in caller order,
+once per object identity, without intrinsic status or type exclusions.
+
+#### 3.4.1 Records, scopes and resolution
+
+Logical ownership and source authority are independent. Both an `articles[]`
+entry and the unit's Markdown metadata declare **unit** values; JSON entry
+authority wins over Markdown for the fields it supports. They do not become
+different logical levels because they live in different files. CLI authority
+is not a fourth logical parent. Registry fallback follows eligible declarations
+in both resolution directions.
+
+| View | Meaning |
+|---|---|
+| `series` | Eligible fields owned by the series, without unit/slide fallback |
+| `unit` | Eligible declarations owned by the unit, resolving same-unit source authority only |
+| `slide` | This slide's accepted source fields and computed identity/title fields |
+| `specific` | Specific-first: slide, unit, series, then fallback |
+| `general` | General-first: series, unit, slide, then fallback; same-scope authority is unchanged |
+| `effective` | Field-policy result used by unqualified predicates; normally specific-first, but tags are slide-owned, not a union with the unit gate |
+| `origin` | Effective resolution trace per field: `value`, numeric `scope`, `source`, and `candidates`, retaining rejected declarations and eligibility |
+
+Index records expose registered fields actually supplied at each scope, not
+arbitrary unknown metadata or `comment`. Unit records retain declarations before
+display fallbacks are filled. Empty display/editorial metadata and empty status
+do not contribute; the winning nonempty unit status is normalized before
+comparison. Thus `status:draft` tests effective status, while
+`unit:status:draft` requires an eligible unit declaration. Implicit `active`
+exists only in resolved views, not as a fabricated `unit.status` declaration.
+There is no new series/slide publication-status inheritance.
+
+Eligibility is field-specific, not universal truthiness. Real Boolean false
+values in structural settings remain declarations. Explicit empty chrome slots
+clear inheritance; tags retain their independent reading-gate semantics.
+Origin traces retain rejected candidates rather than hiding why they lost.
+The common resolver supports `specific-first`, `general-first` and explicit
+`source-order` policies. Notes and engraved numbering reuse it without changing
+their established precedence (§6.5, §3.3.5); selector views do not replace the
+separate typed-style merge or chrome-slot composition contracts.
+
+Source field values are parsed values, ordinarily before display typography.
+Slide records add `type`, authored `slug`, effective `id`, normalized `tags`
+and a computed plain `title`; `id` includes any prefix while `slug` does not.
+`title` uses the authored heading or a generated heading/fallback, not raw HTML
+or an HTML-page title. Original accepted fields such as `summary` and `source`
+remain separately queryable. Queries must not rely on display-only nonbreaking
+spaces. Generated notes carry `type: notes`, `slug: notes`, `id: notes` and
+`tags: default`.
+
+#### 3.4.2 Compact expressions
+
+```text
+*
+expert-en
+tag:expert-en -type:unit-index
+(expert-fr | expert-en) -type:cover
+unit:status:draft
+series:author:"Editorial team" slide:title:/^Evidence/
+selector:evidence
+```
+
+`*` matches every supplied record. A bare literal is a tag predicate:
+`expert-en` means `tag:expert-en` (also `tags:expert-en`), with no inferred
+expertise, language or shared-default behavior. `field:value` reads the
+effective view; `view:field:value` reads that view only. Values match strings
+or individual string list members. Compact literal tag predicates use the same
+case folding as the tag parser (§4.3.1), including qualified tag predicates.
+Other literal fields and JSONPath string comparisons are case-sensitive;
+regular expressions remain case-sensitive against the stored values.
+
+Whitespace means AND, `|` means OR, leading `-` means NOT, and parentheses
+group expressions. Precedence is NOT, AND, OR. The words `AND`, `OR`, `NOT`
+are ordinary literals, not operators. Colons have no surrounding whitespace.
+Use single or double quotes for spaces or punctuation, with JSON-style escapes;
+quote a leading hyphen when it belongs to a literal. `/pattern/` values perform
+regex **search**, not full matching, under §3.4.4. A missing field never matches
+a positive compact term.
+
+Named queries live only in the `series_meta.selectors` object, mapping nonempty
+names to expression strings. `selector:name` composes their ASTs, not textual
+substitution. A definition may use either syntax and reference another through
+compact syntax. Unknown reachable names and cycles are errors. Mapping/name/value
+shape is validated, but expression syntax and budgets are checked only for
+reachable definitions; an unused malformed expression is not implicitly run.
+
+#### 3.4.3 JSONPath filter profile
+
+This is a **selected JSONPath filter profile**, not complete RFC 9535 and not
+I-Regexp conformance. Its only top-level forms are `$[*]` and `$[? predicate]`.
+It selects records; it does not project values or rewrite the input collection.
+
+```text
+$[? @.effective.type == "standard" && @.unit.status == "draft"]
+$[? @.slide.tags[? @ == "expert-en"]]
+$[? search(@.slide.title, "Evidence") && !(@.slide.type == "unit-index")]
+$[? match(@.slide.slug, "evidence-[0-9]+")]
+$[? @.origin.author.candidates[? @.source == "unit-meta" && @.contributes == false]]
+```
+
+Supported predicates are scalar comparisons `==`, `!=`, `<`, `<=`, `>`, `>=`;
+Boolean `&&`, `||`, `!` and grouping; path existence; nested array filters used
+as existence tests; `match(value, "constant pattern")` for full-string matching
+and `search(value, "constant pattern")` for substring matching. Scalars are
+strings, finite JSON numbers, Booleans and null. Top-level record paths require
+a known view and field, as `@.slide.title` or `@['slide']['title']`; bracket
+notation addresses kebab-case fields. Within an array filter, `@` is that element.
+
+All comparisons with a missing operand are false, **including `!=`**.
+Non-scalar comparisons are false. Equality is type-aware (numbers compare as
+numbers, not as Booleans); ordered comparisons require two numbers or two
+strings. A bare path tests presence, so false, null, an empty string and an
+empty array still exist. An array-filter predicate succeeds if any element
+matches, not merely because the array exists. There is no projection, numeric
+indexing, recursive descent, arithmetic, dynamic regex, or `eval` escape hatch.
+
+#### 3.4.4 Regex profile and resource limits
+
+Regex evaluation uses a bounded non-backtracking NFA. It is case-sensitive and
+accepts Unicode literals, `.` (except LF), character classes, ranges and negated
+classes, absolute start/end anchors `^` and `$`, and repetitions `*`, `+`, `?`,
+`{m}`, `{m,n}`, `{m,}`. Escapes cover punctuation and `\n`, `\r`, `\t`.
+Groups, alternation, shorthand classes such as `\d`, lookarounds, backreferences
+and flags are unsupported. Express alternatives with query OR instead.
+
+| Resource | Hard limit |
+|---|---|
+| Query length | 4,096 characters per expression or named definition |
+| Nesting/path depth | 32; expression nesting is shared across reachable names |
+| Compiled AST | 256 nodes across reachable definitions |
+| Reachable named definitions | 64 |
+| Regex pattern | 512 characters |
+| Compiled NFA | 256 states per pattern |
+| Numeric repetition bound | 64 |
+| Regex input string | 8,192 characters |
+| Evaluated array | 1,024 elements |
+| Evaluation | 16,384 steps per record |
+| Aggregate regex work | 4,000,000 work units per record, including transition/class-range cost |
+
+String and array limits apply when their predicates are evaluated. Boolean
+short-circuiting does not pre-scan unused data. Invalid syntax, unsupported
+features, reachable name cycles and exhausted budgets are errors, never an
+implicit wildcard, Python-regex fallback or silently truncated result.
 
 ## 4. Format Markdown étendu
 
@@ -969,12 +1170,10 @@ Le jeu de champs fait foi dans le code (`SLIDE_FIELD_NAMES`), d'où `--help`
 le dérive. Rien ne verrouille ce tableau-ci contre lui : il se relit à la
 main, et c'est pour l'avoir oublié qu'il a manqué trois champs.
 
-`slide-layout`, `slide-header` et `slide-footer` ne sont pas propres à la
-fiche standard : les quatre types les acceptent. Une variante autre que
-`default`, ou tout chrome, demande un kit qui le prend en charge ;
-`slide-layout: default` conserve le défaut du preset. Une valeur vide est
-invalide, sauf la chaîne exacte `""` pour `slide-header` ou `slide-footer`, qui
-supprime explicitement le chrome hérité (§9.9.3).
+`slide-layout`, `slide-header` and `slide-footer` are shared by all five types.
+A non-`default` variant or any chrome override requires a supporting kit;
+`slide-layout: default` retains the preset default. Empty values are invalid,
+except exactly `""` in a header/footer field to clear inherited chrome (§9.9.3).
 
 Le texte libre après les champs est placé dans un `<div class="fact-content">`
 si un `fact-label` est présent, sinon dans un `<div class="slide-body">`.
@@ -1075,6 +1274,7 @@ champ est défini comme une surcharge assumée.
 | `<!-- lwp:slide -->`             | standard    | Fiche standard (défaut)                | 0 à N (libre)       | libre    |
 | `<!-- lwp:slide:series-nav -->` | series-nav  | Navigation de série (calculée)        | 0 ou 1              | libre    |
 | `<!-- lwp:slide:full-article -->`| full-article | Article complet (include `.md`)     | 0 à N (libre)       | libre    |
+| `<!-- lwp:slide:unit-index -->` | unit-index | Contents selected from this unit's published slides (§3.3.6) | 0 to N | anywhere |
 
 `cover` est un **style de mise en page**, pas un marqueur structurel unique :
 un article long peut tout à fait avoir plusieurs fiches `cover` pour marquer
@@ -1091,20 +1291,17 @@ puis les fiches `standard`, puis `series-nav`, puis `full-article` en
 dernier — c'est une convention d'usage recommandée, pas une règle imposée
 par le moteur.
 
-Les trois champs de présentation `slide-layout`, `slide-header` et
-`slide-footer` sont communs aux quatre lignes du tableau. Ils ne changent ni
-le type, ni les règles de contenu libre : ils demandent au kit sélectionné
-d'envelopper le contenu généré (§9.9.3).
+The presentation fields `slide-layout`, `slide-header` and `slide-footer`
+are shared by all five types. They ask the selected kit to wrap generated
+content, without changing the type or its free-body rules (§9.9.3).
 
-**La liste est fermée.** Ces quatre types sont écrits une seule fois, dans
-le registre `SLIDE_TYPES` de l'exécutable, qui porte pour chacun son
-marqueur de titre (`#`, `##`, ou aucun), les champs qu'il accepte, ce que
-devient le texte libre, les champs obligatoires, la cardinalité et une ligne
-de description. La validation (§22.9.2), `--help` et le contrat machine (§4.7)
-lisent ce registre. Un consommateur extérieur peut demander ce contrat —
-c'est de là que `lightwebpres-gui` tire son bandeau d'assistance, plutôt que
-d'écrire une seconde fois une grammaire qui dériverait de celle-ci. Un jeton
-hors de cette liste est une erreur fatale, pas une fiche standard silencieuse.
+**The list is closed.** The five types are declared once in the executable's
+`SLIDE_TYPES` registry, which carries each type's title marker (`#`, `##` or
+none), accepted fields, free-text rule, required fields, cardinality and
+description. Validation (§22.9.2), `--help` and the machine contract (§4.7) read
+that registry. External editors, including `lightwebpres-gui`, can consume the
+contract rather than maintain another grammar. An unknown type is fatal, not
+a silent fallback to standard.
 
 ### 4.5 Désactiver la typographie automatique pour un article
 
@@ -1140,7 +1337,7 @@ par le rendu de la page de l'article lui-même.
 
 `comment` est reconnu à chaque niveau (`series.json` — entrée d'article ou
 `series_meta` —, bloc meta de l'article, en-tête d'une fiche de **tout**
-type : `cover`, standard, `series-nav`, `full-article`) mais n'est
+type : `cover`, standard, `series-nav`, `full-article`, `unit-index`) mais n'est
 **jamais lu par aucun moteur de rendu** : le
 parseur le reconnaît comme un champ valide (pas de bascule vers le texte
 libre, pas d'erreur fatale sur une fiche `cover`), stocke sa valeur, puis
@@ -1153,34 +1350,31 @@ n'a aucune contrainte de contenu et aucun effet sur le build ; il sert
 uniquement à laisser une note de relecture (à vérifier, TODO, remarque
 éditoriale) directement dans la source, sans qu'elle soit jamais publiée.
 
-### 4.7 Contrat machine de brouillon
+### 4.7 Machine-readable draft contract
 
-Le registre `SLIDE_TYPES` est exposé aux outils d'édition par le contrat
-versionné `lightwebpres.slide-draft/1`, obtenu avec `lightwebpres contract`
-(§11.17). La sortie JSON contient :
+`lightwebpres contract` (§11.17) exposes `SLIDE_TYPES` through the versioned
+`lightwebpres.slide-draft/2` schema. Version 2 adds `unit-index`; consumers must
+accept its five types rather than assuming the previous four-type grammar.
+The JSON contains:
 
-- `canonical_order` : les quatre types dans l'ordre canonique du registre ;
-- `empty_rules` : les règles communes pour une valeur vide ;
-- `slug` : le pattern accepté, les IDs réservés au moteur et le fait qu'un
-  brouillon reçoit toujours une valeur générée ;
-- `types` : pour chaque type, son marqueur, son marqueur de titre, ses champs
-  (sans le titre Markdown), son `field_order` canonique (avec `title`), ses
-  `required_fields`, sa `cardinality`, son texte libre, son résumé et un
-  `draft` complet (`slug` et `source`).
+- `canonical_order`: `cover`, `standard`, `series-nav`, `full-article`, `unit-index`.
+- `empty_rules`: shared and type-specific empty-value rules.
+- `slug`: accepted pattern, reserved IDs and generated-draft identity policy.
+- `types`: each marker, title marker, fields, canonical `field_order` (including
+  `title`), `required_fields`, `cardinality`, free-text rule, summary and complete
+  `draft` (`slug` and `source`).
 
-La source de `draft` est un squelette directement parseable : elle contient le
-marqueur de fiche, un slug aléatoire de huit caractères hexadécimaux et chaque
-champ à sa place, avec une valeur vide. Les quatre slugs produits dans une
-réponse sont distincts et évitent les slugs déjà déclarés par l'article ainsi
-que les IDs réservés du squelette (`notes` compris). `allocate_slide_slug()`
-applique la même règle pour une intégration qui ne demande qu'un slug.
+Each parseable skeleton includes a random eight-hex-character slug and empty
+fields in canonical order. The five slugs are distinct, avoiding declared
+source slugs and reserved IDs, including `notes`. `--article` supplies the
+source to inspect; the command never writes it. `allocate_slide_slug()` applies
+the same rule when an integration requests one slug.
 
-Les champs scalaires vides se comportent comme absents ; `tags:` vide reçoit le
-tag `default`. Un marqueur `#` ou `##` sans texte reste un titre de fiche
-reconnu mais vide. Une directive `article:` explicitement vide est une étape de
-brouillon : le build avertit et omet la fiche, ses ancres, ses numéros et son
-placeholder ; une fiche `full-article` sans directive `article:` reste une
-erreur fatale (§22.6).
+Empty ordinary scalars behave as absent; empty `tags:` receives `default`.
+A bare title marker declares an empty title. Empty `index-max-columns` and
+`index-selector` use `1` and `*`. Presentation fields retain their stricter
+rules (§9.9.3). Empty `article:` warns and omits an unfinished `full-article`
+slide, anchors and numbering; a missing `article:` line is fatal (§22.6).
 
 ---
 
@@ -2152,12 +2346,11 @@ répertoire de série est imbriqué). Contient, dans l'ordre :
 
 ### 8.4 Pack présentateur (v0.26.0)
 
-**Les notes présentateur ne sont pas privées.** Le champ `note:` des fiches
-`cover` et `standard` est embarqué dans le HTML dans un élément masqué.
-**N** ouvre son panneau dans la même page : le public le voit sur un écran
-projeté ou partagé. Il n'existe pas de fenêtre présentateur privée, et toute
-personne disposant du HTML peut lire les notes. Ne pas y mettre de contenu
-confidentiel.
+**Speaker notes are not private.** The `note:` field on `cover`, `standard`
+and `unit-index` slides is embedded in a hidden HTML element. **N** opens its
+panel in the same page, visible to an audience on a projected or shared screen.
+There is no private presenter window; anyone holding the HTML can read these
+notes. Do not put confidential content there.
 
 **Le coup, partout, est le même.** Les flèches, les boutons prev/next et
 les clics gauche/droit déplacent d'un « coup » : une fiche complète sur une
@@ -2418,7 +2611,7 @@ régler d'autre — ce que la garde vérifie sur une seconde construction à
 colonne épinglée, la valeur par défaut rendant la promesse intestable
 (`8vw` et `max(8vw, (100% - 84vw) / 2)` sont le même nombre).
 
-The fragment rules below describe multipage URLs. Single-page series use the
+The fragment rules below describe multipage URLs. Combined-HTML series use the
 article-qualified `#lwp/a/...` and contents `#lwp/index` routes in §11.3.8.
 
 **Fragment d'URL** : la barre d'adresse nomme la fiche courante, que le
@@ -2450,7 +2643,7 @@ image, mais un gzip de servage récupère ce surcoût sur le wire.
 original vector bytes inside `<img>` data URIs, not interactive SVG DOM.
 Nested resources are blocked by SVG-as-image rendering even online; diagnostics
 and the limits of image embedding are specified in §11.3.7. This option alone
-does not combine a series: use `--single-page [FILE]` for that (§11.3.8).
+does not combine a series: use `--single-html [FILE]` for that (§11.3.8).
 
 L'option couvre aussi les images d'un fichier inclus par une fiche
 `full-article` (§5.1). Elle ne le faisait pas jusqu'à la v0.37.0 :
@@ -2859,7 +3052,7 @@ plus de garder `custom.css`.
 
 #### 9.3.3 JS (`nav.js`)
 
-The override mechanism below applies to multipage output. Single-page mode
+The override mechanism below applies to multipage output. Combined-HTML mode
 requires any local `templates/nav.js` to match the built-in runtime (§11.3.8).
 
 Le JavaScript de navigation gère :
@@ -3032,7 +3225,7 @@ focalisée, et non-régression du cooldown sous rafale de pressions.
 
 #### 9.3.6 Extension de la page d'index (`index_extra.html`)
 
-This extension applies to default multipage output. Single-page mode rejects
+This extension applies to default multipage output. Combined-HTML mode rejects
 nonempty `templates/index_extra.html`; arbitrary extension script lifecycles
 are unsupported there (§11.3.8).
 
@@ -3216,7 +3409,7 @@ Keyboard **-**, **+**, **=** reduce, enlarge and reset presentation zoom;
 `per-slide`. These shortcuts remain available without opening the submenu.
 These are reader controls, not source edits.
 
-Single-page output also shows **Uniform fit scope** (`menu_fit_scope`) in this
+Combined-HTML output also shows **Uniform fit scope** (`menu_fit_scope`) in this
 submenu, only while `text_fit` is `uniform`. Its choices are **Current article**
 (`menu_fit_article`, value `article`, default) and **Entire series**
 (`menu_fit_series`, value `series`). The control is not shown in multipage output
@@ -3237,7 +3430,7 @@ leave author defaults and 100% zoom in effect. Failed writes do not disable
 controls in the loaded page. Nothing writes back to `series.json` or other
 source files. This does not change theme/preset session persistence.
 
-Single-page uniform scope is a separate preference at
+Combined-HTML uniform scope is a separate preference at
 `readingPreferenceKey + ':fit-scope'`, that is,
 `lwp-reading:<output-directory-path>:fit-scope`, storing `article` or `series`.
 It does not extend the version-1 reading record or `series_meta.reading`.
@@ -3291,7 +3484,7 @@ limits; it does not promise that every table fits a sheet of paper.
 **Text fitting.** `fixed` (**Keep the chosen size**) preserves native responsive
 CSS sizing with no content-based fit. `uniform` (**Reduce all slides together**)
 uses one shared factor for all tag-visible slides in the current article by
-default, not just the slide on screen. In single-page output, `series` scope
+default, not just the slide on screen. In combined-HTML output, `series` scope
 extends the group to tag-eligible slides across all articles, including those
 not currently open. The shared factor is the minimum of the measured factors,
 using each article's actual geometry, styles, preset and settings pins.
@@ -4488,7 +4681,7 @@ theme. **Commons** is a shared collection of global themes and native-layout
 presets, never an identity: its presets use the native LightWebPres identity.
 An **Identity Kit** is a self-contained versioned tree that owns its layouts,
 chrome, assets, typed themes and constrained structural CSS. A **preset** binds
-a theme and defaults for the four slide types. Identity, Preset and Theme are
+a theme and defaults for the slide types. Identity, Preset and Theme are
 distinct controls in the appearance picker. Resource collection (`builtin`,
 `commons` or `kit`) is separate from loading origin (built-in, installed, user
 or series-local); neither renames the owning identity.
@@ -4577,17 +4770,15 @@ est le défaut du kit. Ce défaut ne renomme pas l'identité :
 }
 ```
 
-Chaque type de fiche (`cover`, `standard`, `series-nav`, `full-article`) porte
-une map non vide avec une variante `default`; les autres clés sont des
-variantes nommées. `layouts.index` est une chaîne facultative, non une map de
-variantes. Chaque référence de layout peut être un fichier local ou
-`builtin:standard`, y compris `layouts.index`. `themes` est une map non vide
-de fichiers typés locaux sous `themes/` ou de références `builtin:light` ; `presets`
-est une map non vide. Chaque preset porte un `label`, une `description`, un
-thème du kit, les quatre défauts `slide_layouts`, des défauts
-`slide_chrome`, et peut nommer un starter déclaré. Les noms `slide_layouts` et
-`slide_chrome` appartiennent uniquement à ce manifeste : ils ne sont pas une
-surface JSON pour l'auteur.
+Each original slide type (`cover`, `standard`, `series-nav`, `full-article`)
+requires a nonempty layout map with a `default` variant; other keys name
+variants. `layouts.unit-index` is optional (§9.9.3). `layouts.index` is an
+optional string, not a variant map. All layout references may be local files
+or `builtin:standard`, including the series index. `themes` is a nonempty map
+of local typed files under `themes/` or `builtin:light` references; `presets`
+is nonempty. Each preset has a `label`, `description`, kit theme, `slide_layouts`
+defaults, `slide_chrome` defaults and optionally a declared starter.
+`slide_layouts` and `slide_chrome` belong only to the manifest, not author JSON.
 
 `chrome` référence un objet JSON de modèles de chrome ; `structure_css`
 référence la feuille structurelle contrainte ; `starters` mappe un nom à son
@@ -4609,11 +4800,14 @@ d'événement, les URL `javascript:` et tout asset de layout (`img`, `picture`,
 `source`, média, SVG ou `src`) sont interdits. Les assets passent exclusivement
 par le chrome déclaré.
 
-Les défauts `slide_layouts` et `slide_chrome` du **preset** sont la seule base
-de sélection. `slide_layouts` donne une variante pour chacun des quatre types.
-`slide_chrome` peut donner `all` puis un type précis, chacun avec `header` et/ou
-`footer` : le type précis complète ou remplace `all`. Ces noms ne se lisent que
-dans le manifeste du kit, jamais dans `series.json` ni dans le bloc meta.
+The preset's `slide_layouts` and `slide_chrome` are the selection defaults.
+`slide_layouts` names variants per type. Existing kits may omit `unit-index`:
+without its own layout map, the index uses the kit's standard layout and
+retains chrome. With its own map but no preset override, it uses `default`.
+Loading does not rewrite the `lightwebpres.identity-kit/1` manifest.
+`slide_chrome` may specify `all`, then a type with `header` and/or `footer`;
+type slots complete or replace `all`. These keys are manifest-only, never
+`series.json` or unit metadata fields.
 
 Sur une fiche, les trois champs Markdown sont les overrides finaux :
 
@@ -4623,15 +4817,13 @@ slide-header: Marque interne
 slide-footer: ""
 ```
 
-`slide-layout` choisit une variante pour cette fiche. `slide-header` et
-`slide-footer` acceptent du texte, `""` (suppression explicite de la valeur
-du preset), ou un objet JSON `{ "model": "…", "text": "…", "assets": {…} }`.
-Ces champs sont admis sur les quatre types de fiche. Une variante autre que
-`default` ou tout override de chrome demande un kit qui le prend en charge ;
-`slide-layout: default` conserve le défaut du preset. Un layout
-`builtin:standard` dans un kit laisse passer le contenu et le chrome du kit. Le texte
-de chrome, y compris les libellés d'icône, est échappé : un modèle ne transporte
-pas de HTML brut.
+`slide-layout` selects a variant for this slide. `slide-header` and
+`slide-footer` accept text, `""` to clear the inherited slot, or a JSON model
+object with `model`, `text` and `assets`. All five types accept these fields.
+Non-default variants or chrome overrides require a supporting kit;
+`slide-layout: default` retains the preset default. A `builtin:standard` layout
+inside a kit passes its content and chrome through. Chrome text, including icon
+labels, is escaped: a model does not carry raw HTML.
 
 `chrome.json` peut déclarer des `models`. Un modèle appartient à `header` ou
 `footer` et contient des items `text`, `image` ou `icon`. Un item image nomme un
@@ -4950,11 +5142,11 @@ série :
 ### 11.3 `build`
 
 ```bash
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--single-page [FILE]] [--inline-images] [--no-typography] [--include-drafts] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
+lightwebpres build [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--no-typography] [--include-drafts] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
 ```
 
 Builds the site. The file layout below is the default multipage mode;
-`--single-page [FILE]` instead writes the combined document specified in §11.3.8.
+`--single-html [FILE]` instead writes the combined document specified in §11.3.8.
 
 1. Lit `series.json` dans `[répertoire]` et résout
    `series_meta.presentation_preset` avant toute source : identité, preset,
@@ -5036,7 +5228,7 @@ ainsi que du payload décrit en §9.3.8.
 ### 11.3.1 `build --only` : reconstruction d'un seul article
 
 The incremental behavior below applies to multipage output. With
-`--single-page [FILE]`, `--only` validates its target but rebuilds the complete
+`--single-html [FILE]`, `--only` validates its target but rebuilds the complete
 combined document (§11.3.8).
 
 ```bash
@@ -5238,7 +5430,7 @@ claiming the same filename would otherwise collide with that index. Earlier
 builds silently overwrote the article with the index and exited zero, leaving
 a three-article series with only two articles without `verify` noticing.
 This was the missing-output failure prohibited by §22.8, caused by a filename
-collision. Single-page mode has no separate index file and therefore does not
+collision. Combined-HTML mode has no separate index file and therefore does not
 apply this index-ownership rule (§11.3.8).
 
 La règle dépend du **nombre d'articles**, et ce n'est pas un cas
@@ -5263,7 +5455,7 @@ déclaration d'intention**, et l'outil n'a pas à la deviner autrement.
 
 #### 11.3.4 `--no-nav`, `--no-index`, `--no-readme`
 
-`build`, `verify` and `watch` accept these flags. In single-page mode,
+`build`, `verify` and `watch` accept these flags. In combined-HTML mode,
 `--no-nav` and `--no-readme` remain supported, but `--no-index` is refused:
 the series contents view is part of the combined document (§11.3.8).
 
@@ -5287,7 +5479,7 @@ tient lui-même.
 
 #### 11.3.5 `--drafts-only`
 
-This option is refused with `--single-page`; use `--include-drafts` to include
+This option is refused with `--single-html`; use `--include-drafts` to include
 drafts alongside active articles in the combined document (§11.3.8).
 
 ```
@@ -5307,7 +5499,7 @@ lightwebpres build [répertoire] --open
 ```
 
 Opens the result after the build: `index.html` in the output directory by
-default, or the resolved combined filename with `--single-page [FILE]`.
+default, or the resolved combined filename with `--single-html [FILE]`.
 Without `--serve`, the URL uses `file://`. Opening uses the standard-library `webbrowser` module;
 in CI, `BROWSER` can point to `/bin/true` for a no-op.
 
@@ -5343,7 +5535,7 @@ shapes when required.
 Raw HTML `<img>` elements are not auto-inlined. A remaining relative image
 `src` fails inline validation (§8.4). CSS, fonts, scripts, media and arbitrary
 HTML dependencies are not bundled transitively: image embedding is not a
-promise of a fully portable document. `--single-page [FILE]` combines articles
+promise of a fully portable document. `--single-html [FILE]` combines articles
 but does not extend that dependency scope (§11.3.8).
 
 Base64 adds roughly one third to image bytes before serving compression; local
@@ -5352,17 +5544,17 @@ builds copy only referenced files from `sources/img/` into `public/img/`.
 Unreferenced source images are not published; existing output files are not
 deleted automatically and may become orphans for `clean` (§11.13).
 
-### 11.3.8 `--single-page [FILE]`: one document per series
+### 11.3.8 `--single-html [FILE]`: one document per series
 
 ```bash
-lightwebpres build [directory] --single-page [collection.html] [--inline-images]
-lightwebpres verify [directory] --single-page [collection.html] [--inline-images]
-lightwebpres watch [directory] --single-page [collection.html] [--inline-images]
+lightwebpres build [directory] --single-html [collection.html] [--inline-images]
+lightwebpres verify [directory] --single-html [collection.html] [--inline-images]
+lightwebpres watch [directory] --single-html [collection.html] [--inline-images]
 ```
 
-`--single-page` accepts an optional bare `.html` or `.htm` filename, not a path
+`--single-html` accepts an optional bare `.html` or `.htm` filename, not a path
 or URL. An explicit filename always takes precedence, including the
-`--single-page=filename.html` form; an explicit empty value is invalid.
+`--single-html=filename.html` form; an explicit empty value is invalid.
 
 **Automatic filename.** With no value, the parser retains an automatic-name
 sentinel (`True`). Each build resolves it from `series_meta.title`, stripping
@@ -5377,7 +5569,7 @@ to automatic names, not to rewriting an explicit filename.
 Before the positional series directory, a next separate value is a filename
 only if it ends in `.html` or `.htm`; otherwise it remains the series directory.
 Use the `--` terminator for a directory that looks like a filename, for example
-`lightwebpres build --single-page -- archive.html`. After the positional series
+`lightwebpres build --single-html -- archive.html`. After the positional series
 directory, any next non-option value is an explicit filename and is validated
 as such. `watch` preserves the automatic-name sentinel in its original options
 and resolves the name again after title changes rather than reusing the first
@@ -5427,7 +5619,7 @@ filename, including a title-derived name, does not delete old output or copied
 assets automatically. Old files remain in manifest ownership until cleanup,
 which remains an explicit, reviewable `clean` operation (§11.13).
 
-**Verification.** Use the same automatic or explicit `--single-page [FILE]`
+**Verification.** Use the same automatic or explicit `--single-html [FILE]`
 filename choice, image embedding, rendering options and environment as the
 build. `verify` compares the combined
 HTML, the generated series README unless suppressed, and applicable copied
@@ -5436,17 +5628,17 @@ assets, not nonexistent per-article files (§11.4).
 ### 11.4 `verify`
 
 ```bash
-lightwebpres verify [directory] [--lang fr] [--output public/] [--single-page [FILE]] [--inline-images] [--language-file path.json] [--no-typography] [--include-drafts] [--no-nav] [--no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres verify [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--language-file path.json] [--no-typography] [--include-drafts] [--no-nav] [--no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 ```
 
 Vérifie sans modifier :
 
-`verify` supports `--inline-images` and `--single-page [FILE]`. Match both the
+`verify` supports `--inline-images` and `--single-html [FILE]`. Match both the
 embedding choice and automatic or explicit filename used by the build; no
-separate non-inline output is needed. With single-page output, it compares the physical combined
+separate non-inline output is needed. With combined-HTML output, it compares the physical combined
 HTML instead of per-article pages and a separate index (§11.3.8). `--no-index`
 and `--no-readme` reproduce output suppression where allowed; `--no-index`
-remains incompatible with single-page mode.
+remains incompatible with combined-HTML mode.
 
 Comme `build`, `verify` résout le preset de `series_meta` avant le rendu en
 mémoire. Articles, index, enveloppes, chrome, thème de base et CSS structurel
@@ -5485,7 +5677,7 @@ payloads différents et signale un `[DRIFT]` correct, pas un faux positif.
    chaque fichier identique, affiche `[OK] fichier`
 4. Reports a count: "N file(s) OK, M file(s) different." The total counts
    physical files checked, including applicable presentation assets and the
-   series README unless suppressed. Single-page mode counts one combined
+   series README unless suppressed. Combined-HTML mode counts one combined
    HTML file, not its virtual articles and contents as separate files.
 5. Code de sortie non nul (1) si au moins un fichier diffère ou est absent —
    c'est ce qui permet d'utiliser `verify` comme porte de vérification dans un
@@ -6810,7 +7002,7 @@ build a déclaré, et le manifeste est la déclaration.
 ### 11.14 `watch`
 
 ```
-lightwebpres watch [directory] [--lang fr] [--output public/] [--single-page [FILE]] [--inline-images] [--include-drafts] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port 8000] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres watch [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--include-drafts] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port 8000] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 ```
 
 Surveille les sources (articles, `series.json`, `templates/`, y compris les
@@ -6832,9 +7024,9 @@ afin que le mode watch ne fasse pas disparaître le sélecteur du résultat.
 comme `--themes`. Sans cette option, toute modification de `series.json`,
 y compris de sa liste `themes`, est relue au prochain build.
 
-`--single-page [FILE]` and `--inline-images` are retained on the initial build
+`--single-html [FILE]` and `--inline-images` are retained on the initial build
 and every rebuild, with the same restrictions as `build` (§11.3.7, §11.3.8).
-With single-page output, `--open` targets the combined filename rather than
+With combined-HTML output, `--open` targets the combined filename rather than
 `index.html`; `--output` still selects the directory served.
 
 ### 11.15 `completion`
@@ -6924,18 +7116,16 @@ en le lançant, ce qu'aucune orthographe retirée ne survit.
 lightwebpres contract [répertoire] [--article fichier.md] [--format text|json]
 ```
 
-Commande en lecture seule pour les éditeurs et autres consommateurs de la
-syntaxe LWP. Sans `--article`, elle produit les quatre sources de brouillon
-avec des slugs frais. Avec `--article`, elle lit le fichier indiqué dans
-`sources/` et génère des slugs qui n'entrent pas en collision avec les slugs
-qu'il déclare. Le nom doit être un simple fichier `.md` dans ce répertoire :
-les séparateurs, `..` et les chemins absolus sont refusés comme pour les
-autres inclusions (§13.7), tandis qu'un symlink sortant est suivi et signalé
-par `audit`.
+A read-only command for editors and other LWP syntax consumers. Without
+`--article`, it emits five draft sources with fresh slugs. With `--article`,
+it reads that file under `sources/` and avoids its declared slugs. The argument
+must be a bare `.md` filename: separators, `..` and absolute paths are rejected
+as for other includes (§13.7); an outward symlink is followed and reported by
+`audit`.
 
-Le format par défaut est JSON, sous le schéma `lightwebpres.slide-draft/1`.
-`--format text` imprime une vue humaine des cardinalités, des champs et des
-squelettes ; aucune forme ne modifie la série, ses sources ou sa sortie.
+Default output is JSON with schema `lightwebpres.slide-draft/2` (§4.7).
+`--format text` provides readable cardinalities, fields and skeletons. Neither
+form modifies the series, sources or output.
 
 ### 11.18 `preset` et `series preset`
 
@@ -7258,7 +7448,7 @@ Deux comportements de lecture, valables pour **toutes** les sources
 
 Generated HTML embeds the engine's CSS in `<style>` and its JavaScript in
 `<script>`, with no engine CDN or application-server dependency. Default
-multipage output references copied images and presentation assets; single-page
+multipage output references copied images and presentation assets; combined-HTML
 output combines views but keeps the same asset policy unless `--inline-images`
 is selected (§11.3.7, §11.3.8).
 
@@ -8700,6 +8890,10 @@ est fournie.
 | `slide_page_numbers` | booléen ou chaîne (`on`/`off`) | non | Active les numéros gravés des fiches ; la valeur de série est surchargée par le bloc meta de l'article ou par l'option de build (§3.3.5) |
 | `slug_prefix` | string | non | Préfixe d'espace de noms appliqué à toutes les identités de fiche de la page (§12.1.1) |
 | `presentation_preset` | string | non | Référence unique `builtin/standard`, `commons/id` ou `id@MAJOR.MINOR.PATCH/preset` pour toute la série et son index ; identité déduite, absent = `builtin/standard` (§20.5.3) |
+| `selectors` | object of nonempty names to expression strings | no | Named build-time selectors; only reachable expressions compile (§3.4) |
+| `unit_index` | Boolean or on/off string | no | Automatic unit contents, default off; unit meta > CLI > series (§20.5.5) |
+| `unit_index_max_columns` | positive integer | no | Automatic index's responsive column ceiling, default 1 (§20.5.5) |
+| `unit_index_selector` | string | no | Automatic index's entry selector, default `*` (§20.5.5) |
 
 Le template d'index enveloppe `intro` dans un unique `<p>` fixe
 (`<p>{{series_intro}}</p>`) : pour plusieurs paragraphes, insérer
@@ -8757,14 +8951,12 @@ modifier ce preset. `presentation_preset` à ces niveaux est rejeté.
 Les défauts de layouts et de chrome appartiennent au preset du
 manifeste, sans fusion JSON auteur.
 
-Les trois champs Markdown restent les seules exceptions locales, sur chacun
-des quatre types de fiche : `slide-layout` remplace la variante par défaut du
-preset ; `slide-header` et `slide-footer` remplacent leurs slots de chrome. Une
-valeur de chrome est un texte, `""`, ou un objet de modèle avec `model`, `text`
-et `assets`. Le chrome et les variantes nommées exigent un kit qui les prend
-en charge. `slide-layout: default` conserve le défaut du preset.
-Tout sélecteur, variante, modèle, slot ou asset mal formé est fatal
-et nomme son origine.
+The three Markdown fields remain the local overrides on all five types:
+`slide-layout` replaces the preset's variant, while `slide-header` and
+`slide-footer` replace their chrome slots. Chrome accepts text, `""`, or a
+model object with `model`, `text` and `assets`. Chrome and named variants
+require a supporting kit; `slide-layout: default` retains the preset default.
+Malformed selectors, variants, models, slots or assets fail with their origin.
 
 ### 20.5.4 Alternatives runtime de présentation
 
@@ -8787,6 +8979,40 @@ de choix, mais ne relance pas le parseur Markdown et ne lit aucune nouvelle URL.
 Le choix est local à la session du navigateur et partagé entre les pages du
 même deck ; l'identité du deck isole les séries qui partagent un origin. Il
 n'est jamais persisté dans les sources.
+
+### 20.5.5 Automatic unit indexes
+
+These settings apply independently to automatic `unit-index` insertion:
+
+| Setting in unit meta or `series_meta` | CLI on build/verify/watch | Default |
+|---|---|---|
+| `unit_index` | `--unit-index on|off` | `off` |
+| `unit_index_max_columns` | `--unit-index-max-columns N` | `1` |
+| `unit_index_selector` | `--unit-index-selector expression` | `*` |
+
+For each field, unit Markdown meta > CLI > `series_meta` > built-in default.
+These settings do not belong in an `articles[]` entry. Blank values do not
+contribute. On/off also accepts true/false, yes/no and 1/0, case-insensitively;
+JSON Booleans work for `unit_index`, not for the positive integer column count.
+The selector must be a string using §3.4. Explicit indexes use their own
+`index-max-columns` and `index-selector`, not these automatic defaults.
+
+When enabled on a nonempty deck with no explicit index, insertion occurs after
+the first non-excluded cover, or at the start if none exists. **Any explicit
+unit-index suppresses insertion, even one tagged `excluded`.** An empty source
+remains empty and invalid; automatic insertion does not conceal it. The generated
+slug is `lwp-index`, with ordinary prefix and fatal collision handling (§12.1.1).
+No slug suffix is invented, and no source or manifest is rewritten.
+
+```bash
+lightwebpres build my-series --unit-index on --unit-index-max-columns 2 --unit-index-selector '-type:unit-index'
+lightwebpres verify my-series --unit-index on --unit-index-max-columns 2 --unit-index-selector '-type:unit-index'
+lightwebpres watch my-series --unit-index on --unit-index-max-columns 2 --unit-index-selector '-type:unit-index'
+```
+
+These options compose with `--single-html [FILE]`; they do not choose output
+membership. Use the same flags for verification. `watch` retains them across
+rebuilds. The entry universe, reader links and print contract are in §3.3.6.
 
 ### 20.6 Statut d'un article (`status`)
 
@@ -8885,12 +9111,14 @@ référence** : elle est spécifiée, gardée par la suite, et
 premier. Le contenu privé reste un contrôle supplémentaire sur du texte
 réel, pas la référence.
 
-Le cas test n'est pas un template : c'est un fichier réel, avec du vrai
-contenu, qui exerce tous les types de slides (cover, standard avec highlight,
-standard sans highlight, series-nav, full-article), les champs de fiche
-(la liste qui fait foi est `SLIDE_FIELD_NAMES`, §4.3), et l'inclusion d'un
-article complet avec footnotes (`[^N]`), tableaux, listes, gras et
-italique.
+The historical case is real content, not a template: cover, standard with and
+without highlight, series-nav and full-article slides, plus an included text
+with footnotes (`[^N]`), tables, lists, bold and italics. It does not establish
+coverage of the newer unit-index type. The tracked source-only
+`examples/unit-index/` exercises that type with compact/named/JSONPath selection,
+automatic insertion, generated notes and a zero-match list; build it into scratch
+output using its README instructions. Maintained tests remain the regression
+authority rather than either example alone.
 
 ---
 
@@ -9020,15 +9248,11 @@ Erreur fatale, citant le rang de la fiche, le jeton fautif et la liste des
 types connus — quelqu'un qui a mal tapé `cover` ne peut pas aller lire une
 liste qui n'existe que dans le code.
 
-C'est le défaut le plus probable de ce format, et c'était le seul que le
-moteur ne signalait pas : `render_slide()` traite comme `standard` tout ce
-qui n'est ni `cover`, ni `series-nav`, ni `full-article`, donc
-`<!-- lwp:slide:covre -->` se publiait — sans erreur, sans avertissement,
-et avec une fiche d'ouverture du mauvais type. Les quatre types sont un
-registre (`SLIDE_TYPES`), lu par cette validation **et** par `--help` : un
-type ne peut pas être reconnu par l'un et absent de l'autre. L'analyse
-syntaxique, elle, reste permissive sur le jeton ; c'est la validation qui
-refuse, pour que le message puisse nommer le rang de la fiche.
+Historically, an unknown token reached the standard renderer, so a misspelled
+`<!-- lwp:slide:covre -->` silently produced the wrong opening slide. The five
+types now share one registry (`SLIDE_TYPES`), read by validation, `--help` and
+the draft contract. Parsing retains the token so validation can name its slide
+rank rather than losing the context in a generic parse error.
 
 ### 22.10 Fichier `.md` vide (aucune slide)
 

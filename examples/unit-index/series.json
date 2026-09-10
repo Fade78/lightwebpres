@@ -1,0 +1,19 @@
+{
+  "series_meta": {
+    "title": "Evidence with a contents list",
+    "author": "Editorial team",
+    "default_tag": "expert-en",
+    "unit_index": true,
+    "unit_index_max_columns": 2,
+    "unit_index_selector": "-type:unit-index",
+    "selectors": {
+      "evidence": "type:standard",
+      "english": "$[? @.slide.tags[? @ == \"expert-en\"]]",
+      "english-evidence": "selector:evidence selector:english"
+    }
+  },
+  "articles": [
+    {"page_source": "brief.md"},
+    {"page_source": "next-steps.md"}
+  ]
+}
