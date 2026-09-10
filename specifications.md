@@ -3141,6 +3141,19 @@ portée « Fiche » est désactivée (pas de fiche courante) :
 
 #### 9.3.5 Parcours (flèches et boutons Haut/Bas)
 
+**Space navigation:** unmodified Space (`KeyboardEvent.key` equal to `" "` or
+`"Spacebar"`) follows `stepForward()` through the existing `runStepped()`
+cooldown; Shift+Space follows `stepBackward()`. This is the same bounded journey
+as the arrows, not native page scrolling. Focused article cards, series-nav
+cards and unit-index links remain in that journey; Space steps between them
+without activation, while Enter follows the focused link. Ordinary links retain
+native Space/Shift+Space scrolling. Buttons, form controls, editable text and
+already-consumed events keep their own handling; Ctrl/Cmd/Alt+Space is not a
+deck shortcut. Help, modal surfaces, focused speaker notes (even without
+overflow) and locally scrolling table viewports retain foreground ownership.
+The mouse-only second-click-during-glide shortcut is unchanged. Browser coverage:
+`tests/space_nav_e2e.cjs`, including repeated geometry and key ownership.
+
 Un appui sur une flèche avance ou recule dans un parcours naturel à
 trois niveaux, chacun ne s'activant qu'une fois le niveau précédent
 épuisé — jamais tous en même temps. Les boutons prev/next de l'écran
@@ -8047,10 +8060,10 @@ l'exécutable.
     <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" aria-keyshortcuts="F" aria-label="{{str_nav_fullscreen}}" title="{{str_nav_fullscreen}}">{{icon_fullscreen}}</div>
   </div>
   <div class="nav-row nav-row-up">
-    <div class="nav-btn" id="navPrev" role="button" tabindex="0" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace" aria-label="{{str_nav_prev}}" title="{{str_nav_prev}}">{{icon_prev}}</div>
+    <div class="nav-btn" id="navPrev" role="button" tabindex="0" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace Shift+Space" aria-label="{{str_nav_prev}}" title="{{str_nav_prev}}">{{icon_prev}}</div>
   </div>
   <div class="nav-row nav-row-down">
-    <div class="nav-btn" id="navNext" role="button" tabindex="0" aria-keyshortcuts="ArrowDown ArrowRight PageDown" aria-label="{{str_nav_next}}" title="{{str_nav_next}}">{{icon_next}}</div>
+    <div class="nav-btn" id="navNext" role="button" tabindex="0" aria-keyshortcuts="ArrowDown ArrowRight PageDown Space" aria-label="{{str_nav_next}}" title="{{str_nav_next}}">{{icon_next}}</div>
   </div>
   <div class="nav-row nav-row-menu">
     <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-keyshortcuts="M" aria-haspopup="dialog" aria-expanded="false" aria-label="{{str_menu_title}}" title="{{str_menu_title}}">{{icon_menu}}</div>

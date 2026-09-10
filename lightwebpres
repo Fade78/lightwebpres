@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.59.0"
+VERSION = "0.59.1"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -12148,8 +12148,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Help overlay (key H): every keyboard shortcut and gesture, built once.
   var helpEntries = [
-    ['&darr; / PageDown / &rarr;', lwpString('help_touch_next'), lwpString('help_next')],
-    ['&uarr; / PageUp / &larr; / Backspace', lwpString('help_touch_prev'), lwpString('help_prev')],
+    ['&darr; / PageDown / &rarr; / Space', lwpString('help_touch_next'), lwpString('help_next')],
+    ['&uarr; / PageUp / &larr; / Backspace / Shift+Space', lwpString('help_touch_prev'), lwpString('help_prev')],
     ['Home', lwpString('help_touch_home'), lwpString('help_home')],
     ['Ctrl+Home', lwpString('help_touch_index'), lwpString('help_index')],
     ['Ctrl+End', lwpString('help_touch_edges'), lwpString('help_edges')],
@@ -12923,6 +12923,11 @@ document.addEventListener('DOMContentLoaded', function() {
       var modifiedEdge = (e.ctrlKey || e.metaKey)
         && (e.key === 'Home' || e.key === 'End');
       if ((e.ctrlKey || e.metaKey || e.altKey) && !modifiedEdge) return;
+      var spaceKey = e.key === ' ' || e.key === 'Spacebar';
+      // Role buttons have already activated in their own listener; native
+      // buttons (and disclosure summaries) retain browser activation.
+      if (spaceKey && (e.defaultPrevented || (e.target.closest
+          && e.target.closest('button, [role="button"], summary')))) return;
        if (themeMenu && themeMenu.classList.contains('open')) {
         if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
           e.preventDefault();
@@ -13186,10 +13191,12 @@ document.addEventListener('DOMContentLoaded', function() {
      // keys belong to the notes rather than to the deck behind them.
      if (presenterPanel && presenterPanel.classList.contains('open')
          && presenterPanel.contains(document.activeElement)
-         && isForegroundScrollKey(e.key)
-         && scrollForeground(presenterPanel, e.key, e.shiftKey)) {
-       e.preventDefault();
-       return;
+         && isForegroundScrollKey(e.key)) {
+       // Space belongs to focused notes even when there is nothing to scroll.
+       if (scrollForeground(presenterPanel, e.key, e.shiftKey) || spaceKey) {
+         e.preventDefault();
+         return;
+       }
      }
      if (tagMenu && tagMenu.classList.contains('open')) {
       if (e.key === 'Escape' || e.key === 'l' || e.key === 'L') {
@@ -13284,7 +13291,15 @@ document.addEventListener('DOMContentLoaded', function() {
       togglePresenter();
       return;
     }
-    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {
+    if (spaceKey) {
+      var spaceLink = e.target.closest && e.target.closest('a[href]');
+      // Only journey cards opt links into stepping. Ordinary links keep
+      // native Space scrolling; Enter still activates either kind of link.
+      if (spaceLink && (isIndex ? indexCards : slides.length ? slideCards(current) : [])
+          .indexOf(spaceLink) === -1) return;
+      e.preventDefault();
+      runStepped(e.shiftKey ? stepBackward : stepForward);
+    } else if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {
       e.preventDefault(); runStepped(stepForward);
     } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft' || e.key === 'Backspace') {
       e.preventDefault(); runStepped(stepBackward);
@@ -14511,13 +14526,13 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
       <button type="button" class="presenter-menu-action" id="menuReading" data-menu-action="reading" aria-haspopup="dialog" aria-controls="readingMenu" aria-expanded="false">
         {{icon_theme}}<span class="presenter-menu-label" data-lwp-i18n="menu_reading">{{str_menu_reading}}</span>
       </button>
-      <button type="button" class="presenter-menu-action" id="menuPrev" data-menu-action="prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace">
+      <button type="button" class="presenter-menu-action" id="menuPrev" data-menu-action="prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace Shift+Space">
         {{icon_prev}}<span class="presenter-menu-label" data-lwp-i18n="menu_prev">{{str_menu_prev}}</span><kbd>Page Up</kbd>
       </button>
       <button type="button" class="presenter-menu-action nav-btn-home" id="menuHome" data-menu-action="home" aria-keyshortcuts="Control+Home Meta+Home">
         {{icon_home}}<span class="presenter-menu-label" data-lwp-i18n="menu_home">{{str_menu_home}}</span><kbd>Ctrl+Home</kbd>
       </button>
-      <button type="button" class="presenter-menu-action" id="menuNext" data-menu-action="next" aria-keyshortcuts="ArrowDown ArrowRight PageDown">
+      <button type="button" class="presenter-menu-action" id="menuNext" data-menu-action="next" aria-keyshortcuts="ArrowDown ArrowRight PageDown Space">
         {{icon_next}}<span class="presenter-menu-label" data-lwp-i18n="menu_next">{{str_menu_next}}</span><kbd>Page Down</kbd>
       </button>
       <button type="button" class="presenter-menu-action" id="menuFullscreen" data-menu-action="fullscreen" aria-keyshortcuts="F">
@@ -14576,10 +14591,10 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
     <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="{{str_nav_fullscreen}}" data-lwp-i18n-title="nav_fullscreen" aria-label="{{str_nav_fullscreen}}" data-lwp-i18n-aria-label="nav_fullscreen" aria-keyshortcuts="F">{{icon_fullscreen}}</div>
   </div>
   <div class="nav-row nav-row-up">
-    <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="{{str_nav_prev}}" data-lwp-i18n-title="nav_prev" aria-label="{{str_nav_prev}}" data-lwp-i18n-aria-label="nav_prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace">{{icon_prev}}</div>
+    <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="{{str_nav_prev}}" data-lwp-i18n-title="nav_prev" aria-label="{{str_nav_prev}}" data-lwp-i18n-aria-label="nav_prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace Shift+Space">{{icon_prev}}</div>
   </div>
   <div class="nav-row nav-row-down">
-    <div class="nav-btn" id="navNext" role="button" tabindex="0" title="{{str_nav_next}}" data-lwp-i18n-title="nav_next" aria-label="{{str_nav_next}}" data-lwp-i18n-aria-label="nav_next" aria-keyshortcuts="ArrowDown ArrowRight PageDown">{{icon_next}}</div>
+    <div class="nav-btn" id="navNext" role="button" tabindex="0" title="{{str_nav_next}}" data-lwp-i18n-title="nav_next" aria-label="{{str_nav_next}}" data-lwp-i18n-aria-label="nav_next" aria-keyshortcuts="ArrowDown ArrowRight PageDown Space">{{icon_next}}</div>
   </div>
   <div class="nav-row nav-row-menu">
     <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="M" title="{{str_menu_title}}" data-lwp-i18n-title="menu_title" aria-label="{{str_menu_title}}" data-lwp-i18n-aria-label="menu_title">{{icon_menu}}</div>

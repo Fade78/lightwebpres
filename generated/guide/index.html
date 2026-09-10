@@ -2575,7 +2575,7 @@ button.share-action:hover:not(:disabled) {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.59.0</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.59.1</div>
   </div>
 </div>
 
@@ -2640,13 +2640,13 @@ button.share-action:hover:not(:disabled) {
       <button type="button" class="presenter-menu-action" id="menuReading" data-menu-action="reading" aria-haspopup="dialog" aria-controls="readingMenu" aria-expanded="false">
         <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9c0-1.1-.9-2-2-2h-2a2 2 0 0 1-2-2V6a3 3 0 0 0-3-3z"/><path d="M7.5 11.5h.01"/><path d="M9.5 7.5h.01"/><path d="M14.5 7.5h.01"/></svg><span class="presenter-menu-label" data-lwp-i18n="menu_reading">Display settings</span>
       </button>
-      <button type="button" class="presenter-menu-action" id="menuPrev" data-menu-action="prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace">
+      <button type="button" class="presenter-menu-action" id="menuPrev" data-menu-action="prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace Shift+Space">
         <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V5"/><path d="M5 12l7-7 7 7"/></svg><span class="presenter-menu-label" data-lwp-i18n="menu_prev">Previous slide</span><kbd>Page Up</kbd>
       </button>
       <button type="button" class="presenter-menu-action nav-btn-home" id="menuHome" data-menu-action="home" aria-keyshortcuts="Control+Home Meta+Home">
         <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11L12 3l9 8"/><path d="M5.5 9.5V20h13V9.5"/></svg><span class="presenter-menu-label" data-lwp-i18n="menu_home">Back to index</span><kbd>Ctrl+Home</kbd>
       </button>
-      <button type="button" class="presenter-menu-action" id="menuNext" data-menu-action="next" aria-keyshortcuts="ArrowDown ArrowRight PageDown">
+      <button type="button" class="presenter-menu-action" id="menuNext" data-menu-action="next" aria-keyshortcuts="ArrowDown ArrowRight PageDown Space">
         <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15"/><path d="M19 12l-7 7-7-7"/></svg><span class="presenter-menu-label" data-lwp-i18n="menu_next">Next slide</span><kbd>Page Down</kbd>
       </button>
       <button type="button" class="presenter-menu-action" id="menuFullscreen" data-menu-action="fullscreen" aria-keyshortcuts="F">
@@ -2724,10 +2724,10 @@ button.share-action:hover:not(:disabled) {
     <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="Fullscreen (F key)" data-lwp-i18n-title="nav_fullscreen" aria-label="Fullscreen (F key)" data-lwp-i18n-aria-label="nav_fullscreen" aria-keyshortcuts="F"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></div>
   </div>
   <div class="nav-row nav-row-up">
-    <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="Previous slide" data-lwp-i18n-title="nav_prev" aria-label="Previous slide" data-lwp-i18n-aria-label="nav_prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V5"/><path d="M5 12l7-7 7 7"/></svg></div>
+    <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="Previous slide" data-lwp-i18n-title="nav_prev" aria-label="Previous slide" data-lwp-i18n-aria-label="nav_prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace Shift+Space"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V5"/><path d="M5 12l7-7 7 7"/></svg></div>
   </div>
   <div class="nav-row nav-row-down">
-    <div class="nav-btn" id="navNext" role="button" tabindex="0" title="Next slide" data-lwp-i18n-title="nav_next" aria-label="Next slide" data-lwp-i18n-aria-label="nav_next" aria-keyshortcuts="ArrowDown ArrowRight PageDown"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15"/><path d="M19 12l-7 7-7-7"/></svg></div>
+    <div class="nav-btn" id="navNext" role="button" tabindex="0" title="Next slide" data-lwp-i18n-title="nav_next" aria-label="Next slide" data-lwp-i18n-aria-label="nav_next" aria-keyshortcuts="ArrowDown ArrowRight PageDown Space"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15"/><path d="M19 12l-7 7-7-7"/></svg></div>
   </div>
   <div class="nav-row nav-row-menu">
     <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="M" title="Presenter menu (M key)" data-lwp-i18n-title="menu_title" aria-label="Presenter menu (M key)" data-lwp-i18n-aria-label="menu_title"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg></div>
@@ -5630,8 +5630,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Help overlay (key H): every keyboard shortcut and gesture, built once.
   var helpEntries = [
-    ['&darr; / PageDown / &rarr;', lwpString('help_touch_next'), lwpString('help_next')],
-    ['&uarr; / PageUp / &larr; / Backspace', lwpString('help_touch_prev'), lwpString('help_prev')],
+    ['&darr; / PageDown / &rarr; / Space', lwpString('help_touch_next'), lwpString('help_next')],
+    ['&uarr; / PageUp / &larr; / Backspace / Shift+Space', lwpString('help_touch_prev'), lwpString('help_prev')],
     ['Home', lwpString('help_touch_home'), lwpString('help_home')],
     ['Ctrl+Home', lwpString('help_touch_index'), lwpString('help_index')],
     ['Ctrl+End', lwpString('help_touch_edges'), lwpString('help_edges')],
@@ -6405,6 +6405,11 @@ document.addEventListener('DOMContentLoaded', function() {
       var modifiedEdge = (e.ctrlKey || e.metaKey)
         && (e.key === 'Home' || e.key === 'End');
       if ((e.ctrlKey || e.metaKey || e.altKey) && !modifiedEdge) return;
+      var spaceKey = e.key === ' ' || e.key === 'Spacebar';
+      // Role buttons have already activated in their own listener; native
+      // buttons (and disclosure summaries) retain browser activation.
+      if (spaceKey && (e.defaultPrevented || (e.target.closest
+          && e.target.closest('button, [role="button"], summary')))) return;
        if (themeMenu && themeMenu.classList.contains('open')) {
         if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
           e.preventDefault();
@@ -6668,10 +6673,12 @@ document.addEventListener('DOMContentLoaded', function() {
      // keys belong to the notes rather than to the deck behind them.
      if (presenterPanel && presenterPanel.classList.contains('open')
          && presenterPanel.contains(document.activeElement)
-         && isForegroundScrollKey(e.key)
-         && scrollForeground(presenterPanel, e.key, e.shiftKey)) {
-       e.preventDefault();
-       return;
+         && isForegroundScrollKey(e.key)) {
+       // Space belongs to focused notes even when there is nothing to scroll.
+       if (scrollForeground(presenterPanel, e.key, e.shiftKey) || spaceKey) {
+         e.preventDefault();
+         return;
+       }
      }
      if (tagMenu && tagMenu.classList.contains('open')) {
       if (e.key === 'Escape' || e.key === 'l' || e.key === 'L') {
@@ -6766,7 +6773,15 @@ document.addEventListener('DOMContentLoaded', function() {
       togglePresenter();
       return;
     }
-    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {
+    if (spaceKey) {
+      var spaceLink = e.target.closest && e.target.closest('a[href]');
+      // Only journey cards opt links into stepping. Ordinary links keep
+      // native Space scrolling; Enter still activates either kind of link.
+      if (spaceLink && (isIndex ? indexCards : slides.length ? slideCards(current) : [])
+          .indexOf(spaceLink) === -1) return;
+      e.preventDefault();
+      runStepped(e.shiftKey ? stepBackward : stepForward);
+    } else if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {
       e.preventDefault(); runStepped(stepForward);
     } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft' || e.key === 'Backspace') {
       e.preventDefault(); runStepped(stepBackward);

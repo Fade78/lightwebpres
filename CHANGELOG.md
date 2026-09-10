@@ -33,6 +33,17 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.59.1
+
+Space now follows the same slide, navigation-card and bounded long-slide steps
+as the arrow keys, instead of accumulating native page-scroll offsets.
+Shift+Space steps backward, and held Space uses the existing keyboard cooldown.
+Series-index, series-navigation and unit-index cards can be traversed without
+activation; Enter still follows their links. Ordinary links keep native Space
+scrolling, controls keep their own activation or editing, and foreground panels
+retain Space even when focused speaker notes do not overflow. The mouse-only
+second-click shortcut during a glide is unchanged.
+
 ## Unreleased — 0.59.0
 
 `--single-html [FILE]` replaces `--single-page` on `build`, `verify` and

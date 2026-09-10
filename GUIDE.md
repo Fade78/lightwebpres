@@ -1598,8 +1598,8 @@ Browser emulation is not verification on a physical device.
 
 | Key | Action |
 |---|---|
-| ↓ / PageDown / → | Next slide — on the index, next article card |
-| ↑ / PageUp / ← / Backspace | Previous slide — on the index, previous article card |
+| ↓ / PageDown / → / Space | Next step: slide, navigation card or bounded scroll within a long slide |
+| ↑ / PageUp / ← / Backspace / Shift+Space | Previous step in the same journey |
 | Home | Beginning of the page — first slide on an article; top on the index |
 | Ctrl/Cmd+Home | Back to the series index — on the index: top of the page |
 | End or Ctrl/Cmd+End | Last slide. On the index: last article card |
@@ -1626,10 +1626,19 @@ slide taller than the screen is the necessary exception: it enters with its
 top aligned to the top of the viewport, then its bounded reading steps finish
 with its top or bottom aligned to the corresponding viewport edge.
 
+Space and Shift+Space follow that same journey, including focused cards on the
+series index, series-navigation slides and unit indexes. Enter follows the
+focused card's link; Space does not activate it. Ordinary links retain the
+browser's Space/Shift+Space scrolling. Buttons, form fields and editable text
+keep their own Space behaviour, and Ctrl/Cmd/Alt+Space is not a deck shortcut.
+Holding Space uses the same repeat cooldown as the arrow keys. A second mouse
+click during a glide remains a mouse-specific jump, not a keyboard shortcut.
+
 When the help overlay is open, its scrollable foreground owns the arrow,
 PageUp/PageDown, Home/End and Space keys. The same is true of the speaker
 panel when it has focus; while that panel is merely open and unfocused, the
-arrows keep navigating the deck.
+arrows keep navigating the deck. Focused speaker notes retain Space even when
+they fit without scrolling.
 
 The B/W/T pause screens hide the slide so the audience's eye comes back
 to the speaker — the same feature PowerPoint and Keynote call "blank".
