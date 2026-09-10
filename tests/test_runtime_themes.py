@@ -400,6 +400,38 @@ class RuntimeThemesBrowser(unittest.TestCase):
             target=cls.static_httpd.serve_forever, daemon=True)
         cls.static_thread.start()
 
+        origin_root = Path(cls.tmpdir.name) / 'origin-series'
+        result = subprocess.run(
+            ['python3', str(LWP), 'init', str(origin_root)],
+            capture_output=True, text=True, timeout=60,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        installed = Path(cls.tmpdir.name) / 'installed'
+        installed.mkdir()
+        origin_lwp = installed / 'lightwebpres'
+        shutil.copyfile(LWP, origin_lwp)
+        user_themes = Path(cls.tmpdir.name) / 'user-themes'
+        for scope, directory in [('installed', installed / 'themes'),
+                                 ('user', user_themes),
+                                 ('series', origin_root / 'templates' / 'themes')]:
+            directory.mkdir()
+            result = subprocess.run(
+                ['python3', str(LWP), 'theme', 'create', 'origin-' + scope,
+                 '--from', 'print-ink', '--family', 'print', '--source', 'palette-credit',
+                 '--output', str(directory / ('origin-' + scope + '.conf'))],
+                capture_output=True, text=True, timeout=60,
+            )
+            assert result.returncode == 0, result.stdout + result.stderr
+        result = subprocess.run(
+            ['python3', str(origin_lwp), 'build', str(origin_root),
+             '--no-essential-theme', '--themes',
+             'print-ink,origin-installed,origin-user,origin-series',
+             '--output', str(static_output / 'origins')],
+            env={**os.environ, 'LWP_THEMES_DIR': str(user_themes)},
+            capture_output=True, text=True, timeout=60,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
         pinned_root = Path(cls.tmpdir.name) / 'pinned-series'
         for command in ('init', 'demo'):
             result = subprocess.run(
@@ -456,6 +488,35 @@ class RuntimeThemesBrowser(unittest.TestCase):
             env={**os.environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_origin_display_does_not_rename_public_report_values(self):
+        for command, expected in [
+                (['preset', 'show', 'builtin/standard'], {
+                    'schema': 'lightwebpres.presentation-preset/2',
+                    'selector': 'builtin/standard', 'resource_collection': 'builtin',
+                    'scope': 'builtin'}),
+                (['theme', 'show', 'print-ink'], {
+                    'schema': 'lightwebpres.theme-info/6', 'source': 'lightwebpres'}),
+                (['theme', 'show', 'nord'], {
+                    'schema': 'lightwebpres.theme-info/6', 'source': 'nordtheme.com'}),
+                (['theme', 'show', 'origin-user'], {
+                    'schema': 'lightwebpres.theme-info/6', 'source': 'palette-credit'}),
+                (['series', 'theme', str(Path(self.tmpdir.name) / 'origin-series')], {
+                    'schema': 'lightwebpres.theme-info/6', 'source': 'builtin'})]:
+            with self.subTest(command=command):
+                result = subprocess.run(
+                    ['python3', str(LWP), *command, '--format', 'json'],
+                    env={**os.environ, 'LWP_THEMES_DIR': str(
+                        Path(self.tmpdir.name) / 'user-themes')},
+                    capture_output=True, text=True, timeout=60,
+                )
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                report = json.loads(result.stdout)
+                self.assertEqual({key: report[key] for key in expected}, expected)
+                if command[0] == 'preset':
+                    self.assertEqual(report['package']['selector'], 'builtin')
+                    self.assertEqual(report['package']['label'], 'LightWebPres')
+                    self.assertEqual(report['package']['scope'], 'builtin')
 
 
 if __name__ == '__main__':

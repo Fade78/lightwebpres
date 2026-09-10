@@ -4699,6 +4699,22 @@ distinct controls in the appearance picker. Resource collection (`builtin`,
 `commons` or `kit`) is separate from loading origin (built-in, installed, user
 or series-local); neither renames the owning identity.
 
+The picker's theme subtitles display family, identity label (or collection for
+unowned Commons themes), then a localized loading origin:
+
+| Runtime origin | English label | French label |
+|---|---|---|
+| `embedded`, `builtin` | Built-in | Intégré |
+| `installed` | Installed | Installé |
+| `user` | User | Utilisateur |
+| `series` | Series-local | Local à la série |
+
+This display mapping preserves the raw runtime payloads, public report values
+and selectors. In particular, theme-info `source` remains palette attribution,
+not loading origin. **Show themes** / **Afficher les thèmes** labels the existing
+Applicable / Current identity / All filter; its values `applicable`, `identity`
+and `all` and its membership rules are unchanged. It is not an origin filter.
+
 LWP conserve le shell `<html>`, `<head>`, `<body>`, `<section>`, les scripts,
 la navigation et les liens. Un kit ne reçoit que les enveloppes de contenu et
 le chrome. Réutiliser un layout natif dans un kit conserve le chrome du kit.

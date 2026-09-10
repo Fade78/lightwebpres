@@ -44,6 +44,12 @@ scrolling, controls keep their own activation or editing, and foreground panels
 retain Space even when focused speaker notes do not overflow. The mouse-only
 second-click shortcut during a glide is unchanged.
 
+Theme subtitles now use one localized loading-origin vocabulary: Built-in
+(Intégré) for both shipped Commons themes and native Light, plus Installed,
+User and Series-local. The filter is labelled Show themes / Afficher les thèmes
+rather than Theme source. Raw JSON origins, palette source credits, selectors,
+collection and identity ownership, and filter behavior are unchanged.
+
 ## Unreleased — 0.59.0
 
 `--single-html [FILE]` replaces `--single-page` on `build`, `verify` and

@@ -1313,10 +1313,14 @@ LANG_FR = r'''{
     "presentation_standard": "Standard",
     "presentation_standard_description": "Présentation native de LightWebPres.",
     "appearance_preset_default": "Suivre le preset",
-    "theme_source": "Source des thèmes",
+    "theme_source": "Afficher les thèmes",
     "theme_source_applicable": "Applicables",
     "theme_source_identity": "Identité actuelle",
     "theme_source_all": "Tous",
+    "theme_origin_builtin": "Intégré",
+    "theme_origin_installed": "Installé",
+    "theme_origin_user": "Utilisateur",
+    "theme_origin_series": "Local à la série",
     "theme_default": "Par défaut",
     "theme_custom": "Personnalisé",
     "theme_menu_help": "Le thème principal est sélectionné par défaut.",
@@ -1516,10 +1520,14 @@ LANG_EN = r'''{
     "presentation_standard": "Standard",
     "presentation_standard_description": "LightWebPres's native presentation.",
     "appearance_preset_default": "Follow preset",
-    "theme_source": "Theme source",
+    "theme_source": "Show themes",
     "theme_source_applicable": "Applicable",
     "theme_source_identity": "Current identity",
     "theme_source_all": "All",
+    "theme_origin_builtin": "Built-in",
+    "theme_origin_installed": "Installed",
+    "theme_origin_user": "User",
+    "theme_origin_series": "Series-local",
     "theme_default": "Default",
     "theme_custom": "Custom",
     "theme_menu_help": "The primary theme is selected by default.",
@@ -11774,8 +11782,17 @@ document.addEventListener('DOMContentLoaded', function() {
       button.appendChild(label);
       if (theme.family) {
         var family = document.createElement('small');
+        // Shared display vocabulary, not a change to payload origins or ownership.
+        var origin = theme.origin === 'embedded' ? 'builtin' : theme.origin;
+        var originLabels = {
+          builtin: lwpString('theme_origin_builtin'),
+          installed: lwpString('theme_origin_installed'),
+          user: lwpString('theme_origin_user'),
+          series: lwpString('theme_origin_series')
+        };
         family.textContent = [themeFamily(theme),
-          theme.identity_label || theme.collection, theme.origin].filter(Boolean).join(' / ');
+          theme.identity_label || theme.collection,
+          typeof originLabels[origin] === 'string' ? originLabels[origin] : theme.origin].filter(Boolean).join(' / ');
         button.appendChild(family);
       }
       button.addEventListener('click', function () {

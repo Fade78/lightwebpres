@@ -1200,7 +1200,7 @@ reference inside that kit is `presentation:mark`, not a filesystem path or a
 reference into another kit. Keep those namespaces separate from the persisted
 preset selector `lightwebpres-docs@0.1.0/docs`.
 
-The **Applicable**, **Current identity** and **All** filters only narrow
+The **Show themes** filter offers **Applicable**, **Current identity** and **All** to narrow
 published choices. Applicable means typed compatibility, not brand matching.
 For native LightWebPres, Current identity includes published Commons/global
 themes, Light and native custom variants, but excludes foreign kit themes.
@@ -1210,6 +1210,13 @@ native `builtin` does not declare kit membership or make Commons an identity.
 Identity labels stay fixed when the preset or theme changes. The initial/default
 marker describes a selection, not another identity. The picker does not invent
 a cross-product of presets and themes or fetch additional catalogue entries.
+
+Theme subtitles show the family, identity label (or Commons collection) and
+loading origin: **Built-in**, **Installed**, **User** or **Series-local**.
+Built-in covers both shipped Commons themes and native Light; it does not make
+Commons an identity. These are localized display labels, not palette credits
+or changes to the raw runtime origins `embedded`, `builtin`, `installed`, `user`
+and `series`.
 
 For color and typography changes, choose the smallest value override that
 does the job before adding CSS rules.

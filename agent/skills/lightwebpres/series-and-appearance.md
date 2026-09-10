@@ -358,7 +358,7 @@ Preset metadata alone does not expose those axes, and hidden Commons preset
 choices are not restored from session storage. The actual theme is selected;
 choosing the primary theme restores the author's base appearance.
 
-Applicable / Current identity / All narrow published choices, not brand
+The Show themes filter's Applicable / Current identity / All narrow published choices, not brand
 approval. Applicable means typed compatibility. For native `builtin`, Current
 identity includes published Commons/global themes, Light and native custom
 variants, excluding foreign kit themes. For a real kit, it includes only its
@@ -367,6 +367,12 @@ other kits. Commons availability to native LightWebPres is not declared kit
 membership. All themes of selected kits are published with kit-qualified names;
 no cross-product is generated. Identity labels name ownership, while default
 markers name initial choices.
+
+Theme subtitles localize loading origin as Built-in, Installed, User or
+Series-local. Built-in covers raw `embedded` Commons themes and `builtin` native
+resources; Commons remains a collection, not an identity. Do not rewrite
+payload origins or palette `source` credits from these display labels. Show
+themes filters published membership, not loading origin.
 
 An explicit `theme:` in `settings.conf` stays fixed when presentation changes.
 Without it, the preset's theme follows the selected presentation until the

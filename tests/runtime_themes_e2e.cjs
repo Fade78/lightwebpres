@@ -1033,6 +1033,54 @@ async function main() {
   }
 
   if (staticBase) {
+    for (const [locale, showLabel, origins] of [
+      ['en-US', 'Show themes', ['Built-in', 'Installed', 'User', 'Series-local']],
+      ['fr-FR', 'Afficher les thèmes', ['Intégré', 'Installé', 'Utilisateur', 'Local à la série']],
+    ]) {
+      const originContext = await browser.newContext({ locale });
+      const originPage = await originContext.newPage();
+      originPage.on('pageerror', (error) => errors.push(String(error)));
+      await originPage.goto(staticBase + '/origins/index.html', { waitUntil: 'load' });
+      await originPage.keyboard.press('c');
+      const raw = await originPage.locator('#lwp-theme-data').textContent();
+      const data = JSON.parse(raw);
+      if (data.version !== 1) fail('origin labels changed the runtime schema');
+      const sourceLabel = originPage.locator('label[for="themeSource"]');
+      if (!await sourceLabel.isVisible() || await sourceLabel.textContent() !== showLabel) {
+        fail(locale + ' theme filter label did not describe the displayed choices');
+      }
+      for (const filter of ['applicable', 'identity', 'all']) {
+        await originPage.selectOption('#themeSource', filter);
+        for (const [slug, family, owner, collection, identity, origin, label] of [
+          ['print-ink', 'print', 'Commons', 'Commons', null, 'embedded', origins[0]],
+          ['kit:builtin/light', 'desk', 'LightWebPres', 'builtin', 'builtin', 'builtin', origins[0]],
+          ...['installed', 'user', 'series'].map((scope, i) =>
+            ['origin-' + scope, 'print', 'Commons', 'Commons', null, scope, origins[i + 1]]),
+        ]) {
+          const theme = data.themes.find((item) => item.slug === slug);
+          if (!theme || theme.origin !== origin || theme.collection !== collection
+              || theme.identity !== identity) {
+            fail('localized display changed raw theme ownership/origin: ' + JSON.stringify(theme));
+          }
+          const subtitle = originPage.locator('#themeOptions [data-theme="' + slug + '"] small');
+          const expected = [family, owner, label].join(' / ');
+          if (!await subtitle.isVisible() || await subtitle.textContent() !== expected) {
+            fail(locale + '/' + filter + '/' + slug + ' subtitle is not ' + expected);
+          }
+        }
+      }
+      if (await originPage.locator('#lwp-theme-data').textContent() !== raw) {
+        fail('rendering localized origins mutated the runtime payload');
+      }
+      const presets = await originPage.locator('#lwp-presentation-data').textContent();
+      const native = JSON.parse(presets).presets[0];
+      if (native.selector !== 'builtin/standard' || native.identity !== 'builtin'
+          || native.identity_label !== 'LightWebPres' || native.collection !== 'builtin'
+          || native.origin !== 'builtin') {
+        fail('origin labels changed the native preset metadata: ' + presets);
+      }
+      await originContext.close();
+    }
     await page.goto(staticBase + '/index.html', { waitUntil: 'load' });
     const staticPayload = await page.evaluate(() => ({
       payload: !!document.getElementById('lwp-theme-data'),
