@@ -16,8 +16,9 @@ const outputs = [
 ];
 function sourceFiles(directory) {
   return fs.readdirSync(path.join(root, directory), { withFileTypes: true })
-    .flatMap((entry) => entry.isDirectory() ? sourceFiles(`${directory}/${entry.name}`)
-      : entry.name === 'README.md' ? [] : [`${directory}/${entry.name}`]);
+    .flatMap((entry) => entry.name === 'README.md' || entry.name.startsWith('.lwp-') ? []
+      : entry.isDirectory() ? sourceFiles(`${directory}/${entry.name}`)
+      : [`${directory}/${entry.name}`]);
 }
 const inputs = ['lightwebpres', 'tools/screenshot-documentation.cjs',
   ...sourceFiles('examples/first-article'),

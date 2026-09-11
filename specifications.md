@@ -3409,6 +3409,13 @@ dialogues sont parcourables au clavier et ne laissent pas Tab sortir vers la
 page sous-jacente. Sans alternative, C reste inerte et l'action « thèmes » est
 absente du menu M.
 
+The M menu groups related actions in rows of three when the width allows it:
+**Display settings**, **Fullscreen**, **Theme**; **Previous slide**, **Index**,
+**Next slide**; reading tools; sharing and help; then the three pause screens.
+Hidden actions do not shift neighbouring groups. The pause-screen buttons use
+black, white and the current theme page background respectively, with readable
+ink on each.
+
 ### 9.3.9 Reader controls and bounded fitting
 
 The presenter menu (**M**, or the Menu button) has one **Display settings**

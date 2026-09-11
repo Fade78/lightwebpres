@@ -3594,6 +3594,21 @@ THEME_COMPONENTS = [
         ThemeProp('share.bg-hover', PROP_COLOR, '#FFFFFFB8', css='background',
                   selector='button.share-action:hover:not(:disabled)'),
     ]),
+    # Pause actions are both controls and the source of the three full-screen
+    # backgrounds. Keep their semantic colours in the registry so themes and
+    # the runtime pause overlay read the same values.
+    ThemeComponent('pause.black', '#menuPauseBlack', [
+        ThemeProp('pause.black.bg', PROP_COLOR, '#000000FF', css='background'),
+        ThemeProp('pause.black.fg', PROP_COLOR, '#FFFFFFFF', css='color'),
+    ]),
+    ThemeComponent('pause.white', '#menuPauseWhite', [
+        ThemeProp('pause.white.bg', PROP_COLOR, '#FFFFFFFF', css='background'),
+        ThemeProp('pause.white.fg', PROP_COLOR, '#000000FF', css='color'),
+    ]),
+    ThemeComponent('pause.theme', '#menuPauseTheme', [
+        ThemeProp('pause.theme.bg', PROP_COLOR, 'page', css='background'),
+        ThemeProp('pause.theme.fg', PROP_COLOR, 'ink', css='color'),
+    ]),
 
     ThemeComponent('card', '.article-card', [
         ThemeProp('card.bg',            PROP_COLOR,  '#FFFFFFB8', css='background'),
@@ -7786,6 +7801,12 @@ CONTRAST_SITES = [
     # places this tone paints.
     ContrastSite('share panel secondary text', 'share.quiet-fg', [_G_SHARE],
                  base=11.0),
+    ContrastSite('black pause action', 'pause.black.fg',
+                 [('pause.black.bg',)]),
+    ContrastSite('white pause action', 'pause.white.fg',
+                 [('pause.white.bg',)]),
+    ContrastSite('theme pause action', 'pause.theme.fg',
+                 [('pause.theme.bg',)]),
 
     # --- the index page ---
     ContrastSite('index subtitle', 'header.subtitle.fg', [_G_PAGE],
@@ -7866,6 +7887,9 @@ CONTRAST_UNMEASURED = {
     'nav-btn.bg-soft': 'ground: the home button',
     'share.bg': 'ground: the share panel',
     'share.bg-hover': 'ground: a share button under the pointer',
+    'pause.black.bg': 'ground: the black pause action',
+    'pause.white.bg': 'ground: the white pause action',
+    'pause.theme.bg': 'ground: the themed pause action',
     'card.bg': 'ground: an index card',
     'version-tag.bg': 'ground: the version pill',
     'nav-dot.bg': 'ground: a slide dot that is not the current one',
@@ -8442,9 +8466,8 @@ html:not([data-lwp-table-mode]) body[data-lwp-table-mode="scroll"] .lwp-table-vi
    running text, which is why they are allowed to stay literal. --- */
 /* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
    speaker draws the audience's eye. Sits above the slides, below the
-   nav buttons (so the speaker can still navigate). The background is
-   set by JS (black, white, or the theme's --page-bg) — never a colour
-   literal here, the skeleton carries no content colour. */
+   nav buttons (so the speaker can still navigate). JS selects one of the
+   typed pause background variables. */
 .pause-overlay {
   display: none;
   position: fixed;
@@ -8871,8 +8894,13 @@ body.fs-noselect {
   font-weight: 700;
 }
 .presenter-menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.presenter-menu-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 .reading-controls {
@@ -13838,11 +13866,10 @@ document.addEventListener('DOMContentLoaded', function() {
         && pauseOverlay.dataset.pauseKind === kind) {
       closePause();
     } else {
-      var bg = 'black';
-      if (kind === 'w') bg = 'white';
-      else if (kind === 't') bg = getComputedStyle(document.body)
-        .getPropertyValue('--page-bg').trim() || 'black';
-      pauseOverlay.style.background = bg;
+      var bgVar = '--pause-black-bg';
+      if (kind === 'w') bgVar = '--pause-white-bg';
+      else if (kind === 't') bgVar = '--pause-theme-bg';
+      pauseOverlay.style.background = 'var(' + bgVar + ')';
       pauseOverlay.dataset.pauseKind = kind;
       pauseOverlay.classList.add('open');
     }
@@ -14689,48 +14716,58 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
   <div class="presenter-menu-card">
     <div class="presenter-menu-title" id="presenterMenuTitle" data-lwp-i18n="menu_title">{{str_menu_title}}</div>
     <div class="presenter-menu-actions">
-      <button type="button" class="presenter-menu-action" id="menuReading" data-menu-action="reading" aria-haspopup="dialog" aria-controls="readingMenu" aria-expanded="false" aria-keyshortcuts="D">
-        {{icon_theme}}<span class="presenter-menu-label" data-lwp-i18n="menu_reading">{{str_menu_reading}}</span><kbd>D</kbd>
-      </button>
-      <button type="button" class="presenter-menu-action" id="menuPrev" data-menu-action="prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace Shift+Space">
-        {{icon_prev}}<span class="presenter-menu-label" data-lwp-i18n="menu_prev">{{str_menu_prev}}</span><kbd>Page Up</kbd>
-      </button>
-      <button type="button" class="presenter-menu-action nav-btn-home" id="menuHome" data-menu-action="home" aria-keyshortcuts="Control+Home Meta+Home">
-        {{icon_home}}<span class="presenter-menu-label" data-lwp-i18n="menu_home">{{str_menu_home}}</span><kbd>Ctrl+Home</kbd>
-      </button>
-      <button type="button" class="presenter-menu-action" id="menuNext" data-menu-action="next" aria-keyshortcuts="ArrowDown ArrowRight PageDown Space">
-        {{icon_next}}<span class="presenter-menu-label" data-lwp-i18n="menu_next">{{str_menu_next}}</span><kbd>Page Down</kbd>
-      </button>
-      <button type="button" class="presenter-menu-action" id="menuFullscreen" data-menu-action="fullscreen" aria-keyshortcuts="F">
-        {{icon_fullscreen}}<span class="presenter-menu-label" data-lwp-i18n="menu_fullscreen">{{str_menu_fullscreen}}</span><kbd>F</kbd>
-      </button>
-      <button type="button" class="presenter-menu-action" id="menuTheme" data-menu-action="theme" aria-keyshortcuts="C">
-        {{icon_theme}}<span class="presenter-menu-label" data-lwp-i18n="menu_theme">{{str_menu_theme}}</span><kbd>C</kbd>
-      </button>
-      <button type="button" class="presenter-menu-action" id="menuPresenter" data-menu-action="presenter" aria-keyshortcuts="N">
-        {{icon_presenter}}<span class="presenter-menu-label" data-lwp-i18n="menu_presenter">{{str_menu_presenter}}</span><kbd>N</kbd>
-      </button>
-      <button type="button" class="presenter-menu-action" id="menuTags" data-menu-action="tags" aria-keyshortcuts="L">
-        {{icon_tags}}<span class="presenter-menu-label" data-lwp-i18n="menu_tags">{{str_menu_tags}}</span><kbd>L</kbd>
-      </button>
-      <button type="button" class="presenter-menu-action" id="menuScroll" data-menu-action="scroll" aria-pressed="false" aria-keyshortcuts="I">
-        {{icon_scroll}}<span class="presenter-menu-label"><span data-lwp-i18n="menu_scroll">{{str_menu_scroll}}</span>: <span id="menuScrollValue">{{scroll_duration}} ms</span></span><kbd>I</kbd>
-      </button>
-       <button type="button" class="presenter-menu-action" id="menuShare" data-menu-action="share" aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="S">
-        {{icon_share}}<span class="presenter-menu-label" data-lwp-i18n="menu_share">{{str_menu_share}}</span><kbd>S</kbd>
-      </button>
-      <button type="button" class="presenter-menu-action" id="menuHelp" data-menu-action="help" aria-keyshortcuts="H">
-        {{icon_help}}<span class="presenter-menu-label" data-lwp-i18n="menu_help">{{str_menu_help}}</span><kbd>H</kbd>
-      </button>
-      <button type="button" class="presenter-menu-action" id="menuPauseBlack" data-menu-action="pause-black" aria-keyshortcuts="B">
-        {{icon_pause}}<span class="presenter-menu-label" data-lwp-i18n="menu_pause_black">{{str_menu_pause_black}}</span><kbd>B</kbd>
-      </button>
-      <button type="button" class="presenter-menu-action" id="menuPauseWhite" data-menu-action="pause-white" aria-keyshortcuts="W">
-        {{icon_pause}}<span class="presenter-menu-label" data-lwp-i18n="menu_pause_white">{{str_menu_pause_white}}</span><kbd>W</kbd>
-      </button>
-      <button type="button" class="presenter-menu-action" id="menuPauseTheme" data-menu-action="pause-theme" aria-keyshortcuts="T">
-        {{icon_pause}}<span class="presenter-menu-label" data-lwp-i18n="menu_pause_theme">{{str_menu_pause_theme}}</span><kbd>T</kbd>
-      </button>
+      <div class="presenter-menu-row">
+        <button type="button" class="presenter-menu-action" id="menuReading" data-menu-action="reading" aria-haspopup="dialog" aria-controls="readingMenu" aria-expanded="false" aria-keyshortcuts="D">
+          {{icon_theme}}<span class="presenter-menu-label" data-lwp-i18n="menu_reading">{{str_menu_reading}}</span><kbd>D</kbd>
+        </button>
+        <button type="button" class="presenter-menu-action" id="menuFullscreen" data-menu-action="fullscreen" aria-keyshortcuts="F">
+          {{icon_fullscreen}}<span class="presenter-menu-label" data-lwp-i18n="menu_fullscreen">{{str_menu_fullscreen}}</span><kbd>F</kbd>
+        </button>
+        <button type="button" class="presenter-menu-action" id="menuTheme" data-menu-action="theme" aria-keyshortcuts="C">
+          {{icon_theme}}<span class="presenter-menu-label" data-lwp-i18n="menu_theme">{{str_menu_theme}}</span><kbd>C</kbd>
+        </button>
+      </div>
+      <div class="presenter-menu-row">
+        <button type="button" class="presenter-menu-action" id="menuPrev" data-menu-action="prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace Shift+Space">
+          {{icon_prev}}<span class="presenter-menu-label" data-lwp-i18n="menu_prev">{{str_menu_prev}}</span><kbd>Page Up</kbd>
+        </button>
+        <button type="button" class="presenter-menu-action nav-btn-home" id="menuHome" data-menu-action="home" aria-keyshortcuts="Control+Home Meta+Home">
+          {{icon_home}}<span class="presenter-menu-label" data-lwp-i18n="menu_home">{{str_menu_home}}</span><kbd>Ctrl+Home</kbd>
+        </button>
+        <button type="button" class="presenter-menu-action" id="menuNext" data-menu-action="next" aria-keyshortcuts="ArrowDown ArrowRight PageDown Space">
+          {{icon_next}}<span class="presenter-menu-label" data-lwp-i18n="menu_next">{{str_menu_next}}</span><kbd>Page Down</kbd>
+        </button>
+      </div>
+      <div class="presenter-menu-row">
+        <button type="button" class="presenter-menu-action" id="menuPresenter" data-menu-action="presenter" aria-keyshortcuts="N">
+          {{icon_presenter}}<span class="presenter-menu-label" data-lwp-i18n="menu_presenter">{{str_menu_presenter}}</span><kbd>N</kbd>
+        </button>
+        <button type="button" class="presenter-menu-action" id="menuTags" data-menu-action="tags" aria-keyshortcuts="L">
+          {{icon_tags}}<span class="presenter-menu-label" data-lwp-i18n="menu_tags">{{str_menu_tags}}</span><kbd>L</kbd>
+        </button>
+        <button type="button" class="presenter-menu-action" id="menuScroll" data-menu-action="scroll" aria-pressed="false" aria-keyshortcuts="I">
+          {{icon_scroll}}<span class="presenter-menu-label"><span data-lwp-i18n="menu_scroll">{{str_menu_scroll}}</span>: <span id="menuScrollValue">{{scroll_duration}} ms</span></span><kbd>I</kbd>
+        </button>
+      </div>
+      <div class="presenter-menu-row">
+        <button type="button" class="presenter-menu-action" id="menuShare" data-menu-action="share" aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="S">
+          {{icon_share}}<span class="presenter-menu-label" data-lwp-i18n="menu_share">{{str_menu_share}}</span><kbd>S</kbd>
+        </button>
+        <button type="button" class="presenter-menu-action" id="menuHelp" data-menu-action="help" aria-keyshortcuts="H">
+          {{icon_help}}<span class="presenter-menu-label" data-lwp-i18n="menu_help">{{str_menu_help}}</span><kbd>H</kbd>
+        </button>
+      </div>
+      <div class="presenter-menu-row">
+        <button type="button" class="presenter-menu-action" id="menuPauseBlack" data-menu-action="pause-black" aria-keyshortcuts="B">
+          {{icon_pause}}<span class="presenter-menu-label" data-lwp-i18n="menu_pause_black">{{str_menu_pause_black}}</span><kbd>B</kbd>
+        </button>
+        <button type="button" class="presenter-menu-action" id="menuPauseWhite" data-menu-action="pause-white" aria-keyshortcuts="W">
+          {{icon_pause}}<span class="presenter-menu-label" data-lwp-i18n="menu_pause_white">{{str_menu_pause_white}}</span><kbd>W</kbd>
+        </button>
+        <button type="button" class="presenter-menu-action" id="menuPauseTheme" data-menu-action="pause-theme" aria-keyshortcuts="T">
+          {{icon_pause}}<span class="presenter-menu-label" data-lwp-i18n="menu_pause_theme">{{str_menu_pause_theme}}</span><kbd>T</kbd>
+        </button>
+      </div>
     </div>
   </div>
 </div>

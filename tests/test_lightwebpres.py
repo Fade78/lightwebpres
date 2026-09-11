@@ -10794,6 +10794,11 @@ class EveryNeutralVeilIsMeasuredOnEveryThemeItLandsOn(unittest.TestCase):
     # not a colour. `#FFFFFF00` and `#000000FF` are both in the family;
     # what matters is that the RGB carries nothing.
     NEUTRAL = re.compile(r'^#(?:000000|FFFFFF)[0-9A-Fa-f]{2}$')
+    NON_VEIL_SURFACES = {
+        # Pause screens are semantic full-screen choices, not translucent
+        # furniture that should be inverted on dark themes.
+        'pause.black.bg', 'pause.white.bg', 'pause.theme.bg',
+    }
 
     def setUp(self):
         self.lwp = load_lightwebpres_module()
@@ -10828,6 +10833,8 @@ class EveryNeutralVeilIsMeasuredOnEveryThemeItLandsOn(unittest.TestCase):
             if prop.type is not self.lwp.PROP_COLOR:
                 continue
             if not isinstance(prop.default, str) or not self.NEUTRAL.match(prop.default):
+                continue
+            if key in self.NON_VEIL_SURFACES:
                 continue
             if prop.css == 'background':
                 surfaces.append(key)
@@ -16663,6 +16670,9 @@ class ThemeEngineStaged(unittest.TestCase):
         'article': 'container: the long-form prose, its headings and code',
         'refs': 'container: the reference paragraphs it holds',
         'share': 'container: the popover, ink spread over four selectors',
+        'pause.black': 'fixed-contrast swatch, no halo needed',
+        'pause.white': 'fixed-contrast swatch, no halo needed',
+        'pause.theme': 'page-surface swatch, its text has no halo',
         'intro': 'container: the paragraphs of the introduction',
         'code': 'fixed pitch at 0.88em: 2px of bleed on 1px stems',
         'footnote-call': 'the smallest glyph, and its job is to be findable',

@@ -543,6 +543,40 @@ async function main() {
   if (!menu.open || menu.expanded !== 'true' || menu.visibleActions !== 13) {
     fail('M did not expose the complete presenter menu: ' + JSON.stringify(menu));
   }
+  const menuRows = await page.evaluate(() => Array.prototype.map.call(
+    document.querySelectorAll('#presenterMenu .presenter-menu-row'), row =>
+      Array.prototype.filter.call(row.querySelectorAll('.presenter-menu-action'),
+        button => !button.hidden && button.getClientRects().length)
+        .map(button => button.getAttribute('data-menu-action'))));
+  const hasRow = expected => menuRows.some(row =>
+    row.length === expected.length && row.every((value, index) => value === expected[index]));
+  if (!hasRow(['prev', 'home', 'next'])
+      || !hasRow(['pause-black', 'pause-white', 'pause-theme'])) {
+    fail('presenter menu groups do not keep related actions on one row: '
+      + JSON.stringify(menuRows));
+  }
+  const pauseColors = await page.evaluate(() => {
+    const read = id => {
+      const style = getComputedStyle(document.getElementById(id));
+      return {background: style.backgroundColor, color: style.color,
+        border: style.borderColor};
+    };
+    const pageStyle = getComputedStyle(document.body);
+    return {
+      black: read('menuPauseBlack'), white: read('menuPauseWhite'),
+      theme: read('menuPauseTheme'),
+      page: {background: pageStyle.backgroundColor, color: pageStyle.color},
+    };
+  });
+  if (pauseColors.black.background !== 'rgb(0, 0, 0)'
+      || pauseColors.black.color !== 'rgb(255, 255, 255)'
+      || pauseColors.white.background !== 'rgb(255, 255, 255)'
+      || pauseColors.white.color !== 'rgb(0, 0, 0)'
+      || pauseColors.theme.background !== pauseColors.page.background
+      || pauseColors.theme.color !== pauseColors.page.color) {
+    fail('pause-screen actions do not show their screen colours: '
+      + JSON.stringify(pauseColors));
+  }
   const menuTypography = await page.evaluate(() => {
     const size = (id) => getComputedStyle(document.getElementById(id)).fontSize;
     return { prev: size('menuPrev'), home: size('menuHome'), next: size('menuNext') };
@@ -618,7 +652,7 @@ async function main() {
   if (instantErrors.length) fail('Instant-scroll page errors: ' + instantErrors.join(' | '));
 
   await page.keyboard.press('m');
-  // The reading submenu launcher is the first cell of the main action grid.
+  // The reading submenu launcher is the first cell of the Display row.
   await page.locator('[data-menu-action="reading"]').focus();
   const menuFocusState = async () => page.evaluate(() => {
     const action = document.activeElement;
@@ -662,7 +696,7 @@ async function main() {
   await page.keyboard.press('Shift+Tab');
   const shiftTabMenuFocus = await page.evaluate(() =>
     document.activeElement && document.activeElement.getAttribute('data-menu-action'));
-  if (tabMenuFocus !== 'prev' || shiftTabMenuFocus !== 'reading') {
+  if (tabMenuFocus !== 'fullscreen' || shiftTabMenuFocus !== 'reading') {
     fail('presenter menu Tab navigation is wrong: '
       + JSON.stringify({ tabMenuFocus, shiftTabMenuFocus }));
   }

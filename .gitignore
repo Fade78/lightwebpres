@@ -16,6 +16,8 @@ public/
 **/public/
 .lwp-manifest.json
 **/.lwp-manifest.json
+.lwp-cache/
+**/.lwp-cache/
 
 # --- Python ---
 __pycache__/

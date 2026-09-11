@@ -9,7 +9,7 @@
     "examples/kit-composition/sources/field-frames/1.0.0/manifest.json": "35688dea8f8254ff58234c55489e9535e92694c3d32ae4164fc3059883e3b7c6",
     "examples/kit-composition/sources/field-frames/1.0.0/structure.css": "18fbecfd951260a4aa76765dbaad4a12beecbb05224e6b83008ce9bb92e92d0a",
     "examples/kit-composition/sources/field-ink/1.0.0/manifest.json": "58783a433e4847601005abb2ee23775a35fabb9c7478c30461d9f734933390f3",
-    "examples/kit-composition/sources/field-ink/1.0.0/themes/paper.conf": "f9be8c8ccdd18b04b3ea513b19a59d02dd53c21671c9dda1e0179b23e0000b18",
+    "examples/kit-composition/sources/field-ink/1.0.0/themes/paper.conf": "64e2f1c037e2ee5d78e21a3d4d61ec6904f65bbfcfbb1acc8563f3dab709c632",
     "examples/kit-composition/sources/field-marks/1.0.0/assets/compass.svg": "db159cd4ebcc1b139099d71fda4560779e961f29187e6f130c62783bf12c5059",
     "examples/kit-composition/sources/field-marks/1.0.0/assets/trail.svg": "96d4d4d64f30d0f15de8da6d226a0036564e7159b2fc1f4c82240c136e8bf48d",
     "examples/kit-composition/sources/field-marks/1.0.0/chrome.json": "89ab8d8f9d2d177f6413689548a2e23a8d33493aca9a36bf85aa284b2819323f",
@@ -26,9 +26,9 @@
     "examples/kits/lightwebpres-docs/0.1.0/starters/blank/sources/welcome.md": "db50d5ded164c55e089e6d055655293b7165d16ae00889af21a602e09c433db2",
     "examples/kits/lightwebpres-docs/0.1.0/starters/blank/starter.json": "9c9556978e90cd4bd1f3a2dc1dd422a5f172e9c65d4187d84d004df10c5d424a",
     "examples/kits/lightwebpres-docs/0.1.0/structure.css": "4501d6bff633ce1e06facf5fd2c9d0c811236e6cd20447a4e761182e0e8a3b08",
-    "examples/kits/lightwebpres-docs/0.1.0/themes/docs.conf": "3328b9c7224c820029f3f35f8c891d239ce1edec205ca5d3310b33761713b94a",
-    "lightwebpres": "82c288fa2b4b05af5eaf64949926a6ee0c1b77a229fa822bee15105d979855e0",
-    "tools/screenshot-documentation.cjs": "1be164be11a14d6c7ffa58b4b63f550615a01f39be8cdde7371747e578e497fe"
+    "examples/kits/lightwebpres-docs/0.1.0/themes/docs.conf": "76b6e1114db4013088106c8bbe9f645bb70ec311a393f9f33729bdf72a089707",
+    "lightwebpres": "2df8b62ececc64af85332ae2929c47b68187657f5cf14221ca3c4cc68da4eda3",
+    "tools/screenshot-documentation.cjs": "acae54ac2e1c9a95494e49ef9e73f7811d3f13f95f2fe8ef59c8dd487f9c6ec1"
   },
   "browser": "145.0.7632.6",
   "source": "examples/first-article/sources/first-page.md",

@@ -83,6 +83,12 @@ unit-index slides, native-navigation requirements and the refusal of
 requiring the presenter menu first. The shortcut is listed in the generated
 keyboard help and on the accessible menu action.
 
+The presenter menu now keeps Display settings, navigation, tools, sharing/help
+and pause screens in stable rows, so Previous slide, the series index and Next
+slide stay together. Black screen, White screen and Theme screen actions now
+show their corresponding backgrounds, with the themed action following the
+current page colours.
+
 ## Unreleased — 0.59.0
 
 `--single-html [FILE]` replaces `--single-page` on `build`, `verify` and

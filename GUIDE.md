@@ -1528,6 +1528,12 @@ submenu; **Back to main menu** or **Escape** returns to the main menu with focus
 item, while clicking outside closes the submenu. These controls work with a
 mouse, keyboard or touch; no source edit or rebuild is needed:
 
+The presenter menu groups related actions in rows: Display settings with
+fullscreen and appearance, the previous/index/next navigation trio, reading
+tools, sharing/help, and the three pause screens. On a wide menu, hidden
+actions do not shift another group; the pause actions are visibly black, white
+and themed.
+
 | Control | What it changes |
 |---|---|
 | Presentation zoom: **-**, **+**, **Reset** | Reduce or enlarge presentation text and images, or return to 100%, without scaling the slide frame or controls; the current percentage is shown. Keyboard equivalents are **-**, **+**, **=**. |

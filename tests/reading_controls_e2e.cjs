@@ -277,7 +277,23 @@ async function run() {
       await page.keyboard.press('Escape');
       await page.keyboard.press('t');
       assert.equal(await page.locator('#pauseOverlay.open').count(), 1);
+      const themePauseBackground = await page.evaluate(() => ({
+        overlay: getComputedStyle(document.getElementById('pauseOverlay')).backgroundColor,
+        page: getComputedStyle(document.body).backgroundColor,
+      }));
+      assert.equal(themePauseBackground.overlay, themePauseBackground.page,
+        'theme pause screen must use the current page background');
       await page.keyboard.press('t');
+      await page.keyboard.press('b');
+      assert.equal(await page.evaluate(() =>
+        getComputedStyle(document.getElementById('pauseOverlay')).backgroundColor),
+      'rgb(0, 0, 0)', 'black pause screen must be black');
+      await page.keyboard.press('b');
+      await page.keyboard.press('w');
+      assert.equal(await page.evaluate(() =>
+        getComputedStyle(document.getElementById('pauseOverlay')).backgroundColor),
+      'rgb(255, 255, 255)', 'white pause screen must be white');
+      await page.keyboard.press('w');
       await page.keyboard.press('o');
       await openMenu();
       assert.equal(await page.locator('#menuTableMode').inputValue(), 'clip');

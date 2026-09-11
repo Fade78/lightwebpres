@@ -200,7 +200,9 @@ class KitCompositionExample(unittest.TestCase):
         for directory in ('examples/first-article', 'examples/kits/lightwebpres-docs',
                           'examples/kit-composition'):
             inputs.update(p.relative_to(ROOT).as_posix() for p in (ROOT / directory).rglob('*')
-                          if p.is_file() and p.name != 'README.md')
+                          if p.is_file() and p.name != 'README.md'
+                          and not any(part.startswith('.lwp-')
+                                      for part in p.relative_to(ROOT).parts))
         self.assertEqual(set(manifest['inputs']), inputs)
         for name, expected in manifest['inputs'].items():
             self.assertEqual(hashlib.sha256((ROOT / name).read_bytes()).hexdigest(), expected,
