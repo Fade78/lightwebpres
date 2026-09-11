@@ -1268,6 +1268,7 @@ LANG_FR = r'''{
     "menu_title": "Menu du présentateur (touche M)",
     "menu_prev": "Planche précédente",
     "menu_home": "Retour à l'index",
+    "menu_series_start": "Début de la série",
     "menu_next": "Planche suivante",
     "menu_fullscreen": "Plein écran",
     "menu_theme": "Changer de thème",
@@ -1475,6 +1476,7 @@ LANG_EN = r'''{
     "menu_title": "Presenter menu (M key)",
     "menu_prev": "Previous slide",
     "menu_home": "Back to index",
+    "menu_series_start": "Start of series",
     "menu_next": "Next slide",
     "menu_fullscreen": "Fullscreen",
     "menu_theme": "Change theme",
@@ -10068,6 +10070,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var seriesViewHost = document.getElementById('lwp-series-view');
   var seriesDataNode = document.getElementById('lwp-series-data');
   var seriesViews = null;
+  var seriesHomeKey = '';
   if (seriesViewHost && seriesDataNode) {
     try {
       var bundle = lwpReadRuntimeData(seriesDataNode);
@@ -10080,11 +10083,14 @@ document.addEventListener('DOMContentLoaded', function() {
           }
           views.set(view.key, view);
         });
-        if (views.has('')) seriesViews = views;
+        var home = bundle.home === undefined ? '' : bundle.home;
+        if (typeof home !== 'string' || !views.has(home)) throw new Error('Invalid series home');
+        seriesViews = views;
+        seriesHomeKey = home;
       }
     } catch (e) {}
   }
-  var seriesCurrentKey = '';
+  var seriesCurrentKey = seriesHomeKey;
   var seriesActiveView = null;
   var seriesGeneration = 0;
   var seriesActivating = false;
@@ -10098,7 +10104,7 @@ document.addEventListener('DOMContentLoaded', function() {
       + (target ? '/' + encodeURIComponent(target) : '');
   }
   function parseSeriesRoute(hash) {
-    if (!hash || hash === '#lwp/index') return {key: '', target: ''};
+    if (!hash || hash === '#lwp/index') return {key: seriesHomeKey, target: ''};
     var parts = hash.split('/');
     if (parts[0] !== '#lwp' || parts[1] !== 'a'
         || parts.length < 3 || parts.length > 4) return null;
@@ -10130,7 +10136,7 @@ document.addEventListener('DOMContentLoaded', function() {
         seriesViews.forEach(function (_view, candidate) {
           if (candidate && new URL(candidate, location.href).pathname === url.pathname) key = candidate;
         });
-        if (key === null && new URL('index.html', location.href).pathname === url.pathname) key = '';
+        if (key === null && new URL('index.html', location.href).pathname === url.pathname) key = seriesHomeKey;
         if (key !== null) link.setAttribute('href', seriesFragment(key, decodeURIComponent(url.hash.slice(1))));
       } catch (e) {}
     });
@@ -12236,7 +12242,9 @@ document.addEventListener('DOMContentLoaded', function() {
     ['&darr; / PageDown / &rarr; / Space', lwpString('help_touch_next'), lwpString('help_next')],
     ['&uarr; / PageUp / &larr; / Backspace / Shift+Space', lwpString('help_touch_prev'), lwpString('help_prev')],
     ['Home', lwpString('help_touch_home'), lwpString('help_home')],
-    ['Ctrl+Home', lwpString('help_touch_index'), lwpString('help_index')],
+    ['Ctrl+Home', seriesHomeKey
+      ? lwpString('menu_series_start') : lwpString('help_touch_index'),
+      seriesHomeKey ? lwpString('menu_series_start') : lwpString('help_index')],
     ['Ctrl+End', lwpString('help_touch_edges'), lwpString('help_edges')],
     ['+ / - / =', lwpString('help_touch_zoom'), lwpString('help_zoom')],
     ['O', lwpString('menu_table_mode'), lwpString('help_tables')],
@@ -12910,12 +12918,11 @@ document.addEventListener('DOMContentLoaded', function() {
   if (btnNext) btnNext.addEventListener('click', function() {
     stepForward(true);
   });
-  // The index action is the way out of an article deck — back to the index.
-  // On the index itself there is no way out and no fiche to leave: the key
-  // and the menu action mean the top of the page, where the journey starts.
+  // Series home is the contents view, or the first unit when contents are omitted.
+  // On the index itself, this action returns to the top of the page.
   function goHome() {
     if (!isIndex) {
-      if (seriesViews) activateSeriesView({key: '', target: ''}, true);
+      if (seriesViews) activateSeriesView({key: seriesHomeKey, target: ''}, true);
       else window.location.href = 'index.html';
     } else {
       clearIndexFocus();
@@ -13498,7 +13505,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (location.protocol !== 'http:' && location.protocol !== 'https:') return null;
     if (seriesViews) {
       var base = location.origin + location.pathname + location.search;
-      if (scope === 'series') return base + seriesFragment('', '');
+      if (scope === 'series') return base + (seriesHomeKey ? '' : seriesFragment('', ''));
       if (scope === 'article') return base + seriesFragment(seriesCurrentKey, '');
       var slideId = scope === 'fiche' ? currentSlideId() : null;
       return slideId ? base + seriesFragment(seriesCurrentKey, slideId) : null;
@@ -14444,7 +14451,7 @@ document.addEventListener('DOMContentLoaded', function() {
         node.setAttribute('data-lwp-series-css', '');
         document.head.insertBefore(node, marker);
       });
-      var previous = seriesActiveView || seriesViews.get('');
+      var previous = seriesActiveView || seriesViews.get(seriesHomeKey);
       String(previous.bodyClass || '').split(/\s+/).filter(Boolean).forEach(function (name) {
         document.body.classList.remove(name);
       });
@@ -14525,7 +14532,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     updateAppearanceLabels();
     window.addEventListener('hashchange', applyHash);
-    activateSeriesView(parseSeriesRoute(location.hash) || {key: '', target: ''}, false);
+    activateSeriesView(parseSeriesRoute(location.hash) || {key: seriesHomeKey, target: ''}, false);
     return;
   }
   if (themeData) {
@@ -20134,7 +20141,8 @@ def build_series_nav(current_file, series_data, strings, typo_engine, contents_h
                 title=title,
                 desc=desc,
                 read=read))
-    parts.append(TEMPLATE_SERIES_NAV_BACK.format(back=back, file=html_escape(contents_href, quote=True)))
+    if contents_href is not None:
+        parts.append(TEMPLATE_SERIES_NAV_BACK.format(back=back, file=html_escape(contents_href, quote=True)))
     return '\n'.join(parts)
 
 
@@ -20987,7 +20995,8 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     if include_nav:
         series_nav_html = build_series_nav(
             current_file, series_data, strings, typo_engine,
-            contents_href='#lwp/index' if args and args.get('--single-html') else 'index.html')
+            contents_href=((None if args.get('--no-index') else '#lwp/index')
+                           if args and args.get('--single-html') else 'index.html'))
     else:
         series_nav_html = ''
     slides_html = slides_html.replace('{SERIES_NAV_PLACEHOLDER}', series_nav_html)
@@ -22715,10 +22724,9 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
                 or '#' in filename or '?' in filename):
             log('error', '--single-html requires a plain .html or .htm filename, not a path or URL.')
             sys.exit(1)
-        for option in ('--drafts-only', '--no-index'):
-            if args.get(option):
-                log('error', f'--single-html cannot be combined with {option}.')
-                sys.exit(1)
+        if args.get('--drafts-only'):
+            log('error', '--single-html cannot be combined with --drafts-only.')
+            sys.exit(1)
     (sd, sources_dir, templates_dir, lang_dir, interface_dir,
      typography_dir, output_dir, lang, language_file) = resolve_paths(
         series_dir, args)
@@ -22966,6 +22974,10 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
         for f in skipped:
             progress(f'  [draft] {f} skipped (build with --include-drafts to preview it)')
 
+    if args.get('--single-html') and args.get('--no-index') and not build_articles:
+        log('error', '--single-html --no-index requires at least one published unit.')
+        sys.exit(1)
+
     # The selected default must exist in the output this invocation is about
     # to write. Ignored articles and omitted drafts cannot satisfy it.
     validate_series_default_tag(series_data)
@@ -23208,12 +23220,13 @@ def _render_single_html(ctx, build_stamp=''):
         log('error', '--single-html requires the built-in navigation: templates/nav.js differs. '
             'Use `template update` to preserve it as a backup and restore the native runtime.')
         sys.exit(1)
-    if _index_extra(ctx).strip():
+    no_index = ctx.args.get('--no-index')
+    if not no_index and _index_extra(ctx).strip():
         log('error', '--single-html does not support templates/index_extra.html yet; '
             'its script lifecycle requires multipage publication. Keep the default build for this extension.')
         sys.exit(1)
-    contents = _render_index(ctx, build_stamp=build_stamp, fragment_only=True)
-    rendered = [('', contents)]
+    rendered = [] if no_index else [('', _render_index(
+        ctx, build_stamp=build_stamp, fragment_only=True))]
     for entry in ctx.articles:
         rendered.append((entry['page_dest'], _render_article(
             ctx, entry, _resolve_contained(ctx.sources_dir, entry['page_source']),
@@ -23246,19 +23259,28 @@ def _render_single_html(ctx, build_stamp=''):
             'themePins': theme.get('pinned', []),
             'presentationPins': presentation.get('pinned', []), 'variants': variants,
         })
-    payload = json.dumps({'version': 1, 'views': views,
-                          'order': [entry['page_dest'] for entry in ctx.articles]},
+    bundle = {'version': 1, 'views': views,
+              'order': [entry['page_dest'] for entry in ctx.articles]}
+    if no_index:
+        bundle['home'] = ctx.articles[0]['page_dest']
+    payload = json.dumps(bundle,
                          ensure_ascii=True, separators=(',', ':')).replace('<', '\\u003c')
-    shell = dict(contents)
+    initial = rendered[0][1]
+    shell = dict(initial)
     shell.update({
         'content': '<div id="lwp-series-view">' + views[0]['content'] + '</div>',
         'draft_banner': '', 'build_stamp': '', 'page_footer': '', 'index_extra': '',
-        'page_css': contents['page_css'].replace('<style', '<style data-lwp-series-css')
+        'page_css': initial['page_css'].replace('<style', '<style data-lwp-series-css')
                     + '\n<template id="lwp-series-css-marker"></template>',
-        'language_runtime': contents['language_runtime']
+        'language_runtime': initial['language_runtime']
             + '<script id="lwp-series-data" type="application/json">' + payload + '</script>\n',
     })
-    html = fill_placeholders(apply_strings(TEMPLATE_PAGE, ctx.strings, html_context=True), shell)
+    template = TEMPLATE_PAGE
+    if no_index:
+        template = template.replace('data-lwp-i18n="menu_home"',
+                                    'data-lwp-i18n="menu_series_start"')
+        template = template.replace('{{str_menu_home}}', '{{str_menu_series_start}}')
+    html = fill_placeholders(apply_strings(template, ctx.strings, html_context=True), shell)
     html = _factor_runtime_resources(html)
     validate_html(html, ctx.args['--single-html'])
     ok, detail = validate_page_scripts(html)
@@ -29621,7 +29643,8 @@ OPTIONS
   --no-nav
     build/watch/verify: do not generate the series navigation block
   --no-index
-    build/verify/watch: do not generate index.html (not with --single-html)
+    build/verify/watch: omit series contents; with --single-html, open the first
+    published unit. Unit-index slides are unaffected.
   --no-readme
     build/verify/watch: do not generate README.md
   --open
@@ -29637,7 +29660,8 @@ OPTIONS
     fallback): lowercase, accent-folded, hyphen-separated, with .html appended.
     Before the series directory, a separate filename must end in .html/.htm;
     use --single-html=filename.html or -- to disambiguate.
-    Requires native navigation; excludes --no-index and --drafts-only.
+    Requires native navigation; excludes --drafts-only.
+    --no-index omits series contents and requires at least one published unit.
   --unit-index on|off
     build/verify/watch: insert a contents slide after the first cover, or at
     the start without a cover. Explicit unit-index slides suppress insertion.

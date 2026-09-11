@@ -257,16 +257,28 @@ is deliberate, not continuous scrolling. Article styles, notes and IDs remain
 local, and one root runtime preserves fullscreen across switches. Print uses
 the active tag-filtered article; the contents view prints only series contents.
 
+Combined HTML opens on series contents by default. Add `--no-index` to omit
+that view and start at the first published unit, whether there is one unit or
+several. An empty published collection fails before writes. Other units remain
+reachable through `series-nav` and authored links; generated back-to-index
+links are omitted. `Home` starts the current unit; `Ctrl+Home` and **Start of
+series** start the first unit. Source and automatic `unit-index` slides are
+unaffected. Match `--no-index` in `verify`.
+
 Combined-HTML mode requires any `templates/nav.js` override to match the built-in
-runtime and rejects nonempty `templates/index_extra.html`. Arbitrary widget
+runtime and rejects nonempty `templates/index_extra.html` only when contents
+are included. With `--no-index` this unused extension is ignored. Arbitrary widget
 script lifecycles are unsupported; keep multipage output for those extensions.
-`--no-index` and `--drafts-only` are refused; `--include-drafts`, `--no-nav`
+`--drafts-only` remains refused; `--include-drafts`, `--no-nav`
 and `--no-readme` are supported. `build --only` validates its article target
 but rebuilds the entire combined file.
 
 Source `page_dest` values do not change. Generated README links use
 `collection.html#lwp/a/<encoded page_dest>`; local targets append
 `/<encoded local id>`, and series contents use `collection.html#lwp/index`.
+With `--no-index`, series sharing uses the physical URL without a hash to
+follow future first-unit order. An incoming `#lwp/index` opens the first unit
+and becomes its qualified route, never a hidden contents view.
 Encode each component separately. The build manifest records the physical
 combined file and copied images/assets unless inlined, not virtual article
 files. Changing modes or the combined filename, including after a title change,

@@ -5495,8 +5495,9 @@ déclaration d'intention**, et l'outil n'a pas à la deviner autrement.
 #### 11.3.4 `--no-nav`, `--no-index`, `--no-readme`
 
 `build`, `verify` and `watch` accept these flags. In combined-HTML mode,
-`--no-nav` and `--no-readme` remain supported, but `--no-index` is refused:
-the series contents view is part of the combined document (§11.3.8).
+all three remain supported. `--no-index` omits the series contents view and
+opens the first published unit instead (§11.3.8); it does not suppress
+source or automatically inserted `unit-index` slides.
 
 Trois drapeaux qui suppriment des sorties générées :
 
@@ -5627,11 +5628,11 @@ and resolves the name again after title changes rather than reusing the first
 resolved filename.
 
 `--output` remains the output directory. This opt-in mode writes one combined
-HTML document containing series contents and the selected articles. Without
+HTML document containing optional series contents and the selected articles. Without
 the option, default multipage behavior is unchanged; the shared built-in
 runtime bytes are intentionally updated to support both modes.
 
-**Views and lifecycle.** The initial view is series contents. Article changes
+**Views and lifecycle.** The initial view is series contents by default. Article changes
 are deliberate navigation actions, not continuous scrolling through the whole
 series. Only the active contents/article view is mounted in the DOM; inactive
 fragments are inert data, not hidden live articles. Styles, notes and IDs remain
@@ -5639,15 +5640,26 @@ article-local. One root runtime persists across view changes, preserving
 fullscreen. Printing includes only the active article under its current tag
 filter; when the contents view is active, only series contents print.
 
+With explicit `--no-index`, no series contents HTML or inert index view is
+generated. The first unit in the published collection becomes the initial view;
+one or several units are allowed. An empty published collection is rejected
+before any writes, including in dry runs and verification. Existing `series-nav`
+and authored links permit deliberate unit changes; generated back-to-index
+links are omitted. Multipage `--no-index` keeps its existing links to a
+separately managed homepage. Source and automatic `unit-index` slides are
+unaffected. `Home` still starts the current unit; `Ctrl+Home` and the menu action
+return to the first unit, labelled **Start of series** / **Début de la série**.
+
 Programmatically focused reading containers do not draw an outline around the
 contents view or a separator at the cover. This exception does not suppress
 visible keyboard focus on links or controls. Uniform text fitting can use
 current-article or entire-series scope through Display settings (§9.3.9).
 
 **Extensions and flags.** Any `templates/nav.js` must match the built-in
-navigation. Nonempty `templates/index_extra.html` is rejected in this initial
-mode. Arbitrary widget script lifecycles are unsupported; use default multipage
-output for those extensions. `--no-index` and `--drafts-only` are refused.
+navigation. Nonempty `templates/index_extra.html` is rejected when contents are
+included; with `--no-index` it is unused, neither loaded nor rendered.
+Arbitrary widget script lifecycles are unsupported; use default multipage
+output for those extensions. `--drafts-only` remains refused.
 `--include-drafts`, `--no-nav` and `--no-readme` remain supported. `build --only`
 validates its article target, then rebuilds the complete combined file rather
 than an incremental fragment. `--open` opens the combined file, including
@@ -5660,6 +5672,12 @@ contents use `FILE#lwp/index`. For example,
 `collection.html#lwp/a/first-page.html/introduction` addresses the local
 `introduction` target in `first-page.html`, without publishing that article as
 a separate physical file.
+
+With `--no-index`, a hash-free entry opens the first published unit. An incoming
+`#lwp/index` also resolves to that home unit and is canonicalized to its unit
+route; it never creates an index view. Series sharing uses the physical base
+URL without a hash, so future publication order determines the entry unit.
+Unit and slide sharing keep their qualified routes.
 
 **Assets and ownership.** Without `--inline-images`, referenced images and
 presentation assets are copied and must accompany the HTML. With the option,
@@ -5688,8 +5706,8 @@ Vérifie sans modifier :
 embedding choice and automatic or explicit filename used by the build; no
 separate non-inline output is needed. With combined-HTML output, it compares the physical combined
 HTML instead of per-article pages and a separate index (§11.3.8). `--no-index`
-and `--no-readme` reproduce output suppression where allowed; `--no-index`
-remains incompatible with combined-HTML mode.
+and `--no-readme` reproduce the build's output suppression, including in
+combined-HTML mode.
 
 Comme `build`, `verify` résout le preset de `series_meta` avant le rendu en
 mémoire. Articles, index, enveloppes, chrome, thème de base et CSS structurel

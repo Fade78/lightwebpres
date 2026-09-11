@@ -116,6 +116,7 @@ class SingleDocument(unittest.TestCase):
     def test_payload_is_inert_and_local_ids_are_not_globally_renamed(self):
         html, payload = self.bundle()
         self.assertEqual(payload['version'], 1)
+        self.assertNotIn('home', payload, 'Indexed bundles keep the default empty-key home')
         self.assertEqual(payload['order'], ['a.html', 'b.html'])
         views = {view['key']: view for view in payload['views']}
         self.assertEqual(len(payload['views']), 3)
@@ -151,7 +152,8 @@ class SingleDocument(unittest.TestCase):
                      str(self.root / 'absolute.html'), 'series.txt', 'series.html#intro',
                      'series.html?x=1')]
         invalid += [('--single-html', 'series.html', flag)
-                    for flag in ('--no-index', '--drafts-only')]
+                    for flag in ('--drafts-only',)]
+        invalid.append(('--single-html', 'series.html', '--no-index', '--drafts-only'))
         before = self.snapshot()
         for command in ('build', 'verify', 'watch'):
             for options in invalid:
@@ -368,6 +370,107 @@ class SingleDocument(unittest.TestCase):
         self.assertIn('index_extra.html', result.stderr)
         self.assertEqual(self.snapshot(), before)
 
+    def test_no_index_opens_first_published_unit_without_inert_contents(self):
+        original = self.data['articles']
+        for count in (1, 2):
+            for inline in (False, True):
+                with self.subTest(count=count, inline=inline):
+                    self.data['articles'] = original[:count]
+                    self.save_series()
+                    options = ['--no-index', '--no-readme', '--unit-index', 'on']
+                    if inline:
+                        options.append('--inline-images')
+                    html, payload = self.bundle(*options)
+                    self.assertEqual(payload['home'], 'a.html')
+                    self.assertEqual(payload['order'], ['a.html', 'b.html'][:count])
+                    self.assertEqual([v['key'] for v in payload['views']], payload['order'])
+                    self.assertNotIn('lwp-presentation-index', json.dumps(payload))
+                    for view in payload['views']:
+                        self.assertNotIn('index-page', view['bodyClass'])
+                        self.assertNotIn('href="#lwp/index"', view['content'])
+                        self.assertNotIn('series_back_to_index', view['content'])
+                        self.assertIn('slide-unit-index', view['content'])
+                    elements = _Markup(html).elements
+                    self.assertTrue(any(attrs.get('id') == 'intro' for _, attrs in elements))
+                    self.assertFalse(any(attrs.get('id') == 'lwp-presentation-index'
+                                         for _, attrs in elements))
+                    self.assertIn('data-lwp-i18n="menu_series_start"', html)
+                    self.assertFalse((self.root / 'README.md').exists())
+                    manifest = json.loads((self.output / '.lwp-manifest.json').read_text())
+                    self.assertEqual(set(manifest['files']), {'series.html'} if inline
+                                     else {'series.html', 'img/mark.svg'})
+                    self.assertEqual({p.name for p in self.output.glob('*.html')}, {'series.html'})
+                    self.cli('verify', '--single-html', 'series.html', *options)
+
+    def test_no_index_empty_published_collection_refuses_before_writes(self):
+        original = self.data['articles']
+        for articles in ([], [original[2]], [{**original[0], 'status': 'ignored'}]):
+            self.data['articles'] = articles
+            self.save_series()
+            before = self.snapshot()
+            for command, extra in (('build', ()), ('verify', ()), ('watch', ()),
+                                   ('build', ('--dry-run',))):
+                with self.subTest(articles=articles, command=command, extra=extra):
+                    result = self.cli(command, '--single-html', '--no-index', *extra, success=False)
+                    self.assertIn('at least one published unit', result.stderr)
+                    self.assertEqual(self.snapshot(), before)
+                    self.assertFalse(self.output.exists())
+        self.data['articles'] = [original[2]]
+        self.save_series()
+        _, payload = self.bundle('--no-index', '--include-drafts')
+        self.assertEqual(payload['home'], 'draft.html')
+
+    def test_no_index_ignores_unused_extension_but_keeps_native_navigation_guard(self):
+        (self.root / 'templates' / 'index_extra.html').write_text(
+            '<p>Unused extension sentinel</p><script>throw new Error("unused")</script>', encoding='utf-8')
+        html, _ = self.bundle('--no-index')
+        self.assertNotIn('Unused extension sentinel', html)
+        self.cli('verify', '--single-html', 'series.html', '--no-index')
+        (self.root / 'templates' / 'nav.js').write_text('// custom navigation', encoding='utf-8')
+        before = self.snapshot()
+        result = self.cli('build', '--single-html', '--no-index', success=False)
+        self.assertIn('nav.js', result.stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_no_index_only_stamps_and_automatic_filename_keep_verify_parity(self):
+        self.data['articles'][0]['status'] = 'draft'
+        self.save_series()
+        self.cli('build', '--single-html', '--no-index', '--build-stamp', '--only', 'b.md')
+        path = self.output / 'bundled-series.html'
+        html = path.read_text(encoding='utf-8')
+        self.assertEqual(json.loads(PAYLOAD.search(html)[1])['home'], 'b.html')
+        path.write_text(re.sub(r'Compiled at \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}',
+                               'Compiled at 2001-01-01 00:00:00', html), encoding='utf-8')
+        self.cli('verify', '--single-html', '--no-index')
+        self.data['articles'][0].pop('status')
+        self.save_series()
+        _, payload = self.bundle('--no-index', '--only', 'b.md')
+        self.assertEqual(payload['home'], 'a.html')
+        self.assertEqual(payload['order'], ['a.html', 'b.html'])
+
+    def test_multipage_no_index_keeps_managed_homepage_links(self):
+        self.cli('build', '--no-index')
+        self.assertFalse((self.output / 'index.html').exists())
+        self.assertIn('href="index.html"', (self.output / 'a.html').read_text())
+        self.cli('verify', '--no-index')
+
+    def test_no_index_retains_explicit_unit_index_even_with_no_nav(self):
+        self.data['articles'][0]['page_dest'] = 'index.html'
+        self.save_series()
+        source = self.root / 'sources' / 'a.md'
+        source.write_text(source.read_text(encoding='utf-8')
+                          + '\n---\n<!-- lwp:slide:unit-index -->\nslug: authored-contents\n',
+                          encoding='utf-8')
+        options = ('--no-index', '--no-nav', '--unit-index', 'off')
+        _, payload = self.bundle(*options)
+        self.assertEqual(payload['home'], 'index.html')
+        self.assertEqual(payload['order'], ['index.html', 'b.html'])
+        self.assertIn('id="authored-contents"', payload['views'][0]['content'])
+        for view in payload['views']:
+            self.assertNotIn('class="series-item', view['content'])
+            self.assertNotIn('series_back_to_index', view['content'])
+        self.cli('verify', '--single-html', 'series.html', *options)
+
     def test_watch_builds_and_rebuilds_the_inline_bundle(self):
         env = {**os.environ, **self.env}
         process = subprocess.Popen(
@@ -407,6 +510,12 @@ class SingleDocument(unittest.TestCase):
 
 class SingleDocumentBrowser(unittest.TestCase):
     def test_single_document_runtime(self):
+        self.check_runtime('single_document_e2e.cjs', 'Single-document runtime:')
+
+    def test_no_index_runtime(self):
+        self.check_runtime('single_document_no_index_e2e.cjs', 'No-index runtime:')
+
+    def check_runtime(self, script, success_message):
         SCRATCH.mkdir(parents=True, exist_ok=True)
         env = {**os.environ, 'TMPDIR': str(SCRATCH), 'PYTHON': sys.executable,
                'PYTHONDONTWRITEBYTECODE': '1'}
@@ -420,9 +529,9 @@ class SingleDocumentBrowser(unittest.TestCase):
         if probe.returncode:
             self.skipTest('Playwright unavailable in the supplied environment: ' + probe.stderr.strip())
         env.setdefault('PW_CHROMIUM_PATH', probe.stdout.strip())
-        check = subprocess.run(['node', str(ROOT / 'tests' / 'single_document_e2e.cjs')],
+        check = subprocess.run(['node', str(ROOT / 'tests' / script)],
                                cwd=ROOT, env=env, capture_output=True, text=True, timeout=240)
         if check.returncode == 77:
             self.skipTest(check.stderr.strip())
         self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
-        self.assertIn('Single-document runtime:', check.stdout)
+        self.assertIn(success_message, check.stdout)

@@ -1972,7 +1972,8 @@ engine does not fetch resources or rewrite the SVG. This inspection is not
 proof of offline completeness. CSS, fonts, scripts, media and arbitrary raw
 HTML dependencies are outside the image-embedding bundle.
 
-Output switches on `build`, `verify` and `watch`: `--no-index` skips `index.html`,
+Output switches on `build`, `verify` and `watch`: `--no-index` omits series
+contents (the separate `index.html` in multipage output),
 `--no-readme` skips the series README, `--no-nav` leaves a placed `series-nav`
 without generated links. On `build` and `watch`, `--drafts-only` previews only
 drafts and `--open` opens the result. `--include-drafts` includes drafts alongside
@@ -2025,18 +2026,27 @@ copied files beside the combined
 HTML; include them when distributing it. Image embedding has the portability
 limits described above. Without `--single-html`, output remains multipage.
 
-The combined document opens on series contents. Readers deliberately switch
+The combined document opens on series contents by default. Readers deliberately switch
 to an article and back, rather than scrolling continuously through all articles.
 Only the active view is mounted in the DOM; inactive articles are stored as
 inert data. Styles, notes and IDs stay article-local. One root runtime remains
 in place, preserving fullscreen across article switches. Print uses the active,
 tag-filtered article, or only the series contents when that view is active.
 
+Add `--no-index` to omit series contents entirely and open the first published
+unit instead. One or several units are supported; `series-nav` and authored
+links still reach other units, without a generated back-to-index link. An empty
+published collection fails before writes. `Home` returns to the current unit's
+start; `Ctrl+Home` and the menu's **Start of series** return to the first unit.
+Source `unit-index` slides and `--unit-index` remain independent and unchanged.
+Use the same `--no-index` choice in `verify`.
+
 Any `templates/nav.js` must match the built-in runtime. Nonempty
-`templates/index_extra.html` is rejected in this initial mode, and arbitrary
+`templates/index_extra.html` is rejected when series contents are included;
+with `--no-index` it is unused and ignored. Arbitrary
 widget script lifecycles are unsupported. Use default multipage output for
 those extensions rather than expecting their scripts to restart on each switch.
-`--no-index` and `--drafts-only` are refused in combined-HTML mode.
+`--drafts-only` remains refused in combined-HTML mode.
 `--include-drafts`, `--no-nav` and `--no-readme` remain supported.
 `build --only ARTICLE` validates the target but rebuilds the complete combined
 file, not an incremental fragment.
@@ -2044,6 +2054,9 @@ file, not an incremental fragment.
 Do not change source `page_dest` values. Generated series README links point
 to `collection.html#lwp/a/<encoded page_dest>`. Article-local targets append
 `/<encoded local id>`; series contents use `collection.html#lwp/index`.
+With `--no-index`, sharing the series uses the physical URL without a hash,
+so it follows the first published unit after reordering. An incoming
+`#lwp/index` also resolves to that first unit, not a hidden contents view.
 For example, `collection.html#lwp/a/first-page.html/introduction` addresses
 the `introduction` target in `first-page.html`. Encode each component separately.
 

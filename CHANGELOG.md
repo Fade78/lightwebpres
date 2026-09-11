@@ -70,6 +70,15 @@ without blob URLs or external requests. Preset switches, unit navigation and
 passive fitting use the same pool. Linked files remain path-based; arbitrary
 CSS, media, widgets and private navigation scripts are not rewritten.
 
+`--single-html --no-index` now omits series contents and opens the first
+published unit, with one or several units supported. An empty published
+collection fails before writes. Other units remain reachable through navigation
+and authored links, without generated back-to-index links. Home starts the
+current unit; Ctrl+Home and Start of series return to the first unit. Series
+sharing uses the hash-free physical URL. Unused `index_extra.html` is ignored;
+unit-index slides, native-navigation requirements and the refusal of
+`--drafts-only` are unchanged.
+
 ## Unreleased — 0.59.0
 
 `--single-html [FILE]` replaces `--single-page` on `build`, `verify` and

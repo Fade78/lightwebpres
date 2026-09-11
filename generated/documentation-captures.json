@@ -27,7 +27,7 @@
     "examples/kits/lightwebpres-docs/0.1.0/starters/blank/starter.json": "9c9556978e90cd4bd1f3a2dc1dd422a5f172e9c65d4187d84d004df10c5d424a",
     "examples/kits/lightwebpres-docs/0.1.0/structure.css": "4501d6bff633ce1e06facf5fd2c9d0c811236e6cd20447a4e761182e0e8a3b08",
     "examples/kits/lightwebpres-docs/0.1.0/themes/docs.conf": "3328b9c7224c820029f3f35f8c891d239ce1edec205ca5d3310b33761713b94a",
-    "lightwebpres": "73fb4f7db2cbcf28cdd8ca55cb871e62365058e47151ed5ad1a662ba8cc347de",
+    "lightwebpres": "601703ef14260d475a8d14048b8e44eaeb6ec76f743f1e2e18f439513c3782ce",
     "tools/screenshot-documentation.cjs": "1be164be11a14d6c7ffa58b4b63f550615a01f39be8cdde7371747e578e497fe"
   },
   "browser": "145.0.7632.6",

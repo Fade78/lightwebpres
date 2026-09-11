@@ -3336,6 +3336,9 @@ mechanical translation of every flag into one whole-publication predicate.
   document retained canonical `articles[]`, `page_source`, `page_dest` wires.
 - [x] Rename combined physical output to `--single-html [FILE]` in the first
   increment, preserving filename behavior and adding no legacy handling.
+- [x] Support explicit `--single-html --no-index`: omit series contents, start
+  at the first published unit, retain multi-unit navigation and unit indexes,
+  and reject an empty published collection before writes. No legacy alias.
 - [x] Implement scoped candidates, source authority, both traversal directions,
   origin traces and field eligibility; maintain selector/resolver tests.
 - [x] Select and document the compact/JSONPath filter profile, named AST queries,
