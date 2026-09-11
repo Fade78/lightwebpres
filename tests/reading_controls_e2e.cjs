@@ -51,6 +51,13 @@ async function run() {
       const author = {table_mode: 'overflow', text_fit: 'uniform',
         table_shrink: false, object_shrink: true, presentationZoom: 1};
       await page.goto(articleURL);
+      await page.keyboard.press('D');
+      await page.waitForSelector('#readingMenu.open');
+      assert.equal(await page.evaluate(() => document.activeElement.id), 'readingMenuBack',
+        'D must open Display settings directly and focus its first control');
+      await page.keyboard.press('d');
+      assert.equal(await page.locator('#readingMenu.open').count(), 0,
+        'D must close Display settings when it is already open');
       assert.deepEqual(await readControls(), defaults);
       assert.equal(await page.evaluate(key => localStorage.getItem(key), key), null,
         'reading author defaults must not create an override');
@@ -470,6 +477,11 @@ async function run() {
         el.getBoundingClientRect().top >= -2 && el.getBoundingClientRect().top < innerHeight),
       'a note fragment must survive initial layout on reload');
       await page.keyboard.press('h');
+      const keyboardHelpText = await page.locator('#helpList').innerText();
+      assert(keyboardHelpText.includes(mobile
+        ? 'Ouvrir le sous-menu Affichage (touche D)'
+        : 'Open the Display settings submenu (D key)'),
+      'keyboard help must document the Display settings shortcut');
       await page.locator('#helpModeToggle').check();
       const helpText = await page.locator('#helpList').innerText();
       assert(helpText.includes(mobile ? 'pincement' : 'Pinching'));

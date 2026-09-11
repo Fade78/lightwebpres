@@ -3418,6 +3418,7 @@ percentage, **Wide tables**, **Text size**, **Reduce tables as needed** and
 **Reduce images as needed**. Back or Escape returns to the main menu with
 focus on its Display settings item; clicking outside closes the submenu.
 Keyboard **-**, **+**, **=** reduce, enlarge and reset presentation zoom;
+**D** opens or closes this submenu directly.
 **O** cycles `clip`, `overflow`, `scroll`; **A** cycles `fixed`, `uniform`,
 `per-slide`. These shortcuts remain available without opening the submenu.
 These are reader controls, not source edits.

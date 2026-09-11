@@ -1308,8 +1308,8 @@ deck identity and catalogue digest, so another deck on the same origin or a
 changed local snapshot cannot reuse an old choice.
 Each theme choice previews its
 resolved background, including its gradient, with matching foreground ink.
-The menu actions carry icons and their keyboard shortcuts, including **I** on
-Scroll. In the theme
+The menu actions carry icons and their keyboard shortcuts, including **D** for
+Display settings and **I** on Scroll. In the theme
 picker and that presenter menu, focus starts at the first useful control.
 In the presenter menu, left/right stay on the current row while up/down move
 to the nearest control on the adjacent rendered row. `Tab`, `Home` and `End`

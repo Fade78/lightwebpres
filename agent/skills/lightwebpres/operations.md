@@ -150,7 +150,8 @@ Check the active tag and browser-persisted choices when reproducing a view.
 `readingMenu` submenu with presentation zoom **-**, **+**, **Reset**, wide-table
 handling, text fitting and independent table/image shrink switches. Back or
 Escape returns to the main menu's Display settings item with focus restored;
-an outside click closes the submenu. **O** cycles
+an outside click closes the submenu. **D** opens or closes this submenu
+directly. **O** cycles
 `clip`, `overflow`, `scroll`; **A** cycles `fixed`, `uniform`, `per-slide`.
 Drag to scroll a table and reach clipped columns without navigating the deck.
 A brief tap or left click on plain cells instead follows bounded reading steps

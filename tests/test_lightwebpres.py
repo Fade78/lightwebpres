@@ -13043,6 +13043,8 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                 if action == 'reading':
                     self.assertIn('aria-controls="readingMenu"', attrs)
                     self.assertIn('aria-haspopup="dialog"', attrs)
+                    self.assertIn('aria-keyshortcuts="D"', attrs)
+                    self.assertIn('<kbd>D</kbd>', body)
                 elif action == 'scroll':
                     self.assertIn('aria-keyshortcuts="I"', attrs, button)
                     self.assertIn('<kbd>I</kbd>', body, button)

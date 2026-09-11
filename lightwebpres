@@ -1338,6 +1338,7 @@ LANG_FR = r'''{
     "help_index": "Retour à l'index de la série (sur l'index : début de page)",
     "help_edges": "Dernière slide du deck (sur l'index : dernière carte)",
     "help_zoom": "Zoom de présentation : + agrandir, - réduire, = réinitialiser, même dans le menu. Ctrl/Cmd garde les raccourcis du navigateur. Le pincement zoome dans le navigateur, sans changer de slide.",
+    "help_reading": "Ouvrir le sous-menu Affichage (touche D)",
     "help_fullscreen": "Plein écran (Échap pour quitter)",
     "help_scroll": "Basculer entre défilement fluide et instantané (touche I)",
     "help_menu": "Menu du présentateur",
@@ -1356,6 +1357,7 @@ LANG_FR = r'''{
     "help_touch_index": "Menu : Retour à l'index",
     "help_touch_edges": "",
     "help_touch_zoom": "Menu : Zoom de présentation",
+    "help_touch_reading": "Menu : Affichage",
     "help_touch_fullscreen": "Bouton Plein écran",
     "help_touch_scroll": "Faire défiler",
     "help_touch_menu": "Bouton Menu",
@@ -1546,6 +1548,7 @@ LANG_EN = r'''{
     "help_index": "Back to the series index (on the index: top of the page)",
     "help_edges": "Last slide of the deck (on the index: last article card)",
     "help_zoom": "Presentation zoom: + enlarge, - reduce, = reset, including in the menu. Ctrl/Cmd keeps browser shortcuts. Pinching zooms in the browser without changing slides.",
+    "help_reading": "Open the Display settings submenu (D key)",
     "help_fullscreen": "Fullscreen (Esc to exit)",
     "help_scroll": "Toggle smooth and instant scrolling (I key)",
     "help_menu": "Presenter menu",
@@ -1564,6 +1567,7 @@ LANG_EN = r'''{
     "help_touch_index": "Menu: Back to index",
     "help_touch_edges": "",
     "help_touch_zoom": "Menu: Presentation zoom",
+    "help_touch_reading": "Menu: Display settings",
     "help_touch_fullscreen": "Fullscreen button",
     "help_touch_scroll": "Scroll",
     "help_touch_menu": "Menu button",
@@ -12100,7 +12104,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (runReadingShortcut(key)) return true;
     var actions = {
       f: 'fullscreen', i: 'scroll', c: 'theme', n: 'presenter', l: 'tags',
-      s: 'share', h: 'help', b: 'pause-black', w: 'pause-white',
+      d: 'reading', s: 'share', h: 'help', b: 'pause-black', w: 'pause-white',
       t: 'pause-theme'
     };
     var action = actions[String(key || '').toLowerCase()];
@@ -12247,6 +12251,7 @@ document.addEventListener('DOMContentLoaded', function() {
       seriesHomeKey ? lwpString('menu_series_start') : lwpString('help_index')],
     ['Ctrl+End', lwpString('help_touch_edges'), lwpString('help_edges')],
     ['+ / - / =', lwpString('help_touch_zoom'), lwpString('help_zoom')],
+    ['D', lwpString('help_touch_reading'), lwpString('help_reading')],
     ['O', lwpString('menu_table_mode'), lwpString('help_tables')],
     ['A', lwpString('menu_text_fit'), lwpString('help_text_fit')],
     ['F', lwpString('help_touch_fullscreen'), lwpString('help_fullscreen')],
@@ -13107,6 +13112,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'Escape') {
           e.preventDefault();
           returnFromReadingMenu();
+        } else if (e.key === 'd' || e.key === 'D') {
+          e.preventDefault();
+          closeReadingMenu();
         } else if (e.key === 'm' || e.key === 'M') {
           e.preventDefault();
           closeReadingMenu();
@@ -13407,6 +13415,8 @@ document.addEventListener('DOMContentLoaded', function() {
       goToLastSlide();
     } else if (e.key === 'f' || e.key === 'F') {
       e.preventDefault(); toggleFullscreen();
+    } else if (e.key === 'd' || e.key === 'D') {
+      e.preventDefault(); openReadingMenu();
     } else if (e.key === 'c' || e.key === 'C') {
       if (appearanceAlternatives()) {
         e.preventDefault(); openThemeMenu();
@@ -14679,8 +14689,8 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
   <div class="presenter-menu-card">
     <div class="presenter-menu-title" id="presenterMenuTitle" data-lwp-i18n="menu_title">{{str_menu_title}}</div>
     <div class="presenter-menu-actions">
-      <button type="button" class="presenter-menu-action" id="menuReading" data-menu-action="reading" aria-haspopup="dialog" aria-controls="readingMenu" aria-expanded="false">
-        {{icon_theme}}<span class="presenter-menu-label" data-lwp-i18n="menu_reading">{{str_menu_reading}}</span>
+      <button type="button" class="presenter-menu-action" id="menuReading" data-menu-action="reading" aria-haspopup="dialog" aria-controls="readingMenu" aria-expanded="false" aria-keyshortcuts="D">
+        {{icon_theme}}<span class="presenter-menu-label" data-lwp-i18n="menu_reading">{{str_menu_reading}}</span><kbd>D</kbd>
       </button>
       <button type="button" class="presenter-menu-action" id="menuPrev" data-menu-action="prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace Shift+Space">
         {{icon_prev}}<span class="presenter-menu-label" data-lwp-i18n="menu_prev">{{str_menu_prev}}</span><kbd>Page Up</kbd>

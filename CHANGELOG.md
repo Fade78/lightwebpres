@@ -79,6 +79,10 @@ sharing uses the hash-free physical URL. Unused `index_extra.html` is ignored;
 unit-index slides, native-navigation requirements and the refusal of
 `--drafts-only` are unchanged.
 
+**D** now opens or closes the Display settings submenu directly, without
+requiring the presenter menu first. The shortcut is listed in the generated
+keyboard help and on the accessible menu action.
+
 ## Unreleased — 0.59.0
 
 `--single-html [FILE]` replaces `--single-page` on `build`, `verify` and
