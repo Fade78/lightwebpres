@@ -3267,8 +3267,10 @@ des kits sélectionnés restent publiés ; sans kit, aucun payload de thèmes
 n'est émis. Le payload est inline, sans
 dépendance réseau : il émet l'ordre des variables une fois et, pour chaque
 thème demandé, les seules valeurs qui diffèrent de la variante primaire, ainsi
-qu'un aperçu résolu pour le sélecteur : fond de page, dégradé de couverture
-(angle et deux arrêts) et couleur d'écriture de couverture.
+qu'un aperçu résolu pour le sélecteur. La partie supérieure reprend la cover du
+thème : fond de page sous le dégradé de couverture (angle et deux arrêts),
+encre de couverture et police du titre. La partie inférieure reprend la fiche
+standard pour ses labels : fond de page, encre et police du kicker.
 
 Le thème de base primaire est le `theme:` explicite de
 `templates/settings.conf` lorsqu'il est actif ; sinon, c'est le thème typé du
@@ -3395,9 +3397,11 @@ Sur une page qui contient des alternatives, **C** ouvre un dialogue
 recherchable et **Échap** le ferme ; les flèches, **Début** et **Fin** y
 parcourent les thèmes, et **Entrée** applique le premier résultat depuis le
 champ de recherche ou active le thème focalisé. Chaque choix peint son bouton
-avec l'aperçu du thème : la couleur de fond, le dégradé compris, et une
-écriture choisie pour ce fond. **M** ouvre un dialogue global avec les actions
-de navigation, plein écran, thèmes, présentateur, tags, partage, aide et
+avec l'aperçu du thème : la partie supérieure peint le nom avec la cover et la
+partie inférieure peint les labels avec la fiche standard ; aucune des deux ne
+reprend la police du thème actuellement actif. **M** ouvre un dialogue global
+avec les actions de navigation, plein écran, thèmes, présentateur, tags,
+partage, aide et
 écrans de pause. Chaque action porte une icône et son raccourci clavier quand
 il existe. Le focus entre sur la première action. Dans le menu présentateur,
 gauche/droite restent sur la ligne courante et haut/bas vont vers le contrôle
@@ -6726,11 +6730,11 @@ La sortie texte est le défaut et vise la lecture humaine.
 
 | Clé | Type | Sens |
 |---|---|---|
-| `schema` | string | `lightwebpres.series-info/4`: the public report contract identifier, following §13.9. This baseline includes `series_meta.reading`, explicit native references and the renamed `presentation.native_renderer` flag |
+| `schema` | string | `lightwebpres.series-info/5`: the public report contract identifier, following §13.9. This baseline reports the identity resource under `identity`, alongside `series_meta.reading`, explicit native references and the renamed `presentation.native_renderer` flag |
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
 | `series_meta` | objet | les champs de §20.5 — dont `title`, `subtitle`, `version`, `intro`, `author`, `license`, `scroll_duration` et `presentation_preset` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
-| `presentation` | object | The complete resolved preset report, with schema `lightwebpres.presentation-preset/2` (§11.18) |
+| `presentation` | object | The complete resolved preset report, with schema `lightwebpres.presentation-preset/3` (§11.18) |
 | `counts` | objet | un nombre par statut de §20.6 — `active`, `draft`, `ignored` — dont la somme est la liste entière. Un article `ignored` est toujours *dans* le fichier de série : le sortir discrètement de l'arithmétique ferait paraître la série plus petite qu'elle n'est |
 | `tags` | objet | l'inventaire de visibilité défini en §11.11.1, identique à la réponse de `series tags` sans son enveloppe `schema`/`target` |
 | `articles` | liste | un objet par article, **dans l'ordre de `series.json`** (ci-dessous) |
@@ -7059,6 +7063,12 @@ répertoire de sortie, qui répond « ce qui s'y trouve » là où la question e
 « ce que ce build a fabriqué » — les deux diffèrent exactement du fichier que
 l'auteur vient de supprimer ou du fichier jamais utilisé.
 
+Le manifeste porte le schéma `lightwebpres.manifest/2`. Lorsque plusieurs
+presets sont publiés, chaque entrée de `presentation_presets` contient le
+sélecteur, `identity_digest` et `preset_digest`. Le premier nomme l'empreinte
+de l'Identity Kit retenu ; il ne s'agit pas d'une nouvelle configuration à
+éditer.
+
 `--output` désigne le répertoire de sortie, comme pour `build` ; à défaut,
 `LWP_OUTPUT_DIR`, puis `public/`. La commande refuse un répertoire qui
 contient `series.json`, `sources/` ou `templates/` : c'est un répertoire
@@ -7222,21 +7232,23 @@ lightwebpres series preset set [répertoire] --preset <builtin/standard|commons/
 `builtin/standard`, Commons presets and kit presets, never isolated fragments.
 `preset show` describes one choice without writing a series: identity and
 calculated scope, theme, layout and chrome defaults, and optional starter.
-The JSON contracts are `lightwebpres.preset-list/2` (a `presets` array of
-reports) and `lightwebpres.presentation-preset/2` (one report).
+The JSON contracts are `lightwebpres.preset-list/3` (a `presets` array of
+reports) and `lightwebpres.presentation-preset/3` (one report). The nested
+identity resource is reported under `identity`; the former package key is not
+part of this schema.
 
 Each preset report exports `native_renderer`, a boolean taken from the
 renderer choice: `true` for native Standard and Commons presets, `false` for
 kit presets, including kits using native layout fragments. It is not an
 initial-selection flag. The former public key `default` is absent, with no
 alias. `selector` is explicit, including `builtin/standard`;
-`package.default_preset` names the package's preferred local preset, not the
+`identity.default_preset` names the Identity Kit's preferred local preset, not the
 series selection. Select by reference, not by inferring a choice from
 `native_renderer`.
 
 `series preset` resolves the series catalogue, including `templates/kits/`
 and `templates/commons/`, and reports the next build's choice under
-`lightwebpres.series-preset/2`, with the complete report in `preset`. It
+`lightwebpres.series-preset/3`, with the complete report in `preset`. It
 writes nothing. `status` and `series status` expose that same resolved
 context in their series report (§11.11). These schema versions establish
 the native-identity producer baseline; consumers must adapt, not expect
@@ -7283,7 +7295,7 @@ aucune sortie.
 ```
 build(répertoire):
   1. series = read_json(répertoire/series.json)
-  2. presentation_catalog = load_presentation_catalog(répertoire/templates/)
+  2. identity_catalog = load_identity_catalog(répertoire/templates/)
      preset = resolve(series_meta.presentation_preset)  # absent = builtin/standard (§9.9)
      # Ce contexte unique (identité, preset, thème, layouts, chrome, assets)
      # vaut pour tous les articles et pour l'index.
@@ -7354,8 +7366,8 @@ build(répertoire):
         image_inventory = images_in_rendered_pages()
         copy_images(répertoire/sources/img/, répertoire/public/img/,
                     image_inventory)  # referenced files only, merge, never wipe
-        IF preset.package:
-           copy_presentation_assets(preset.package, répertoire/public/)  # pour chaque kit retenu (§9.9.4)
+        IF preset.identity_kit:
+           copy_presentation_assets(preset.identity_kit, répertoire/public/)  # pour chaque kit retenu (§9.9.4)
   11. write_file(répertoire/public/.lwp-manifest.json)  # ce que ce build a écrit — base de `clean` (§11.13)
       write_file(répertoire/.lwp-cache/nav.json)        # empreinte de navigation — base de `--only` (§11.3.1)
       # Les deux sont écrits à chaque build, pas seulement avec `--only`.

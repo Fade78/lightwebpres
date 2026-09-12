@@ -35,6 +35,18 @@ link to the originals. They are at
 
 ## Unreleased — 0.59.1
 
+The internal presentation-package vocabulary is now expressed through Identity
+Kits and the identity catalog. The native identity is represented as the
+embedded `builtin` Identity Kit, while external kit resources keep their
+existing selectors and `lightwebpres.identity-kit/1` manifest contract. The
+versioned preset, preset-list, series-preset and series-info reports now expose
+their identity resource under `identity`; the generated manifest records
+`identity_digest` instead of the retired package name.
+
+Theme picker choices now split their previews into a cover-styled name and a
+standard-slide label strip. Each surface uses the selected theme's resolved
+colours and typography instead of inheriting the currently active theme.
+
 Cancel obsolete glide safety timers before starting another transition, so a
 late timeout cannot reset navigation to the previously visible slide.
 

@@ -46,7 +46,7 @@ class RuntimeIdentityMetadata(unittest.TestCase):
         cls.lwp = load_lightwebpres_module()
 
     def test_single_preset_retains_identity_and_standard_metadata(self):
-        preset = self.lwp.DEFAULT_PRESENTATION_PRESET
+        preset = self.lwp.BUILTIN_STANDARD_PRESET
         data = self.lwp._presentation_runtime_context(
             [preset], ([preset.theme_props, {}], ''), None, None)
         self.assertEqual(data['primary'], 'builtin/standard')
@@ -64,9 +64,9 @@ class RuntimeIdentityMetadata(unittest.TestCase):
         self.assertIsNone(self.lwp.build_theme_runtime(None, None, presets=[preset]))
 
     def test_native_commons_keeps_its_theme_origin_and_independent_digest(self):
-        native = self.lwp.DEFAULT_PRESENTATION_PRESET
+        native = self.lwp.BUILTIN_STANDARD_PRESET
         commons = self.lwp.PresentationPreset(
-            native.package, 'ink', 'Commons ink', 'Ink preset',
+            native.identity_kit, 'ink', 'Commons ink', 'Ink preset',
             theme_props={'color.ink': '#123456'}, default=True,
             resource_collection='commons', scope='series', digest='first')
         context = ([native.theme_props, {}], '')
@@ -87,8 +87,8 @@ class RuntimeIdentityMetadata(unittest.TestCase):
         self.assertNotEqual(data['catalog_digest'], changed['catalog_digest'])
 
     def test_custom_themes_retain_the_target_identity(self):
-        native = self.lwp.DEFAULT_PRESENTATION_PRESET
-        kit = self.lwp.PresentationPackage(
+        native = self.lwp.BUILTIN_STANDARD_PRESET
+        kit = self.lwp.IdentityKit(
             'brand', '1.0.0', label='A brand', themes={'main': {
                 'props': {'color.ink': '#123456'},
                 'meta': {'label': 'Main', 'family': 'brand'},
@@ -105,8 +105,8 @@ class RuntimeIdentityMetadata(unittest.TestCase):
                     custom = data['themes'][0]
                     self.assertEqual(custom['slug'], data['primary'])
                     self.assertTrue(custom['slug'].startswith('custom('))
-                    self.assertEqual(custom['identity'], preset.package.selector)
-                    self.assertEqual(custom['identity_label'], preset.package.label)
+                    self.assertEqual(custom['identity'], preset.identity_kit.selector)
+                    self.assertEqual(custom['identity_label'], preset.identity_kit.label)
                     self.assertEqual(custom['collection'], 'custom')
                     self.assertEqual({theme['slug'] for theme in data['themes']
                                       if theme['collection'] == 'Commons'}, set(self.lwp.THEMES))
@@ -123,7 +123,7 @@ class RuntimeIdentityMetadata(unittest.TestCase):
         self.assertEqual(data['themes'][0]['identity'], 'brand@1.0.0')
 
     def test_all_selected_kit_themes_are_qualified_independent_choices(self):
-        kit = self.lwp.PresentationPackage(
+        kit = self.lwp.IdentityKit(
             'brand', '1.0.0', label='A brand', scope='series', digest='kit-v1',
             themes={name: {
                 'props': {'color.ink': ink},
@@ -168,7 +168,7 @@ class RuntimeIdentityMetadata(unittest.TestCase):
 
     def test_commons_primary_is_a_global_theme_not_a_native_identity_theme(self):
         catalog = self.lwp.ThemeCatalog()
-        native = self.lwp.DEFAULT_PRESENTATION_PACKAGE
+        native = self.lwp.BUILTIN_IDENTITY_KIT
         preset = self.lwp.PresentationPreset(
             native, 'paper', 'Paper', 'Commons paper', theme_id='print-ink',
             theme_props=catalog.layer('print-ink'), default=True,
@@ -183,13 +183,13 @@ class RuntimeIdentityMetadata(unittest.TestCase):
 
     def test_theme_deltas_use_the_static_cascade_without_flattening_references(self):
         catalog = self.lwp.ThemeCatalog()
-        native = self.lwp.DEFAULT_PRESENTATION_PRESET
+        native = self.lwp.BUILTIN_STANDARD_PRESET
         commons = self.lwp.PresentationPreset(
-            native.package, 'night', 'Night', 'Commons night', theme_id='dracula',
+            native.identity_kit, 'night', 'Night', 'Commons night', theme_id='dracula',
             theme_props=catalog.layer('dracula'), default=True,
             resource_collection='commons')
         snapshot = self.lwp.resolve_theme_properties(catalog.layer('dracula'))
-        kit = self.lwp.PresentationPackage(
+        kit = self.lwp.IdentityKit(
             'snapshot', '1.0.0', label='Snapshot', themes={'night': {
                 'props': snapshot, 'meta': {'label': 'Night', 'family': 'desk'},
             }})
@@ -208,7 +208,16 @@ class RuntimeIdentityMetadata(unittest.TestCase):
                 data = self.lwp.build_theme_runtime(
                     'print-ink', None, catalog=catalog, settings_props=pins,
                     preset_props=preset.theme_props, presets=[preset])
-                self.assertEqual(data['themes'][0]['preview']['background'], static['page.bg'])
+                preview = data['themes'][0]['preview']
+                self.assertEqual(preview['background'], static['page.bg'])
+                self.assertEqual(preview['standard'], {
+                    'background': static['page.bg'],
+                    'foreground': static['kicker.fg'],
+                })
+                self.assertEqual(preview['fonts'], {
+                    'cover': static['title1.font'],
+                    'standard': static['kicker.font'],
+                })
                 for slug, expected in [(raw_id, raw), ('print-ink',
                         self.lwp._theme_runtime_resolved('print-ink', catalog))]:
                     theme = next(theme for theme in data['themes'] if theme['slug'] == slug)
@@ -234,10 +243,10 @@ class RuntimeThemesBrowser(unittest.TestCase):
             capture_output=True, text=True, timeout=60,
         )
         assert demo.returncode == 0, demo.stdout + demo.stderr
-        package_source = REPO_ROOT / 'examples' / 'kits' / 'lightwebpres-docs' / '0.1.0'
-        package_destination = (root / 'templates' / 'kits'
-                               / 'lightwebpres-docs' / '0.1.0')
-        shutil.copytree(package_source, package_destination)
+        kit_source = REPO_ROOT / 'examples' / 'kits' / 'lightwebpres-docs' / '0.1.0'
+        kit_destination = (root / 'templates' / 'kits'
+                           / 'lightwebpres-docs' / '0.1.0')
+        shutil.copytree(kit_source, kit_destination)
         series_path = root / 'series.json'
         series = json.loads(series_path.read_text(encoding='utf-8'))
         series.setdefault('series_meta', {})['presentation_preset'] = \
@@ -287,15 +296,15 @@ class RuntimeThemesBrowser(unittest.TestCase):
             capture_output=True, text=True, timeout=60,
         )
         assert demo.returncode == 0, demo.stdout + demo.stderr
-        presentation_package = (presentation_root / 'templates' / 'kits'
-                                / 'lightwebpres-docs' / '0.1.0')
-        shutil.copytree(package_source, presentation_package)
-        presentation_manifest_path = presentation_package / 'manifest.json'
+        presentation_kit = (presentation_root / 'templates' / 'kits'
+                            / 'lightwebpres-docs' / '0.1.0')
+        shutil.copytree(kit_source, presentation_kit)
+        presentation_manifest_path = presentation_kit / 'manifest.json'
         presentation_manifest = json.loads(
             presentation_manifest_path.read_text(encoding='utf-8'))
         compact_theme = subprocess.run(
             ['python3', str(LWP), 'theme', 'create', 'compact', '--from', 'nord',
-             '--output', str(presentation_package / 'themes' / 'compact.conf')],
+             '--output', str(presentation_kit / 'themes' / 'compact.conf')],
             capture_output=True, text=True, timeout=60,
         )
         assert compact_theme.returncode == 0, compact_theme.stdout + compact_theme.stderr
@@ -337,13 +346,13 @@ class RuntimeThemesBrowser(unittest.TestCase):
             capture_output=True, text=True, timeout=60,
         )
         assert build.returncode == 0, build.stdout + build.stderr
-        foreign_package = (presentation_root / 'templates' / 'kits' / 'other' / '0.1.0')
-        shutil.copytree(package_source, foreign_package)
-        foreign_manifest_path = foreign_package / 'manifest.json'
+        foreign_kit = (presentation_root / 'templates' / 'kits' / 'other' / '0.1.0')
+        shutil.copytree(kit_source, foreign_kit)
+        foreign_manifest_path = foreign_kit / 'manifest.json'
         foreign_manifest = json.loads(foreign_manifest_path.read_text(encoding='utf-8'))
         foreign_manifest.update(id='other', label='Other identity')
         foreign_manifest_path.write_text(json.dumps(foreign_manifest), encoding='utf-8')
-        foreign_css = foreign_package / 'structure.css'
+        foreign_css = foreign_kit / 'structure.css'
         foreign_css.write_text(foreign_css.read_text(encoding='utf-8').replace(
             '.lwp-presentation--lightwebpres-docs', '.lwp-presentation--other'), encoding='utf-8')
         presentation_series['presentation_presets'].append('other@0.1.0/docs')
@@ -492,7 +501,7 @@ class RuntimeThemesBrowser(unittest.TestCase):
     def test_origin_display_does_not_rename_public_report_values(self):
         for command, expected in [
                 (['preset', 'show', 'builtin/standard'], {
-                    'schema': 'lightwebpres.presentation-preset/2',
+                     'schema': 'lightwebpres.presentation-preset/3',
                     'selector': 'builtin/standard', 'resource_collection': 'builtin',
                     'scope': 'builtin'}),
                 (['theme', 'show', 'print-ink'], {
@@ -514,9 +523,9 @@ class RuntimeThemesBrowser(unittest.TestCase):
                 report = json.loads(result.stdout)
                 self.assertEqual({key: report[key] for key in expected}, expected)
                 if command[0] == 'preset':
-                    self.assertEqual(report['package']['selector'], 'builtin')
-                    self.assertEqual(report['package']['label'], 'LightWebPres')
-                    self.assertEqual(report['package']['scope'], 'builtin')
+                    self.assertEqual(report['identity']['selector'], 'builtin')
+                    self.assertEqual(report['identity']['label'], 'LightWebPres')
+                    self.assertEqual(report['identity']['scope'], 'builtin')
 
 
 if __name__ == '__main__':

@@ -22,7 +22,7 @@ class SvgResources(unittest.TestCase):
             dir=fixtures.EXECUTABLE.parent / 'work' / 'tmp')
         self.addCleanup(temporary.cleanup)
         self.root = fixtures.scaffold(
-            temporary.name, fixtures.PresentationPackages._article()
+            temporary.name, fixtures.IdentityKitFixtures._article()
             + '\n![Diagram](img/diagram.svg)\n')
         self.image = self.root / 'sources' / 'img' / 'diagram.svg'
         self.image.parent.mkdir()
@@ -48,7 +48,7 @@ class SvgResources(unittest.TestCase):
         if in_paragraph:
             image = 'See ' + image + ' here.'
         (self.root / 'sources' / 'a.md').write_text(
-            fixtures.PresentationPackages._article() + '\n' + image + '\n',
+            fixtures.IdentityKitFixtures._article() + '\n' + image + '\n',
             encoding='utf-8')
 
     def test_ampersand_filename_is_unescaped_before_build_and_audit_read_it(self):
@@ -300,9 +300,9 @@ class SvgResources(unittest.TestCase):
                 self._build(self._svg('<style>' + css + '</style>'))
 
     def test_kit_svg_warns_in_inline_build_and_normal_audit(self):
-        fixture = fixtures.PresentationPackages()
-        root, package = fixture._selected_series(self.root)
-        image = package / 'assets' / 'mark.svg'
+        fixture = fixtures.IdentityKitFixtures()
+        root, identity_kit = fixture._selected_series(self.root)
+        image = identity_kit / 'assets' / 'mark.svg'
         data = self._svg('<image href="nested.png"/>')
         image.write_bytes(data)
         built = fixtures.run('build', str(root), '--inline-images', '--verbose')

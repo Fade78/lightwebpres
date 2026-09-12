@@ -2250,9 +2250,9 @@ schema rather than guessing its meaning.
 | Interface | Contract or result | Consumer obligation |
 |---|---|---|
 | `contract --format json` | `lightwebpres.slide-draft/2` | Use the engine's field rules and skeletons for all five types. |
-| `status --format json` | `lightwebpres.series-info/4` | Preserve article order and inspect `source_read`, not only the exit code. |
+| `status --format json` | `lightwebpres.series-info/5` | Preserve article order and inspect `source_read`, not only the exit code. |
 | `series tags --format json` | `lightwebpres.series-tags/1` | Check `default_output` and active-only per-tag `output`, not just tag names. |
-| `series preset --format json` | `lightwebpres.series-preset/2`, containing a `lightwebpres.presentation-preset/2` object | Read the nested `preset` selector and resources; `native_renderer` describes rendering, not the initial selection. |
+| `series preset --format json` | `lightwebpres.series-preset/3`, containing a `lightwebpres.presentation-preset/3` object | Read the nested `preset` selector and resources; `native_renderer` describes rendering, not the initial selection. The identity resource is under `identity`. |
 | `build` | Non-zero on fatal structural/render errors | Read warnings too; exit 0 is not editorial approval. |
 | `audit` | Reports warnings and render failures; normally exits 0 | Read the report, or use `--strict` for a failing gate. |
 | `verify` | Non-zero on drift or failure | Match rendering flags, including `--single-html [FILE]` and `--inline-images` when used. |

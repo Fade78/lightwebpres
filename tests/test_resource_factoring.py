@@ -102,13 +102,13 @@ class ResourceFactoring(unittest.TestCase):
         (self.root / 'series.json').write_text(json.dumps(self.series), encoding='utf-8')
 
     def kit(self):
-        package = self.root / 'templates/kits/lightwebpres-docs/0.1.0'
-        shutil.copytree(ROOT / 'examples/kits/lightwebpres-docs/0.1.0', package)
-        manifest = json.loads((package / 'manifest.json').read_text())
+        identity_kit = self.root / 'templates/kits/lightwebpres-docs/0.1.0'
+        shutil.copytree(ROOT / 'examples/kits/lightwebpres-docs/0.1.0', identity_kit)
+        manifest = json.loads((identity_kit / 'manifest.json').read_text())
         manifest['presets']['compact'] = copy.deepcopy(manifest['presets']['docs'])
         manifest['presets']['compact']['label'] = 'Compact'
         manifest['presets']['compact']['slide_layouts']['cover'] = 'hero'
-        (package / 'manifest.json').write_text(json.dumps(manifest))
+        (identity_kit / 'manifest.json').write_text(json.dumps(manifest))
         self.series['series_meta']['presentation_preset'] = 'lightwebpres-docs@0.1.0/docs'
         self.series['presentation_presets'] = ['lightwebpres-docs@0.1.0/compact', 'builtin/standard']
         self.save()
@@ -283,14 +283,14 @@ class ResourceFactoring(unittest.TestCase):
         if probe.returncode:
             self.skipTest('Playwright unavailable: ' + probe.stderr)
         self.kit()
-        package = self.root / 'templates/kits/lightwebpres-docs/0.1.0'
-        theme = (package / 'themes/docs.conf').read_text().replace('\ncaption.fg: #5A7184FF\n', '\ncaption.fg: #116633\n')
-        (package / 'themes/docs.conf').write_text(theme)
-        (package / 'themes/compact.conf').write_text(theme.replace('#116633', '#aa2255'))
-        manifest = json.loads((package / 'manifest.json').read_text())
+        identity_kit = self.root / 'templates/kits/lightwebpres-docs/0.1.0'
+        theme = (identity_kit / 'themes/docs.conf').read_text().replace('\ncaption.fg: #5A7184FF\n', '\ncaption.fg: #116633\n')
+        (identity_kit / 'themes/docs.conf').write_text(theme)
+        (identity_kit / 'themes/compact.conf').write_text(theme.replace('#116633', '#aa2255'))
+        manifest = json.loads((identity_kit / 'manifest.json').read_text())
         manifest['themes']['compact'] = 'themes/compact.conf'
         manifest['presets']['compact']['theme'] = 'compact'
-        (package / 'manifest.json').write_text(json.dumps(manifest))
+        (identity_kit / 'manifest.json').write_text(json.dumps(manifest))
         svg = ('<svg xmlns="http://www.w3.org/2000/svg" width="128" height="96">'
                '<view id="left" viewBox="0 0 64 96"/><view id="right" viewBox="64 0 64 96"/>'
                '<rect width="64" height="96" fill="red"/><rect x="64" width="64" height="96" fill="blue"/></svg>')

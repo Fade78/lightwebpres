@@ -141,8 +141,8 @@ class TheDocumentationDeliversItsExamples(unittest.TestCase):
                     else:
                         self.assertNotIn('presentation_preset', meta)
                     report = json.loads(run('series', 'preset', series, '--format', 'json'))
-                    self.assertEqual(report['schema'], 'lightwebpres.series-preset/2')
-                    self.assertEqual(report['preset']['schema'], 'lightwebpres.presentation-preset/2')
+                    self.assertEqual(report['schema'], 'lightwebpres.series-preset/3')
+                    self.assertEqual(report['preset']['schema'], 'lightwebpres.presentation-preset/3')
                     self.assertTrue(report['preset']['native_renderer'])
                     self.assertNotIn('default', report['preset'])
                     self.assertEqual(report['preset']['selector'], 'builtin/standard')

@@ -4543,7 +4543,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
             outside = root / 'outside.txt'
             outside.write_text('keep me', encoding='utf-8')
             (public / '.lwp-manifest.json').write_text(json.dumps({
-                'schema': 'lightwebpres.manifest/1',
+                'schema': 'lightwebpres.manifest/2',
                 'files': [],
                 'previous': ['../outside.txt'],
             }), encoding='utf-8')
@@ -8852,13 +8852,13 @@ class TemplateOverride(unittest.TestCase):
             self.assertIn('</script>\n\n</body>', index_html)
 
 
-class PresentationPackages(unittest.TestCase):
-    """Presentation packages are complete, versioned, series-wide choices."""
+class IdentityKitFixtures(unittest.TestCase):
+    """Identity Kits are complete, versioned, series-wide choices."""
 
-    PACKAGE_ID = 'studio'
-    PACKAGE_VERSION = '1.2.3'
+    KIT_ID = 'studio'
+    KIT_VERSION = '1.2.3'
     PRESET_ID = 'brief'
-    SELECTOR = f'{PACKAGE_ID}@{PACKAGE_VERSION}/{PRESET_ID}'
+    SELECTOR = f'{KIT_ID}@{KIT_VERSION}/{PRESET_ID}'
 
     @staticmethod
     def _article(slug='a', title='Article'):
@@ -8873,15 +8873,15 @@ class PresentationPackages(unittest.TestCase):
             f'slug: {slug}-standard\n## {title} details\nsummary: Detail.\n'
         )
 
-    def _write_package(self, catalogue_root, with_starter=False,
-                       package_id=None, version=None, preset_id=None):
-        package_id = package_id or self.PACKAGE_ID
-        version = version or self.PACKAGE_VERSION
+    def _write_identity_kit(self, catalogue_root, with_starter=False,
+                            kit_id=None, version=None, preset_id=None):
+        kit_id = kit_id or self.KIT_ID
+        version = version or self.KIT_VERSION
         preset_id = preset_id or self.PRESET_ID
-        package = Path(catalogue_root) / package_id / version
-        layouts = package / 'layouts'
-        themes = package / 'themes'
-        assets = package / 'assets'
+        identity_kit = Path(catalogue_root) / kit_id / version
+        layouts = identity_kit / 'layouts'
+        themes = identity_kit / 'themes'
+        assets = identity_kit / 'assets'
         layouts.mkdir(parents=True)
         themes.mkdir()
         assets.mkdir()
@@ -8890,7 +8890,7 @@ class PresentationPackages(unittest.TestCase):
         for slide_type in ('cover', 'standard', 'series-nav', 'full-article'):
             filename = f'{slide_type}.html'
             (layouts / filename).write_text(
-                f'<div class="presentation-{package_id}-{slide_type}">\n'
+                f'<div class="presentation-{kit_id}-{slide_type}">\n'
                 '  {{slide_header}}\n'
                 '  {{content}}\n'
                 '  {{slide_footer}}\n'
@@ -8899,7 +8899,7 @@ class PresentationPackages(unittest.TestCase):
             )
             layout_paths[slide_type] = {'default': f'layouts/{filename}'}
         (layouts / 'cover-hero.html').write_text(
-            f'<div class="presentation-{package_id}-cover-hero">\n'
+            f'<div class="presentation-{kit_id}-cover-hero">\n'
             '  {{slide_header}}\n'
             '  {{content}}\n'
             '  {{slide_footer}}\n'
@@ -8908,13 +8908,13 @@ class PresentationPackages(unittest.TestCase):
         )
         layout_paths['cover']['hero'] = 'layouts/cover-hero.html'
         (layouts / 'index.html').write_text(
-            f'<main class="presentation-{package_id}-index">{{{{content}}}}</main>\n',
+            f'<main class="presentation-{kit_id}-index">{{{{content}}}}</main>\n',
             encoding='utf-8',
         )
         layout_paths['index'] = 'layouts/index.html'
-        (package / 'structure.css').write_text(
-            f'.lwp-presentation--{package_id} '
-            f'.presentation-{package_id}-standard {{ display: grid; }}\n',
+        (identity_kit / 'structure.css').write_text(
+            f'.lwp-presentation--{kit_id} '
+            f'.presentation-{kit_id}-standard {{ display: grid; }}\n',
             encoding='utf-8',
         )
         (assets / 'mark.svg').write_text(
@@ -8924,13 +8924,13 @@ class PresentationPackages(unittest.TestCase):
         created = run('theme', 'create', 'brand', '--from', 'dracula',
                       '--output', str(themes / 'brand.conf'))
         self.assertEqual(created.returncode, 0, created.stderr)
-        (package / 'chrome.json').write_text(json.dumps({
+        (identity_kit / 'chrome.json').write_text(json.dumps({
             'models': {
                 'brand-header': {
                     'slot': 'header',
                     'items': [
                         {'kind': 'image', 'asset': 'presentation:mark',
-                         'alt': 'Package mark'},
+                         'alt': 'Kit mark'},
                         {'kind': 'text', 'slot': 'text'},
                     ],
                 },
@@ -8947,13 +8947,13 @@ class PresentationPackages(unittest.TestCase):
                 'series-nav': 'default', 'full-article': 'default',
             },
             'slide_chrome': {
-                'all': {'footer': 'Package footer'},
-                'cover': {'header': {
-                    'model': 'brand-header', 'text': 'Package header'}},
+                    'all': {'footer': 'Kit footer'},
+                    'cover': {'header': {
+                    'model': 'brand-header', 'text': 'Kit header'}},
             },
         }
         if with_starter:
-            starter = package / 'starters' / 'seed'
+            starter = identity_kit / 'starters' / 'seed'
             (starter / 'sources').mkdir(parents=True)
             (starter / 'sources' / 'starter.md').write_text(
                 self._article('starter', 'Starter'), encoding='utf-8')
@@ -8967,10 +8967,10 @@ class PresentationPackages(unittest.TestCase):
             starters['seed'] = 'starters/seed/starter.json'
             preset['starter'] = 'seed'
 
-        (package / 'manifest.json').write_text(json.dumps({
+        (identity_kit / 'manifest.json').write_text(json.dumps({
             'schema': 'lightwebpres.identity-kit/1',
-            'id': package_id,
-            'label': package_id.title(),
+            'id': kit_id,
+            'label': kit_id.title(),
             'version': version,
             'layouts': layout_paths,
             'structure_css': 'structure.css',
@@ -8982,24 +8982,24 @@ class PresentationPackages(unittest.TestCase):
             'starters': starters,
             'presets': {preset_id: preset},
         }), encoding='utf-8')
-        return package
+        return identity_kit
 
     def _selected_series(self, tmp):
         root = scaffold(tmp, self._article())
-        package = self._write_package(root / 'templates' / 'kits')
+        identity_kit = self._write_identity_kit(root / 'templates' / 'kits')
         series_path = root / 'series.json'
         series = json.loads(series_path.read_text(encoding='utf-8'))
         series['series_meta'] = {'presentation_preset': self.SELECTOR}
         series_path.write_text(json.dumps(series), encoding='utf-8')
-        return root, package
+        return root, identity_kit
 
     def _runtime_series(self, tmp):
         root = scaffold(tmp, self._article())
         layouts_root = root / 'templates' / 'kits'
-        primary = self._write_package(layouts_root)
+        primary = self._write_identity_kit(layouts_root)
 
-        # A second preset in the same package exercises preset-level layout
-        # and chrome changes without making package identity do the work.
+        # A second preset in the same Identity Kit exercises preset-level layout
+        # and chrome changes without making identity do the work.
         manifest_path = primary / 'manifest.json'
         manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
         created = run(
@@ -9019,8 +9019,8 @@ class PresentationPackages(unittest.TestCase):
         }
         manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
 
-        other = self._write_package(
-            layouts_root, package_id='other', version='2.0.0',
+        other = self._write_identity_kit(
+            layouts_root, kit_id='other', version='2.0.0',
             preset_id='compact')
         other_selector = 'other@2.0.0/compact'
         simple_selector = f'{self.SELECTOR.rsplit("/", 1)[0]}/simple'
@@ -9044,19 +9044,19 @@ class PresentationPackages(unittest.TestCase):
 
     def test_series_preset_uses_local_manifest_structure_chrome_and_assets(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root, _package = self._selected_series(tmp)
+            root, _identity_kit = self._selected_series(tmp)
             output = root / 'public'
             built = run('build', str(root), '--output', str(output))
             self.assertEqual(built.returncode, 0, built.stderr)
 
             article = (output / 'a.html').read_text(encoding='utf-8')
             index = (output / 'index.html').read_text(encoding='utf-8')
-            asset = (output / 'assets' / 'presentations' / self.PACKAGE_ID
-                     / self.PACKAGE_VERSION / 'mark.svg')
+            asset = (output / 'assets' / 'presentations' / self.KIT_ID
+                     / self.KIT_VERSION / 'mark.svg')
             self.assertIn('presentation-studio-cover-hero', article)
             self.assertIn('presentation-studio-standard', article)
-            self.assertIn('Package header', article)
-            self.assertIn('Package footer', article)
+            self.assertIn('Kit header', article)
+            self.assertIn('Kit footer', article)
             self.assertIn('<div class="lwp-presentation--studio">', article)
             self.assertIn('presentation-studio-index', index)
             self.assertIn('<div class="lwp-presentation--studio">', index)
@@ -9072,7 +9072,7 @@ class PresentationPackages(unittest.TestCase):
             self.assertEqual(report['preset']['selector'], self.SELECTOR)
             self.assertEqual(report['preset']['slide_layouts']['cover'], 'hero')
             self.assertEqual(report['preset']['slide_chrome']['all']['footer'],
-                             {'text': 'Package footer'})
+                             {'text': 'Kit footer'})
 
     def test_runtime_presentation_presets_render_ordered_layers_and_index(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -9098,7 +9098,7 @@ class PresentationPackages(unittest.TestCase):
 
             # The primary rendering is the live/no-JavaScript fallback.
             self.assertIn('presentation-studio-cover-hero', article)
-            self.assertIn('Package header', article)
+            self.assertIn('Kit header', article)
             self.assertIn('id="presentationOptions"', article)
             self.assertIn('id="lwp-presentation-structure"', article)
             self.assertIn('presentation-studio-cover',
@@ -9123,7 +9123,7 @@ class PresentationPackages(unittest.TestCase):
                 [preset['selector'] for preset in manifest['presentation_presets']],
                 [self.SELECTOR, other, simple, 'builtin/standard'])
             self.assertTrue((output / 'assets' / 'presentations' / 'studio'
-                             / self.PACKAGE_VERSION / 'mark.svg').is_file())
+                              / self.KIT_VERSION / 'mark.svg').is_file())
             self.assertTrue((output / 'assets' / 'presentations' / 'other'
                              / '2.0.0' / 'mark.svg').is_file())
             simple_descriptor = next(
@@ -9135,14 +9135,17 @@ class PresentationPackages(unittest.TestCase):
             self.assertEqual(default_descriptor['label'], 'Standard')
             self.assertEqual(default_descriptor['family'], 'LightWebPres')
             self.assertEqual(default_descriptor['label_key'], 'presentation_standard')
-            self.assertTrue(default_descriptor['preview']['background'])
-            self.assertTrue(default_descriptor['preview']['foreground'])
-            self.assertEqual(set(default_descriptor['preview']['gradient']),
+            preview = default_descriptor['preview']
+            self.assertTrue(preview['background'])
+            self.assertTrue(preview['foreground'])
+            self.assertEqual(set(preview['gradient']),
                              {'angle', 'from', 'to'})
+            self.assertEqual(set(preview['fonts']), {'cover', 'standard'})
+            self.assertEqual(set(preview['standard']), {'background', 'foreground'})
 
-    def test_real_package_exposes_the_virtual_default_when_compatible(self):
+    def test_real_identity_kit_exposes_the_virtual_default_when_compatible(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root, _package = self._selected_series(tmp)
+            root, _identity_kit = self._selected_series(tmp)
             output = root / 'public'
             built = run('build', str(root), '--output', str(output),
                         '--no-essential-theme')
@@ -9158,9 +9161,9 @@ class PresentationPackages(unittest.TestCase):
                 data['variants']['builtin/standard']['sections']['a-cover'])
             self.assertIn('id="presentationOptions"', article)
 
-    def test_implicit_default_does_not_break_package_specific_slide_overrides(self):
+    def test_implicit_default_does_not_break_identity_kit_specific_slide_overrides(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root, _package = self._selected_series(tmp)
+            root, _identity_kit = self._selected_series(tmp)
             source = root / 'sources' / 'a.md'
             source.write_text(
                 source.read_text(encoding='utf-8').replace(
@@ -9250,7 +9253,7 @@ class PresentationPackages(unittest.TestCase):
             self.assertTrue(all(src.startswith('data:image/svg+xml;base64,') for src in images))
             self.assertFalse((output / 'assets' / 'presentations').exists())
 
-    def test_verify_and_only_rebuild_notice_include_alternate_package_drift(self):
+    def test_verify_and_only_rebuild_notice_include_alternate_identity_kit_drift(self):
         with tempfile.TemporaryDirectory() as tmp:
             root, _primary, other, _simple, _other_selector = self._runtime_series(tmp)
             output = root / 'public'
@@ -9280,13 +9283,13 @@ class PresentationPackages(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             catalogue = root / 'catalogue'
-            self._write_package(catalogue)
+            self._write_identity_kit(catalogue)
             env = {'LWP_IDENTITY_KITS_DIR': str(catalogue)}
 
             listed = run('preset', 'list', '--format', 'json', env=env)
             self.assertEqual(listed.returncode, 0, listed.stderr)
             listing = json.loads(listed.stdout)
-            self.assertEqual(listing['schema'], 'lightwebpres.preset-list/2')
+            self.assertEqual(listing['schema'], 'lightwebpres.preset-list/3')
             reports = listing['presets']
             native = next(report for report in reports
                           if report['selector'] == 'builtin/standard')
@@ -9295,9 +9298,9 @@ class PresentationPackages(unittest.TestCase):
             self.assertTrue(native['native_renderer'])
             self.assertFalse(custom['native_renderer'])
             for report in reports:
-                self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/2')
+                self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/3')
                 self.assertNotIn('default', report)
-            self.assertEqual(custom['package']['scope'], 'user')
+            self.assertEqual(custom['identity']['scope'], 'user')
 
             shown = run('preset', 'show', self.SELECTOR, '--format', 'json',
                         env=env)
@@ -9322,7 +9325,7 @@ class PresentationPackages(unittest.TestCase):
                           env=env)
             self.assertEqual(current.returncode, 0, current.stderr)
             current_report = json.loads(current.stdout)
-            self.assertEqual(current_report['schema'], 'lightwebpres.series-preset/2')
+            self.assertEqual(current_report['schema'], 'lightwebpres.series-preset/3')
             self.assertTrue(current_report['preset']['native_renderer'])
             data['series_meta']['presentation_preset'] = 'default'
             (series / 'series.json').write_text(json.dumps(data), encoding='utf-8')
@@ -9335,7 +9338,7 @@ class PresentationPackages(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             catalogue = root / 'catalogue'
-            self._write_package(catalogue, with_starter=True)
+            self._write_identity_kit(catalogue, with_starter=True)
             env = {'LWP_IDENTITY_KITS_DIR': str(catalogue)}
 
             refused = run('init', str(root / 'needs-preset'), '--no-starter',
@@ -9353,7 +9356,7 @@ class PresentationPackages(unittest.TestCase):
                              self.SELECTOR)
             self.assertTrue((with_starter / 'sources' / 'starter.md').is_file())
             self.assertTrue((with_starter / 'templates' / 'kits'
-                             / self.PACKAGE_ID / self.PACKAGE_VERSION
+                              / self.KIT_ID / self.KIT_VERSION
                              / 'manifest.json').is_file())
 
             without_starter = root / 'without-starter'
@@ -9369,7 +9372,7 @@ class PresentationPackages(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             catalogue = root / 'catalogue'
-            self._write_package(catalogue)
+            self._write_identity_kit(catalogue)
             env = {'LWP_IDENTITY_KITS_DIR': str(catalogue)}
             series = root / 'series'
             initialized = run('init', str(series), env=env)
@@ -9425,7 +9428,7 @@ class PresentationPackages(unittest.TestCase):
         )
         for name, location, field, value, expected in cases:
             with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
-                root, _package = self._selected_series(tmp)
+                root, _identity_kit = self._selected_series(tmp)
                 series_path = root / 'series.json'
                 series = json.loads(series_path.read_text(encoding='utf-8'))
                 target = (series['series_meta'] if location == 'series_meta'
@@ -9437,7 +9440,7 @@ class PresentationPackages(unittest.TestCase):
                 self.assertIn(expected, result.stderr)
 
         with tempfile.TemporaryDirectory() as tmp:
-            root, _package = self._selected_series(tmp)
+            root, _identity_kit = self._selected_series(tmp)
             source = root / 'sources' / 'a.md'
             source.write_text(self._article().replace(
                 'nav_desc: Article\n---',
@@ -9450,15 +9453,15 @@ class PresentationPackages(unittest.TestCase):
     def test_manifest_schema_and_layout_fragments_are_validated(self):
         for kind in ('schema', 'layout'):
             with self.subTest(kind=kind), tempfile.TemporaryDirectory() as tmp:
-                root, package = self._selected_series(tmp)
+                root, identity_kit = self._selected_series(tmp)
                 if kind == 'schema':
-                    manifest_path = package / 'manifest.json'
+                    manifest_path = identity_kit / 'manifest.json'
                     manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
                     manifest['schema'] = 'lightwebpres.presentation-template/1'
                     manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
                     expected = 'expected \'lightwebpres.identity-kit/1\''
                 else:
-                    (package / 'layouts' / 'cover.html').write_text(
+                    (identity_kit / 'layouts' / 'cover.html').write_text(
                         '<script>window.bad = true</script>\n'
                         '{{slide_header}}{{content}}{{slide_footer}}\n',
                         encoding='utf-8')
@@ -9467,10 +9470,10 @@ class PresentationPackages(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(expected, result.stderr)
 
-    def test_structure_css_cannot_escape_its_package_scope(self):
+    def test_structure_css_cannot_escape_its_identity_kit_scope(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root, package = self._selected_series(tmp)
-            (package / 'structure.css').write_text(
+            root, identity_kit = self._selected_series(tmp)
+            (identity_kit / 'structure.css').write_text(
                 'body { display: grid; }\n', encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
@@ -9479,12 +9482,12 @@ class PresentationPackages(unittest.TestCase):
 
     def test_verify_reports_missing_and_changed_presentation_assets(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root, _package = self._selected_series(tmp)
+            root, _identity_kit = self._selected_series(tmp)
             output = root / 'public'
             built = run('build', str(root), '--output', str(output))
             self.assertEqual(built.returncode, 0, built.stderr)
-            asset = (output / 'assets' / 'presentations' / self.PACKAGE_ID
-                     / self.PACKAGE_VERSION / 'mark.svg')
+            asset = (output / 'assets' / 'presentations' / self.KIT_ID
+                     / self.KIT_VERSION / 'mark.svg')
 
             asset.unlink()
             missing = run('verify', str(root), '--output', str(output))
@@ -9500,8 +9503,8 @@ class PresentationPackages(unittest.TestCase):
             self.assertIn('[DRIFT] assets/presentations/studio/1.2.3/mark.svg',
                           drifted.stdout)
 
-    def test_package_markup_and_css_cannot_escape_their_contract(self):
-        scope = f'.lwp-presentation--{self.PACKAGE_ID}'
+    def test_identity_kit_markup_and_css_cannot_escape_their_contract(self):
+        scope = f'.lwp-presentation--{self.KIT_ID}'
         cases = (
             ('linked stylesheet', 'layouts/cover.html',
              '<link rel="stylesheet" href="outside.css">\n'
@@ -9526,8 +9529,8 @@ class PresentationPackages(unittest.TestCase):
         )
         for name, relative, text, expected in cases:
             with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
-                root, package = self._selected_series(tmp)
-                (package / relative).write_text(text, encoding='utf-8')
+                root, identity_kit = self._selected_series(tmp)
+                (identity_kit / relative).write_text(text, encoding='utf-8')
                 result = run('build', str(root), '--output', str(root / 'public'))
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(expected, result.stderr)
@@ -9536,7 +9539,7 @@ class PresentationPackages(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             catalogue = root / 'catalogue'
-            self._write_package(catalogue, with_starter=True)
+            self._write_identity_kit(catalogue, with_starter=True)
             env = {'LWP_IDENTITY_KITS_DIR': str(catalogue)}
             series = root / 'series'
             source = series / 'sources' / 'starter.md'
@@ -9555,8 +9558,8 @@ class PresentationPackages(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             catalogue = root / 'catalogue'
-            package = self._write_package(catalogue, with_starter=True)
-            descriptor_path = package / 'starters' / 'seed' / 'starter.json'
+            identity_kit = self._write_identity_kit(catalogue, with_starter=True)
+            descriptor_path = identity_kit / 'starters' / 'seed' / 'starter.json'
             descriptor = json.loads(descriptor_path.read_text(encoding='utf-8'))
             descriptor['sources'] = ['../outside.md']
             descriptor_path.write_text(json.dumps(descriptor), encoding='utf-8')
@@ -9572,7 +9575,7 @@ class PresentationPackages(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             catalogue = root / 'catalogue'
-            self._write_package(catalogue, with_starter=True)
+            self._write_identity_kit(catalogue, with_starter=True)
             env = {'LWP_IDENTITY_KITS_DIR': str(catalogue)}
             series = root / 'series'
             self.assertEqual(run('init', str(series), env=env).returncode, 0)
@@ -9590,17 +9593,17 @@ class PresentationPackages(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             catalogue = root / 'catalogue'
-            self._write_package(catalogue)
+            self._write_identity_kit(catalogue)
             env = {'LWP_IDENTITY_KITS_DIR': str(catalogue)}
             series = root / 'series'
             self.assertEqual(run('init', str(series), env=env).returncode, 0)
             settings = series / 'templates' / 'settings.conf'
             settings.write_text('theme: nord\ncolor.page: #123456FF\n',
                                 encoding='utf-8')
-            collision = (series / 'templates' / 'kits' / self.PACKAGE_ID
-                         / self.PACKAGE_VERSION)
+            collision = (series / 'templates' / 'kits' / self.KIT_ID
+                         / self.KIT_VERSION)
             collision.parent.mkdir(parents=True)
-            collision.write_text('not a package\n', encoding='utf-8')
+            collision.write_text('not an identity kit\n', encoding='utf-8')
             series_path = series / 'series.json'
             before_series = series_path.read_bytes()
             before_settings = settings.read_bytes()
@@ -9612,7 +9615,7 @@ class PresentationPackages(unittest.TestCase):
             self.assertEqual(series_path.read_bytes(), before_series)
             self.assertEqual(settings.read_bytes(), before_settings)
             self.assertEqual(collision.read_text(encoding='utf-8'),
-                             'not a package\n')
+                             'not an identity kit\n')
 
 
 class RefreshTemplates(unittest.TestCase):
@@ -10445,6 +10448,14 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
                         'from': resolved['cover.bg.from'],
                         'to': resolved['cover.bg.to'],
                     })
+                self.assertEqual(preview['fonts'], {
+                    'cover': resolved['title1.font'],
+                    'standard': resolved['kicker.font'],
+                })
+                self.assertEqual(preview['standard'], {
+                    'background': resolved['page.bg'],
+                    'foreground': resolved['kicker.fg'],
+                })
 
     def test_runtime_payload_expands_facet_aliases(self):
         cases = (
@@ -17410,9 +17421,9 @@ class TheGuideBuildsWithTheToolItDescribes(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
             html = (out / 'guide.html').read_text(encoding='utf-8')
             index_html = (out / 'index.html').read_text(encoding='utf-8')
-            package_asset = (out / 'assets' / 'presentations' / 'lightwebpres-docs'
-                             / '0.1.0' / 'lightwebpres-mark.svg')
-            package_asset_exists = package_asset.is_file()
+            kit_asset = (out / 'assets' / 'presentations' / 'lightwebpres-docs'
+                         / '0.1.0' / 'lightwebpres-mark.svg')
+            kit_asset_exists = kit_asset.is_file()
 
         # Every component the guide's own anatomy section names.
         for cls in ('slide slide-cover', 'slide full-article', 'fact-box',
@@ -17430,9 +17441,9 @@ class TheGuideBuildsWithTheToolItDescribes(unittest.TestCase):
                 'lwp-doc-frame lwp-doc-article-frame',
                 'LIGHTWEBPRES / OFFICIAL DOCUMENTATION',
                 'assets/presentations/lightwebpres-docs/0.1.0/lightwebpres-mark.svg'):
-            self.assertIn(marker, html, f'official package marker missing: {marker}')
+            self.assertIn(marker, html, f'official Identity Kit marker missing: {marker}')
         self.assertIn('class="lwp-doc-index-frame"', index_html)
-        self.assertTrue(package_asset_exists)
+        self.assertTrue(kit_asset_exists)
 
 
 class TheGalleryPanelStaysOnTheDecksOwnSideOfItsBreakpoint(unittest.TestCase):
@@ -19622,8 +19633,8 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                                              'author': 'Fade78'})
             report = self._report(root)
 
-        # /4 exposes explicit native references, native_renderer and reading.
-        self.assertEqual(report['schema'], 'lightwebpres.series-info/4')
+        # /5 exposes explicit native references, native_renderer and reading.
+        self.assertEqual(report['schema'], 'lightwebpres.series-info/5')
         version = run('--help').stdout.split('LightWebPres v', 1)[1].split(' ', 1)[0]
         self.assertEqual(report['lightwebpres_version'], version)
         self.assertEqual(set(report), {'schema', 'lightwebpres_version',
@@ -19644,9 +19655,9 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                             'unit_index', 'unit_index_max_columns', 'unit_index_selector'})
         self.assertEqual(set(report['presentation']),
                          {'schema', 'selector', 'id', 'label', 'description',
-                          'native_renderer', 'package', 'theme', 'slide_layouts',
+                           'native_renderer', 'identity', 'theme', 'slide_layouts',
                           'slide_chrome', 'starter', 'resource_collection', 'scope'})
-        self.assertEqual(report['presentation']['schema'], 'lightwebpres.presentation-preset/2')
+        self.assertEqual(report['presentation']['schema'], 'lightwebpres.presentation-preset/3')
         self.assertTrue(report['presentation']['native_renderer'])
         self.assertEqual(report['presentation']['selector'], 'builtin/standard')
         self.assertEqual(report['series_meta']['title'], 'A series')

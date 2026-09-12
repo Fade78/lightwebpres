@@ -518,10 +518,10 @@ class UnitIndexBuild(unittest.TestCase):
 
     def test_existing_kit_standard_layout_and_chrome_are_used_without_manifest_change(self):
         self.fixture([COVER, INDEX.format(fields='')],
-                     series_meta={'presentation_preset': support.PresentationPackages.SELECTOR})
-        fixture = support.PresentationPackages()
-        package = fixture._write_package(self.root / 'templates' / 'kits')
-        manifest_path = package / 'manifest.json'
+                      series_meta={'presentation_preset': support.IdentityKitFixtures.SELECTOR})
+        fixture = support.IdentityKitFixtures()
+        identity_kit = fixture._write_identity_kit(self.root / 'templates' / 'kits')
+        manifest_path = identity_kit / 'manifest.json'
         manifest = json.loads(manifest_path.read_text())
         preset = manifest['presets']['brief']
         preset['slide_chrome']['standard'] = {'header': 'Standard header'}
@@ -532,15 +532,15 @@ class UnitIndexBuild(unittest.TestCase):
         index_section = html.split('id="contents"', 1)[1].split('</section>', 1)[0]
         self.assertIn('presentation-studio-standard', index_section)
         self.assertIn('Standard header', index_section)
-        self.assertIn('Package footer', index_section)
+        self.assertIn('Kit footer', index_section)
         self.assertEqual(manifest_path.read_bytes(), before)
 
     def test_dedicated_kit_index_layout_and_chrome_override_standard_fallback(self):
         self.fixture([INDEX.format(fields='')],
-                     series_meta={'presentation_preset': support.PresentationPackages.SELECTOR})
-        fixture = support.PresentationPackages()
-        package = fixture._write_package(self.root / 'templates' / 'kits')
-        path = package / 'manifest.json'
+                      series_meta={'presentation_preset': support.IdentityKitFixtures.SELECTOR})
+        fixture = support.IdentityKitFixtures()
+        identity_kit = fixture._write_identity_kit(self.root / 'templates' / 'kits')
+        path = identity_kit / 'manifest.json'
         manifest = json.loads(path.read_text())
         manifest['layouts']['unit-index'] = {'default': 'layouts/cover.html'}
         manifest['presets']['brief']['slide_chrome']['unit-index'] = {'header': 'Dedicated header'}
@@ -551,7 +551,7 @@ class UnitIndexBuild(unittest.TestCase):
         self.assertIn('Dedicated header', index_section)
 
     def test_preset_variants_keep_identical_index_targets_and_ordinals(self):
-        fixture = support.PresentationPackages()
+        fixture = support.IdentityKitFixtures()
         root, _, _, _, _ = fixture._runtime_series(self.root)
         source = root / 'sources' / 'a.md'
         source.write_text(source.read_text() + '\n---\n\n'

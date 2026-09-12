@@ -81,15 +81,17 @@ must tolerate unknown keys (§13.9). Final 1.0.0 starts the stability promise.
 Beta and release candidates invite feedback and may change before final;
 neither pre-beta nor inter-prerelease compatibility is promised.
 
-The native-identity report baseline is `lightwebpres.presentation-preset/2`,
-wrapped by `lightwebpres.preset-list/2`, `lightwebpres.series-preset/2` and
-`lightwebpres.series-info/4`; theme reports use `lightwebpres.theme-info/6`.
+The native-identity report baseline is `lightwebpres.presentation-preset/3`,
+wrapped by `lightwebpres.preset-list/3`, `lightwebpres.series-preset/3` and
+`lightwebpres.series-info/5`; theme reports use `lightwebpres.theme-info/6`.
 Preset reports export `native_renderer`: `true` for native Standard and
 Commons, `false` for kits, even kits using native layout fragments. This is
 the renderer flag, not an inferred initial selection. There is no public
 `default` alias. `selector` identifies the preset, including
-`builtin/standard`; `package.default_preset` names a package-local preference.
+`builtin/standard`; `identity.default_preset` names an Identity Kit-local preference.
 Consumers of earlier report schemas must adapt (§11.18).
+The nested identity resource is exposed as `identity`; it is not a persisted
+author field and does not introduce an `identity` key into `series.json`.
 
 ## `comment` — review notes
 

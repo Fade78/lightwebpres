@@ -164,12 +164,12 @@ def build(output, theme=None, lang='en'):
     for f in (exe, guide, deck):
         if not f.exists():
             sys.exit(f'missing: {f}')
-    package_selector, _preset_id = PRESENTATION_PRESET.rsplit('/', 1)
-    package_id, package_version = package_selector.split('@', 1)
-    package_manifest = (IDENTITY_KIT_CATALOG / package_id / package_version
-                        / 'manifest.json')
-    if not package_manifest.exists():
-        sys.exit(f'missing: {package_manifest}')
+    identity_selector, _preset_id = PRESENTATION_PRESET.rsplit('/', 1)
+    identity_id, identity_version = identity_selector.split('@', 1)
+    identity_manifest = (IDENTITY_KIT_CATALOG / identity_id / identity_version
+                         / 'manifest.json')
+    if not identity_manifest.exists():
+        sys.exit(f'missing: {identity_manifest}')
     article, images = prepare_article(guide.read_text(encoding='utf-8'))
     for source in sorted(images):
         if not (ROOT / source).is_file():
@@ -213,7 +213,7 @@ def build(output, theme=None, lang='en'):
         output.mkdir(parents=True, exist_ok=True)
         fresh = {item.name for item in (series / 'public').iterdir()}
         # `output` is a generated directory. Remove files from an older
-        # package before copying the fresh build, so stale committed artefacts
+        # build before copying the fresh one, so stale committed artefacts
         # cannot survive while the identity guard compares only current names.
         for item in output.iterdir():
             if item.name in fresh:

@@ -75,14 +75,14 @@ class IdentityKits(unittest.TestCase):
         return path
 
     def test_native_selector_is_explicit_and_catalogued_once(self):
-        catalog = self.lwp.load_presentation_catalog(self.root / 'templates')
+        catalog = self.lwp.load_identity_catalog(self.root / 'templates')
         preset = catalog.resolve_preset(None, 'test')
         self.assertIs(preset, catalog.resolve_preset('builtin/standard', 'test'))
         self.assertEqual(preset.selector, 'builtin/standard')
-        self.assertEqual(preset.package.id, 'builtin')
+        self.assertEqual(preset.identity_kit.id, 'builtin')
         self.assertEqual(preset.resource_collection, 'builtin')
         self.assertEqual(preset.theme_meta['label'], 'Light')
-        self.assertEqual(list(preset.package.themes), ['light'])
+        self.assertEqual(list(preset.identity_kit.themes), ['light'])
         self.assertEqual(self.lwp.resolve_theme_properties(preset.theme_props),
                          self.lwp.resolve_theme_properties())
         self.assertEqual([p.selector for p in catalog.presets()].count(preset.selector), 1)
@@ -138,30 +138,30 @@ class IdentityKits(unittest.TestCase):
                                   'LWP_IDENTITY_KITS_DIR': str(root.parent.parent)})
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
-        self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/2')
+        self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/3')
         self.assertFalse(report['native_renderer'])
         self.assertNotIn('default', report)
         self.assertEqual(report['selector'], 'studio@1.0.0/brief')
-        self.assertEqual(report['package']['default_preset'], 'second')
-        self.assertEqual(report['package']['label'], 'Studio')
+        self.assertEqual(report['identity']['default_preset'], 'second')
+        self.assertEqual(report['identity']['label'], 'Studio')
         self.assertEqual(report['scope'], 'user')
-        self.assertEqual(report['package']['scope'], 'user')
+        self.assertEqual(report['identity']['scope'], 'user')
 
     def test_native_fragments_keep_kit_chrome_and_scope(self):
         root, _manifest = self._kit()
-        package = self.lwp._load_presentation_package(root, 'series')
-        preset = package.presets['brief']
+        identity_kit = self.lwp._load_identity_kit(root, 'series')
+        preset = identity_kit.presets['brief']
         self.assertFalse(preset.default)
-        self.assertEqual(package.label, 'Studio')
-        self.assertEqual(package.default_preset, 'brief')
+        self.assertEqual(identity_kit.label, 'Studio')
+        self.assertEqual(identity_kit.default_preset, 'brief')
         self.assertEqual(preset.scope, 'series')
         self.assertEqual(preset.resource_collection, 'kit')
-        self.assertEqual(package.themes['paper']['origin'], 'builtin')
-        self.assertEqual(package.themes['paper']['scope'], 'builtin')
-        self.assertEqual(package.themes['paper']['meta']['label'], 'Light')
-        self.assertEqual(package.index_layout, '{{content}}')
-        self.assertEqual(package.dependency_paths, (root / 'manifest.json',))
-        series = fixtures.scaffold(self.root, fixtures.PresentationPackages._article())
+        self.assertEqual(identity_kit.themes['paper']['origin'], 'builtin')
+        self.assertEqual(identity_kit.themes['paper']['scope'], 'builtin')
+        self.assertEqual(identity_kit.themes['paper']['meta']['label'], 'Light')
+        self.assertEqual(identity_kit.index_layout, '{{content}}')
+        self.assertEqual(identity_kit.dependency_paths, (root / 'manifest.json',))
+        series = fixtures.scaffold(self.root, fixtures.IdentityKitFixtures._article())
         data_path = series / 'series.json'
         data = json.loads(data_path.read_text(encoding='utf-8'))
         data['series_meta'] = {'presentation_preset': preset.selector}
@@ -181,7 +181,7 @@ class IdentityKits(unittest.TestCase):
             with self.subTest(changes=changes):
                 root, _ = self._kit(**changes)
                 with self.assertRaises(self.lwp.PropertyError):
-                    self.lwp._load_presentation_package(root, 'series')
+                    self.lwp._load_identity_kit(root, 'series')
         root, manifest = self._kit()
         second = copy.deepcopy(manifest['presets']['brief'])
         manifest['presets']['second'] = second
@@ -189,8 +189,8 @@ class IdentityKits(unittest.TestCase):
             if declared is not None:
                 manifest['default_preset'] = declared
             (root / 'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
-            package = self.lwp._load_presentation_package(root, 'series')
-            self.assertEqual(package.default_preset, declared or 'brief')
+            identity_kit = self.lwp._load_identity_kit(root, 'series')
+            self.assertEqual(identity_kit.default_preset, declared or 'brief')
 
     def test_resource_origins_cannot_be_declared(self):
         for key in ('origin', 'scope', 'resource_collection', 'extends',
@@ -198,7 +198,7 @@ class IdentityKits(unittest.TestCase):
             with self.subTest(key=key):
                 root, _ = self._kit(**{key: 'builtin'})
                 with self.assertRaisesRegex(self.lwp.PropertyError, 'unknown manifest key'):
-                    self.lwp._load_presentation_package(root, 'series')
+                        self.lwp._load_identity_kit(root, 'series')
                 path = self._commons(**{key: 'builtin'})
                 with self.assertRaisesRegex(self.lwp.PropertyError, 'unknown Commons preset key'):
                     self.lwp._load_commons_preset(path, 'user', self.lwp.ThemeCatalog())
@@ -217,19 +217,19 @@ class IdentityKits(unittest.TestCase):
                         manifest['layouts']['index'] = reference
                     (root / 'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
                     with self.assertRaises(self.lwp.PropertyError):
-                        self.lwp._load_presentation_package(root, 'series')
+                        self.lwp._load_identity_kit(root, 'series')
 
     def test_commons_identity_scope_and_dependencies_are_independent(self):
         path = self._commons()
-        catalog = self.lwp.load_presentation_catalog(self.root / 'templates')
+        catalog = self.lwp.load_identity_catalog(self.root / 'templates')
         preset = catalog.resolve_preset('commons/night', 'test')
-        self.assertIs(preset.package, self.lwp.DEFAULT_PRESENTATION_PACKAGE)
+        self.assertIs(preset.identity_kit, self.lwp.BUILTIN_IDENTITY_KIT)
         self.assertTrue(preset.default)
         self.assertEqual(preset.resource_collection, 'commons')
         self.assertEqual(preset.scope, 'series')
         self.assertEqual(preset.dependency_paths, (path,))
-        self.assertEqual(preset.package.dependency_paths, ())
-        self.assertEqual(preset.package.digest, '')
+        self.assertEqual(preset.identity_kit.dependency_paths, ())
+        self.assertEqual(preset.identity_kit.digest, '')
         self.assertTrue(preset.digest)
         self.assertEqual(preset.slide_chrome, {})
         self.assertIsNone(preset.starter)
@@ -242,23 +242,23 @@ class IdentityKits(unittest.TestCase):
         listed = fixtures.run('preset', 'list', '--format', 'json')
         self.assertEqual(listed.returncode, 0, listed.stderr)
         listing = json.loads(listed.stdout)
-        self.assertEqual(listing['schema'], 'lightwebpres.preset-list/2')
+        self.assertEqual(listing['schema'], 'lightwebpres.preset-list/3')
         reports = {report['selector']: report for report in listing['presets']}
         for selector in ('builtin/standard', 'commons/night'):
             shown = fixtures.run('preset', 'show', selector, '--format', 'json')
             self.assertEqual(shown.returncode, 0, shown.stderr)
             report = json.loads(shown.stdout)
             self.assertEqual(report, reports[selector])
-            self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/2')
+            self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/3')
             self.assertIs(report['native_renderer'], True)
             self.assertNotIn('default', report)
         self.assertNotEqual(reports['commons/night']['id'],
-                            reports['commons/night']['package']['default_preset'])
+                            reports['commons/night']['identity']['default_preset'])
 
     def test_commons_theme_is_not_dropped_by_native_renderer_flag(self):
         self._commons()
         templates = self.root / 'templates'
-        catalog = self.lwp.load_presentation_catalog(templates)
+        catalog = self.lwp.load_identity_catalog(templates)
         preset = catalog.resolve_preset('commons/night', 'test')
         layers, _ = self.lwp.series_style_context(templates, preset_theme=preset.theme_props)
         expected = self.lwp.resolve_theme_properties(preset.theme_props)
@@ -279,7 +279,7 @@ class IdentityKits(unittest.TestCase):
         templates = self.root / 'templates'
         templates.mkdir()
         (templates / 'settings.conf').write_text('color.page: #123456FF\n', encoding='utf-8')
-        preset = self.lwp.DEFAULT_PRESENTATION_PRESET
+        preset = self.lwp.BUILTIN_STANDARD_PRESET
         layers, _ = self.lwp.series_style_context(templates, preset_theme=preset.theme_props)
         resolved = self.lwp.resolve_theme_properties(*layers)
         self.assertEqual(resolved['color.page'], '#123456FF')
@@ -293,18 +293,18 @@ class IdentityKits(unittest.TestCase):
         props = self.lwp.resolve_theme_properties(self.lwp.theme_property_layer('dracula'))
         theme_path.write_text(self.lwp.theme_file_text(
             'brand', {'label': 'Brand', 'family': 'desk'}, props), encoding='utf-8')
-        before = self.lwp.load_presentation_catalog(self.root / 'templates').resolve_preset('commons/night', 'test')
+        before = self.lwp.load_identity_catalog(self.root / 'templates').resolve_preset('commons/night', 'test')
         self.assertEqual(before.dependency_paths, (path, theme_path))
         props['color.page'] = '#123456FF'
         theme_path.write_text(self.lwp.theme_file_text(
             'brand', {'label': 'Brand', 'family': 'desk'}, props), encoding='utf-8')
-        after = self.lwp.load_presentation_catalog(self.root / 'templates').resolve_preset('commons/night', 'test')
+        after = self.lwp.load_identity_catalog(self.root / 'templates').resolve_preset('commons/night', 'test')
         self.assertNotEqual(before.digest, after.digest)
         self.assertEqual(after.theme_props['color.page'], '#123456FF')
         self._commons(theme='brand', description='Changed description.')
-        renamed = self.lwp.load_presentation_catalog(self.root / 'templates').resolve_preset('commons/night', 'test')
+        renamed = self.lwp.load_identity_catalog(self.root / 'templates').resolve_preset('commons/night', 'test')
         self.assertNotEqual(after.digest, renamed.digest)
-        self.assertEqual(after.package.digest, renamed.package.digest)
+        self.assertEqual(after.identity_kit.digest, renamed.identity_kit.digest)
 
     def test_commons_builtin_light_and_foreign_theme_rejection(self):
         path = self._commons(theme='builtin:light')
@@ -325,11 +325,11 @@ class IdentityKits(unittest.TestCase):
         self._commons(installed / 'commons', label='Installed')
         user_path = self._commons(user_root, label='User')
         with mock.patch.object(self.lwp, '_installed_presentation_roots', return_value=[installed / 'kits']):
-            catalog = self.lwp.load_presentation_catalog(self.root / 'templates')
+            catalog = self.lwp.load_identity_catalog(self.root / 'templates')
             self.assertEqual(catalog.resolve_preset('commons/night', 'test').label, 'User')
             self.assertEqual(catalog.resolve_preset('commons/night', 'test').scope, 'user')
             series_path = self._commons(label='Series')
-            catalog = self.lwp.load_presentation_catalog(self.root / 'templates')
+            catalog = self.lwp.load_identity_catalog(self.root / 'templates')
             preset = catalog.resolve_preset('commons/night', 'test')
             self.assertEqual(preset.label, 'Series')
             self.assertEqual(preset.scope, 'series')
@@ -343,11 +343,11 @@ class IdentityKits(unittest.TestCase):
                       if p['selector'] == 'commons/night')
         self.assertEqual(report['resource_collection'], 'commons')
         self.assertEqual(report['scope'], 'user')
-        self.assertEqual(report['package']['id'], 'builtin')
+        self.assertEqual(report['identity']['id'], 'builtin')
 
     def test_commons_build_verify_and_only_cache_track_descriptor_changes(self):
         descriptor = self._commons()
-        series = fixtures.scaffold(self.root, fixtures.PresentationPackages._article())
+        series = fixtures.scaffold(self.root, fixtures.IdentityKitFixtures._article())
         data_path = series / 'series.json'
         data = json.loads(data_path.read_text(encoding='utf-8'))
         data['series_meta'] = {'presentation_preset': 'commons/night'}
@@ -362,7 +362,7 @@ class IdentityKits(unittest.TestCase):
         report = json.loads((series / 'public' / '.lwp-manifest.json').read_text(encoding='utf-8'))
         commons = next(p for p in report['presentation_presets'] if p['selector'] == 'commons/night')
         self.assertTrue(commons['preset_digest'])
-        self.assertEqual(commons['package_digest'], '')
+        self.assertEqual(commons['identity_digest'], '')
         value = json.loads(descriptor.read_text(encoding='utf-8'))
         value['description'] = 'A changed description without any kit changes.'
         descriptor.write_text(json.dumps(value), encoding='utf-8')
@@ -380,7 +380,7 @@ class IdentityKits(unittest.TestCase):
         commons.mkdir(parents=True)
         (commons / 'presets').symlink_to(descriptor.parent, target_is_directory=True)
         with self.assertRaisesRegex(self.lwp.PropertyError, 'through a symlink'):
-            self.lwp.load_presentation_catalog(self.root / 'templates')
+            self.lwp.load_identity_catalog(self.root / 'templates')
 
     def _external_commons(self):
         descriptor = self._commons(Path(os.environ['LWP_COMMONS_DIR']), theme='brand')
@@ -411,7 +411,7 @@ class IdentityKits(unittest.TestCase):
             data['articles'] = [{'page_source': 'a.md'}]
             (series / 'series.json').write_text(json.dumps(data), encoding='utf-8')
             (series / 'sources' / 'a.md').write_text(
-                fixtures.PresentationPackages._article(), encoding='utf-8')
+                fixtures.IdentityKitFixtures._article(), encoding='utf-8')
             templates = series / 'templates'
             self.assertEqual((templates / 'commons/presets/night.json').read_bytes(), descriptor_text)
             self.assertEqual((templates / 'themes/brand.conf').read_bytes(), theme_text)

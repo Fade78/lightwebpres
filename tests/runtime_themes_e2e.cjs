@@ -156,11 +156,20 @@ async function main() {
     options: document.querySelectorAll('#themeOptions .theme-option').length,
     previews: Array.prototype.map.call(
       document.querySelectorAll('#themeOptions .theme-option[data-theme]'), (button) => {
-        const style = getComputedStyle(button);
+        const cover = button.querySelector('.theme-option-cover');
+        const standard = button.querySelector('.theme-option-standard');
+        const coverStyle = getComputedStyle(cover);
+        const standardStyle = getComputedStyle(standard);
         return {
-          background: style.backgroundColor,
-          gradient: style.backgroundImage,
-          foreground: style.color,
+          background: coverStyle.backgroundColor,
+          gradient: coverStyle.backgroundImage,
+          foreground: coverStyle.color,
+          standardBackground: standardStyle.backgroundColor,
+          standardForeground: standardStyle.color,
+          coverFont: cover.style.fontFamily,
+          standardFont: standard.style.fontFamily,
+          hasCoverLabel: !!cover.querySelector('.theme-option-cover-label'),
+          hasStandardLabel: !!standard.querySelector('small'),
         };
       }),
   }));
@@ -170,7 +179,13 @@ async function main() {
   if (picker.previews.some((preview) =>
       !preview.background || preview.background === 'rgba(0, 0, 0, 0)'
       || !preview.gradient || preview.gradient === 'none'
-      || !preview.foreground || preview.foreground === 'rgba(0, 0, 0, 0)')) {
+      || !preview.foreground || preview.foreground === 'rgba(0, 0, 0, 0)'
+      || !preview.standardBackground
+      || preview.standardBackground === 'rgba(0, 0, 0, 0)'
+      || !preview.standardForeground
+      || preview.standardForeground === 'rgba(0, 0, 0, 0)'
+      || !preview.coverFont || !preview.standardFont
+      || !preview.hasCoverLabel || !preview.hasStandardLabel)) {
     fail('theme picker options do not carry resolved visual previews: '
       + JSON.stringify(picker.previews));
   }
@@ -740,11 +755,23 @@ async function main() {
         appearance: document.querySelector('[data-menu-action="theme"] .presenter-menu-label').textContent,
         buttonPreviews: Array.from(
           document.querySelectorAll('#presentationOptions .presentation-option'),
-        ).map((button) => ({
-          background: button.style.backgroundColor,
-          gradient: button.style.backgroundImage,
-          foreground: button.style.color,
-        })),
+        ).map((button) => {
+          const cover = button.querySelector('.theme-option-cover');
+          const standard = button.querySelector('.theme-option-standard');
+          const coverStyle = getComputedStyle(cover);
+          const standardStyle = getComputedStyle(standard);
+          return {
+            background: coverStyle.backgroundColor,
+            gradient: coverStyle.backgroundImage,
+            foreground: coverStyle.color,
+            standardBackground: standardStyle.backgroundColor,
+            standardForeground: standardStyle.color,
+            coverFont: cover.style.fontFamily,
+            standardFont: standard.style.fontFamily,
+            hasCoverLabel: !!cover.querySelector('.theme-option-cover-label'),
+            hasStandardLabel: !!standard.querySelector('small'),
+          };
+        }),
       };
     });
     if (presentationInitial.primary !== 'lightwebpres-docs@0.1.0/docs'
@@ -756,7 +783,13 @@ async function main() {
         || presentationInitial.buttonPreviews.some((preview) => !preview.background
           || preview.background === 'rgba(0, 0, 0, 0)'
           || !preview.gradient || preview.gradient === 'none'
-          || !preview.foreground || preview.foreground === 'rgba(0, 0, 0, 0)')) {
+          || !preview.foreground || preview.foreground === 'rgba(0, 0, 0, 0)'
+          || !preview.standardBackground
+          || preview.standardBackground === 'rgba(0, 0, 0, 0)'
+          || !preview.standardForeground
+          || preview.standardForeground === 'rgba(0, 0, 0, 0)'
+          || !preview.coverFont || !preview.standardFont
+          || !preview.hasCoverLabel || !preview.hasStandardLabel)) {
       fail('runtime presentation catalogue or appearance label is wrong: '
         + JSON.stringify(presentationInitial));
     }

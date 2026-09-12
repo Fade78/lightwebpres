@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 10 · **à faire** 0 · **en cours** 2 · **terminé** 55 · **abandonné** 1 · **sans objet** 3
+**à étudier** 10 · **à faire** 0 · **en cours** 2 · **terminé** 56 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -178,6 +178,7 @@ gets its own entry and its own state**, however small.
 - **B60** — Le zoom de présentation ne grandit pas le cadre des fiches
 - **B61** — Le redimensionnement repositionne la fiche courante
 - **B63** — Le lecteur peut changer d'enveloppe sans changer de source
+- **B68** — Identity Kit vocabulary and native identity boundary
 
 ### abandonné
 
@@ -3453,3 +3454,40 @@ coordination and the corresponding terminology sweep. In particular,
 no global `build --select` exists. The owner authorized the physical-output
 rename in this first lot; that does not authorize silently migrating persisted
 author fields or adding compatibility aliases.
+
+## B68 — Identity Kit vocabulary and native identity boundary
+
+**État :** terminé · **Depuis :** 2026-09-12
+
+The former internal presentation-package model is replaced by an Identity Kit
+model. `builtin` is the native LightWebPres identity embedded in the executable;
+external Identity Kits are versioned, autonomous trees loaded from installed,
+user or series-local catalogues. Both are represented by the same internal
+identity resource so rendering and preset resolution do not need a second
+native path.
+
+The identity catalogue resolves native, Commons and kit presets. A
+`PresentationPreset` points internally to `identity_kit`, not to a package.
+The persisted selectors and fields remain unchanged: `presentation_preset`,
+`presentation_presets`, `articles[]`, `page_source` and `page_dest` remain the
+canonical author vocabulary under B67.
+
+Standalone `.conf` themes remain in the separate ThemeCatalog. A user or
+series-local theme can be consumed by the native identity without becoming an
+Identity Kit or acquiring implicit identity ownership. Kit-owned themes remain
+manifest-declared and kit-qualified. Resource origin (`embedded`, `installed`,
+`user`, `series`) remains separate from identity ownership and palette
+attribution.
+
+The versioned preset reports now expose the resolved identity under `identity`:
+`presentation-preset/3`, `preset-list/3`, `series-preset/3` and
+`series-info/5`. The generated build manifest is `lightwebpres.manifest/2` and
+uses `identity_digest`. No compatibility alias for the retired internal names
+is retained; public consumers must use the new report schema identifiers.
+
+The implementation was verified with the Identity Kit, runtime-theme,
+series-report, generated-guide, generated-demo, resource-factoring and browser
+checks. The mandated parallel run discovered 1,433 tests across 230 classes;
+all classes passed except the pre-existing documentation-link check for
+`examples/first-article/README.md`, which points at the disposable absent path
+`../../work/tmp/index-frame/...` and remains outside this vocabulary change.
