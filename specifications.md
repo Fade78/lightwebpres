@@ -3836,18 +3836,19 @@ consigné, pas un oubli ; les deux clés de soulignement font exception :
 absentes, elles valent « pas de soulignement », le sens de « pas
 d'avis » pour un axe ajouté après coup.
 
-The native Light theme is the one catalogue resource that is not a row in
-`THEMES`. Its `builtin:light` entry is exposed by `ThemeCatalog` through the
-same canonical resource index as the palette rows, but its property layer is
-the native Identity Kit layer and keeps registry references. The index must
-not replace it with a resolved snapshot: author pins rely on those references
-being resolved only after the theme layer is merged.
+The native Light theme is not a palette row in `THEMES`, but it participates in
+the same bare-slug catalogue as every other theme. `ThemeResource` carries its
+slug, computed loading origin, display entry, property layer, optional source
+path and identity owner. Native composition keeps registry references rather
+than flattening them before author pins are merged.
 
-The effective global index begins with the qualified native resource
-`builtin:light`, then applies the **integrated < installed < user** merge for
-bare palette slugs; a series adds its **series** layer above that. A local
-`light.conf` is therefore a distinct bare resource, not a replacement for
-`builtin:light`.
+The effective index applies **builtin < installed < user < series** precedence
+to every slug, including `light`. A local `light.conf` overrides bare `light`,
+just as a local `nord.conf` overrides bare `nord`. `builtin:<slug>` always selects
+the shipped resource, including `builtin:light`. The native `builtin/standard`
+preset owns that explicit native resource, independent of a bare-slug override.
+Precedence is enforced by the catalogue; equal-origin ties keep deterministic
+loader order. Global operations omit the series layer.
 
 Les thèmes externes suivent le même vocabulaire mais sont des snapshots
 complets dans des fichiers `.conf` UTF-8. Le fichier commence par les
@@ -3872,10 +3873,9 @@ des snapshots complets dans `templates/themes/` pour rendre une série
 autonome. Il n'existe pas de mécanisme `extends` : la cascade settings/theme
 est le seul héritage prévu.
 
-La table `THEMES` reste la source de vérité des palettes intégrées ; `builtin:light`
-est la ressource native qualifiée tenue par l'Identity Kit natif. La couche
-appliquée par `init --theme`/`series theme set` et les aperçus de `theme gallery`
-viennent du même index de catalogue et ne peuvent pas diverger par construction.
+`THEMES` remains the shipped palette table. `init --theme`, `series theme set`,
+inspection and gallery previews use the same resolved resource records, including
+the native identity's reference-aware Light layer.
 
 Les neuf premières entrées reprennent des palettes d'éditeurs de code
 connues (`nord`, `dracula`, `solarized`, `gruvbox`, `catppuccin`,
@@ -4740,13 +4740,13 @@ unowned Commons themes), then a localized loading origin:
 
 | Runtime origin | English label | French label |
 |---|---|---|
-| `embedded`, `builtin` | Built-in | Intégré |
+| `builtin` | Built-in | Intégré |
 | `installed` | Installed | Installé |
 | `user` | User | Utilisateur |
 | `series` | Series-local | Local à la série |
 
-This display mapping preserves the raw runtime payloads, public report values
-and selectors. In particular, theme-info `source` remains palette attribution,
+The same origin vocabulary is used by catalogue records and runtime payloads.
+Palette attribution remains independent: theme-info `source` retains credits,
 not loading origin. **Show themes** / **Afficher les thèmes** labels the existing
 Applicable / Current identity / All filter; its values `applicable`, `identity`
 and `all` and its membership rules are unchanged. It is not an origin filter.
@@ -4947,7 +4947,8 @@ utilisateur `LWP_COMMONS_DIR`, puis dans `templates/commons/presets/` pour une
 série. Un identifiant plus proche remplace le descripteur entier. Le schéma
 `lightwebpres.commons-preset/1` admet exactement les cinq clés suivantes, toutes
 requises ; `id` correspond au nom du fichier, `label` et `description` sont
-non vides, et `theme` est un slug global ou `builtin:light` :
+non vides. `theme` accepts a global bare slug or `builtin:<slug>`; any shipped
+theme can be forced independently of local overrides:
 
 ```json
 {
@@ -6162,14 +6163,14 @@ sur celle qui répond à « celui-là, il vaut quoi » : `theme show`.
 ### 11.9 `theme list`
 
 ```bash
-lightwebpres theme list [--polarity light|dark] [--hue <teinte>] [--family <nom>]
+lightwebpres theme list [--polarity light|dark] [--hue <name>] [--family <name>] [--origin builtin|installed|user|series]
 ```
 
-Liste le catalogue global effectif depuis le terminal, avec pour chaque entrée son
-identifiant canonique (un slug de palette ou une référence qualifiée native),
-ses trois facettes (§9.5.2), son étiquette et sa remarque éditoriale.
-Sans option, les liste tous ; chaque option restreint la liste, et les
-options se combinent.
+List effective global themes with their bare slug, three appearance facets
+(§9.5.2), computed `origin`, label and editorial note. The heading counts all
+effective entries by origin and states precedence. `--origin` filters after
+precedence, independently of palette credits; it combines with appearance
+filters. Every shipped theme, including Light, has origin `builtin`.
 
 Cette commande existe parce que **lightwebpres doit pouvoir être utilisé
 seul**. Les facettes n'ont d'abord vécu que dans le HTML produit par
@@ -6182,16 +6183,12 @@ L'identifiant est mis en avant dans la sortie parce que c'est ce que
 `init --theme` et `series theme set` attendent : ce qu'on lit est
 directement ce qu'on retape.
 
-Le catalogue comprend la ressource native `builtin:light`, les thèmes intégrés
-et les snapshots externes installés
-ou utilisateur trouvés dans les emplacements de §2.3. Un slug local ombrant un
-thème intégré n'est affiché qu'une fois, comme l'entrée globale effective.
-The native `builtin:light` id is qualified, so a local bare `light` snapshot
-does not shadow or replace it.
-Lorsqu'une série est construite, ses snapshots de `templates/themes/` sont
-ajoutés au-dessus. Pour demander malgré tout la version intégrée, utiliser
-`builtin:<slug>` avec `theme show`, `init`, `series theme set` ou un sélecteur
-runtime.
+The catalogue lists bare `light` alongside other shipped slugs and installed/user
+snapshots found under §2.3. A shadowed slug appears once, with the winning origin.
+`theme list` remains global: it does not implicitly discover a series from the
+working directory. Series operations add `templates/themes/` above user themes.
+Force the built-in resource with `builtin:<slug>` in `theme show`, `init`,
+`series theme set`, a Commons descriptor or a runtime selector.
 
 Deux cas se distinguent volontairement :
 
@@ -6453,7 +6450,8 @@ slugs ou `--all`, c'est une **liste** de ces objets, dans l'ordre demandé.
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
 | `label` | chaîne ou `null` | l'étiquette affichable du thème ; `null` si aucun thème n'est nommé |
 | `note` | chaîne ou `null` | la remarque éditoriale, **en texte nu** (§9.5.4) |
-| `source` | chaîne ou `null` | la provenance de la palette (`lightwebpres`, `nord`, …) |
+| `source` | string or `null` | Palette attribution/credits (`lightwebpres`, `nord`, …), independent of loading origin |
+| `origin` | string or `null` | Computed origin of the base theme: `builtin`, `installed`, `user`, `series`; `null` when no loaded resource is known. A Commons theme's origin can differ from its descriptor's scope; settings pins remain separately reported |
 | `facets` | objet | `polarity`, `hue`, `family` (§9.5.2), calculées depuis le thème explicite ou celui du preset sur une série |
 | `palette` | objet | les sept valeurs partagées **résolues**, clés sans le préfixe `color.` : `page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`, `nav`. Valeurs en `#RRGGBBAA` |
 | `fonts` | objet | les quatre piles résolues : `text`, `display`, `ui`, `mono` |
@@ -6470,11 +6468,12 @@ slugs ou `--all`, c'est une **liste** de ces objets, dans l'ordre demandé.
 | `pinned` | liste de chaînes | les clés de propriété épinglées (décommentées) dans `templates/settings.conf`, triées. Vide sur un slug. C'est la réponse à « qu'est-ce que cette série a changé » |
 | `custom_css` | booléen | `templates/custom.css` porte des règles — donc quelque chose de non mesuré s'applique par-dessus |
 
-Pour une série native sans `theme:` explicite, `target.theme` vaut `null`,
-`target.presentation_preset` vaut `builtin/standard`, `label` vaut `Light` et
-`source` vaut `builtin`. Le rapport de preset (§11.18) nomme ce thème par
-`theme.id: light` ; `builtin:light` est aussi son identifiant canonique dans le
-catalogue global, et non le slug nu `light` d'un snapshot local.
+For a native series without explicit `theme:`, `target.theme` is `null`,
+`target.presentation_preset` is `builtin/standard`, `label` is `Light`, and both
+`source` and `origin` are `builtin`. Preset reports (§11.18) name its local theme
+as `theme.id: light` and expose `theme.origin` separately. The explicit
+`builtin:light` reference and native runtime identity bypass bare-slug overrides;
+the catalogue lists the effective bare `light` resource and its origin.
 
 `accessibility` a trois clés — `body_text`, `large_text`, `non_text` —
 de même forme :
@@ -6576,12 +6575,12 @@ sans thème explicite (donc avec une base de preset), la commande exige une
 sélection. La copie est une vraie source de série : elle reste utilisable après
 disparition du catalogue utilisateur. Un fichier déjà présent et différent
 exige `--force`.
-La ressource native `builtin:light` est fournie par l'exécutable et n'est donc
-pas copiée ; la commande la signale puis la saute, y compris quand elle est
-incluse par `all`. Un snapshot local nommé `light` reste une ressource nue
-distincte et peut être vendu normalement. Les palettes intégrées peuvent
-être demandées avec `builtin:<slug>` pour éviter toute ambiguïté avec une
-entrée locale.
+The native Light resource is supplied by the executable and is not copied,
+whether selected by bare `light` or by `builtin:light`. `all` selects effective
+resources: a local snapshot shadowing `light` is copied normally. Any shipped
+palette can be forced with `builtin:<slug>`. Selecting distinct resources that
+would occupy the same `<slug>.conf` is refused before writes, even with `--force`.
+All selected snapshots and destination checks are prepared before publication.
 
 **`theme path`** imprime les racines installées puis utilisateur, dans leur
 ordre de priorité. Il n'écrit rien. Les racines de série sont propres à la

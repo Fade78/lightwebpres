@@ -989,7 +989,9 @@ For example, `templates/commons/presets/reading.json` contains:
 ```
 
 All five keys are required; no other key is accepted, including `starters`.
-The `id` matches the filename; `theme` is a global theme slug or `builtin:light`.
+The `id` matches the filename; `theme` is a global theme slug or `builtin:<slug>`.
+For example, `light` follows catalogue precedence, while `builtin:light` and
+`builtin:nord` force the shipped resources even when local themes shadow them.
 Select it with `./lightwebpres series preset set my-series --preset commons/reading`.
 If the series has an explicit theme, also choose `--keep-theme` or
 `--use-preset-theme`.
@@ -1214,9 +1216,9 @@ a cross-product of presets and themes or fetch additional catalogue entries.
 Theme subtitles show the family, identity label (or Commons collection) and
 loading origin: **Built-in**, **Installed**, **User** or **Series-local**.
 Built-in covers both shipped Commons themes and native Light; it does not make
-Commons an identity. These are localized display labels, not palette credits
-or changes to the raw runtime origins `embedded`, `builtin`, `installed`, `user`
-and `series`.
+Commons an identity. Raw origins are `builtin`, `installed`, `user` and `series`;
+palette credits remain separate in `source`. A Commons preset's theme can have
+a different origin from the descriptor that selected it.
 
 For color and typography changes, choose the smallest value override that
 does the job before adding CSS rules.
@@ -1231,15 +1233,18 @@ background is light or dark, and what hue that background carries.
 ./lightwebpres theme list                                     # the whole catalogue, with facets
 ./lightwebpres theme list --family terrain                    # one editorial family
 ./lightwebpres theme list --polarity dark --hue green          # just the ones you mean
+./lightwebpres theme list --origin user                       # effective user themes
 ./lightwebpres theme gallery                             # every theme, rendered
 ```
 
-The Commons theme catalogue combines the embedded themes with complete UTF-8 `.conf`
+The theme catalogue combines native Light and shipped palettes with complete UTF-8 `.conf`
 snapshots from the installed and user roots; a series can add its own
 `templates/themes/` snapshots on top. `LWP_THEMES_DIR` replaces the user root.
-The order is embedded, installed, user, series, and a collision replaces the
-whole lower entry rather than inheriting it. Use `builtin:<slug>` to select an
-embedded theme hidden by a local file.
+Every entry has a bare slug, including `light`, and a computed loading origin.
+The order is builtin < installed < user < series; a collision replaces the
+whole lower entry rather than inheriting it. Use `builtin:<slug>` to force a
+shipped theme hidden by a local file. `builtin/standard` keeps its explicitly
+native Light theme; selecting bare `light` follows ordinary precedence.
 
 Installed themes live under `<prefix>/share/lightwebpres/themes/` for FHS
 installations, or a sibling `themes/` beside a standalone executable. The
@@ -1290,7 +1295,11 @@ Create or make a theme portable explicitly:
 
 `theme create` writes a complete editable snapshot, `theme migrate` keeps only
 the selected theme and explicit pins in an old scaffold, and `theme vendor`
-copies complete snapshots into the series. No theme file uses `extends`.
+copies complete snapshots into the series. It skips the native Light resource,
+but copies a local theme shadowing bare `light`. Selecting two distinct origins
+for one output slug is refused before writes, even with `--force`; export one
+of them under a new slug with `theme create` when both are needed. No theme file
+uses `extends`.
 
 The effective theme in `templates/settings.conf` is always included as the
 first base choice, even if it is not in the list. When that file has property

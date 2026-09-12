@@ -3504,18 +3504,17 @@ catalogue. The native `Light` theme belongs to the embedded `builtin` Identity
 Kit and keeps symbolic registry references so settings pins resolve after the
 theme layer is merged.
 
-The first increment therefore exposes `builtin:light` through the same
+The first increment exposed `builtin:light` through the same
 `ThemeCatalog` resource index used by theme listing, inspection, gallery,
-runtime selectors and series theme commands. The index keeps bare palette
-slugs in their existing precedence chain and keeps the qualified native id
-separate, so a local `light.conf` cannot replace the native resource. The
-catalogue entry used for display is derived from the resolved native layer;
-the layer used for composition is not flattened.
+runtime selectors and series theme commands. Its qualified-only native catalogue
+entry was an intermediate design, superseded by the owner's clarification below.
+The display entry is derived from the resolved native layer; the composition
+layer retains references.
 
 The broader appearance contract remains open: `series.json.appearance`, the
 distinction between initial choice and published alternatives, `ALL` and
-`ESSENTIAL`, settings migration, and the final public vocabulary for loading
-origin versus publication presence. Those decisions must consume this index
+`ESSENTIAL`, settings migration, and publication-presence semantics. Loading
+origin is settled by the owner clarification below. Those decisions must consume this index
 rather than reconstructing a second catalogue in the build or browser.
 
 The runtime increment now derives theme resource ids from their owning identity
@@ -3525,6 +3524,41 @@ bare `light` and themes owned by real kits remain distinct. Browser tests cover
 unique native choices with both native and Commons presets, settings pins,
 desktop/mobile layouts and both interface languages. Broader appearance
 configuration and publication-selection policy remain open.
+
+**Owner clarification after 0.59.2:** all shipped themes are built-in. Listing
+only Light with a qualified prefix mixed identity ownership and loading origin.
+The effective catalogue now uses bare slugs for every theme, including `light`,
+and shows computed `origin` separately. `ThemeResource` owns the slug, origin,
+display entry, property layer, source path and optional identity. The catalogue
+enforces builtin < installed < user < series precedence rather than relying on
+the order its callers add resources. A local `light` shadows the bare selection;
+`builtin:light` still forces the native resource owned by `builtin/standard`.
+
+Origin uses the same four tokens in records and runtime data. Palette credits,
+descriptor scope and theme ownership remain independent. Kit resource ancestry
+is named `source_identity` internally rather than overloading `origin` with an
+identity selector. Theme reports add `origin`; preset reports expose
+`theme.origin`. No public report schema bump is needed for these optional fields.
+
+The consistency pass also removed palette-table-only fallbacks from settings
+parsing, report generation and CLI directory disambiguation. Known global slugs
+win over same-named directories. Commons descriptors accept `builtin:<slug>` for
+any shipped theme, not only Light. Runtime selection deduplicates bare and forced
+references to one resource, while a direct property-only preset retains unknown
+provenance instead of inventing a loader origin. Vendor selection is prepared
+before writes and rejects two distinct resources claiming one filename, even
+with `--force` or an already-local selected snapshot.
+
+`theme list --origin` filters effective global entries after precedence; it does
+not load series roots implicitly. Series operations add their own layer. The
+broader `appearance` configuration and publication policy remain open in B69.
+
+This clarification and consistency pass were verified on 2026-09-12 with 1,478
+tests across 233 classes and 8 workers, without failures or skips. Dedicated
+regressions cover origin-order independence, bare/forced native selection,
+installed/user/series collisions, runtime identity deduplication, Commons
+portability, standalone helpers, directory disambiguation and vendor conflicts.
+An independent re-review found no remaining material issue in these paths.
 
 ## B70 — Publication planning and revision-bound GitLab snapshots
 

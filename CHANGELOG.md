@@ -35,6 +35,20 @@ link to the originals. They are at
 
 ## Unreleased — 0.59.2
 
+Theme listing now uses bare slugs for every theme, including `light`, and displays
+loading origin independently of palette credits. All shipped themes use
+`builtin`; `--origin` filters effective entries. The catalogue enforces the same
+builtin < installed < user < series precedence for all slugs, with
+`builtin:<slug>` available to force any shipped theme, including in Commons
+presets. Theme and preset reports expose the selected theme's origin separately.
+
+Bare and forced references to one resource no longer create duplicate runtime
+choices. Settings/report helpers use the same complete catalogue without an
+explicit context, and known theme slugs take precedence over same-named
+directories. Vendoring validates every selected destination before writes and
+refuses distinct origins that would overwrite the same theme filename, including
+with `--force`.
+
 Build and verify now share a disk-backed publication plan for HTML, README and
 assets. Multipage verification detects changed or missing copied images just as
 combined-HTML verification does. Rendering, asset reads, manifest validation and
@@ -63,12 +77,11 @@ resolves to the canonical `builtin/standard` selector. Commons presets retain
 standalone theme source and note metadata, and changing identity follows the
 Identity Kit manifest's `default_preset` when that preset is published.
 
-The native Light theme is now indexed as the canonical `builtin:light` resource
-alongside the embedded palette catalogue. Its display metadata is resolved for
-inspection, while its composition layer retains symbolic property references;
-a local bare `light` snapshot remains a separate resource. `theme vendor` does
-not try to write the native resource into the series namespace, so `all` can
-also be used when a local `light` snapshot exists.
+The native Light theme participates in the same catalogue as the shipped
+palettes. Its display metadata is resolved for inspection, while its composition
+layer retains symbolic property references. A local `light` shadows the bare
+selection; `builtin:light` still selects the native resource. `theme vendor`
+skips the native resource and copies effective local snapshots normally.
 
 ## Unreleased — 0.59.1
 

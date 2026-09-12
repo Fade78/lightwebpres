@@ -93,8 +93,8 @@ class IdentityKits(unittest.TestCase):
 
     def test_native_theme_has_a_canonical_catalogue_id_without_flattening(self):
         catalog = self.lwp.ThemeCatalog()
-        self.assertIn('builtin:light', catalog.theme_ids)
-        self.assertNotIn('light', catalog.theme_ids)
+        self.assertIn('light', catalog.theme_ids)
+        self.assertNotIn('builtin:light', catalog.theme_ids)
         self.assertTrue(catalog.has('builtin:light'))
         self.assertEqual(catalog.entry('builtin:light')['label'], 'Light')
         self.assertEqual(catalog.entry('builtin:light')['source'], 'builtin')
@@ -113,12 +113,12 @@ class IdentityKits(unittest.TestCase):
             self.lwp.theme_property_layer('nord'))
         listed = fixtures.run('theme', 'list')
         self.assertEqual(listed.returncode, 0, listed.stderr)
-        self.assertIn('builtin:light  [light/neutral]  desk', listed.stdout)
+        self.assertIn('light  [light/neutral]  desk  origin=builtin', listed.stdout)
         shown = fixtures.run('theme', 'show', 'builtin:light', '--format', 'json')
         self.assertEqual(shown.returncode, 0, shown.stderr)
         self.assertEqual(json.loads(shown.stdout)['target']['theme'], 'builtin:light')
 
-    def test_local_light_snapshot_does_not_shadow_native_light(self):
+    def test_local_light_snapshot_shadows_bare_but_not_forced_native_light(self):
         themes = self.root / 'library' / 'themes'
         themes.mkdir(parents=True)
         local = themes / 'light.conf'
@@ -127,7 +127,7 @@ class IdentityKits(unittest.TestCase):
             self.lwp.resolve_theme_properties(
                 self.lwp.theme_property_layer('nord'))), encoding='utf-8')
         catalog = self.lwp.load_theme_catalog()
-        self.assertEqual(catalog.theme_ids[0], 'builtin:light')
+        self.assertEqual(catalog.theme_ids[0], 'light')
         self.assertIn('light', catalog.theme_ids)
         self.assertEqual(catalog.entry('light')['label'], 'Local Light')
         self.assertEqual(catalog.entry('builtin:light')['label'], 'Light')
@@ -202,7 +202,7 @@ class IdentityKits(unittest.TestCase):
         self.assertEqual(identity_kit.default_preset, 'brief')
         self.assertEqual(preset.scope, 'series')
         self.assertEqual(preset.resource_collection, 'kit')
-        self.assertEqual(identity_kit.themes['paper']['origin'], 'builtin')
+        self.assertEqual(identity_kit.themes['paper']['source_identity'], 'builtin')
         self.assertEqual(identity_kit.themes['paper']['scope'], 'builtin')
         self.assertEqual(identity_kit.themes['paper']['meta']['label'], 'Light')
         self.assertEqual(identity_kit.index_layout, '{{content}}')
@@ -367,7 +367,7 @@ class IdentityKits(unittest.TestCase):
         self.assertEqual(self.lwp.resolve_theme_properties(preset.theme_props),
                          self.lwp.resolve_theme_properties())
         self.assertEqual(preset.theme_meta['label'], 'Light')
-        for theme in ('builtin:dracula', 'studio:paper', 'studio@1.0.0/paper',
+        for theme in ('builtin:missing', 'studio:paper', 'studio@1.0.0/paper',
                       'commons:dracula', 'missing'):
             with self.subTest(theme=theme):
                 path = self._commons(theme=theme)

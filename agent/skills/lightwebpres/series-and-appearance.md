@@ -310,7 +310,12 @@ Commons themes live under `themes/` and `templates/themes/`, with
 `commons/presets/<id>.json`: installed, user (`LWP_COMMONS_DIR`) or
 series-local (`templates/commons/presets/`). Their strict
 `lightwebpres.commons-preset/1` schema has `schema`, `id`, `label`,
-`description`, `theme`; the theme is a global slug or `builtin:light`.
+`description`, `theme`; the theme is a global slug or `builtin:<slug>`.
+Bare `light` follows builtin < installed < user < series precedence just like
+other theme slugs; `builtin:light` forces the native resource. Theme origin is
+computed separately from descriptor origin and palette credits. `theme list`
+shows origins and accepts `--origin builtin|installed|user|series`; its catalogue
+is global, while series operations include the series layer.
 They bind native layouts to a theme with no starter. Native Standard uses
 minimal Light. `kit compose` creates an autonomous kit from explicit final
 references; follow the guide route in Operations for manifest and recipe

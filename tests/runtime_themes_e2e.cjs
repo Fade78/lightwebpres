@@ -1119,7 +1119,7 @@ async function main() {
       for (const filter of ['applicable', 'identity', 'all']) {
         await originPage.selectOption('#themeSource', filter);
         for (const [slug, family, owner, collection, identity, origin, label] of [
-          ['print-ink', 'print', 'Commons', 'Commons', null, 'embedded', origins[0]],
+          ['print-ink', 'print', 'Commons', 'Commons', null, 'builtin', origins[0]],
           ['builtin:light', 'desk', 'LightWebPres', 'builtin', 'builtin', 'builtin', origins[0]],
           ...['installed', 'user', 'series'].map((scope, i) =>
             ['origin-' + scope, 'print', 'Commons', 'Commons', null, scope, origins[i + 1]]),

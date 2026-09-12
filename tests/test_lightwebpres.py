@@ -3281,7 +3281,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
     def test_canonical_theme_list_works(self):
         result = run('theme', 'list')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('built-in themes', result.stdout)
+        self.assertIn('Origins: builtin', result.stdout)
 
     def test_canonical_theme_gallery_works(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -10431,7 +10431,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
     def test_runtime_payload_can_include_every_theme(self):
         data = self.lwp.build_theme_runtime('all', 'print-oldpress')
         self.assertEqual(data['primary'], 'print-oldpress')
-        self.assertEqual(len(data['themes']), len(self.lwp.THEMES))
+        self.assertEqual(len(data['themes']), len(self.lwp.ThemeCatalog().theme_ids))
         self.assertEqual(data['themes'][0]['slug'], 'print-oldpress')
 
     def test_runtime_payload_expands_essential(self):
@@ -10479,7 +10479,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
                     f'{alias}:{value}', None)
                 expected = ['default'] + [
                     slug for slug, _theme, facets in self.lwp.themes_matching(
-                        {facet: value})]
+                        {facet: value}) if slug != 'light']  # default already supplies native Light
                 self.assertEqual(actual, expected)
 
     def test_runtime_payload_rejects_unknown_facets_and_empty_selectors(self):
@@ -12675,7 +12675,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
     # --- the JSON contract with lightwebpres-gui (§1.2, §11.9.1) ---
 
     ROOT_KEYS = {'schema', 'lightwebpres_version', 'target', 'label', 'note',
-                 'source', 'facets', 'palette', 'fonts', 'accessibility'}
+                 'source', 'origin', 'facets', 'palette', 'fonts', 'accessibility'}
     TARGET_KEYS = {'kind', 'theme', 'presentation_preset', 'directory',
                    'pinned', 'custom_css'}
     CATEGORY_KEYS = {'level', 'threshold_aa', 'threshold_aaa',
@@ -12740,7 +12740,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         listing = run('theme', 'list')
         self.assertEqual(listing.returncode, 0, listing.stderr)
         printed = {m[0]: (m[1], m[2]) for m in re.findall(
-            r'^  (\S+)  \[(\S+)\]  (\S+)$', listing.stdout, re.MULTILINE)}
+            r'^  (\S+)  \[(\S+)\]  (\S+)  origin=\S+$', listing.stdout, re.MULTILINE)}
         self.assertEqual(len(printed), len(self.lwp.ThemeCatalog().theme_ids))
         for slug in ('nord', 'graphite', 'terminal', 'pop-fuchsia'):
             facets = self._report(slug)['facets']
@@ -13416,7 +13416,7 @@ class ThemesCommand(unittest.TestCase):
         self.assertLessEqual(len(listed), 2, f'help still enumerates themes: {listed}')
         self.assertIn('lightwebpres theme list', result.stdout)
         self.assertIn(
-            f'{len(self.lwp.THEMES)} embedded entries before external layers',
+            f'{len(self.lwp.ThemeCatalog().theme_ids)} built-in themes before external layers',
             result.stdout)
         self.assertIn('theme show builtin:light', result.stdout)
         self.assertIn('all available themes', result.stdout)
@@ -13604,8 +13604,6 @@ class ExternalThemeCatalogue(unittest.TestCase):
             vendored = series / 'templates' / 'themes' / 'light.conf'
             self.assertEqual(vendored.read_text(encoding='utf-8'),
                              local.read_text(encoding='utf-8'))
-            self.assertIn('builtin:light is supplied by the executable',
-                          result.stdout)
 
     def test_an_incomplete_external_theme_is_rejected_before_listing(self):
         with tempfile.TemporaryDirectory() as tmp:

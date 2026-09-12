@@ -148,7 +148,7 @@ class RuntimeIdentityMetadata(unittest.TestCase):
         ink = data['vars'].index('--color-ink')
         self.assertEqual(dict(secondary['values'])[ink], '#654321FF')
         self.assertEqual(themes['print-ink']['collection'], 'Commons')
-        self.assertEqual(themes['print-ink']['origin'], 'embedded')
+        self.assertEqual(themes['print-ink']['origin'], 'builtin')
         kit_only = self.lwp.build_theme_runtime(
             None, None, preset_props=preset.theme_props,
             preset_selector=preset.selector, presets=[preset])

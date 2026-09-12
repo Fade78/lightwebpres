@@ -2595,12 +2595,14 @@ def theme_facets(theme):
     }
 
 
-def themes_matching(filters, catalog=None):
+def themes_matching(filters, catalog=None, origin=None):
     """The effective catalogue entries matching every requested facet."""
     out = []
-    themes = (catalog.theme_items() if catalog is not None
-              else THEMES.items())
+    catalog = catalog or ThemeCatalog()
+    themes = catalog.theme_items()
     for slug, theme in themes:
+        if origin is not None and catalog.resolve(slug).origin != origin:
+            continue
         facets = theme_facets(theme)
         if all(want is None or facets[name] == want for name, want in filters.items()):
             out.append((slug, theme, facets))
@@ -3951,6 +3953,7 @@ if len(VAR_TO_KEY) != len(PROPERTY_REGISTRY):  # pragma: no cover
 
 THEME_FILE_SCHEMA = 'lightwebpres.theme/1'
 NATIVE_THEME_ID = 'builtin:light'
+THEME_ORIGINS = ('builtin', 'installed', 'user', 'series')
 _THEME_SLUG_RE = re.compile(r'^[a-z][a-z0-9-]*$')
 _THEME_META_ALIASES = {
     'schema': 'schema', 'meta.schema': 'schema',
@@ -3969,81 +3972,84 @@ def _theme_id_parts(theme_id):
     return 'catalogue', theme_id
 
 
-class ThemeCatalog:
-    """Native and palette resources visible to one operation.
+class ThemeResource:
+    """One loaded theme: name, provenance and composition share one owner."""
 
-    ``themes`` keeps the effective bare-slug order for the global palette
-    table.  The native Light theme is a qualified resource because its
-    symbolic property layer belongs to the Identity Kit and must not be
-    flattened into the palette table.  ``local_layers`` stores the complete
-    property layer for external entries, and ``sources`` keeps enough
-    provenance for diagnostics and the runtime cache digest.  The built-in
-    table itself is never mutated.
+    def __init__(self, slug, origin, entry, props=None, path=None, identity=None):
+        self.slug, self.origin, self.entry = slug, origin, entry
+        self.props = dict(props) if props is not None else None
+        self.path = Path(path) if path is not None else None
+        self.identity = identity
+
+    @property
+    def key(self):
+        return self.origin, self.slug
+
+    def layer(self):
+        if self.identity is not None:
+            return self.identity.theme_properties(self.slug)
+        return dict(self.props) if self.props is not None else _builtin_theme_property_layer(self.slug)
+
+
+class ThemeCatalog:
+    """One bare-slug index, with explicit loading precedence for every resource.
+
+    Built-in records remain reachable through builtin:<slug> even when hidden.
+    Ownership and symbolic composition are independent of loading provenance.
     """
 
     def __init__(self):
-        self.themes = dict(THEMES)
-        self.native_themes = {NATIVE_THEME_ID: _native_theme_catalog_entry()}
-        self.local_layers = {}
-        self.local_slugs = set()
-        self.sources = {}
-        self.scopes = {}
+        self.builtins = {'light': ThemeResource('light', 'builtin', _native_theme_catalog_entry(),
+                                               identity=BUILTIN_IDENTITY_KIT)}
+        self.builtins.update((slug, ThemeResource(slug, 'builtin', entry))
+                             for slug, entry in THEMES.items())
+        self.resources = dict(self.builtins)
         self._digest_parts = []
 
     def add_local(self, slug, entry, layer, path, scope, text):
-        # Assignment preserves the original insertion position when a higher
-        # precedence source shadows an existing slug.  New names append in the
-        # deterministic filename order used by the loader.
-        self.themes[slug] = entry
-        self.local_layers[slug] = dict(layer)
-        self.local_slugs.add(slug)
-        self.sources[slug] = str(path)
-        self.scopes[slug] = scope
+        if scope not in THEME_ORIGINS[1:]:
+            raise PropertyError(f'Invalid external theme origin: {scope!r}')
         self._digest_parts.append(
             f'{scope}\0{Path(path).resolve()}\0{text}')
+        previous = self.resources.get(slug)
+        if previous is None or THEME_ORIGINS.index(scope) >= THEME_ORIGINS.index(previous.origin):
+            # Replacement keeps insertion order; equal-origin ties keep the
+            # loaders' deterministic ordering. Lower origins cannot override.
+            self.resources[slug] = ThemeResource(slug, scope, entry, layer, path)
 
     def has(self, theme_id):
         origin, slug = _theme_id_parts(theme_id)
-        if origin == 'builtin':
-            return f'builtin:{slug}' in self.native_themes or slug in THEMES
-        return slug in self.themes
+        return slug in (self.builtins if origin == 'builtin' else self.resources)
+
+    def resolve(self, theme_id):
+        origin, slug = _theme_id_parts(theme_id)
+        return (self.builtins if origin == 'builtin' else self.resources)[slug]
 
     def is_local(self, theme_id):
-        origin, slug = _theme_id_parts(theme_id)
-        return origin != 'builtin' and slug in self.local_slugs
+        return self.resolve(theme_id).origin != 'builtin'
 
     def entry(self, theme_id):
-        origin, slug = _theme_id_parts(theme_id)
-        if origin == 'builtin':
-            if f'builtin:{slug}' in self.native_themes:
-                return self.native_themes[f'builtin:{slug}']
-            return THEMES[slug]
-        return self.themes[slug]
+        return self.resolve(theme_id).entry
 
     def layer(self, theme_id):
-        origin, slug = _theme_id_parts(theme_id)
-        if origin == 'builtin' and f'builtin:{slug}' in self.native_themes:
-            # Keep the native identity's registry references.  Resolving this
-            # layer here would make settings pins behave differently from the
-            # native preset path.
-            return BUILTIN_IDENTITY_KIT.theme_properties(slug)
-        if origin != 'builtin' and slug in self.local_layers:
-            return dict(self.local_layers[slug])
-        return _builtin_theme_property_layer(slug)
+        return self.resolve(theme_id).layer()
+
+    def runtime_id(self, theme_id):
+        resource = self.resolve(theme_id)
+        return (resource.identity.theme_resource_id(resource.slug)
+                if resource.identity is not None else theme_id)
 
     @property
     def theme_ids(self):
-        """Canonical ids in the order exposed by global theme operations."""
-        return [*self.native_themes, *self.themes]
+        """Effective bare slugs in catalogue order."""
+        return list(self.resources)
 
     def theme_items(self):
-        """Yield canonical ids and entries, including native resources."""
-        yield from self.native_themes.items()
-        yield from self.themes.items()
+        yield from ((slug, resource.entry) for slug, resource in self.resources.items())
 
     def builtin_runtime_id(self, slug):
         """Keeps an essential built-in reachable when a local shadows it."""
-        return f'builtin:{slug}' if slug in self.local_slugs else slug
+        return f'builtin:{slug}' if self.is_local(slug) else slug
 
     @property
     def digest(self):
@@ -4385,8 +4391,8 @@ class PresentationPreset:
     def __init__(self, identity_kit, preset_id, label, description, theme_id=None,
                  theme_props=None, theme_meta=None, slide_layouts=None,
                  slide_chrome=None, starter=None, default=False,
-                 resource_collection=None, scope=None,
-                 dependency_paths=None, digest=None):
+                  resource_collection=None, scope=None,
+                  dependency_paths=None, digest=None, theme_origin=None):
         self.identity_kit = identity_kit
         self.id = preset_id
         self.label = label
@@ -4402,6 +4408,7 @@ class PresentationPreset:
         self.resource_collection = resource_collection or (
             'builtin' if identity_kit.id == 'builtin' else 'kit')
         self.scope = (scope if scope is not None else identity_kit.scope)
+        self.theme_origin = theme_origin if theme_origin is not None else identity_kit.scope
         self._dependency_paths = (tuple(dependency_paths)
                                   if dependency_paths is not None else None)
         self._digest = digest
@@ -5256,7 +5263,7 @@ def _load_identity_kit(root, scope):
                                 f'themes.{name} must live below themes/')
         theme_text, theme_meta, _theme_props, resolved = parse_theme_file(theme_path)
         themes[name] = {'props': resolved, 'meta': theme_meta,
-                         'origin': identity_kit.selector, 'scope': scope}
+                         'source_identity': identity_kit.selector, 'scope': scope}
         dependency_paths.append(theme_path)
         digest_parts.append((relative, theme_text))
 
@@ -5444,25 +5451,19 @@ def _load_commons_preset(path, scope, theme_catalog):
             _presentation_error(path, f'{key} must be a non-empty string')
     theme_id = descriptor.get('theme')
     dependencies = [path]
-    if theme_id == NATIVE_THEME_ID:
-        theme = BUILTIN_IDENTITY_KIT.themes['light']
-        props, meta = BUILTIN_STANDARD_PRESET.theme_props, theme['meta']
-    else:
-        if (not isinstance(theme_id, str)
-                or not _THEME_SLUG_RE.fullmatch(theme_id)
-                or not theme_catalog.has(theme_id)):
-            _presentation_error(path, 'theme must name a Commons theme slug or builtin:light')
-        props = theme_catalog.layer(theme_id)
-        entry = theme_catalog.entry(theme_id)
-        meta = {key: entry[key] for key in ('label', 'family', 'source', 'note')
-                if key in entry}
-        if theme_id in theme_catalog.sources:
-            dependencies.append(Path(theme_catalog.sources[theme_id]))
+    if not isinstance(theme_id, str) or not theme_catalog.has(theme_id):
+        _presentation_error(path, 'theme must name a global theme slug or builtin:<slug>')
+    resource = theme_catalog.resolve(theme_id)
+    props, entry = resource.layer(), resource.entry
+    meta = {key: entry[key] for key in ('label', 'family', 'source', 'note') if key in entry}
+    if resource.path is not None:
+        dependencies.append(resource.path)
     digest = _presentation_digest([
         ('descriptor', text), ('scope', scope),
         ('theme', json.dumps(props, sort_keys=True)),
         ('resolved_theme', json.dumps(resolve_theme_properties(props), sort_keys=True)),
         ('theme_meta', json.dumps(meta, sort_keys=True)),
+        ('theme_origin', theme_catalog.resolve(theme_id).origin),
     ])
     return PresentationPreset(
         BUILTIN_IDENTITY_KIT, preset_id,
@@ -5470,7 +5471,8 @@ def _load_commons_preset(path, scope, theme_catalog):
         theme_props=props, theme_meta=meta,
         slide_layouts=BUILTIN_STANDARD_PRESET.slide_layouts,
         default=True, resource_collection='commons', scope=scope,
-        dependency_paths=dependencies, digest=digest)
+        dependency_paths=dependencies, digest=digest,
+        theme_origin=theme_catalog.resolve(theme_id).origin)
 
 
 class IdentityCatalog:
@@ -6595,7 +6597,7 @@ def theme_property_layer(theme_key, catalog=None):
     """
     if catalog is not None:
         return catalog.layer(theme_key)
-    if theme_key == NATIVE_THEME_ID:
+    if theme_key in ('light', NATIVE_THEME_ID):
         # The native theme's symbolic layer is owned by the native preset.
         return BUILTIN_IDENTITY_KIT.theme_properties('light')
     if isinstance(theme_key, str) and theme_key.startswith('builtin:'):
@@ -6671,14 +6673,13 @@ def _theme_runtime_parts(option, source):
 
 def _theme_runtime_selector_ids(selector, source, catalog=None):
     """Expands one slug, special label, or facet selector."""
+    catalog = catalog or ThemeCatalog()
     folded = selector.casefold()
     if folded == 'all':
-        return (list(catalog.theme_ids) if catalog is not None
-                else list(THEMES))
+        return list(catalog.theme_ids)
     if folded == 'essential':
-        return [catalog.builtin_runtime_id(slug) if catalog is not None
-                else slug for slug in ESSENTIAL_THEME_IDS]
-    if (catalog.has(selector) if catalog is not None else selector in THEMES):
+        return [catalog.builtin_runtime_id(slug) for slug in ESSENTIAL_THEME_IDS]
+    if catalog.has(selector):
         return [selector]
     if selector.startswith('builtin:'):
         raise PropertyError(f'{source} contains unknown built-in theme selector '
@@ -6715,11 +6716,21 @@ def _theme_runtime_ids(option, primary, source='--themes', catalog=None):
     may prepend a `custom(<theme>)` variant when property pins exist.
     """
     primary_id = primary or _THEME_RUNTIME_DEFAULT
+    catalog = catalog or ThemeCatalog()
+    if catalog.has(primary_id):
+        primary_id = catalog.runtime_id(primary_id)
     ids = [primary_id]
+    # The omission marker already supplies native registry defaults. It is not
+    # an additional theme beside Light when a direct caller requests all.
+    primary_key = (catalog.resolve(NATIVE_THEME_ID).key if primary_id == _THEME_RUNTIME_DEFAULT
+                   else catalog.resolve(primary_id).key if catalog.has(primary_id) else primary_id)
+    seen = {primary_key}
     for selector in _theme_runtime_parts(option, source):
         for slug in _theme_runtime_selector_ids(selector, source, catalog):
-            if slug not in ids:
-                ids.append(slug)
+            key = catalog.resolve(slug).key
+            if key not in seen:
+                seen.add(key)
+                ids.append(catalog.runtime_id(slug))
     return ids
 
 
@@ -6757,6 +6768,7 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
     presets = list(presets or ())
     if option is None and not any(p.identity_kit.id != 'builtin' for p in presets):
         return None
+    catalog = catalog or ThemeCatalog()
     kit_themes = {}
     for preset in presets:
         identity_kit = preset.identity_kit
@@ -6776,6 +6788,8 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
     else:
         base_id = _THEME_RUNTIME_DEFAULT
         base_values = None
+    if catalog.has(base_id):
+        base_id = catalog.runtime_id(base_id)
     settings_props = dict(settings_props or {})
     ids = ([base_id] if option is None else
            _theme_runtime_ids(option, base_id, source, catalog))
@@ -6846,19 +6860,13 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
                 label_base_key = 'theme_default'
                 family_key = 'theme_default'
             else:
-                if catalog is not None:
-                    base_theme = catalog.entry(metadata_id)
-                else:
-                    base_theme = THEMES[metadata_id]
+                base_theme = catalog.entry(metadata_id)
                 base_label, family = base_theme['label'], base_theme['family']
             label_base = base_label
             label = f'{strings.get("theme_custom", "Custom")} ({base_label})'
             label_key = 'theme_custom'
         else:
-            if catalog is not None:
-                theme = catalog.entry(metadata_id)
-            else:
-                theme = THEMES[metadata_id]
+            theme = catalog.entry(metadata_id)
             label, family = theme['label'], theme['family']
         theme_data = {
             'slug': theme_id, 'label': label, 'family': family,
@@ -6889,10 +6897,13 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
                               identity_label=identity_kit.label,
                               collection=('builtin' if identity_kit.id == 'builtin'
                                           else 'kit'), origin=identity_kit.scope)
+        elif metadata_id == base_id and base_values is not None and not presets:
+            # Direct property-only callers supply no loader provenance or
+            # identity. Do not fabricate Commons membership for that payload.
+            theme_data.update(identity=None, collection='custom', origin=None)
         else:
             theme_data.update(identity=None, collection='Commons',
-                              origin=(catalog.scopes.get(metadata_id, 'embedded')
-                                      if catalog is not None else 'embedded'))
+                              origin=catalog.resolve(metadata_id).origin)
         if theme_id == custom_id:
             # Series pins belong to the target identity, even over a global theme.
             identity_kit = (presets[0].identity_kit if presets
@@ -7238,7 +7249,7 @@ BUILTIN_IDENTITY_KIT = IdentityKit(
     index_layout='{{content}}',
     themes={'light': {'props': resolve_theme_properties(),
                       'meta': {'label': 'Light', 'family': 'desk'},
-                      'origin': 'builtin', 'scope': 'builtin'}})
+                       'source_identity': 'builtin', 'scope': 'builtin'}})
 BUILTIN_STANDARD_PRESET = PresentationPreset(
     BUILTIN_IDENTITY_KIT, 'standard', 'Standard',
     'Native LightWebPres layouts and Light theme.', theme_id='light',
@@ -7405,8 +7416,8 @@ def parse_settings_text(text, source='settings.conf', catalog=None):
             if theme is not None:
                 raise PropertyError(
                     f'{source}:{lineno}: theme is declared more than once')
-            known = (catalog.has(value) if catalog is not None
-                     else value in THEMES)
+            catalog = catalog or ThemeCatalog()
+            known = catalog.has(value)
             if not known:
                 raise PropertyError(
                     f'{source}:{lineno}: unknown theme {value!r}. '
@@ -12039,7 +12050,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var detailText = null;
       if (theme.family) {
         // Shared display vocabulary, not a change to payload origins or ownership.
-        var origin = theme.origin === 'embedded' ? 'builtin' : theme.origin;
+        var origin = theme.origin;
         var originLabels = {
           builtin: lwpString('theme_origin_builtin'),
           installed: lwpString('theme_origin_installed'),
@@ -15831,6 +15842,7 @@ TEMPLATE_THEMES_GALLERY_CARD = '''
       <header class="theme-head">
         <h2>{label}</h2>
         <code class="theme-slug">{slug}</code>
+        <p class="theme-source theme-origin">Origin: {origin}</p>
         {essential_badge}<p class="theme-source">{source}</p>
       </header>
       <div class="panels">{panels}
@@ -26779,40 +26791,42 @@ def cmd_theme_vendor(target_dir, args):
         log('error', str(exc))
         sys.exit(1)
 
-    native_ids = [theme_id for theme_id in ids if theme_id == NATIVE_THEME_ID]
-    if native_ids:
-        progress(f'{NATIVE_THEME_ID} is supplied by the executable; nothing to vendor.')
-        ids = [theme_id for theme_id in ids if theme_id != NATIVE_THEME_ID]
-    if not ids:
-        return
-
     destination = templates_dir / 'themes'
     try:
-        _mkdir(destination, parents=True, exist_ok=True)
-        for theme_id in ids:
-            slug = theme_id[len('builtin:'):] if theme_id.startswith('builtin:') \
-                else theme_id
-            path = destination / f'{slug}.conf'
-            if catalog.is_local(theme_id) and slug in catalog.sources:
-                source_path = Path(catalog.sources[slug])
-                if source_path.resolve() == path.resolve():
-                    progress(f'{path} already is the selected series theme.')
+        with PublicationPlan() as plan:
+            seen, notices, destinations = set(), [], set()
+            for theme_id in ids:
+                resource = catalog.resolve(theme_id)
+                if resource.key in seen:
                     continue
-                text = read_text_file(source_path)
-            else:
-                entry = catalog.entry(theme_id)
-                text = theme_file_text(
-                    slug, entry, _theme_runtime_resolved(theme_id, catalog))
-            if path.exists() and not args.get('--force'):
-                if read_text_file(path) == text:
-                    progress(f'{path} already contains this theme.')
+                seen.add(resource.key)
+                if resource.identity is not None:
+                    progress(f'{catalog.runtime_id(theme_id)} is supplied by the executable; nothing to vendor.')
                     continue
-                log('error', f'{path} already exists. Pass --force to replace it.')
-                sys.exit(1)
-            _write_file(path, text)
-            progress(f'{"Would vendor" if _LOG_STATE["dry_run"] else "Vendored"} '
-                     f'{theme_id} -> {path}')
-    except OSError as exc:
+                path = destination / f'{resource.slug}.conf'
+                slot = path.parent.resolve() / path.name
+                if slot in destinations:
+                    raise PropertyError(f'Distinct theme origins claim {path}; vendor one resource per slug')
+                destinations.add(slot)
+                if resource.path is not None:
+                    if resource.path.resolve() == path.resolve():
+                        progress(f'{path} already is the selected series theme.')
+                        continue
+                    text = read_text_file(resource.path)
+                else:
+                    text = theme_file_text(resource.slug, resource.entry,
+                                           resolve_theme_properties(resource.layer()))
+                if path.exists() and not args.get('--force'):
+                    if read_text_file(path) == text:
+                        progress(f'{path} already contains this theme.')
+                        continue
+                    raise PropertyError(f'{path} already exists. Pass --force to replace it.')
+                plan.add(theme_id, path, text=text)
+                notices.append(f'{theme_id} -> {path}')
+            plan.publish()
+            for notice in notices:
+                progress(f'{"Would vendor" if _LOG_STATE["dry_run"] else "Vendored"} {notice}')
+    except (OSError, PropertyError) as exc:
         log('error', f'could not vendor themes: {exc}')
         sys.exit(1)
 
@@ -27095,6 +27109,7 @@ def _presentation_preset_report(preset):
             'id': preset.theme_id,
             'label': preset.theme_meta.get('label'),
             'family': preset.theme_meta.get('family'),
+            'origin': preset.theme_origin,
         },
         'slide_layouts': dict(preset.slide_layouts),
         'slide_chrome': dict(preset.slide_chrome),
@@ -27418,8 +27433,14 @@ def cmd_themes(args):
         log('error', str(exc))
         sys.exit(1)
     filters = _facet_filters(args)
-    matches = themes_matching(filters, catalog)
+    origin = args.get('--origin')
+    if origin is not None and origin not in THEME_ORIGINS:
+        log('error', f'Unknown --origin: {origin!r}. Valid values: {", ".join(THEME_ORIGINS)}')
+        sys.exit(1)
+    matches = themes_matching(filters, catalog, origin)
     active = ' '.join(f'--{k} {v}' for k, v in filters.items() if v)
+    if origin is not None:
+        active = (active + f' --origin {origin}').strip()
 
     if not matches:
         # Not an error: an empty result to a legitimate question. Name
@@ -27433,13 +27454,17 @@ def cmd_themes(args):
     if active:
         print(f'{len(matches)} of {len(catalog.theme_ids)} themes match {active}:')
     else:
-        print(f'{len(catalog.theme_ids)} themes (built-in themes are included):')
+        print(f'{len(catalog.theme_ids)} themes:')
+    counts = {name: sum(resource.origin == name for resource in catalog.resources.values())
+              for name in THEME_ORIGINS}
+    print('Origins: ' + ', '.join(f'{name} ({count})' for name, count in counts.items() if count) + '.')
+    print('Precedence: ' + ' < '.join(THEME_ORIGINS) + ' (higher wins).')
     print()
 
     for slug, theme, facets in matches:
         pair = '/'.join((facets['polarity'], facets['hue']))
         fam = facets['family'] or '?'
-        print(f'  {slug}  [{pair}]  {fam}')
+        print(f'  {slug}  [{pair}]  {fam}  origin={catalog.resolve(slug).origin}')
         # A note is stored as plain text, so it prints as-is. It used to
         # be stored as gallery HTML and cleaned here, which leaked every
         # character entity to the terminal — cleaning enumerates what it
@@ -27459,6 +27484,7 @@ def cmd_themes(args):
         for name, values in FACET_VALUES.items()) + '.')
     print('Narrow the list with, for example:')
     print('  lightwebpres theme list --polarity dark --family light')
+    print('  lightwebpres theme list --origin builtin')
     print('Read one out — palette, fonts, and the contrast level it')
     print('reaches, measured — with `lightwebpres theme show <theme-id>`.')
     print('Apply one with `init --theme <theme-id>` (new series) or')
@@ -27500,7 +27526,7 @@ def _theme_info_facets(kind, slug, resolved, catalog=None, base_entry=None):
     not derivable from anything (§9.5.2), so it stays the theme's own
     word, and is null when no theme is named."""
     if kind == 'theme':
-        entry = catalog.entry(slug) if catalog is not None else THEMES[slug]
+        entry = base_entry if base_entry is not None else (catalog or ThemeCatalog()).entry(slug)
         return theme_facets(entry)
     page = composite_over(resolved['page.bg'], CANVAS)
     ink = composite_over(resolved['page.fg'], page)
@@ -27508,9 +27534,8 @@ def _theme_info_facets(kind, slug, resolved, catalog=None, base_entry=None):
         'polarity': ('dark' if relative_luminance(ink) > relative_luminance(page)
                      else 'light'),
         'hue': theme_hue_family({'page': _hex6(page)}),
-        'family': (catalog.entry(slug)['family'] if catalog is not None
-                   and slug else (THEMES[slug]['family'] if slug else
-                                  (base_entry or {}).get('family'))),
+        'family': ((base_entry or {}).get('family') if base_entry is not None or not slug
+                   else (catalog or ThemeCatalog()).entry(slug)['family']),
     }
 
 
@@ -27523,17 +27548,16 @@ def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False
     the registry declares, not from a list written here, so a seventh
     shared value would appear the day it exists."""
     resolved = resolve_theme_properties(*layers)
-    entry = (catalog.entry(slug) if catalog is not None and slug
-             else (THEMES[slug] if slug else
-                    (presentation_preset.theme_meta
-                     if presentation_preset is not None else None)))
+    resource = (catalog or ThemeCatalog()).resolve(slug) if slug else None
+    entry = (resource.entry if resource is not None else
+             (presentation_preset.theme_meta if presentation_preset is not None else None))
     source = entry.get('source') if entry else None
     if not slug and presentation_preset is not None:
         if (presentation_preset.resource_collection == 'builtin'
                 or presentation_preset.theme_id == NATIVE_THEME_ID
                 or (presentation_preset.resource_collection == 'kit'
                     and presentation_preset.identity_kit.themes.get(
-                        presentation_preset.theme_id, {}).get('origin') == 'builtin')):
+                        presentation_preset.theme_id, {}).get('source_identity') == 'builtin')):
             source = 'builtin'
     return {
         'schema': THEME_INFO_SCHEMA,
@@ -27550,6 +27574,8 @@ def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False
         'label': entry['label'] if entry else None,
         'note': entry.get('note') if entry else None,
         'source': source,
+        'origin': (resource.origin if resource is not None else
+                   presentation_preset.theme_origin if presentation_preset is not None else None),
         'facets': _theme_info_facets(kind, slug, resolved, catalog, entry),
         'palette': {p.key[len('color.'):]: resolved[p.key]
                     for p in THEME_SHARED_PROPS if p.key.startswith('color.')},
@@ -27603,6 +27629,7 @@ def print_theme_info_text(report):
             print('  CSS, outside the typed surface the engine can resolve.')
 
     print()
+    print(f'Origin: {report["origin"] or "unspecified"}')
     print('Palette')
     for role, value in report['palette'].items():
         print(f'  {role:<10s} {value}')
@@ -27666,6 +27693,11 @@ def cmd_theme_info(positional, args):
         catalog = load_theme_catalog()
     except PropertyError as exc:
         log('error', str(exc))
+        sys.exit(1)
+    if positional and not catalog.has(positional[0]) and Path(positional[0]).is_dir():
+        log('error', f'`theme show` reads the catalogue, not a series. '
+            f'For {positional[0]!r}, use `lightwebpres series theme '
+            f'{positional[0]}`; for a catalogue entry, name a theme.')
         sys.exit(1)
     if args.get('--all'):
         slugs = list(catalog.theme_ids)
@@ -29046,6 +29078,7 @@ def cmd_themes_gallery(positional, args):
             family=facets['family'],
             label=html_escape(theme['label'], quote=True),
             source=html_escape(theme['source'], quote=True),
+            origin=catalog.resolve(slug).origin,
             note=note_to_html(theme['note']),
             note_good_class=' theme-note--good' if theme.get('note_good') else '',
             essential_badge='<span class="theme-essential">essential</span>' if slug in ESSENTIAL_THEME_IDS else '',
@@ -29427,7 +29460,7 @@ def print_help():
     # information about what any of them look like — the same problem the
     # facets exist to solve, only relocated into the terminal. Point at
     # the two commands that can actually answer "which one do I want".
-    theme_count = len(THEMES)
+    theme_count = len(ThemeCatalog().theme_ids)
     property_count = len(PROPERTY_REGISTRY)
     # Written from SLIDE_TYPES rather than typed out below, because a help
     # text listing three of the four types, or describing a type the parser
@@ -29530,7 +29563,7 @@ COMMANDS
     Installs one of them where the build reads it, to be modified. The
     build then uses your copy and stops following the tool's fixes, and
     says so on every run (see §9.4.5)
-  lightwebpres theme list [--polarity ...] [--hue ...] [--family ...]
+  lightwebpres theme list [--polarity ...] [--hue ...] [--family ...] [--origin ...]
     Lists the effective theme catalogue, narrowed by facet (see the THEMES
     section below, §11.9)
   lightwebpres theme show [<slug>...] [--all] [--format text|json]
@@ -29679,6 +29712,8 @@ OPTIONS
   --family name
     theme list: desk, light, terrain, heat, pop, ported, print — the one facet
     a theme declares rather than the palette betraying it
+  --origin builtin|installed|user|series
+    theme list: filter effective entries by loading origin, not palette credits
   --article file.md
     resolve: the article whose levels to include — required for a
     per-article field, additive for a theme property; contract: scan this
@@ -29776,11 +29811,13 @@ OPTIONS
   --all
     theme show/theme gallery: describe/generate every catalogue theme
 
-THEMES ({theme_count} embedded entries before external layers, see specifications.md §9.5)
+THEMES ({theme_count} built-in themes before external layers, see specifications.md §9.5)
   The global catalogue combines the embedded themes with optional complete
   external snapshots from installed and user roots. A series operation adds
-  templates/themes on top. Themes are chosen by palette slug or qualified native id
-  (such as builtin:light), and found by facet — family (declared),
+  templates/themes on top. Every theme has a bare slug, including light and the
+  palettes. Loading origin is separate: builtin < installed < user < series;
+  a higher origin replaces the whole lower entry with the same slug. Find themes
+  by origin (--origin) or facet — family (declared),
   polarity (light/dark) and hue, both computed from the background:
     lightwebpres theme list                       all available themes, with their facets
     lightwebpres theme list --family terrain      one editorial family
@@ -29810,7 +29847,10 @@ THEMES ({theme_count} embedded entries before external layers, see specification
   External theme files are complete typed snapshots, not CSS and not includes.
   The effective order is embedded, installed, user, then
   templates/themes in a series; a local slug replaces the whole lower entry.
-  `builtin:<slug>` selects the embedded entry when a local theme shadows it.
+  `builtin:<slug>` forces a built-in resource, including builtin:light. Bare
+  light follows the same precedence as every palette; builtin/standard retains
+  its explicitly native theme. Global list omits series roots; series theme and
+  build include the selected series' themes.
      lightwebpres theme create custom --from evergreen
      lightwebpres theme migrate my-series
      lightwebpres theme vendor my-series --themes custom,evergreen
@@ -30046,7 +30086,7 @@ _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
                               '--single-html',
                              '--theme', '--themes', '--presentation-presets',
                              '--only', '--nav-cache',
-                             '--polarity', '--hue', '--family',
+                             '--polarity', '--hue', '--family', '--origin',
                              '--from', '--label', '--source', '--note',
                               '--format',
                               '--article', '--port', '--shell', '--tag',
@@ -30075,7 +30115,7 @@ _COMMAND_OPTIONS = {
     'refresh-templates': {'--scaffold'},
     'template-show': set(),
     'template-write': {'--force'},
-    'themes': {'--polarity', '--hue', '--family'},
+    'themes': {'--polarity', '--hue', '--family', '--origin'},
     'theme-info': {'--format', '--all'},
     'series-info': {'--format'},
     'series-tags': {'--format', '--tag'},
@@ -30770,7 +30810,7 @@ def main():
         # keep learning.
         #
         # No slug, no --all, and the working directory IS a series: read
-        # that series, exactly as `theme show .` already does. Every other
+        # that series, exactly as `series theme .` does. Every other
         # command that takes a directory defaults to the one you are
         # standing in — build, verify, audit, status, clean, series theme —
         # and this was the single exception, so the one place the habit
@@ -30784,12 +30824,6 @@ def main():
         if (not positional and not opts.get('--all')
                 and series_templates.is_dir()):
             cmd_series_theme(str(series_root), opts)
-        elif (positional and positional[0] not in THEMES
-                and Path(positional[0]).is_dir()):
-            log('error', f'`theme show` reads the catalogue, not a series. '
-                f'For {positional[0]!r}, use `lightwebpres series theme '
-                f'{positional[0]}`; for a catalogue entry, name a theme.')
-            sys.exit(1)
         else:
             cmd_theme_info(positional, opts)
     elif command == 'series-info':
