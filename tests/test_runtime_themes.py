@@ -52,6 +52,7 @@ class RuntimeIdentityMetadata(unittest.TestCase):
         self.assertEqual(data['primary'], 'builtin/standard')
         self.assertEqual(data['identities'], [{
             'selector': 'builtin', 'label': 'LightWebPres', 'origin': 'builtin',
+            'default_preset': 'standard',
         }])
         self.assertEqual(data['presets'][0]['label'], 'Standard')
         self.assertEqual(data['presets'][0]['identity'], 'builtin')
@@ -179,7 +180,35 @@ class RuntimeIdentityMetadata(unittest.TestCase):
         self.assertEqual(data['primary'], 'print-ink')
         self.assertEqual(data['themes'][0]['collection'], 'Commons')
         self.assertIsNone(data['themes'][0]['identity'])
-        self.assertEqual(data['themes'][1]['slug'], 'kit:builtin/light')
+        self.assertEqual(data['themes'][1]['slug'], 'builtin:light')
+
+    def test_native_resource_is_published_once_across_catalogue_and_preset_paths(self):
+        catalog = self.lwp.ThemeCatalog()
+        native = self.lwp.BUILTIN_STANDARD_PRESET
+        for primary in (None, 'builtin:light'):
+            for pins in ({}, {'color.page': '#123456FF'}):
+                data = self.lwp.build_theme_runtime(
+                    'all,builtin:light', primary, catalog=catalog, settings_props=pins,
+                    preset_props=native.theme_props, presets=[native])
+                ids = [theme['slug'] for theme in data['themes']]
+                self.assertEqual(ids.count('builtin:light'), 1)
+                self.assertNotIn('kit:builtin/light', ids)
+                self.assertEqual(data['primary'],
+                                 'custom(builtin:light)' if pins else 'builtin:light')
+                native_choices = [theme for theme in data['themes'] if theme['label'] == 'Light']
+                self.assertEqual(len(native_choices), 1)
+
+    def test_native_global_theme_keeps_native_identity_metadata(self):
+        catalog = self.lwp.ThemeCatalog()
+        data = self.lwp.build_theme_runtime(
+            'builtin:light', 'builtin:light', catalog=catalog)
+        native = next(theme for theme in data['themes']
+                      if theme['slug'] == 'builtin:light')
+        self.assertEqual(native['slug'], 'builtin:light')
+        self.assertEqual(native['identity'], 'builtin')
+        self.assertEqual(native['identity_label'], 'LightWebPres')
+        self.assertEqual(native['collection'], 'builtin')
+        self.assertEqual(native['origin'], 'builtin')
 
     def test_theme_deltas_use_the_static_cascade_without_flattening_references(self):
         catalog = self.lwp.ThemeCatalog()
@@ -198,7 +227,7 @@ class RuntimeIdentityMetadata(unittest.TestCase):
             theme_props=snapshot)
         pins = {'color.page': '#123456FF'}
         _variables, keys = self.lwp._theme_runtime_variables()
-        for preset, raw_id in [(native, 'kit:builtin/light'), (commons, 'dracula'),
+        for preset, raw_id in [(native, 'builtin:light'), (commons, 'dracula'),
                                (kit_preset, 'kit:snapshot@1.0.0/night')]:
             with self.subTest(preset=preset.selector):
                 static = self.lwp.resolve_theme_properties(preset.theme_props, pins)
@@ -319,6 +348,7 @@ class RuntimeThemesBrowser(unittest.TestCase):
             },
             'slide_chrome': {'all': {'footer': ''}},
         }
+        presentation_manifest['default_preset'] = 'compact'
         presentation_manifest_path.write_text(
             json.dumps(presentation_manifest), encoding='utf-8')
         presentation_series_path = presentation_root / 'series.json'

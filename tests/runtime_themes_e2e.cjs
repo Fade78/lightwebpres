@@ -968,7 +968,7 @@ async function main() {
     const nativeThemes = await presentationPage.evaluate(() => Array.from(
       document.querySelectorAll('#themeOptions [data-theme]'),
       (button) => button.getAttribute('data-theme')));
-    if (nativeThemes.join('|') !== 'print-ink|kit:builtin/light'
+    if (nativeThemes.join('|') !== 'print-ink|builtin:light'
         || !await presentationPage.locator('#identityAxisTitle').isVisible()
         || !await presentationPage.locator('#presentationOptions').isVisible()) {
       fail('native identity must include globals, exclude kit themes and retain multi-identity axes: '
@@ -1006,10 +1006,10 @@ async function main() {
       theme: document.querySelector('#themeOptions .active').getAttribute('data-theme'),
       focus: document.activeElement.getAttribute('data-identity'),
     }));
-    if (identitySelection.preset !== 'lightwebpres-docs@0.1.0/docs'
+    if (identitySelection.preset !== 'lightwebpres-docs@0.1.0/compact'
         || identitySelection.theme !== 'print-ink'
         || identitySelection.focus !== 'lightwebpres-docs@0.1.0') {
-      fail('identity selection did not choose the first published preset, keep theme and restore focus: '
+      fail('identity selection did not choose the identity default preset, keep theme and restore focus: '
         + JSON.stringify(identitySelection));
     }
     await presentationPage.locator(
@@ -1120,7 +1120,7 @@ async function main() {
         await originPage.selectOption('#themeSource', filter);
         for (const [slug, family, owner, collection, identity, origin, label] of [
           ['print-ink', 'print', 'Commons', 'Commons', null, 'embedded', origins[0]],
-          ['kit:builtin/light', 'desk', 'LightWebPres', 'builtin', 'builtin', 'builtin', origins[0]],
+          ['builtin:light', 'desk', 'LightWebPres', 'builtin', 'builtin', 'builtin', origins[0]],
           ...['installed', 'user', 'series'].map((scope, i) =>
             ['origin-' + scope, 'print', 'Commons', 'Commons', null, scope, origins[i + 1]]),
         ]) {
@@ -1213,7 +1213,7 @@ async function main() {
     for (const [mobile, locale] of [
       [false, 'en-US'], [false, 'fr-FR'], [true, 'en-US'], [true, 'fr-FR'],
     ]) {
-      for (const [name, rawTheme] of [['native', 'kit:builtin/light'], ['commons', 'dracula']]) {
+      for (const [name, rawTheme] of [['native', 'builtin:light'], ['commons', 'dracula']]) {
         const regressionContext = await browser.newContext({
           locale, isMobile: mobile, hasTouch: mobile,
           viewport: mobile ? { width: 390, height: 844 } : { width: 1280, height: 800 },
@@ -1248,6 +1248,12 @@ async function main() {
           };
         });
         const english = locale === 'en-US';
+        if (nativePicker.visible.filter((id) => id === 'builtin:light').length !== 1
+            || nativePicker.visible.includes('kit:builtin/light')
+            || new Set(nativePicker.visible).size !== nativePicker.visible.length) {
+          fail('catalogue and preset paths must publish one native Light choice: '
+            + JSON.stringify(nativePicker));
+        }
         if (nativePicker.axes || nativePicker.reset || nativePicker.active !== nativePicker.primary
             || nativePicker.title !== (english ? 'Choose a theme' : 'Choisir un thème')
             || nativePicker.menu !== (english ? 'Change theme' : 'Changer de thème')
@@ -1351,7 +1357,7 @@ async function main() {
         ['lightwebpres-docs@0.1.0', ['custom(kit:lightwebpres-docs@0.1.0/docs)',
           'kit:lightwebpres-docs@0.1.0/docs', 'kit:lightwebpres-docs@0.1.0/compact']],
         ['other@0.1.0', ['kit:other@0.1.0/docs']],
-        ['builtin', ['print-ink', 'kit:builtin/light']],
+        ['builtin', ['print-ink', 'builtin:light']],
       ]) {
         await kitPage.locator('#identityOptions [data-identity="' + identity + '"]').click();
         for (const source of ['identity', 'all', 'applicable']) {

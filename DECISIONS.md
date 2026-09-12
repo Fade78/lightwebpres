@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 10 · **à faire** 0 · **en cours** 2 · **terminé** 56 · **abandonné** 1 · **sans objet** 3
+**à étudier** 10 · **à faire** 0 · **en cours** 3 · **terminé** 57 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -120,6 +120,7 @@ gets its own entry and its own state**, however small.
 
 - **B62** — Le cover Lava reste sauvegardé dans Lava hot
 - **B67** — Logical units, scoped selectors and resolution policies
+- **B69** — Canonical theme-resource index and appearance resolution
 
 ### terminé
 
@@ -179,6 +180,7 @@ gets its own entry and its own state**, however small.
 - **B61** — Le redimensionnement repositionne la fiche courante
 - **B63** — Le lecteur peut changer d'enveloppe sans changer de source
 - **B68** — Identity Kit vocabulary and native identity boundary
+- **B70** — Publication planning and revision-bound GitLab snapshots
 
 ### abandonné
 
@@ -3491,3 +3493,86 @@ checks. The mandated parallel run discovered 1,433 tests across 230 classes;
 all classes passed except the pre-existing documentation-link check for
 `examples/first-article/README.md`, which points at the disposable absent path
 `../../work/tmp/index-frame/...` and remains outside this vocabulary change.
+
+## B69 — Canonical theme-resource index and appearance resolution
+
+**État :** en cours · **Depuis :** 2026-09-12
+
+The theme system has two valid internal representations that must not be
+collapsed. `THEMES` remains the palette table for the embedded colour
+catalogue. The native `Light` theme belongs to the embedded `builtin` Identity
+Kit and keeps symbolic registry references so settings pins resolve after the
+theme layer is merged.
+
+The first increment therefore exposes `builtin:light` through the same
+`ThemeCatalog` resource index used by theme listing, inspection, gallery,
+runtime selectors and series theme commands. The index keeps bare palette
+slugs in their existing precedence chain and keeps the qualified native id
+separate, so a local `light.conf` cannot replace the native resource. The
+catalogue entry used for display is derived from the resolved native layer;
+the layer used for composition is not flattened.
+
+The broader appearance contract remains open: `series.json.appearance`, the
+distinction between initial choice and published alternatives, `ALL` and
+`ESSENTIAL`, settings migration, and the final public vocabulary for loading
+origin versus publication presence. Those decisions must consume this index
+rather than reconstructing a second catalogue in the build or browser.
+
+The runtime increment now derives theme resource ids from their owning identity
+and preset instead of reconstructing a second native id. `builtin:light` is the
+single native runtime resource, including custom variants and `all`; a local
+bare `light` and themes owned by real kits remain distinct. Browser tests cover
+unique native choices with both native and Commons presets, settings pins,
+desktop/mobile layouts and both interface languages. Broader appearance
+configuration and publication-selection policy remain open.
+
+## B70 — Publication planning and revision-bound GitLab snapshots
+
+**État :** terminé · **Depuis :** 2026-09-12
+
+The 0.56–0.59.1 review found related lifecycle gaps: ignored sources could remove
+published presets; copied-image verification differed between physical output
+topologies; and late article errors could leave mixed multipage output. Separate
+GitLab destination binding did not protect a branch from changes since Pull.
+
+The engine now distinguishes a parsed-unit source inventory, declared/index-claim/
+navigation/render membership, and a disk-backed publication plan. Mutable slides
+are cloned for rendering, while compiled selector programs are reused. Published
+preset compatibility reads emitted membership; audit keeps its complete source
+universe. Existing status, index-claim and persisted-field contracts are retained.
+This is an implementation of existing publication policy, not the global selector
+or wire-vocabulary changes still open in B67.
+
+Build and verify consume the same staged HTML/README/asset inventory. Rendering,
+asset reads, existing-manifest validation and destination-graph validation finish
+before any output is replaced. Graph validation resolves parent-directory aliases
+and refuses duplicate destinations or a planned file used as a directory. The
+manifest carries source-derived ownership history, not a rescan of arbitrary
+output files. Invalid existing bookkeeping fails instead of losing that history.
+
+**Publication guarantee:** preparation failures preserve previous output, README,
+cache and manifest. Promotion is atomic per file and bookkeeping is last. Shared
+output directories, manual sidecars and symlink composition rule out silently
+replacing an entire directory. Crash-atomic whole-publication visibility and
+rollback after promotion I/O failures are not provided; a separate transaction
+contract would be required for them. Staging uses temporary storage rather than
+accumulating all rendered output strings in memory.
+
+GitLab Pull resolves and downloads one commit. Push compares local files with
+checksums at that snapshot revision, skips unchanged content before chunking,
+checks the branch, and uses file `last_commit_id` preconditions for updates.
+Create conflicts never become updates. Each acknowledged commit must have the
+expected parent before its revision can become the next snapshot baseline; this
+also detects a concurrent edit to a file from an already-completed chunk.
+Failures invalidate the snapshot and require Pull, while reporting acknowledged
+chunks and distinguishing an uncertain request. No remote delete or automatic
+retry is introduced. UI target capture remains independent of revision checks.
+
+Verification includes the review reproductions, failure snapshots, destination
+alias/ancestor collisions, malformed manifests, unit parse/query counts, copied
+image parity, optimistic GitLab conflicts, empty-change chunk avoidance, and real
+browser target binding/native-theme uniqueness. The final parallel registry
+passed 1,463 tests across 232 classes with 8 workers, without skips, on 2026-09-12.
+Golden output, gallery, product/documentation captures and the guide were
+regenerated from their sources; the captures were inspected. The independent
+follow-up review found no remaining material issue in these corrected boundaries.

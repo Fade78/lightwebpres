@@ -11,8 +11,8 @@ Access-Control-Allow-Origin on its API responses, every call here fails —
 that is a server-side setting to fix, not something this page can work
 around (see index.html's GitLab tab setup note).
 
-Three independent steps, each callable on its own from the page:
-  - pull(): downloads the repository archive for a branch and extracts it
+Three explicit steps share a revision-bound snapshot:
+  - pull(): resolves a branch and downloads that commit's repository archive
     into the work directory.
   - build(): runs the unmodified cmd_build() against the pulled directory.
   - push(): diffs the work directory (sources + the public/ that build()
@@ -26,6 +26,7 @@ Three independent steps, each callable on its own from the page:
 
 import base64
 import contextlib
+import hashlib
 import io
 import json
 import shutil
@@ -38,6 +39,23 @@ from pyodide.http import pyfetch
 GIT_WORK_DIR = Path('/lwp_git_work')
 
 PUSH_CHUNK_SIZE = 100
+
+
+class GitSnapshot:
+    """One pulled revision and destination; advances only after confirmed commits."""
+
+    def __init__(self, base_url, project_id, branch, directory, revision):
+        self.target = (base_url.rstrip('/'), str(project_id), branch)
+        self.directory = Path(directory)
+        self.revision = revision
+        self.usable = True
+
+    def matches(self, base_url, project_id, branch, directory):
+        return (self.usable and self.directory == Path(directory)
+                and self.target == (base_url.rstrip('/'), str(project_id), branch))
+
+
+_git_snapshot = None
 
 # index.html injects the page-owned values before loading this glue. These
 # defaults keep the module testable in isolation; the deployment values live
@@ -155,24 +173,28 @@ def _find_series_dir_in_archive(root):
 
 
 async def pull(base_url, token, project_id, branch):
-    """Downloads the repository archive for `branch` and extracts it.
+    """Resolve a branch once, then download and bind that immutable revision.
 
     Returns (series_dir_str_or_None, error_text_or_None).
     """
+    global _git_snapshot
+    _git_snapshot = None
     if GIT_WORK_DIR.exists():
         shutil.rmtree(GIT_WORK_DIR)
     GIT_WORK_DIR.mkdir(parents=True)
 
     try:
         pid = quote(str(project_id), safe='')
+        revision = await _remote_revision(base_url, token, project_id, branch)
         archive = await _request(
             base_url, token, 'GET', f'/projects/{pid}/repository/archive.zip',
-            params={'sha': branch}, want_json=False,
+            params={'sha': revision}, want_json=False,
         )
         with zipfile.ZipFile(io.BytesIO(bytes(archive))) as zf:
             _validate_zip_members(zf)
             zf.extractall(GIT_WORK_DIR)
         series_dir = _find_series_dir_in_archive(GIT_WORK_DIR)
+        _git_snapshot = GitSnapshot(base_url, project_id, branch, series_dir, revision)
         return str(series_dir), None
     except Exception as e:
         return None, f'{type(e).__name__}: {e}'
@@ -197,18 +219,32 @@ def build(series_dir, lang='fr'):
         return False, log.getvalue(), f'{type(e).__name__}: {e}'
 
 
-async def _remote_paths(base_url, token, project_id, branch):
-    """Full set of file paths that currently exist in the remote tree, so
-    push() can tell create from update. Existence only — no content is
-    fetched, so an update is issued even when the content already matches
-    (a same-content commit, harmless but not skipped; see §23.12)."""
+async def _remote_revision(base_url, token, project_id, branch):
+    pid, ref = quote(str(project_id), safe=''), quote(branch, safe='')
+    commit = await _request(base_url, token, 'GET',
+                            f'/projects/{pid}/repository/commits/{ref}')
+    return _commit_revision(commit)
+
+
+def _commit_revision(commit):
+    revision = commit.get('id') if isinstance(commit, dict) else None
+    if not isinstance(revision, str) or not revision:
+        raise RuntimeError('GitLab returned no commit revision')
+    return revision
+
+
+async def _remote_paths(base_url, token, project_id, revision):
+    """File paths at one pinned revision, used to distinguish create from update.
+
+    Push separately reads file revisions and checksums at this same revision.
+    """
     pid = quote(str(project_id), safe='')
     paths = set()
     page = 1
     while True:
         items = await _request(
             base_url, token, 'GET', f'/projects/{pid}/repository/tree',
-            params={'ref': branch, 'recursive': 'true', 'per_page': 100, 'page': page},
+            params={'ref': revision, 'recursive': 'true', 'per_page': 100, 'page': page},
         )
         if not items:
             break
@@ -228,46 +264,78 @@ BUILD_MANIFEST_NAME = '.lwp-manifest.json'
 
 
 async def push(base_url, token, project_id, branch, series_dir, commit_message):
-    """Commits every file under series_dir (sources + public/) that is new
-    or differs by path from what's remote. Returns (ok, summary_text).
+    """Plan against the pulled revision and guard each update at the server.
+
+    Branch checks detect earlier edits; file preconditions close the race after
+    checking. Creates never become updates on a conflict. Any failed/uncertain
+    attempt invalidates the snapshot; completed chunks remain reported and a
+    new Pull is required before retrying. Returns (ok, summary_text).
     """
+    snapshot = _git_snapshot
+    if snapshot is None or not snapshot.matches(base_url, project_id, branch, series_dir):
+        return False, 'No matching usable GitLab snapshot. Pull again before Build or Push.'
     pid = quote(str(project_id), safe='')
-    remote_paths = await _remote_paths(base_url, token, project_id, branch)
-
-    root = Path(series_dir)
-    actions = []
-    for f in sorted(root.rglob('*')):
-        if not f.is_file():
-            continue
-        rel = f.relative_to(root).as_posix()
-        # rglob matches dotfiles, so the build's own cache and manifest land
-        # here and would otherwise be committed to the user's repository.
-        # They are derived state, rebuilt by the tool: never content. Match
-        # the repository's .gitignore contract for these names at any depth.
-        relative_parts = f.relative_to(root).parts
-        if BUILD_CACHE_DIR in relative_parts or f.name == BUILD_MANIFEST_NAME:
-            continue
-        action = 'update' if rel in remote_paths else 'create'
-        actions.append({
-            'action': action,
-            'file_path': rel,
-            'content': base64.b64encode(f.read_bytes()).decode('ascii'),
-            'encoding': 'base64',
-        })
-
-    if not actions:
-        return False, 'Nothing to push: the work directory is empty.'
-
     commit_count = 0
-    for i in range(0, len(actions), PUSH_CHUNK_SIZE):
-        chunk = actions[i:i + PUSH_CHUNK_SIZE]
-        message = commit_message
-        if len(actions) > PUSH_CHUNK_SIZE:
-            message = f'{commit_message} (part {commit_count + 1})'
-        await _request(
-            base_url, token, 'POST', f'/projects/{pid}/repository/commits',
-            body={'branch': branch, 'commit_message': message, 'actions': chunk},
-        )
-        commit_count += 1
+    pending_request = False
+
+    async def check_revision():
+        if _git_snapshot is not snapshot or not snapshot.usable:
+            raise RuntimeError('The loaded snapshot changed during Push')
+        if await _remote_revision(base_url, token, project_id, branch) != snapshot.revision:
+            raise RuntimeError('The remote branch changed since Pull or the last confirmed commit')
+
+    try:
+        await check_revision()
+        remote_paths = await _remote_paths(base_url, token, project_id, snapshot.revision)
+        actions = []
+        for f in sorted(snapshot.directory.rglob('*')):
+            if not f.is_file():
+                continue
+            relative = f.relative_to(snapshot.directory)
+            if BUILD_CACHE_DIR in relative.parts or f.name == BUILD_MANIFEST_NAME:
+                continue
+            rel = relative.as_posix()
+            content = f.read_bytes()
+            action = {'action': 'update' if rel in remote_paths else 'create',
+                      'file_path': rel, 'encoding': 'base64',
+                      'content': base64.b64encode(content).decode('ascii')}
+            if action['action'] == 'update':
+                metadata = await _request(
+                    base_url, token, 'GET', f'/projects/{pid}/repository/files/{quote(rel, safe="")}',
+                    params={'ref': snapshot.revision})
+                revision = metadata.get('last_commit_id') if isinstance(metadata, dict) else None
+                if not isinstance(revision, str) or not revision:
+                    raise RuntimeError(f'GitLab returned no file revision for {rel}')
+                checksum = metadata.get('content_sha256')
+                if not isinstance(checksum, str) or len(checksum) != 64:
+                    raise RuntimeError(f'GitLab returned no content checksum for {rel}')
+                if hashlib.sha256(content).hexdigest() == checksum:
+                    continue
+                action['last_commit_id'] = revision
+            actions.append(action)
+        if not actions:
+            return True, 'Nothing to push: no new or changed files.'
+        for i in range(0, len(actions), PUSH_CHUNK_SIZE):
+            await check_revision()
+            message = (f'{commit_message} (part {commit_count + 1})'
+                       if len(actions) > PUSH_CHUNK_SIZE else commit_message)
+            pending_request = True
+            result = await _request(
+                base_url, token, 'POST', f'/projects/{pid}/repository/commits',
+                body={'branch': branch, 'commit_message': message,
+                      'actions': actions[i:i + PUSH_CHUNK_SIZE]})
+            commit_count += 1
+            pending_request = False
+            # A successful later chunk can incorporate a concurrent edit to a
+            # file from an earlier chunk. Do not adopt that unseen content as
+            # the baseline authorizing a future Push of stale local bytes.
+            if result.get('parent_ids') != [snapshot.revision]:
+                raise RuntimeError('The confirmed commit has an unexpected parent revision')
+            snapshot.revision = _commit_revision(result)
+    except Exception as exc:
+        snapshot.usable = False
+        return False, (f'Push stopped after {commit_count} commit(s) confirmed: {exc}. '
+                       'Pull again before Build or Push.'
+                       + (' An unconfirmed request may have reached GitLab.' if pending_request else ''))
 
     return True, f'Pushed {len(actions)} file(s) in {commit_count} commit(s).'

@@ -33,6 +33,43 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.59.2
+
+Build and verify now share a disk-backed publication plan for HTML, README and
+assets. Multipage verification detects changed or missing copied images just as
+combined-HTML verification does. Rendering, asset reads, manifest validation and
+destination conflicts finish before any published file is replaced. Files are
+then promoted atomically one at a time, with bookkeeping last; a disk failure or
+process crash during promotion is not a whole-directory transaction. Manual
+sidecars and retained incremental/draft-only pages keep their ownership.
+
+Unit sources are parsed once per build context and cloned for each render;
+compiled index selectors are reused across preset variants. Ignored units,
+omitted drafts and excluded slides no longer remove compatible published presets.
+Audit retains its complete source universe. Native Light now keeps its canonical
+`builtin:light` identity through presets and the browser, eliminating duplicate
+Light choices from `--themes all` while keeping local `light` snapshots distinct.
+
+GitLab Pull now downloads an immutable commit and binds the working snapshot to
+its revision and destination. Push omits unchanged files, refuses a changed
+branch, guards updates with file revisions, and checks each confirmed commit's
+parent before advancing the snapshot. Failed or uncertain requests require
+another Pull and report confirmed chunks; concurrent creates are never retried
+as updates. No-change pushes create no commit.
+
+The `resolve` report now uses `lightwebpres.resolve/3`: the series-wide
+`presentation_preset` query is reported as a series field and an omitted value
+resolves to the canonical `builtin/standard` selector. Commons presets retain
+standalone theme source and note metadata, and changing identity follows the
+Identity Kit manifest's `default_preset` when that preset is published.
+
+The native Light theme is now indexed as the canonical `builtin:light` resource
+alongside the embedded palette catalogue. Its display metadata is resolved for
+inspection, while its composition layer retains symbolic property references;
+a local bare `light` snapshot remains a separate resource. `theme vendor` does
+not try to write the native resource into the series namespace, so `all` can
+also be used when a local `light` snapshot exists.
+
 ## Unreleased — 0.59.1
 
 The internal presentation-package vocabulary is now expressed through Identity

@@ -3,8 +3,8 @@
 browser).
 
 Real browser, real Pyodide — same philosophy as test_web.py. There is no
-real GitLab server here: a minimal mock of the three API v4 endpoints this
-page uses (repository/archive.zip, repository/tree, repository/commits) is
+real GitLab server here: a minimal mock of the API v4 endpoints this
+page uses (archive, tree, file metadata and commit reads/writes) is
 served on its own port, so the browser genuinely crosses origins and the
 CORS headers this page depends on are exercised for real, not assumed.
 
@@ -16,6 +16,7 @@ Run with: python3 tests/run_tests.py
 """
 
 import base64
+import hashlib
 import io
 import json
 import shutil
@@ -27,7 +28,7 @@ import unittest
 import zipfile
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler, BaseHTTPRequestHandler
 from pathlib import Path
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 E2E_SCRIPT = Path(__file__).resolve().parent / 'git_sync_e2e.cjs'
@@ -89,7 +90,7 @@ def _make_archive_zip(article_md=ARTICLE_MD):
 
 
 class _MockGitLabHandler(BaseHTTPRequestHandler):
-    """Minimal mock of the three GitLab API v4 endpoints git_sync.py calls.
+    """Minimal mock of the GitLab API v4 endpoints git_sync.py calls.
     Shared state (received commit actions) lives on the class so the test
     can inspect it after the browser-driven run completes."""
 
@@ -121,6 +122,24 @@ class _MockGitLabHandler(BaseHTTPRequestHandler):
             self.send_response(401)
             self._cors_headers()
             self.end_headers()
+            return
+
+        if '/repository/commits/' in self.path or '/repository/files/' in self.path:
+            with zipfile.ZipFile(io.BytesIO(_make_archive_zip())) as archive:
+                name = unquote(urlparse(self.path).path.split('/files/')[-1])
+                checksum = (hashlib.sha256(archive.read('series-main-abc1234/' + name)).hexdigest()
+                            if '/files/' in self.path else '')
+            value = ({'last_commit_id': 'file-base'} if '/files/' in self.path
+                     else {'id': ('fakecommitsha%d' % len(self.received_commits)
+                                  if self.received_commits else 'pull-base')})
+            if checksum:
+                value['content_sha256'] = checksum
+            body = json.dumps(value).encode('utf-8')
+            self.send_response(200)
+            self._cors_headers()
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(body)
             return
 
         if self.path.startswith('/api/v4/projects/%s/repository/archive.zip' % PROJECT_ID):
@@ -160,7 +179,9 @@ class _MockGitLabHandler(BaseHTTPRequestHandler):
             length = int(self.headers.get('Content-Length', 0))
             payload = json.loads(self.rfile.read(length).decode('utf-8'))
             self.__class__.received_commits.append(payload)
-            body = json.dumps({'id': 'fakecommitsha%d' % len(self.received_commits)}).encode('utf-8')
+            body = json.dumps({'id': 'fakecommitsha%d' % len(self.received_commits),
+                               'parent_ids': ['pull-base' if len(self.received_commits) == 1
+                                              else 'fakecommitsha%d' % (len(self.received_commits) - 1)]}).encode('utf-8')
             self.send_response(201)
             self._cors_headers()
             self.send_header('Content-Type', 'application/json')
@@ -236,6 +257,16 @@ class _RaceGitLabHandler(BaseHTTPRequestHandler):
             self._json(401, {})
             return
 
+        if '/repository/commits/' in self.path:
+            self._json(200, {'id': 'racecommit' if self.received_commits else 'pull-base'})
+            return
+        if '/repository/files/' in self.path:
+            name = unquote(urlparse(self.path).path.split('/files/')[-1])
+            with zipfile.ZipFile(io.BytesIO(_make_archive_zip(ARTICLE_MD.replace('Git sync test', 'Race A')))) as archive:
+                checksum = hashlib.sha256(archive.read('series-main-abc1234/' + name)).hexdigest()
+            self._json(200, {'last_commit_id': 'file-base', 'content_sha256': checksum})
+            return
+
         if self.path.startswith('/api/v4/projects/%s/repository/archive.zip' % PROJECT_ID):
             self.__class__.archive_count += 1
             label = 'Race A' if self.__class__.archive_count == 1 else 'Race B'
@@ -264,7 +295,7 @@ class _RaceGitLabHandler(BaseHTTPRequestHandler):
             length = int(self.headers.get('Content-Length', 0))
             payload = json.loads(self.rfile.read(length).decode('utf-8'))
             self.__class__.received_commits.append(payload)
-            self._json(201, {'id': 'racecommit'})
+            self._json(201, {'id': 'racecommit', 'parent_ids': ['pull-base']})
             return
         self._json(404, {})
 
@@ -315,9 +346,10 @@ class GitSync(unittest.TestCase):
         self.assertEqual(commit['branch'], BRANCH)
 
         actions_by_path = {a['file_path']: a for a in commit['actions']}
-        # series.json and sources/a.md already exist remotely -> update.
-        self.assertEqual(actions_by_path['series.json']['action'], 'update')
+        # Unchanged sources are omitted; the browser edits a.md after Pull.
+        self.assertNotIn('series.json', actions_by_path)
         self.assertEqual(actions_by_path['sources/a.md']['action'], 'update')
+        self.assertEqual(actions_by_path['sources/a.md']['last_commit_id'], 'file-base')
         # public/*.html did not exist remotely -> create.
         self.assertEqual(actions_by_path['public/a.html']['action'], 'create')
         self.assertEqual(actions_by_path['public/index.html']['action'], 'create')

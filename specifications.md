@@ -3836,6 +3836,19 @@ consigné, pas un oubli ; les deux clés de soulignement font exception :
 absentes, elles valent « pas de soulignement », le sens de « pas
 d'avis » pour un axe ajouté après coup.
 
+The native Light theme is the one catalogue resource that is not a row in
+`THEMES`. Its `builtin:light` entry is exposed by `ThemeCatalog` through the
+same canonical resource index as the palette rows, but its property layer is
+the native Identity Kit layer and keeps registry references. The index must
+not replace it with a resolved snapshot: author pins rely on those references
+being resolved only after the theme layer is merged.
+
+The effective global index begins with the qualified native resource
+`builtin:light`, then applies the **integrated < installed < user** merge for
+bare palette slugs; a series adds its **series** layer above that. A local
+`light.conf` is therefore a distinct bare resource, not a replacement for
+`builtin:light`.
+
 Les thèmes externes suivent le même vocabulaire mais sont des snapshots
 complets dans des fichiers `.conf` UTF-8. Le fichier commence par les
 métadonnées `schema: lightwebpres.theme/1`, `label:`, `family:`, `source:` et
@@ -3859,9 +3872,10 @@ des snapshots complets dans `templates/themes/` pour rendre une série
 autonome. Il n'existe pas de mécanisme `extends` : la cascade settings/theme
 est le seul héritage prévu.
 
-La table `THEMES` reste la source de vérité des thèmes intégrés ; la couche
+La table `THEMES` reste la source de vérité des palettes intégrées ; `builtin:light`
+est la ressource native qualifiée tenue par l'Identity Kit natif. La couche
 appliquée par `init --theme`/`series theme set` et les aperçus de `theme gallery`
-viennent du catalogue effectif et ne peuvent pas diverger par construction.
+viennent du même index de catalogue et ne peuvent pas diverger par construction.
 
 Les neuf premières entrées reprennent des palettes d'éditeurs de code
 connues (`nord`, `dracula`, `solarized`, `gruvbox`, `catppuccin`,
@@ -5199,57 +5213,39 @@ lightwebpres build [directory] [--lang en] [--output public/] [--single-html [FI
 Builds the site. The file layout below is the default multipage mode;
 `--single-html [FILE]` instead writes the combined document specified in §11.3.8.
 
-1. Lit `series.json` dans `[répertoire]` et résout
-   `series_meta.presentation_preset` avant toute source : identité, preset,
-   thème de base, layouts, chrome, CSS structurel et assets constituent un
-   contexte unique pour tous les articles et pour l'index. Les articles
-   `status: ignored` (§20.6) sortent de la liste d'abord et sans condition. Les articles
-   `status: draft` sont ensuite **entièrement exclus** — pas de page, pas
-   de carte d'index, pas d'entrée dans les navigations des autres
-   articles — sauf avec `--include-drafts` (build **et** verify), qui les
-   construit tous, chaque page brouillon portant alors un bandeau
-   « Brouillon » (clé `draft_banner` du fichier de langue) affiché au
-   centre de l'en-tête de page, entre l'éventuel build stamp (§11.3.2) et
-   le numéro de fiche — un aperçu ne doit jamais être confondu avec une
-   publication (style inline, comme le stamp, pour ne dépendre d'aucune
-   règle de la feuille composée ni d'un `custom.css` de série).
-2. Pour chaque article dans `series.json` :
-   a. Lit le fichier `.md` source depuis `sources/`
-   b. Parse le Markdown étendu (découpe les slides, extrait les métadonnées)
-   c. Pour chaque slide :
-      - Si `cover` : génère la slide de couverture
-      - Si `standard` : génère la slide avec les champs et le contenu
-      - Si `series-nav` : génère la navigation depuis `series.json`
-      - Si `full-article` : lit le fichier `.md` inclus, le convertit
-   d. Applique les règles typographiques (protégées des balises HTML,
-      §7.2), sauf avec `--no-typography` (aucune règle ne s'exécute pour
-      aucun article de ce build, §4.5/§19.6) ou pour un article dont le
-      bloc meta porte `typo: off` (même effet, mais pour cet article
-      seul, §4.5)
-    e. Assemble le HTML avec la structure de page fixe (§9), les enveloppes et
-       le chrome du preset résolu (§9.9), la feuille composée (§9.3 —
-       recomposée pour cette page si le bloc meta porte des propriétés
-       `style.*`, §9.6.1) et le JS
-   f. Écrit le fichier HTML dans `public/`
-3. Génère la page d'index (`public/index.html`) dans ce même contexte de
-   présentation
-4. Génère le `README.md` à la racine du répertoire de série (§8.3)
-5. Inventorie les `src` locaux des pages rendues, puis copie de
-   `sources/img/` vers `public/img/` les seuls fichiers référencés par ces
-   pages. Il publie aussi les assets de tous les kits effectivement retenus
-   sous `public/assets/presentations/<id>/<version>/`. Les images absentes de la
-   source sont ignorées par la copie et signalées par `audit`; les fichiers
-   source non référencés ne sont pas publiés. La copie fusionne avec l'existant
-   et ne supprime **jamais** un fichier présent dans `public/img/` même si ce
-   build ne le référence pas — comme pour les pages HTML d'articles retirés de
-   `series.json` (qui restent elles aussi dans `public/` sans être nettoyées),
-   `build` est additif/à jour, jamais un miroir exact qui purge ce qui n'est plus
-   source. Un `--output` mal typé ne peut donc jamais faire disparaître du
-   contenu qui n'a pas été mis là par `build` lui-même. Un résidu (image ou page
-   orpheline) reste possible après suppression d'un article ; `clean` peut le
-   retirer si le manifeste l'avait déjà déclaré.
-6. Écrit l'empreinte de navigation (§11.3.1) dans `.lwp-cache/nav.json`
-   (ou le chemin donné par `--nav-cache`)
+1. Read `series.json`, load the identity/theme/language context, and parse each
+   unit source once. Resolve metadata before choosing publication membership.
+   `ignored` units never participate in publication; ordinary drafts are omitted
+   unless `--include-drafts` is used (§20.6). Included drafts retain their
+   independently styled `draft_banner`, so preview status remains visible.
+2. Validate preset compatibility against emitted units and slides. Ignored units,
+   omitted drafts and excluded slides cannot remove a published alternative.
+   Source-schema and declared-slug validation remain separate; audit and status
+   retain their broader source universe. Index filename claims keep their
+   distinct draft-counting rule (§11.3.3).
+3. Render the requested article/preset variants from private copies of parsed
+   slide state, reusing compiled index selectors. Apply typography unless disabled
+   by CLI or unit metadata (§4.5, §7.2, §19.6), render long-form inclusions and
+   navigation, and compose page styles and Identity Kit chrome (§9, §9.9).
+   Stage the resulting HTML, optional series index and README (§8.3) in temporary
+   storage, or stage one combined HTML (§11.3.8).
+4. Inventory referenced local images across those outputs and retained pages of
+   incremental/draft-only builds. Stage existing referenced `sources/img/` files
+   and the published kits' assets under `assets/presentations/<id>/<version>/`.
+   Unreferenced sources are not copied. Missing authored image sources retain
+   their audit warning policy; unreadable existing assets fail preparation.
+5. Prepare navigation-cache and manifest bytes. An existing malformed manifest
+   is an error, not permission to discard ownership history. Validate the entire
+   destination graph, including parent symlink aliases: two outputs cannot claim
+   the same physical destination, and a planned file cannot also be a required
+   directory. All author/render/asset-read/manifest/configuration errors detected
+   in preparation leave previous output, README, cache and manifest unchanged.
+6. Promote the staged files, with bookkeeping last. Each file replacement is
+   atomic; an I/O failure or process crash during promotion is not a transaction
+   over the whole directory. Publication is additive: manual sidecars and old
+   output files are not deleted. `clean` can remove an orphan only if a previous
+   manifest declared it (§11.13). The cache remains `.lwp-cache/nav.json`, or
+   the explicitly requested `--nav-cache` (§11.3.1).
 
 `--scroll-duration` fixe la durée, en millisecondes, du glissé propre au deck
 entre deux fiches. Il accepte un entier non négatif ; `0` rend les coups
@@ -5733,12 +5729,10 @@ suit la même règle : il doit reproduire la décision du build vérifié — un
 `verify` lancé avec une décision différente de celle du build produit des
 payloads différents et signale un `[DRIFT]` correct, pas un faux positif.
 
-1. Lance le build en mémoire (sans écrire les fichiers) ; `--no-typography`
-   a le même effet que sur `build` (§11.3), sur ce build en mémoire —
-   utile pour vérifier un `public/` déjà généré sans typographie, pas pour
-   ignorer une vraie différence de typographie sur un `public/` généré
-   normalement (`verify` comparerait alors deux HTML volontairement
-   différents et signalerait un `[DRIFT]` correct, pas un faux positif)
+1. Prepare the same disk-backed output plan as `build`, without publishing it.
+   Temporary files are removed afterward; sources and published output are
+   untouched. Match `--no-typography` and other rendering choices (§11.3):
+   changing them correctly produces drift rather than hiding a difference.
 2. Compare la sortie générée avec l'existant : **chaque page d'article**
    contre `public/`, plus **`index.html`** (contre `public/`) et
    **`README.md`** (contre la racine du répertoire de série) — un
@@ -5756,6 +5750,9 @@ payloads différents et signale un `[DRIFT]` correct, pas un faux positif.
 3. Pour chaque fichier différent, affiche `[DRIFT] fichier` suivi d'un diff ;
    pour chaque fichier absent, affiche `[NEW] fichier` ; pour
    chaque fichier identique, affiche `[OK] fichier`
+   Both physical topologies also compare the bytes of copied Markdown images
+   and Identity Kit assets. Changed images report `[DRIFT]`; missing published
+   copies report `[NEW]`. Inline images are compared within their HTML instead.
 4. Reports a count: "N file(s) OK, M file(s) different." The total counts
    physical files checked, including applicable presentation assets and the
    series README unless suppressed. Combined-HTML mode counts one combined
@@ -5866,11 +5863,10 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
     rapporte que ce que la feuille de série ne dit pas déjà. Et si la
     feuille ne résout pas du tout, cette passe se **tait** : l'erreur fatale
     nomme déjà la ligne à corriger, et rien ne doit lui disputer la place
-12. Avertit sur chaque **lien symbolique** de `sources/img/` qui sort du
-    répertoire d'images : il sera suivi et publié, mais sa composition sort
-    de la racine logique (§13.7). C'est un contrôle des *sources* commises,
-    pas une interdiction de la copie — la règle de suivi est celle que
-    `copy_images` applique, partagée et non réécrite
+12. Warn about each **symlink** under `sources/img/` that leaves the logical
+    image directory (§13.7). Referenced targets are followed and published;
+    this source diagnostic does not prohibit the composition. The publication
+    plan retains the same symlink-following behavior.
 13. **Dresse l'inventaire des images** après le rendu : pour chaque fichier
     régulier présent sous `sources/img/`, indique les références locales
     rencontrées dans les pages rendues, séparées entre images inline et
@@ -6169,7 +6165,8 @@ sur celle qui répond à « celui-là, il vaut quoi » : `theme show`.
 lightwebpres theme list [--polarity light|dark] [--hue <teinte>] [--family <nom>]
 ```
 
-Liste le catalogue global effectif depuis le terminal, avec pour chaque entrée son slug,
+Liste le catalogue global effectif depuis le terminal, avec pour chaque entrée son
+identifiant canonique (un slug de palette ou une référence qualifiée native),
 ses trois facettes (§9.5.2), son étiquette et sa remarque éditoriale.
 Sans option, les liste tous ; chaque option restreint la liste, et les
 options se combinent.
@@ -6181,13 +6178,16 @@ choisir un thème — inacceptable pour un outil en ligne de commande, et
 d'autant plus que l'interface graphique est un projet séparé qui ne peut
 rien garantir ici.
 
-Le slug est mis en avant dans la sortie parce que c'est ce que
+L'identifiant est mis en avant dans la sortie parce que c'est ce que
 `init --theme` et `series theme set` attendent : ce qu'on lit est
 directement ce qu'on retape.
 
-Le catalogue comprend les thèmes intégrés et les snapshots externes installés
+Le catalogue comprend la ressource native `builtin:light`, les thèmes intégrés
+et les snapshots externes installés
 ou utilisateur trouvés dans les emplacements de §2.3. Un slug local ombrant un
 thème intégré n'est affiché qu'une fois, comme l'entrée globale effective.
+The native `builtin:light` id is qualified, so a local bare `light` snapshot
+does not shadow or replace it.
 Lorsqu'une série est construite, ses snapshots de `templates/themes/` sont
 ajoutés au-dessus. Pour demander malgré tout la version intégrée, utiliser
 `builtin:<slug>` avec `theme show`, `init`, `series theme set` ou un sélecteur
@@ -6301,11 +6301,11 @@ avertissent : `build` sort 0, `audit` nu aussi.
 
 #### Deux cibles
 
-- **Un slug** (`theme show nord`) : l'entrée du catalogue global, intégrée ou
-  externe, telle qu'elle est livrée à l'outil. Aucun répertoire de série n'est
-  nécessaire — c'est le cas « avant d'installer », celui qui sert à choisir.
-  `builtin:nord` force la version intégrée lorsqu'un fichier local masque
-  `nord`.
+- **Un identifiant de thème** (`theme show nord` ou `theme show builtin:light`) :
+  l'entrée du catalogue global, native, intégrée ou externe, telle qu'elle est
+  livrée à l'outil. Aucun répertoire de série n'est nécessaire — c'est le cas
+  « avant d'installer », celui qui sert à choisir. `builtin:nord` force la
+  version intégrée lorsqu'un fichier local masque `nord`.
 - **Un répertoire de série** (`theme show .`) : le thème **effectif**,
   c'est-à-dire le thème explicitement nommé ou, à défaut, le thème du preset,
   après application des valeurs que la série épingle dans
@@ -6473,8 +6473,8 @@ slugs ou `--all`, c'est une **liste** de ces objets, dans l'ordre demandé.
 Pour une série native sans `theme:` explicite, `target.theme` vaut `null`,
 `target.presentation_preset` vaut `builtin/standard`, `label` vaut `Light` et
 `source` vaut `builtin`. Le rapport de preset (§11.18) nomme ce thème par
-`theme.id: light` ; `builtin:light` est sa référence de manifeste, non un slug
-Commons explicitement sélectionné dans `settings.conf`.
+`theme.id: light` ; `builtin:light` est aussi son identifiant canonique dans le
+catalogue global, et non le slug nu `light` d'un snapshot local.
 
 `accessibility` a trois clés — `body_text`, `large_text`, `non_text` —
 de même forme :
@@ -6576,8 +6576,12 @@ sans thème explicite (donc avec une base de preset), la commande exige une
 sélection. La copie est une vraie source de série : elle reste utilisable après
 disparition du catalogue utilisateur. Un fichier déjà présent et différent
 exige `--force`.
-Les thèmes intégrés peuvent être demandés avec `builtin:<slug>` pour éviter
-toute ambiguïté avec une entrée locale.
+La ressource native `builtin:light` est fournie par l'exécutable et n'est donc
+pas copiée ; la commande la signale puis la saute, y compris quand elle est
+incluse par `all`. Un snapshot local nommé `light` reste une ressource nue
+distincte et peut être vendu normalement. Les palettes intégrées peuvent
+être demandées avec `builtin:<slug>` pour éviter toute ambiguïté avec une
+entrée locale.
 
 **`theme path`** imprime les racines installées puis utilisateur, dans leur
 ordre de priorité. Il n'écrit rien. Les racines de série sont propres à la
@@ -6948,8 +6952,8 @@ Les champs de `series_meta` (§20.5) se résolvent sans `--article` ; tous
 les autres l'exigent, et l'erreur qui le dit **liste les articles de la
 série**, pour que la correction soit un copier-coller et pas une recherche.
 Interroger `presentation_preset` rapporte en plus la description complète du
-preset effectivement résolu ; il est forcément de portée série et refuse
-`--article`.
+preset effectivement résolu ; il est forcément de portée série, refuse
+`--article` et vaut `builtin/standard` lorsque la clé est absente.
 
 **Champ de diapositive.** Il n'a pas de cascade : il est écrit sur une
 diapositive ou il n'y est pas. La réponse honnête n'est donc pas une
@@ -6982,7 +6986,7 @@ voisines. Racine :
 
 | Clé | Type | Sens |
 |---|---|---|
-| `schema` | chaîne | `lightwebpres.resolve/2` |
+| `schema` | chaîne | `lightwebpres.resolve/3` |
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `query` | objet | `name`, `kind`, `directory`, `article` (ou `null`) |
 
@@ -7293,89 +7297,51 @@ aucune sortie.
 ### 12.1 Étape par étape
 
 ```
-build(répertoire):
-  1. series = read_json(répertoire/series.json)
-  2. identity_catalog = load_identity_catalog(répertoire/templates/)
-     preset = resolve(series_meta.presentation_preset)  # absent = builtin/standard (§9.9)
-     # Ce contexte unique (identité, preset, thème, layouts, chrome, assets)
-     # vaut pour tous les articles et pour l'index.
-  3. lang = --lang OU $LWP_LANG OU "fr" (défaut)
-  4. language = load_language(lang, --language-file)  # vue de compatibilité rules + strings ; sources split/legacy/FHS, §19.5
-  5. settings = parse_settings(répertoire/templates/settings.conf)  # §9.3.1 ; absent = couche vide
-     base = thème(settings.theme) SI settings.theme actif SINON preset.theme
-     index_css = compose_stylesheet(défauts ← base ← settings)
-                 # structure_css du preset après le squelette, avant la sortie typée
-                 + read_file(répertoire/templates/custom.css)  # toujours ajouté en dernier (§9.9.4)
-  6. js = read_file(répertoire/templates/nav.js) OR built-in default
-  # La structure de page est fixe, intégrée à l'exécutable — pas lue depuis
-  # templates/ (§9). Articles et index partagent le même squelette et le
-  # même JS (§18.1, §18.2).
+prepare_context(directory, options):
+  series = read_series_json(directory)
+  identities, themes, language, settings, navigation = load_context(directory, options)
+  sources = parse_each_unit_once(series)
+  resolved = resolve_metadata(series, sources)
+  membership = PublicationMembership(resolved, options)
+  presets = resolve_presets(identities, series)  # implicit builtin/standard (§9.9)
+  validate_compatibility(presets, emitted_slides(membership.rendered, sources))
+  return context(series, sources, membership, presets, themes, language, settings, navigation)
 
-  7. FOR each article IN series:
-     a. source = read_file(répertoire/sources/{article.page_source})
-     b. meta, slides = parse_markdown(source)
-     b2. validate_article_presentation(slides, preset)
-         # slide-layout / slide-header / slide-footer remplacent seulement
-         # les défauts du preset, jamais le preset lui-même (§9.9.3)
-     c. html_slides = []
-     d. slide_num = 0
-     e. total_slides = count_slides(slides)
-        e2. show_slide_num = resolve_slide_page_numbers(meta, args, series_meta)  # §3.3.5
-            # show_slide_num est transmis à chaque renderer (cover/standard/full-article)
+prepare_outputs(context, plan, options):
+  # Each render clones mutable parsed slide state; selector programs are reused.
+  # Source identity checks include excluded slides. Emission omits them (§4.3.1)
+  # and incomplete full-article drafts (§22.6). Numbering uses §3.3.5.
+  if --single-html:
+    plan.stage(render_combined_html(context))  # one shell, inert inactive units (§11.3.8)
+  else:
+    for unit in selected_render_targets(context, --only, --drafts-only):
+      # cover, standard, series-nav, full-article and unit-index use their
+      # registered renderers, typography, kit envelopes and chrome (§9.9.3).
+      # Page CSS composes registry/base/settings/style.*, then custom CSS (§9.9.4).
+      plan.stage(render_article_and_preset_variants(context, unit))
+    if index_is_required(context, --no-index):
+      plan.stage(render_index_and_preset_variants(context))  # shared shell (§18.1)
+  if not --no-readme:
+    plan.stage(render_readme(context))
+  if not --inline-images:
+    plan.stage(referenced_existing_images_and_published_kit_assets(context))
+    # Includes retained incremental/draft-only pages; never rescans output to
+    # infer ownership of unrelated files. Unreferenced images are not copied.
 
-     f. FOR each slide IN slides:
-        IF "excluded" IN slide.tags:      # §4.3.1 — ni rendue ni numérotée
-          continue
-        IF slide.type == "full-article" AND article_directive_is_present
-           AND slide.article is empty:      # §22.6 — brouillon omis avec avertissement
-          continue
-        slide_num += 1
-        IF slide.type == "cover":
-          html = render_cover(slide, meta, slide_num, total_slides, show_slide_num)
-        ELIF slide.type == "series-nav":
-          html = render_series_nav(series, article, slide_num, total_slides, language.strings)
-        ELIF slide.type == "full-article":
-          article_md = read_file(répertoire/sources/{slide.article})
-          article_html = convert_markdown(article_md)
-          article_html = apply_typography(article_html, language.rules)
-          html = render_full_article(article_html, slide_num, total_slides, language.strings, show_slide_num)
-        ELSE:  # standard
-          html = render_standard(slide, slide_num, total_slides, language, show_slide_num)
+build(directory, options):
+  context = prepare_context(directory, options)
+  with temporary_publication_plan() as plan:
+    prepare_outputs(context, plan, options)
+    plan.stage(navigation_fingerprint(context))       # --only cache (§11.3.1)
+    plan.stage(validated_manifest_with_history(context, plan))  # clean (§11.13)
+    plan.validate_destination_graph()
+    plan.publish_files_atomically_one_at_a_time()    # bookkeeping last; no directory swap
 
-        html_slides.append(wrap_presentation_fragment(
-          html, preset))  # garde la <section> LWP (§9.9.3)
-
-     g. title = extract_title(meta)
-     h. html = fill_page_template({
-          "lang": lang,
-          "title": title,
-          "css": page_css(preset, settings, meta),  # thème du preset si aucun theme: explicite,
-                                                     # style.* de l'article, structure_css, custom.css (§9.9.4)
-          "js_nav": js,
-          "content": "\n".join(html_slides)
-        })  # fill_page_template uses the fixed, built-in page structure (§18.1)
-     i. write_file(répertoire/public/{article.page_dest}, html)
-
-  8. IF NOT --no-index:
-       index_html = build_index(series, index_css, js, preset)  # le même preset et squelette que les articles (§18.1), contenu d'index (§18.2)
-       write_file(répertoire/public/index.html, index_html)
-
-  9. IF NOT --no-readme:
-       generate_readme(series, répertoire/README.md)
-  10. IF NOT --inline-images:
-        image_inventory = images_in_rendered_pages()
-        copy_images(répertoire/sources/img/, répertoire/public/img/,
-                    image_inventory)  # referenced files only, merge, never wipe
-        IF preset.identity_kit:
-           copy_presentation_assets(preset.identity_kit, répertoire/public/)  # pour chaque kit retenu (§9.9.4)
-  11. write_file(répertoire/public/.lwp-manifest.json)  # ce que ce build a écrit — base de `clean` (§11.13)
-      write_file(répertoire/.lwp-cache/nav.json)        # empreinte de navigation — base de `--only` (§11.3.1)
-      # Les deux sont écrits à chaque build, pas seulement avec `--only`.
-
-  # Sorties optionnelles (commandes build / watch) : `--no-index` saute
-  # l'étape 8, `--no-readme` saute l'étape 9, `--no-nav` vide le
-  # placeholder de navigation inter-articles (§11.3.3). `--drafts-only`
-  # ne construit que les articles `status: draft`.
+verify(directory, options):
+  context = prepare_context(directory, options)
+  with temporary_publication_plan() as plan:
+    prepare_outputs(context, plan, options)
+    plan.compare_with_published_files()  # HTML/README text, image/asset bytes (§11.4)
 ```
 
 ### 12.1.1 Attribution des identités de fiche
@@ -9709,8 +9675,9 @@ instance GitLab via
 navigateur : les mêmes règles CORS s'appliquent, aucune requête ne transite
 par un tiers. Trois actions indépendantes, déclenchées par trois boutons :
 
-1. **Pull** — télécharge l'archive du dépôt pour une branche
-   (`GET /projects/:id/repository/archive.zip?sha=branche`) et l'extrait.
+1. **Pull** resolves the branch through `GET /projects/:id/repository/commits/:ref`,
+   downloads `GET /projects/:id/repository/archive.zip?sha=COMMIT`, and binds the
+   extracted working directory to that immutable revision and its destination.
    GitLab enveloppe systématiquement le contenu dans un répertoire
    `{projet}-{ref}-{sha}/` : c'est la même forme (zip à racine unique)
    qu'accepte déjà `_find_series_dir_in_zip()` côté `web/app.py`, mais avec
@@ -9719,25 +9686,27 @@ par un tiers. Trois actions indépendantes, déclenchées par trois boutons :
    deux scripts chargés ensemble (§23.1).
 2. **Build** — appelle `cmd_build()` telle quelle sur le répertoire extrait,
    comme l'onglet « Upload a zip ».
-3. **Push** — compare le contenu local (sources **et** `public/` généré à
-   l'étape précédente) à l'arborescence distante
-   (`GET /projects/:id/repository/tree?recursive=true`), et pousse un ou
-   plusieurs commits (`POST /projects/:id/repository/commits`) avec une action
-   `create` pour chaque fichier absent du dépôt distant et `update` pour
-   chaque fichier déjà présent. Jusqu'à 100 actions sont envoyées dans
-   chaque commit ; au-delà, le push crée plusieurs commits successifs. Cette
-   valeur de 100 est une précaution locale de taille de lot, pas une limite
-   GitLab sur le nombre de fichiers. Elle ne doit pas être confondue avec le
-   `per_page=100` de la pagination de l'arborescence distante. GitLab peut
-   appliquer des limites de taille de requête et de débit, selon sa version
-   et la configuration de l'instance ; `pyfetch` appelle directement l'API
-   REST depuis le navigateur, sans bibliothèque GitLab fournissant un
-   throttling ou des retries automatiques. Une réponse HTTP non réussie est
-   signalée comme une erreur et les commits déjà acceptés ne sont pas
-   annulés : un échec après un premier lot peut donc laisser un état distant
-   partiel. Les états dérivés du générateur — `.lwp-cache/` et
-   `.lwp-manifest.json`, même quand ce dernier se trouve dans `public/` — ne
-   sont pas du contenu à pousser.
+3. **Push** requires the same usable snapshot and destination. It checks the
+   branch revision before planning and before each commit chunk. If the branch
+   changed since Pull or the last confirmed chunk, Push refuses and requires
+   another Pull. Path existence comes from the tree at the pinned revision;
+   existing files are compared with `content_sha256` at that revision and only
+   changed files receive `update` actions with the corresponding `last_commit_id`,
+   read from `GET /projects/:id/repository/files/:file_path?ref=COMMIT`. New files receive
+   `create`, never an update fallback. Server-side file preconditions protect
+   changes occurring after the branch check. A confirmed commit advances the
+   snapshot revision only when its `parent_ids` contains exactly the preceding
+   snapshot revision. An unexpected parent may incorporate another writer's edit
+   to a completed chunk; it invalidates the snapshot instead of authorizing a
+   future stale overwrite. Any error disables Build/Push until Pull.
+   Local files remain available in the tab until that Pull.
+
+   `POST /projects/:id/repository/commits` sends at most 100 actions per chunk.
+   This is a local request-size precaution, separate from tree pagination, not
+   a GitLab API limit. Confirmed chunks remain committed after a later failure;
+   the error reports their count. A lost response may conceal an accepted commit,
+   so uncertain requests are never retried automatically. `.lwp-cache/` and
+   `.lwp-manifest.json` at any depth remain local bookkeeping, not pushed content.
 
 ### 23.10 CORS : condition nécessaire, hors du périmètre de cette page
 
@@ -9787,20 +9756,19 @@ dans le dépôt distant mais absent du répertoire local (article supprimé,
 image retirée) n'est **jamais** supprimé côté distant par cette page — zéro
 risque de perte de contenu déclenchée par une erreur locale (zip incomplet,
 mauvais dossier). Pour supprimer un fichier du dépôt, passer par GitLab
-directement. Autre conséquence de cette simplicité volontaire : `push` ne
-compare pas le contenu distant à l'avant-poussée (seule l'existence du
-chemin est vérifiée, pas le contenu), donc pousser sans changement réel
-produit tout de même un commit (vide en diff, mais bien réel) plutôt que de
-ne rien faire.
+directement.
+
+Push compares local bytes with the content checksums at its snapshot revision.
+Unchanged files are omitted before chunking. A no-change Push succeeds without
+creating a commit; no empty chunk is sent before later changed files.
 
 ### 23.13 Test de l'onglet GitLab
 
-`tests/test_git_sync.py` (§23.5) fait tourner un vrai navigateur face à un
-**mock** des trois endpoints GitLab utilisés (pas de vrai serveur GitLab
-dans la boucle de test) — servi sur un port distinct pour que le
-navigateur traverse réellement une frontière d'origine et exerce pour de
-vrai les en-têtes CORS dont cet onglet dépend (§23.10). Le test vérifie le
-cycle complet pull → build → push, que `create`/`update` sont correctement
-choisis par fichier, et que le contenu poussé pour `public/a.html` est
-bien le HTML **construit** (pas la source) — pas une simulation du
-résultat.
+`tests/test_git_sync.py` (§23.5) runs a real browser and Pyodide against mocked
+GitLab archive, tree, file-metadata and commit endpoints. A separate port
+exercises the actual cross-origin requests and CORS headers (§23.10). Tests
+cover Pull/Build/Push, source edits after Pull, correct create/update selection,
+the real built HTML, destination binding and stale-snapshot UI invalidation.
+`tests/test_git_snapshot.py` exercises optimistic-update races, completed-chunk
+parent checks, no-change pushes and partial/uncertain failure handling without
+network writes. Neither suite substitutes a live GitLab server test.

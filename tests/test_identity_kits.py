@@ -91,6 +91,52 @@ class IdentityKits(unittest.TestCase):
         selectors = [p['selector'] for p in json.loads(listed.stdout)['presets']]
         self.assertEqual(selectors.count('builtin/standard'), 1)
 
+    def test_native_theme_has_a_canonical_catalogue_id_without_flattening(self):
+        catalog = self.lwp.ThemeCatalog()
+        self.assertIn('builtin:light', catalog.theme_ids)
+        self.assertNotIn('light', catalog.theme_ids)
+        self.assertTrue(catalog.has('builtin:light'))
+        self.assertEqual(catalog.entry('builtin:light')['label'], 'Light')
+        self.assertEqual(catalog.entry('builtin:light')['source'], 'builtin')
+        self.assertEqual(
+            catalog.layer('builtin:light'),
+            self.lwp.BUILTIN_STANDARD_PRESET.theme_props)
+        self.assertEqual(
+            self.lwp.resolve_theme_properties(catalog.layer('builtin:light'))['page.bg'],
+            self.lwp.resolve_theme_properties()['page.bg'])
+        self.assertEqual(catalog.layer('builtin:light')['page.bg'], 'page')
+        self.assertEqual(
+            self.lwp.theme_property_layer('builtin:light')['page.bg'],
+            'page')
+        self.assertEqual(
+            self.lwp.theme_property_layer('builtin:nord'),
+            self.lwp.theme_property_layer('nord'))
+        listed = fixtures.run('theme', 'list')
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertIn('builtin:light  [light/neutral]  desk', listed.stdout)
+        shown = fixtures.run('theme', 'show', 'builtin:light', '--format', 'json')
+        self.assertEqual(shown.returncode, 0, shown.stderr)
+        self.assertEqual(json.loads(shown.stdout)['target']['theme'], 'builtin:light')
+
+    def test_local_light_snapshot_does_not_shadow_native_light(self):
+        themes = self.root / 'library' / 'themes'
+        themes.mkdir(parents=True)
+        local = themes / 'light.conf'
+        local.write_text(self.lwp.theme_file_text(
+            'light', {'label': 'Local Light', 'family': 'desk'},
+            self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer('nord'))), encoding='utf-8')
+        catalog = self.lwp.load_theme_catalog()
+        self.assertEqual(catalog.theme_ids[0], 'builtin:light')
+        self.assertIn('light', catalog.theme_ids)
+        self.assertEqual(catalog.entry('light')['label'], 'Local Light')
+        self.assertEqual(catalog.entry('builtin:light')['label'], 'Light')
+        self.assertNotEqual(catalog.layer('light')['color.page'],
+                            catalog.layer('builtin:light')['color.page'])
+        shown = fixtures.run('theme', 'show', 'builtin:light', '--format', 'json')
+        self.assertEqual(shown.returncode, 0, shown.stderr)
+        self.assertEqual(json.loads(shown.stdout)['label'], 'Light')
+
     def test_selector_grammar_has_no_native_aliases(self):
         for value in ('default', 'builtin', 'builtin/default',
                       'builtin@1.0.0/standard', 'commons@1.0.0/brief',
@@ -292,9 +338,18 @@ class IdentityKits(unittest.TestCase):
         theme_path = themes / 'brand.conf'
         props = self.lwp.resolve_theme_properties(self.lwp.theme_property_layer('dracula'))
         theme_path.write_text(self.lwp.theme_file_text(
-            'brand', {'label': 'Brand', 'family': 'desk'}, props), encoding='utf-8')
+            'brand', {'label': 'Brand', 'family': 'desk',
+                      'source': 'palette-credit', 'note': 'Palette note.'},
+            props), encoding='utf-8')
         before = self.lwp.load_identity_catalog(self.root / 'templates').resolve_preset('commons/night', 'test')
         self.assertEqual(before.dependency_paths, (path, theme_path))
+        self.assertEqual(before.theme_meta['source'], 'palette-credit')
+        self.assertEqual(before.theme_meta['note'], 'Palette note.')
+        report = self.lwp.theme_info_report(
+            'series', None, None, [before.theme_props],
+            presentation_preset=before)
+        self.assertEqual(report['source'], 'palette-credit')
+        self.assertEqual(report['note'], 'Palette note.')
         props['color.page'] = '#123456FF'
         theme_path.write_text(self.lwp.theme_file_text(
             'brand', {'label': 'Brand', 'family': 'desk'}, props), encoding='utf-8')

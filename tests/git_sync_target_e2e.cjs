@@ -14,6 +14,7 @@ async function main() {
   const requests = [];
   const commits = [];
   const errors = [];
+  let revision = 'intercepted';
   let heldResponse = null;
   page.on('pageerror', (error) => errors.push(String(error)));
 
@@ -78,7 +79,7 @@ async function main() {
       const request = route.request();
       const url = new URL(request.url());
       if (url.origin === pageBaseUrl) return route.continue();
-      const match = url.pathname.match(/^\/gitlab\/api\/v4\/projects\/([^/]+)\/repository\/(archive\.zip|tree|commits)$/);
+      const match = url.pathname.match(/^\/gitlab\/api\/v4\/projects\/([^/]+)\/repository\/(archive\.zip|tree|commits(?:\/[^/]+)?)$/);
       if (!match || ![new URL(baseUrl).origin, new URL(otherBaseUrl).origin].includes(url.origin)) {
         errors.push('Unexpected external request: ' + url.origin + url.pathname);
         return route.abort();
@@ -96,6 +97,9 @@ async function main() {
       if (!['team/a', 'team/b'].includes(project)) {
         return route.fulfill({ status: 404, headers, body: 'Unknown project' });
       }
+      if (endpoint.startsWith('commits/')) {
+        return route.fulfill({ status: 200, headers, contentType: 'application/json', body: JSON.stringify({id: revision}) });
+      }
       if (endpoint === 'archive.zip') {
         return route.fulfill({ status: 200, headers, contentType: 'application/zip',
           body: Buffer.from(project === 'team/a' ? archiveA : archiveB, 'base64') });
@@ -105,7 +109,8 @@ async function main() {
       }
       assert.equal(request.method(), 'POST');
       commits.push({ baseUrl: url.origin + '/gitlab', project, ...request.postDataJSON() });
-      return route.fulfill({ status: 201, headers, contentType: 'application/json', body: '{"id":"intercepted"}' });
+      return route.fulfill({ status: 201, headers, contentType: 'application/json',
+        body: JSON.stringify({id: 'intercepted', parent_ids: [revision]}) });
     });
     await page.goto(pageBaseUrl + '/web/index.html');
     await status('Ready.');
@@ -259,6 +264,16 @@ async def build(series_dir, lang):
     assert.deepEqual(keys, ['lwp_git_sync_connection']);
     assert.equal((await page.textContent('#status')).includes(token), false);
     const files = await localFiles();
+    // A second writer changes the same destination after Pull. The snapshot
+    // must be invalidated, not merely unlocked for another stale Push.
+    revision = 'concurrent-commit';
+    await page.click('#pushBtn');
+    await status('Pull again before Build or Push');
+    assert.match(await page.textContent('#status'), /remote branch changed/);
+    assert.equal(await page.isDisabled('#gitBuildBtn'), true);
+    assert.equal(await page.isDisabled('#pushBtn'), true);
+    assert.equal(commits.length, 3);
+    assert.deepEqual(await localFiles(), files);
     await page.click('#clearConnectionBtn');
     await assertBlocked();
     assert.deepEqual(await localFiles(), files);

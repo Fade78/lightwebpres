@@ -4925,7 +4925,8 @@ class CliVersionAndShortcuts(unittest.TestCase):
         import ast
         tree = ast.parse(EXECUTABLE.read_text(encoding='utf-8'))
         HELPER_NAMES = {'_write_file', '_mkdir', '_copy', '_copytree', '_remove',
-                        '_remove_tree', '_replace_tree', '_remove_empty_dir'}
+                        '_remove_tree', '_replace_tree', '_remove_empty_dir',
+                        '_stage_file', '_publish_file'}
         # The one allowed bare print to stderr is inside log() itself.
         # Script validation sends its input directly to node, so it has no
         # filesystem exception to this guard.
@@ -9119,9 +9120,15 @@ class IdentityKitFixtures(unittest.TestCase):
 
             manifest = json.loads((output / '.lwp-manifest.json').read_text(
                 encoding='utf-8'))
+            self.assertEqual(manifest['schema'], 'lightwebpres.manifest/2')
             self.assertEqual(
                 [preset['selector'] for preset in manifest['presentation_presets']],
                 [self.SELECTOR, other, simple, 'builtin/standard'])
+            kit_manifest_entries = [preset for preset in manifest['presentation_presets']
+                                   if preset['selector'] != 'builtin/standard']
+            self.assertTrue(all(preset['identity_digest'] for preset in kit_manifest_entries))
+            self.assertTrue(all('package_digest' not in preset
+                                for preset in manifest['presentation_presets']))
             self.assertTrue((output / 'assets' / 'presentations' / 'studio'
                               / self.KIT_VERSION / 'mark.svg').is_file())
             self.assertTrue((output / 'assets' / 'presentations' / 'other'
@@ -10109,7 +10116,7 @@ class Themes(unittest.TestCase):
             # One card per theme, whatever the count — asserting a literal
             # number here just means editing the test every time a palette
             # is added, which tests nothing.
-            expected = len(load_lightwebpres_module().THEMES)
+            expected = len(load_lightwebpres_module().ThemeCatalog().theme_ids)
             # Prefix, not the exact tag: cards carry data-* facet
             # attributes (§9.5.3), so an exact-string count silently
             # dropped to zero when those were added.
@@ -10507,7 +10514,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
                     (root / 'public' / page).read_text(encoding='utf-8'))
                 self.assertEqual(
                     [theme['slug'] for theme in data['themes']],
-                    ['kit:builtin/light', 'monochrome', 'monochrome-night', 'print-ink'])
+                    ['builtin:light', 'monochrome', 'monochrome-night', 'print-ink'])
             verify = run('verify', str(root))
             self.assertEqual(verify.returncode, 0, verify.stderr)
 
@@ -10529,7 +10536,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             # essential is always embedded unless --no-essential-theme
             self.assertEqual(
                 [theme['slug'] for theme in data['themes']],
-                ['kit:builtin/light', 'monochrome', 'monochrome-night', 'print-ink',
+                ['builtin:light', 'monochrome', 'monochrome-night', 'print-ink',
                  'print-grey'])
 
     def test_series_json_themes_requires_a_non_empty_list_of_strings(self):
@@ -10626,7 +10633,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
                     (out / 'index.html').read_text(encoding='utf-8'))
                 self.assertEqual(
                     [theme['slug'] for theme in data['themes']],
-                    ['kit:builtin/light', 'monochrome', 'monochrome-night', 'print-ink'])
+                    ['builtin:light', 'monochrome', 'monochrome-night', 'print-ink'])
             finally:
                 proc.send_signal(signal.SIGINT)
                 try:
@@ -10657,7 +10664,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             self.assertEqual(
                 [theme['slug'] for theme in data['themes']],
                 ['print-oldpress-red-ribbon', 'monochrome', 'monochrome-night',
-                 'print-ink', 'print-grey', 'kit:builtin/light'])
+                 'print-ink', 'print-grey', 'builtin:light'])
             verify = run('verify', str(root), '--themes', 'print-grey')
             self.assertEqual(verify.returncode, 0, verify.stderr)
 
@@ -10677,10 +10684,10 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             data = self._data(
                 (root / 'public' / 'index.html').read_text(encoding='utf-8'))
             pinned = {data['vars'][index] for index in data['pinned']}
-            self.assertEqual(data['primary'], 'custom(kit:builtin/light)')
+            self.assertEqual(data['primary'], 'custom(builtin:light)')
             self.assertEqual(
                 [theme['slug'] for theme in data['themes'][:2]],
-                ['custom(kit:builtin/light)', 'kit:builtin/light'])
+                ['custom(builtin:light)', 'builtin:light'])
             self.assertNotIn('--color-ink', pinned)
             self.assertIn('--color-mark', pinned)
             ink_index = data['vars'].index('--color-ink')
@@ -10735,7 +10742,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             self.assertIsNotNone(data, 'default build should embed essential themes')
             self.assertEqual(
                 [theme['slug'] for theme in data['themes']],
-                ['kit:builtin/light', 'monochrome', 'monochrome-night', 'print-ink'])
+                ['builtin:light', 'monochrome', 'monochrome-night', 'print-ink'])
 
     def test_help_stamp_inherits_the_audited_pair_and_clears_the_size_floor(self):
         """The stamp's contrast is not its own: the skeleton gives it no
@@ -10988,7 +10995,7 @@ class ThemeFacets(unittest.TestCase):
         self.assertGreater(expected, 1, 'no ported theme to filter for')
         result = run('theme', 'list', '--family', 'ported')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn(f'{expected} of {len(lwp.THEMES)} themes match',
+        self.assertIn(f'{expected} of {len(lwp.ThemeCatalog().theme_ids)} themes match',
                       result.stdout)
         # And it really excludes: a theme from another family must be gone.
         other = next(s for s, t in lwp.THEMES.items()
@@ -11214,8 +11221,9 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
             out = Path(tmp) / 'g.html'
             self.assertEqual(run('theme', 'gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
+        expected = len(self.lwp.ThemeCatalog().theme_ids)
         self.assertEqual(html.count('<iframe class="preview"'),
-                         len(self.lwp.THEMES) * len(self.lwp.THEMES_GALLERY_PANELS))
+                         expected * len(self.lwp.THEMES_GALLERY_PANELS))
         # srcdoc, so the page stays self-contained: no src= fetch anywhere.
         self.assertNotIn('<iframe src=', html)
         # The theme marker is gone; each preview is told apart by its own
@@ -11320,7 +11328,8 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
             self.assertEqual(run('theme', 'gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
         roles = re.findall(r'<div class="swatch-role">([^<]*)</div>', html)
-        self.assertEqual(len(roles), len(self.lwp.PALETTE_ROLES) * len(self.lwp.THEMES))
+        expected = len(self.lwp.ThemeCatalog().theme_ids)
+        self.assertEqual(len(roles), len(self.lwp.PALETTE_ROLES) * expected)
         for name in self.lwp.PALETTE_ROLES:
             self.assertNotIn(name, roles, f'{name!r} is a variable name, not a role')
         # The swatch shows the settings.conf property name — the one an
@@ -11335,7 +11344,7 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
             self.assertEqual(run('theme', 'gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
         stated = re.findall(r'class="fact-treatment"><span>[^<]*</span>(.*?)</p>', html)
-        self.assertEqual(len(stated), len(self.lwp.THEMES))
+        self.assertEqual(len(stated), len(self.lwp.ThemeCatalog().theme_ids))
         for slug, theme in self.lwp.THEMES.items():
             label = self.lwp.fact_treatment_label(theme)
             self.assertIn(label, stated, slug)
@@ -12732,7 +12741,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         self.assertEqual(listing.returncode, 0, listing.stderr)
         printed = {m[0]: (m[1], m[2]) for m in re.findall(
             r'^  (\S+)  \[(\S+)\]  (\S+)$', listing.stdout, re.MULTILINE)}
-        self.assertEqual(len(printed), len(self.lwp.THEMES))
+        self.assertEqual(len(printed), len(self.lwp.ThemeCatalog().theme_ids))
         for slug in ('nord', 'graphite', 'terminal', 'pop-fuchsia'):
             facets = self._report(slug)['facets']
             trio, family = printed[slug]
@@ -13355,7 +13364,7 @@ class ThemesCommand(unittest.TestCase):
         cards = re.findall(
             r'data-polarity="([^"]*)" data-hue="([^"]*)" data-family="([^"]*)" '
             r'data-name="(\S+) ', html)
-        self.assertEqual(len(cards), len(self.lwp.THEMES))
+        self.assertEqual(len(cards), len(self.lwp.ThemeCatalog().theme_ids))
 
         for polarity, hue, family in {(c[0], c[1], c[2]) for c in cards}:
             from_gallery = sorted(c[3] for c in cards
@@ -13409,6 +13418,7 @@ class ThemesCommand(unittest.TestCase):
         self.assertIn(
             f'{len(self.lwp.THEMES)} embedded entries before external layers',
             result.stdout)
+        self.assertIn('theme show builtin:light', result.stdout)
         self.assertIn('all available themes', result.stdout)
         self.assertNotIn(
             f'all {len(self.lwp.THEMES)}, with their facets', result.stdout)
@@ -13472,7 +13482,7 @@ class ExternalThemeCatalogue(unittest.TestCase):
             html = output.read_text(encoding='utf-8')
             self.assertIn('Local Nord', html)
             self.assertEqual(html.count('class="theme-row"'),
-                             len(self.lwp.THEMES))
+                             len(self.lwp.ThemeCatalog().theme_ids))
 
     def test_a_local_theme_drives_init_build_and_runtime_digest(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -13579,6 +13589,23 @@ class ExternalThemeCatalogue(unittest.TestCase):
             self.assertEqual(run('build', str(series), env=env).returncode, 0)
             html = (series / 'public' / 'index.html').read_text(encoding='utf-8')
             self.assertIn('--color-mark: #EBCB8BFF;', html)
+
+    def test_vendor_all_does_not_collide_native_and_local_light(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env = self._env(root)
+            local = self._create(root, 'light', source='nord', label='Local Light')
+            series = root / 'series'
+            self.assertEqual(run('init', str(series), env=env).returncode, 0)
+
+            result = run('series', 'theme', 'vendor', str(series),
+                         '--themes', 'all', env=env)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            vendored = series / 'templates' / 'themes' / 'light.conf'
+            self.assertEqual(vendored.read_text(encoding='utf-8'),
+                             local.read_text(encoding='utf-8'))
+            self.assertIn('builtin:light is supplied by the executable',
+                          result.stdout)
 
     def test_an_incomplete_external_theme_is_rejected_before_listing(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -13717,7 +13744,8 @@ class SetThemeCommand(unittest.TestCase):
             unknown = run('series', 'theme', 'set', tmp, '--theme', 'nope')
             self.assertEqual(unknown.returncode, 1)
             self.assertIn('Unknown theme', unknown.stderr)
-            self.assertIn(f'{len(self.lwp.THEMES)} valid slugs', unknown.stderr)
+            self.assertIn(f'{len(self.lwp.ThemeCatalog().theme_ids)} valid slugs',
+                          unknown.stderr)
 
     def test_the_default_theme_is_named_default_in_that_message(self):
         """A file with no theme line is on the default theme, which is an
@@ -20016,8 +20044,27 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
             ):
                 with self.subTest(name):
                     report = self._resolve(root, name, *extra)
-                    self.assertEqual(report['schema'], 'lightwebpres.resolve/2')
+                    self.assertEqual(report['schema'], 'lightwebpres.resolve/3')
                     self.assertEqual(report['query']['kind'], kind)
+
+    def test_presentation_preset_is_a_series_field_with_a_canonical_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            implicit = self._one_article(tmp)
+            report = self._resolve(implicit, 'presentation_preset')
+            self.assertEqual(report['schema'], 'lightwebpres.resolve/3')
+            self.assertEqual(report['query']['kind'], 'series-field')
+            self.assertEqual(report['resolution']['value'], 'builtin/standard')
+            self.assertEqual(report['resolution']['source'], 'default')
+            self.assertEqual(report['resolution']['preset']['selector'],
+                             'builtin/standard')
+
+        with tempfile.TemporaryDirectory() as tmp:
+            explicit = self._one_article(
+                tmp, series_meta={'presentation_preset': 'builtin/standard'})
+            report = self._resolve(explicit, 'presentation_preset')
+            self.assertEqual(report['query']['kind'], 'series-field')
+            self.assertEqual(report['resolution']['value'], 'builtin/standard')
+            self.assertEqual(report['resolution']['source'], 'series')
 
     def test_slug_prefix_resolves_for_an_article(self):
         with tempfile.TemporaryDirectory() as tmp:

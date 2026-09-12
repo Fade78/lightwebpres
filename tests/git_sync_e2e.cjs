@@ -62,6 +62,11 @@ async function main() {
     await page.click('#pullBtn');
     await waitForStatus('Ready to build', 30000);
 
+    await page.evaluate(() => {
+      const fs = window.__lwp_pyodide.FS;
+      const source = window.__lwp_series_dir + '/sources/a.md';
+      fs.writeFile(source, fs.readFile(source, {encoding: 'utf8'}) + '\n<!-- Local edit after Pull -->\n');
+    });
     await page.click('#gitBuildBtn');
     await waitForStatus('Ready to push', 30000);
 

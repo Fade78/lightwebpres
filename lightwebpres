@@ -39,6 +39,7 @@ import os
 import re
 import json
 import shutil
+import tempfile
 import subprocess
 import base64
 import mimetypes
@@ -68,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.59.1"
+VERSION = "0.59.2"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -312,6 +313,38 @@ def _mkdir(path, parents=False, exist_ok=False):
         return
     Path(path).mkdir(parents=parents, exist_ok=exist_ok)
     log('verbose', f'mkdir {path}')
+
+
+def _stage_file(path, content=None, source=None):
+    """Write a disposable plan entry, including during verify and dry-run.
+
+    Callers allocate these paths inside a TemporaryDirectory, never in output.
+    Publication is a separate operation with its own dry-run boundary.
+    """
+    if source is not None:
+        shutil.copy(source, path)
+    else:
+        Path(path).write_text(content, encoding='utf-8')
+
+
+def _publish_file(source, destination):
+    """Promote one staged file atomically without assuming the same filesystem."""
+    if _LOG_STATE['dry_run']:
+        log('info', f'would write {Path(source).stat().st_size} bytes to {destination}')
+        return
+    target = Path(destination)
+    fd, name = tempfile.mkstemp(prefix=target.name + '.', suffix='.tmp', dir=target.parent)
+    os.close(fd)
+    try:
+        shutil.copyfile(source, name)
+        shutil.copymode(source, name)
+        os.replace(name, target)
+    except OSError as exc:
+        raise OSError(exc.errno, exc.strerror, str(target)) from exc
+    finally:
+        if os.path.exists(name):
+            os.unlink(name)
+    log('verbose', f'wrote {Path(source).stat().st_size} bytes to {target}')
 
 
 def _copy(src, dst):
@@ -2565,8 +2598,9 @@ def theme_facets(theme):
 def themes_matching(filters, catalog=None):
     """The effective catalogue entries matching every requested facet."""
     out = []
-    themes = catalog.themes if catalog is not None else THEMES
-    for slug, theme in themes.items():
+    themes = (catalog.theme_items() if catalog is not None
+              else THEMES.items())
+    for slug, theme in themes:
         facets = theme_facets(theme)
         if all(want is None or facets[name] == want for name, want in filters.items()):
             out.append((slug, theme, facets))
@@ -3916,6 +3950,7 @@ if len(VAR_TO_KEY) != len(PROPERTY_REGISTRY):  # pragma: no cover
 # rather than accidentally inheriting one of the built-in slug-specific maps.
 
 THEME_FILE_SCHEMA = 'lightwebpres.theme/1'
+NATIVE_THEME_ID = 'builtin:light'
 _THEME_SLUG_RE = re.compile(r'^[a-z][a-z0-9-]*$')
 _THEME_META_ALIASES = {
     'schema': 'schema', 'meta.schema': 'schema',
@@ -3935,16 +3970,20 @@ def _theme_id_parts(theme_id):
 
 
 class ThemeCatalog:
-    """Built-ins plus the external layers visible to one operation.
+    """Native and palette resources visible to one operation.
 
-    ``themes`` keeps the effective bare-slug order.  ``local_layers`` stores
-    the complete property layer for external entries, and ``sources`` keeps
-    enough provenance for diagnostics and the runtime cache digest.  The
-    built-in table itself is never mutated.
+    ``themes`` keeps the effective bare-slug order for the global palette
+    table.  The native Light theme is a qualified resource because its
+    symbolic property layer belongs to the Identity Kit and must not be
+    flattened into the palette table.  ``local_layers`` stores the complete
+    property layer for external entries, and ``sources`` keeps enough
+    provenance for diagnostics and the runtime cache digest.  The built-in
+    table itself is never mutated.
     """
 
     def __init__(self):
         self.themes = dict(THEMES)
+        self.native_themes = {NATIVE_THEME_ID: _native_theme_catalog_entry()}
         self.local_layers = {}
         self.local_slugs = set()
         self.sources = {}
@@ -3965,7 +4004,9 @@ class ThemeCatalog:
 
     def has(self, theme_id):
         origin, slug = _theme_id_parts(theme_id)
-        return (slug in THEMES if origin == 'builtin' else slug in self.themes)
+        if origin == 'builtin':
+            return f'builtin:{slug}' in self.native_themes or slug in THEMES
+        return slug in self.themes
 
     def is_local(self, theme_id):
         origin, slug = _theme_id_parts(theme_id)
@@ -3974,14 +4015,31 @@ class ThemeCatalog:
     def entry(self, theme_id):
         origin, slug = _theme_id_parts(theme_id)
         if origin == 'builtin':
+            if f'builtin:{slug}' in self.native_themes:
+                return self.native_themes[f'builtin:{slug}']
             return THEMES[slug]
         return self.themes[slug]
 
     def layer(self, theme_id):
         origin, slug = _theme_id_parts(theme_id)
+        if origin == 'builtin' and f'builtin:{slug}' in self.native_themes:
+            # Keep the native identity's registry references.  Resolving this
+            # layer here would make settings pins behave differently from the
+            # native preset path.
+            return BUILTIN_IDENTITY_KIT.theme_properties(slug)
         if origin != 'builtin' and slug in self.local_layers:
             return dict(self.local_layers[slug])
         return _builtin_theme_property_layer(slug)
+
+    @property
+    def theme_ids(self):
+        """Canonical ids in the order exposed by global theme operations."""
+        return [*self.native_themes, *self.themes]
+
+    def theme_items(self):
+        """Yield canonical ids and entries, including native resources."""
+        yield from self.native_themes.items()
+        yield from self.themes.items()
 
     def builtin_runtime_id(self, slug):
         """Keeps an essential built-in reachable when a local shadows it."""
@@ -4287,6 +4345,16 @@ class IdentityKit:
             return 'builtin'
         return f'{self.id}@{self.version}'
 
+    def theme_resource_id(self, name):
+        """The resource's identity, shared by presets and catalogue publication."""
+        return f'builtin:{name}' if self.id == 'builtin' else f'kit:{self.selector}/{name}'
+
+    def theme_properties(self, name):
+        theme = self.themes[name]
+        # Native display metadata is resolved, but composition keeps references.
+        return dict(BUILTIN_STANDARD_PRESET.theme_props if self.id == 'builtin'
+                    else theme['props'])
+
     def layout(self, slide_type, variant='default'):
         if slide_type == 'unit-index' and slide_type not in self.layouts:
             slide_type = 'standard'
@@ -4352,6 +4420,12 @@ class PresentationPreset:
         if self.resource_collection == 'commons':
             return f'commons/{self.id}'
         return f'{self.identity_kit.selector}/{self.id}'
+
+    @property
+    def theme_resource_id(self):
+        if self.resource_collection == 'commons':
+            return self.theme_id
+        return self.identity_kit.theme_resource_id(self.theme_id)
 
 
 def _presentation_body_class(preset, index=False):
@@ -5171,7 +5245,7 @@ def _load_identity_kit(root, scope):
         if not isinstance(name, str) or not _PRESENTATION_ID_RE.fullmatch(name):
             _presentation_error(manifest_path,
                                 'theme names use lowercase letters, digits and hyphens')
-        if relative_path == 'builtin:light':
+        if relative_path == NATIVE_THEME_ID:
             themes[name] = dict(BUILTIN_IDENTITY_KIT.themes['light'])
             continue
         theme_path, relative = _presentation_file(
@@ -5370,7 +5444,7 @@ def _load_commons_preset(path, scope, theme_catalog):
             _presentation_error(path, f'{key} must be a non-empty string')
     theme_id = descriptor.get('theme')
     dependencies = [path]
-    if theme_id == 'builtin:light':
+    if theme_id == NATIVE_THEME_ID:
         theme = BUILTIN_IDENTITY_KIT.themes['light']
         props, meta = BUILTIN_STANDARD_PRESET.theme_props, theme['meta']
     else:
@@ -5380,7 +5454,8 @@ def _load_commons_preset(path, scope, theme_catalog):
             _presentation_error(path, 'theme must name a Commons theme slug or builtin:light')
         props = theme_catalog.layer(theme_id)
         entry = theme_catalog.entry(theme_id)
-        meta = {key: entry[key] for key in ('label', 'family')}
+        meta = {key: entry[key] for key in ('label', 'family', 'source', 'note')
+                if key in entry}
         if theme_id in theme_catalog.sources:
             dependencies.append(Path(theme_catalog.sources[theme_id]))
     digest = _presentation_digest([
@@ -6520,6 +6595,11 @@ def theme_property_layer(theme_key, catalog=None):
     """
     if catalog is not None:
         return catalog.layer(theme_key)
+    if theme_key == NATIVE_THEME_ID:
+        # The native theme's symbolic layer is owned by the native preset.
+        return BUILTIN_IDENTITY_KIT.theme_properties('light')
+    if isinstance(theme_key, str) and theme_key.startswith('builtin:'):
+        return _builtin_theme_property_layer(theme_key[len('builtin:'):])
     return _builtin_theme_property_layer(theme_key)
 
 
@@ -6593,7 +6673,8 @@ def _theme_runtime_selector_ids(selector, source, catalog=None):
     """Expands one slug, special label, or facet selector."""
     folded = selector.casefold()
     if folded == 'all':
-        return list(catalog.themes if catalog is not None else THEMES)
+        return (list(catalog.theme_ids) if catalog is not None
+                else list(THEMES))
     if folded == 'essential':
         return [catalog.builtin_runtime_id(slug) if catalog is not None
                 else slug for slug in ESSENTIAL_THEME_IDS]
@@ -6680,18 +6761,15 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
     for preset in presets:
         identity_kit = preset.identity_kit
         for name, theme in identity_kit.themes.items():
-            kit_themes['kit:' + identity_kit.selector + '/' + name] = (identity_kit, theme)
+            kit_themes[identity_kit.theme_resource_id(name)] = (identity_kit, theme, name)
     strings = strings or {}
     if primary:
         base_id = primary
         base_values = None
     elif preset_props:
         selected = presets[0] if presets else None
-        if selected and selected.resource_collection == 'commons':
-            base_id = ('kit:builtin/light' if selected.theme_id == 'builtin:light'
-                       else selected.theme_id)
-        elif selected:
-            base_id = 'kit:' + selected.identity_kit.selector + '/' + selected.theme_id
+        if selected:
+            base_id = selected.theme_resource_id
         else:
             base_id = 'presentation:' + (preset_selector or 'preset')
         base_values = dict(preset_props)
@@ -6712,8 +6790,8 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
             # A real kit's full snapshot remains literal without special cases.
             return resolve_theme_properties(base_values, overrides or {})
         if theme_id in kit_themes:
-            return resolve_theme_properties(kit_themes[theme_id][1]['props'],
-                                            overrides or {})
+            identity_kit, _theme, name = kit_themes[theme_id]
+            return resolve_theme_properties(identity_kit.theme_properties(name), overrides or {})
         return _theme_runtime_resolved(theme_id, catalog, overrides)
 
     primary_values = resolve_runtime_theme(
@@ -6735,7 +6813,7 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
         label_base_key = None
         family_key = None
         if metadata_id in kit_themes:
-            identity_kit, theme = kit_themes[metadata_id]
+            identity_kit, theme, _name = kit_themes[metadata_id]
             label, family = theme['meta']['label'], theme['meta']['family']
             if theme_id == custom_id:
                 label_base = label
@@ -6799,6 +6877,10 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
                                           else 'kit'), origin=identity_kit.scope)
         elif metadata_id == _THEME_RUNTIME_DEFAULT:
             theme_data.update(identity='builtin', identity_label='LightWebPres',
+                              collection='builtin', origin='builtin')
+        elif metadata_id == NATIVE_THEME_ID:
+            theme_data.update(identity=BUILTIN_IDENTITY_KIT.selector,
+                              identity_label=BUILTIN_IDENTITY_KIT.label,
                               collection='builtin', origin='builtin')
         elif (metadata_id == base_id and base_values is not None and presets
               and presets[0].resource_collection != 'commons'):
@@ -6968,6 +7050,7 @@ def _presentation_runtime_context(presets, style_context, catalog,
             'selector': preset.identity_kit.selector,
             'label': preset.identity_kit.label,
             'origin': preset.identity_kit.scope,
+            'default_preset': preset.identity_kit.default_preset,
         } for preset in presets}.values()),
         'variants': {},
     }
@@ -7165,6 +7248,19 @@ BUILTIN_STANDARD_PRESET = PresentationPreset(
     slide_layouts={slide_type: 'default' for slide_type in _PRESENTATION_SLIDE_TYPES},
     default=True)
 BUILTIN_IDENTITY_KIT.presets['standard'] = BUILTIN_STANDARD_PRESET
+
+
+def _native_theme_catalog_entry():
+    """Expose the native theme without flattening its runtime layer."""
+    native = BUILTIN_IDENTITY_KIT.themes['light']
+    meta = {
+        'label': native['meta']['label'],
+        'family': native['meta']['family'],
+        'source': 'builtin',
+        'note': 'The native LightWebPres theme.',
+    }
+    return _local_theme_entry(
+        'light', meta, resolve_theme_properties(BUILTIN_IDENTITY_KIT.theme_properties('light')))
 
 
 _RESOLVED_DEFAULTS = None
@@ -11818,7 +11914,12 @@ document.addEventListener('DOMContentLoaded', function() {
       button.classList.toggle('active', active);
       button.setAttribute('aria-selected', active ? 'true' : 'false');
       button.addEventListener('click', function () {
+        var preferred = identity.default_preset
+          ? identity.selector + '/' + identity.default_preset : null;
         var first = presentationData.presets.find(function (preset) {
+          return preset.identity === identity.selector
+            && (!preferred || preset.selector === preferred);
+        }) || presentationData.presets.find(function (preset) {
           return preset.identity === identity.selector;
         });
         if (!first || !applyPresentation(first.selector, true)) return;
@@ -18257,6 +18358,17 @@ class _CompiledSelector:
     def __init__(self, ast):
         self.ast = ast
 
+    def select(self, records):
+        """Select in caller order once per identity, retaining rejected objects."""
+        result, seen = [], {}
+        for record in records:
+            identity = id(record)
+            if identity not in seen:
+                seen[identity] = record
+                if self(record):
+                    result.append(record)
+        return result
+
     def __call__(self, record):
         cache = {}
         steps = [0]
@@ -18369,17 +18481,7 @@ def compile_selector(expression, selectors=None):
 
 def select_records(records, expression, selectors=None):
     """Select in caller order, once per object identity; no implicit exclusions."""
-    predicate = compile_selector(expression, selectors)
-    result = []
-    seen = {}
-    for record in records:
-        identity = id(record)
-        if identity not in seen:
-            # Retain rejected objects too: a generator can otherwise reuse ids.
-            seen[identity] = record
-            if predicate(record):
-                result.append(record)
-    return result
+    return compile_selector(expression, selectors).select(records)
 
 
 class SlideType:
@@ -20950,10 +21052,11 @@ def typo_engine_for_slide(slide, fallback, lang_tag_engines=None):
     return fallback
 
 
-def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None, theme_runtime=None, language_runtime=None, scroll_duration=None, presentation_preset=None, slide_layouts=None, slide_chrome_layers=(), structure_css='', presentation_runtime=None, presentation_capture=None, fragment_only=False):
+def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None, theme_runtime=None, language_runtime=None, scroll_duration=None, presentation_preset=None, slide_layouts=None, slide_chrome_layers=(), structure_css='', presentation_runtime=None, presentation_capture=None, fragment_only=False, parsed_unit=None):
     """Builds an HTML page for an article."""
-    md_text = read_text_file(source_path)
-    meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
+    if parsed_unit is None:
+        parsed_unit = ParsedUnit(read_text_file(source_path))
+    meta, slides, has_meta_block, content_before_meta = parsed_unit.unpack()
     validate_slides(slides, source_path.name, has_meta_block, content_before_meta)
     slides = _prepare_unit_slides(
         slides, meta, series_meta_of(series_data), source_path.name, args)
@@ -21253,8 +21356,8 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
             if slide.slide_type != 'unit-index':
                 continue
             try:
-                selected = select_records(records, slide.index_selector,
-                                          selectors=series_meta_of(series_data).get('selectors'))
+                selected = parsed_unit.select(records, slide.index_selector,
+                                              series_meta_of(series_data).get('selectors'))
             except SelectorError as exc:
                 log('error', f'{source_path.name}: slide {number}: index-selector: {exc}')
                 sys.exit(1)
@@ -21665,10 +21768,8 @@ def symlink_escapes(entry, root):
 def audit_image_symlinks(sources_dir):
     """Warns about image symlinks that escape img/, without copying anything.
 
-    `copy_images` raises this warning too, but only while writing, so
-    `audit` never saw it: the finding is about the SOURCES an author
-    committed, not about the act of copying, and it belongs where an
-    author asks what is wrong with their series."""
+    This source diagnostic is independent of the publication plan, which follows
+    referenced image symlinks without changing their authoring meaning."""
     img_src = sources_dir / 'img'
     if not (img_src.exists() and img_src.is_dir()):
         return 0
@@ -21684,106 +21785,6 @@ def audit_image_symlinks(sources_dir):
             log('warn', f'img/: symlink escaping the image directory, it '
                         f'will be followed: {entry.relative_to(img_src)}')
     return found
-
-
-def copy_images(sources_dir, output_dir, referenced_images=None):
-    """Copies referenced files from the img/ directory if it exists.
-
-    Merges into an existing img_dst (dirs_exist_ok) instead of wiping it
-    first: a mistyped --output pointing at an unrelated existing directory
-    must never delete a pre-existing img/ there.
-
-    ``referenced_images`` contains normalized ``img/...`` paths from
-    ``image_inventory_from_html``. ``None`` retains the helper's historical
-    unrestricted behavior for direct callers; builds always pass the
-    rendered inventory.
-
-    Symlinks are followed by copytree's default (symlinks=False), which lets
-    a series share images with another project. `audit` reports links whose
-    targets leave img/, but that report does not alter the build.
-
-    Returns the paths it published, relative to output_dir. The manifest
-    is built from THIS list rather than from a scan of the destination.
-    Scanning the destination re-blesses whatever is already sitting there,
-    so an image deleted from the source stayed declared by every later
-    build, never reached the orphan list, and stayed published forever —
-    including a photograph withdrawn on purpose."""
-    img_src = sources_dir / 'img'
-    img_dst = output_dir / 'img'
-    if not (img_src.exists() and img_src.is_dir()):
-        return []
-    needed = None
-    if referenced_images is not None:
-        needed = set()
-        for value in referenced_images:
-            path = _local_image_path(value)
-            if path is None:
-                continue
-            relative = PurePosixPath(path).parts[1:]
-            if not relative:
-                continue
-            needed.add('/'.join(relative))
-            for index in range(1, len(relative)):
-                needed.add('/'.join(relative[:index]))
-    skipped = set()
-
-    def _filter_images(dir_path, names):
-        ignored = set()
-        for name in names:
-            entry = Path(dir_path) / name
-            if needed is not None:
-                relative = entry.relative_to(img_src).as_posix()
-                if relative not in needed:
-                    ignored.add(name)
-                    skipped.add(entry)
-        return ignored
-
-    _copytree(img_src, img_dst, dirs_exist_ok=True,
-              ignore=_filter_images)
-    # What was published: the source tree minus what the reference filter
-    # skipped. A skipped entry is checked against the path AND its parents,
-    # because a skipped directory takes everything under it with it.
-    published = []
-    for p in sorted(img_src.rglob('*')):
-        if skipped.intersection({p, *p.parents}):
-            continue
-        if needed is not None:
-            relative = p.relative_to(img_src).as_posix()
-            if relative not in needed:
-                continue
-        if p.is_file():
-            published.append(str(Path('img') / p.relative_to(img_src)))
-    if published:
-        progress(f'  Images copied: {img_dst}')
-    return published
-
-
-def copy_presentation_assets(identity_kits, output_dir):
-    """Publish declared Identity Kit assets under their immutable selector path."""
-    published = []
-    seen = set()
-    for identity_kit in sorted(identity_kits, key=lambda item: item.selector):
-        if identity_kit.default:
-            continue
-        for name, asset in sorted(identity_kit.assets.items()):
-            relative = (Path('assets') / 'presentations' / identity_kit.id /
-                        identity_kit.version / PurePosixPath(asset['public_relative']))
-            public_path = relative.as_posix()
-            if public_path in seen:
-                continue
-            seen.add(public_path)
-            destination = Path(output_dir) / relative
-            try:
-                _mkdir(destination.parent, parents=True, exist_ok=True)
-                _copy(asset['path'], destination)
-            except OSError as exc:
-                raise PropertyError(
-                    f'identity kit {identity_kit.selector}: cannot publish '
-                    f'asset {name!r} ({exc})')
-            published.append(public_path)
-    if published:
-        progress(f'  Presentation assets copied: {Path(output_dir) / "assets" / "presentations"}')
-    return published
 
 
 def load_series_data(series_dir):
@@ -22322,8 +22323,52 @@ def _resolve_article_presentation(entry, meta, series_meta, source_name):
                     f'{origin}: {field} belongs in a kit preset, not an article.')
 
 
+class ParsedUnit:
+    """Operation-local source snapshot; each renderer receives private mutable data."""
+
+    def __init__(self, text):
+        self.parsed = parse_markdown_extended(text)
+        self._programs = {}
+
+    def unpack(self):
+        from copy import deepcopy
+        return deepcopy(self.parsed)
+
+    def select(self, records, expression, selectors):
+        key = (expression, json.dumps(selectors or {}, sort_keys=True))
+        if key not in self._programs:
+            self._programs[key] = compile_selector(expression, selectors)
+        return self._programs[key].select(records)
+
+
+class UnitSourceInventory:
+    """Read and parse each unit once for one build/verify/audit context."""
+
+    def __init__(self):
+        self.units = {}
+
+    def get(self, path):
+        if path not in self.units:
+            text = _read_article_source(path) if path is not None else None
+            self.units[path] = ParsedUnit(text) if text is not None else None
+        return self.units[path]
+
+
+class PublicationMembership:
+    """Declared sources, index claims, navigation and rendered output have distinct scopes."""
+
+    def __init__(self, entries, args):
+        self.declared = tuple(entries)
+        self.claims = tuple(e for e in entries if e['status'] != 'ignored')
+        self.navigation = tuple(e for e in self.claims
+                                if e['status'] != 'draft' or args.get('--include-drafts')
+                                or args.get('--drafts-only'))
+        self.rendered = tuple(e for e in self.navigation
+                              if not args.get('--drafts-only') or e['status'] == 'draft')
+
+
 def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=True,
-                           build_args=None, build_strings=None):
+                           build_args=None, build_strings=None, unit_sources=None):
     """Resolves `page_dest` and the display/editorial fields for every
     entry, per §20.3.1. Mutates each entry in place so downstream
     renderers (build_article, build_series_nav, build_index,
@@ -22384,6 +22429,7 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
     load_build_context; undecodable bytes die with read_text_file's clean
     message when the article is read for building."""
     series_meta = series_meta or {}
+    unit_sources = unit_sources or UnitSourceInventory()
     resolution = []
     for entry in articles:
         selection_entry = dict(next(
@@ -22394,11 +22440,10 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
         selection_entry = {key: value for key, value in selection_entry.items()
                            if key in _RESOLVED_FIELDS + _EDITORIAL_FIELDS + ('page_source', 'status')}
         source_path = _resolve_contained(sources_dir, entry['page_source'])
-        text = (_read_article_source(source_path)
-                if source_path is not None else None)
+        parsed = unit_sources.get(source_path)
         meta, slides = {}, []
-        if text is not None:
-            meta, slides, _, _ = parse_markdown_extended(text)
+        if parsed is not None:
+            meta, slides, _, _ = parsed.unpack()
             try:
                 slides = _prepare_unit_slides(
                     slides, meta, series_meta, entry['page_source'], build_args)
@@ -22542,7 +22587,7 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
             log('error', str(exc))
             sys.exit(1)
 
-        resolution.append({'source_read': text is not None, 'origins': origins,
+        resolution.append({'source_read': parsed is not None, 'origins': origins,
                            'candidates': candidates})
 
     seen = {}
@@ -22621,12 +22666,6 @@ def load_nav_cache(path):
         return json.loads(Path(path).read_text(encoding='utf-8'))
     except (OSError, ValueError):
         return None
-
-
-def save_nav_cache(path, fingerprint):
-    path = Path(path)
-    _mkdir(path.parent, parents=True, exist_ok=True)
-    _write_file(path, json.dumps(fingerprint, indent=2, sort_keys=True))
 
 
 def _default_series_directory(sd, name, label):
@@ -22977,19 +23016,21 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
         series_meta, lang_dir, lang, typo_engine,
         interface_dir=interface_dir, typography_dir=typography_dir,
         series_dir=sd)
+    unit_sources = UnitSourceInventory()
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     try:
         validate_series(articles)
         resolve_article_fields(articles, sources_dir, series_meta,
                                strict_tags=strict_tags, build_args=args,
-                               build_strings=strings)
-        for entry in articles:
+                               build_strings=strings, unit_sources=unit_sources)
+        membership = PublicationMembership(articles, args)
+        for entry in membership.rendered:
             source_path = _resolve_contained(sources_dir, entry['page_source'])
-            source_text = (_read_article_source(source_path)
-                           if source_path is not None and source_path.is_file()
-                           else None)
-            source_slides = (parse_markdown_extended(source_text)[1]
-                              if source_text is not None else ())
+            parsed = unit_sources.get(source_path)
+            source_slides = (parsed.unpack()[1] if parsed is not None else ())
+            source_slides = [slide for slide in source_slides
+                             if 'excluded' not in _slide_tag_set(slide)
+                             and not _is_incomplete_full_article(slide)]
             for preset in tuple(presentation_presets):
                 try:
                     validate_article_presentation(entry, preset, source_slides)
@@ -23033,26 +23074,17 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     # GUI preview) but stays part of the series otherwise — which is why
     # the index tally below is taken between the two filters.
     #
-    # Both filter the list series_data itself references (in place, not a
-    # copy) so every downstream renderer stays consistent: they all
-    # re-derive the list from series_data. It also means the nav
-    # fingerprint is computed on the filtered list, so changing an
-    # article's status changes the cache's key set and correctly forces a
-    # full build over the --only fast path.
-    ignored = [e['page_dest'] for e in articles if e['status'] == 'ignored']
-    if include_ignored:
-        # Audit renders these pages, but their siblings must still see the
-        # normal series data: ignored entries stay out of index and nav.
-        build_articles = [e for e in articles if e['status'] != 'ignored']
-        if isinstance(series_data, dict):
-            series_data = dict(series_data)
-            series_data['articles'] = build_articles
-        else:
-            series_data = build_articles
+    # All renderers receive the same navigation membership through series_data.
+    # Audit retains a separate declared-source universe. Fingerprints use the
+    # published membership, so status changes invalidate the incremental path.
+    build_articles = list(membership.navigation)
+    articles = list(membership.declared) if include_ignored else build_articles
+    if isinstance(series_data, dict):
+        series_data = dict(series_data, articles=build_articles)
     else:
-        articles[:] = [e for e in articles if e['status'] != 'ignored']
-        build_articles = articles
-        for f in ignored:
+        series_data = build_articles
+    if not include_ignored:
+        for f in (e['page_dest'] for e in membership.declared if e['status'] == 'ignored'):
             progress(f'  [ignored] {f} is not part of this series')
 
     # The list as the SERIES declares it — after `ignored`, before `draft`.
@@ -23061,13 +23093,11 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     # still has an index worth protecting, and the collision is decided the
     # same way whether or not --include-drafts is passed. An ignored article
     # is not an article of the series at all, so it does not count.
-    claim_articles = list(build_articles)
+    claim_articles = list(membership.claims)
 
     if not args.get('--include-drafts') and not args.get('--drafts-only'):
-        skipped = [e['page_dest'] for e in build_articles
+        skipped = [e['page_dest'] for e in membership.claims
                    if e['status'] == 'draft']
-        build_articles[:] = [e for e in build_articles
-                             if e['status'] != 'draft']
         for f in skipped:
             progress(f'  [draft] {f} skipped (build with --include-drafts to preview it)')
 
@@ -23110,7 +23140,8 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
         language_file=language_file, language_pack=language_pack,
         typo_engine=typo_engine,
         strings=strings, css=css, nav_js=nav_js, series_data=series_data,
-        articles=articles, claim_articles=claim_articles,
+        articles=articles, claim_articles=claim_articles, membership=membership,
+        unit_sources=unit_sources,
          style_context=style_context, args=args,
           lang_tag_engines=lang_tag_engines, theme_runtime=theme_runtime,
            theme_catalog=theme_catalog,
@@ -23238,7 +23269,8 @@ def _render_article(ctx, entry, source_path, build_stamp='', include_nav=True,
             slide_layouts=_presentation_layouts(preset),
              structure_css=preset.identity_kit.structure_css,
             presentation_runtime=runtime,
-            presentation_capture=capture, fragment_only=fragment_only)
+             presentation_capture=capture, fragment_only=fragment_only,
+             parsed_unit=ctx.unit_sources.get(source_path))
 
     if ctx.presentation_runtime is None:
         return render(ctx.series_presentation_preset)
@@ -23387,51 +23419,192 @@ def _render_single_html(ctx, build_stamp=''):
     return html, image_inventory_from_html(image_pages)
 
 
-def _write_index(ctx, claimant, index_extra=None, build_stamp=''):
-    """Writes the index when this series has not claimed its filename."""
-    if claimant is None and not ctx.args.get('--no-index'):
-        if index_extra is None:
-            index_extra = _index_extra(ctx)
-        progress('  index.html')
-        _write_file(
-            ctx.output_dir / 'index.html',
-            _render_index(ctx, index_extra, build_stamp, validate_scripts=True))
-    elif claimant is not None:
-        progress(_no_index_notice(claimant))
+class PublicationPlan:
+    """Disk-backed rendered outputs shared by build and verify.
 
-
-def _build_image_pages(ctx, articles_to_build, claimant, incremental):
-    """Reads the pages whose rendered images this build is responsible for.
-
-    Incremental and ``--drafts-only`` builds keep other current article pages
-    in place, so they include those existing pages when deciding which assets
-    must remain available. A normal full build only considers the pages it
-    just rebuilt (plus the index), preserving the additive output contract for
-    stale pages.
+    Planning reads sources and stages bytes; it never touches the destination.
+    Publishing starts only after every render, asset read and metadata check.
+    Files are promoted atomically one at a time, with bookkeeping last. A
+    process crash or I/O failure during promotion is not a directory transaction.
     """
-    keep_existing = incremental or ctx.args.get('--drafts-only')
-    entries = ctx.articles if keep_existing else articles_to_build
-    names = [entry['page_dest'] for entry in entries]
-    if claimant is None and not ctx.args.get('--no-index'):
-        names.append('index.html')
 
-    pages = []
-    seen = set()
-    for name in names:
-        if name in seen:
-            continue
-        seen.add(name)
-        path = _resolve_contained(ctx.output_dir, name)
-        if path is None or not path.is_file():
-            continue
+    def __init__(self):
+        self._temporary = tempfile.TemporaryDirectory(prefix='lwp-publication-')
+        self.root = Path(self._temporary.name)
+        self.entries = []
+        self._destinations = set()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self._temporary.cleanup()
+
+    def add(self, name, destination, text=None, source=None):
+        destination = Path(destination)
+        # Asset copying has always followed output symlinks. Text outputs use
+        # replacement semantics, as _write_file does.
+        if source is not None and destination.is_symlink():
+            destination = destination.resolve()
+        # Parent links identify the same physical directory. The final text
+        # component remains a replacement slot, not the target of its symlink.
+        identity = os.path.normcase(str(destination.parent.resolve() / destination.name))
+        if identity in self._destinations:
+            raise PropertyError(f'Two publication outputs claim {destination}')
+        staged = self.root / str(len(self.entries))
         try:
-            pages.append(path.read_text(encoding='utf-8'))
-        except (OSError, UnicodeDecodeError):
-            continue
-    return pages
+            _stage_file(staged, content=text, source=source)
+        except OSError as exc:
+            raise OSError(f'Cannot prepare {name}: {exc}') from exc
+        self._destinations.add(identity)
+        self.entries.append(SimpleNamespace(name=name, destination=destination,
+                                            staged=staged, source=source, identity=Path(identity)))
+
+    def publish(self):
+        # Structural destination failures are knowable before the first write.
+        for entry in self.entries:
+            target = entry.destination
+            for parent in entry.identity.parents:
+                if os.path.normcase(str(parent)) in self._destinations:
+                    raise PropertyError(f'Publication file {parent} is also required as a directory for {target}')
+            if target.exists() and not target.is_file():
+                raise OSError(f'Cannot publish {target}: not a file')
+            parent = target.parent
+            while not parent.exists():
+                parent = parent.parent
+            if not parent.is_dir():
+                raise OSError(f'Cannot publish {target}: {parent} is not a directory')
+        for entry in self.entries:
+            _mkdir(entry.destination.parent, parents=True, exist_ok=True)
+            if _LOG_STATE['dry_run'] and entry.source is not None:
+                _copy(entry.source, entry.destination)
+            else:
+                _publish_file(entry.staged, entry.destination)
+
+    def compare(self):
+        ok_count = diff_count = 0
+        for entry in self.entries:
+            target = entry.destination
+            if not target.is_file():
+                print(f'[NEW] {entry.name} does not exist yet')
+                diff_count += 1
+                continue
+            if entry.source is not None:
+                equal = target.read_bytes() == entry.staged.read_bytes()
+            else:
+                existing = strip_build_stamp(read_text_file(target)).strip()
+                generated = read_text_file(entry.staged).strip()
+                equal = existing == generated
+            if equal:
+                print(f'[OK] {entry.name}')
+                ok_count += 1
+            else:
+                print(f'[DRIFT] {entry.name}')
+                if entry.source is None:
+                    diff = difflib.unified_diff(existing.splitlines(), generated.splitlines(),
+                                                lineterm='', n=1)
+                    for number, line in enumerate(diff):
+                        if number == 20:
+                            break
+                        print(' ', line)
+                diff_count += 1
+        print(f'{ok_count} file(s) OK, {diff_count} file(s) different.')
+        if diff_count:
+            sys.exit(1)
+        print('All files are up to date.')
 
 
-def _identity_kits_for_output(ctx, articles_to_build, incremental):
+def _plan_publication(ctx, plan, articles_to_build, claimant=None, build_stamp='',
+                      incremental=False, announce=False):
+    """Resolve both output topologies into the same text/asset inventory."""
+    inventory = set()
+    single_html = ctx.args.get('--single-html')
+    if single_html:
+        html, images = _render_single_html(ctx, build_stamp)
+        plan.add(single_html, ctx.output_dir / single_html, text=html)
+        inventory.update(images)
+    else:
+        rendered_names = set()
+        for entry in articles_to_build:
+            name = entry['page_dest']
+            if announce:
+                progress(f'  {name} ← {entry["page_source"]}')
+            html = _render_article(
+                ctx, entry, _resolve_contained(ctx.sources_dir, entry['page_source']),
+                build_stamp, include_nav=not ctx.args.get('--no-nav'))
+            plan.add(name, ctx.output_dir / name, text=html)
+            inventory.update(image_inventory_from_html([html]))
+            rendered_names.add(name)
+        if claimant is None and not ctx.args.get('--no-index'):
+            html = _render_index(ctx, _index_extra(ctx), build_stamp, validate_scripts=True)
+            plan.add('index.html', ctx.output_dir / 'index.html', text=html)
+            inventory.update(image_inventory_from_html([html]))
+            rendered_names.add('index.html')
+        elif claimant is not None and announce:
+            progress(_no_index_notice(claimant))
+        if incremental or ctx.args.get('--drafts-only'):
+            for entry in ctx.articles:
+                if entry['page_dest'] in rendered_names:
+                    continue
+                existing = _resolve_contained(ctx.output_dir, entry['page_dest'])
+                if existing is not None and existing.is_file():
+                    inventory.update(image_inventory_from_html([read_text_file(existing)]))
+    if not ctx.args.get('--no-readme'):
+        plan.add('README.md', ctx.sd / 'README.md', text=build_readme(
+            ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings, single_html))
+
+    images = []
+    if not ctx.args.get('--inline-images'):
+        for relative in sorted(inventory):
+            source = _resolve_contained(ctx.sources_dir, relative)
+            # Missing authored image references retain the existing audit policy.
+            # An existing source that cannot be read fails staging before writes.
+            if source is not None and source.is_file():
+                plan.add(relative, ctx.output_dir / relative, source=source)
+                images.append(relative)
+        for identity_kit in sorted(_identity_kits_for_output(ctx),
+                                   key=lambda identity: identity.selector):
+            if identity_kit.default:
+                continue
+            for _name, asset in sorted(identity_kit.assets.items()):
+                relative = (PurePosixPath('assets') / 'presentations' / identity_kit.id
+                            / identity_kit.version / asset['public_relative']).as_posix()
+                if relative not in images:
+                    plan.add(relative, ctx.output_dir / relative, source=asset['path'])
+                    images.append(relative)
+    return images
+
+
+def _execute_publication(ctx, articles_to_build, claimant, nav_cache_path,
+                         fingerprint, build_stamp='', incremental=False):
+    """Prepare the complete requested publication, then promote its owned files."""
+    with PublicationPlan() as plan:
+        images = _plan_publication(ctx, plan, articles_to_build, claimant,
+                                   build_stamp, incremental, announce=True)
+        plan.add('.lwp-cache/nav.json', Path(nav_cache_path),
+                 text=json.dumps(fingerprint, indent=2, sort_keys=True))
+        plan.add(_MANIFEST_NAME, ctx.output_dir / _MANIFEST_NAME,
+                 text=_manifest_text(ctx.output_dir, ctx.articles,
+                     include_index=not ctx.args.get('--single-html') and claimant is None
+                                   and not ctx.args.get('--no-index'),
+                     images=images, presentation_presets=ctx.presentation_presets,
+                     single_html=ctx.args.get('--single-html')))
+        plan.publish()
+    single_html = ctx.args.get('--single-html')
+    if single_html:
+        progress(f'Build complete: {len(articles_to_build)} articles in {single_html} -> {ctx.output_dir}')
+    else:
+        tail = ' + index' if claimant is None and not ctx.args.get('--no-index') else ''
+        if incremental:
+            progress(f'Incremental build complete: {articles_to_build[0]["page_dest"]}{tail} -> {ctx.output_dir}')
+        else:
+            progress(f'Build complete: {len(articles_to_build)} articles{tail} -> {ctx.output_dir}')
+    if ctx.args.get('--open') and not _LOG_STATE['dry_run']:
+        import webbrowser
+        webbrowser.open((ctx.output_dir / (single_html or 'index.html')).resolve().as_uri())
+
+
+def _identity_kits_for_output(ctx):
     """Identity Kits whose public assets are reachable in this series."""
     identity_kits = []
     seen = set()
@@ -23443,53 +23616,6 @@ def _identity_kits_for_output(ctx, articles_to_build, incremental):
         seen.add(key)
         identity_kits.append(identity_kit)
     return tuple(identity_kits)
-
-
-def _finish_build(ctx, claimant, articles_to_build, nav_cache_path,
-                  fresh_fingerprint, build_stamp='', index_extra=None,
-                  incremental=False):
-    """Writes the derived outputs shared by full and incremental builds."""
-    _write_index(ctx, claimant, index_extra, build_stamp)
-
-    if not ctx.args.get('--no-readme'):
-        readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
-        _write_file(ctx.sd / 'README.md', readme)
-
-    # --inline-images: images are embedded as base64 data URIs, so the
-    # img/ directory is not copied to the output.
-    images = []
-    if not ctx.args.get('--inline-images'):
-        inventory = image_inventory_from_html(
-            _build_image_pages(ctx, articles_to_build, claimant, incremental))
-        images = copy_images(
-            ctx.sources_dir, ctx.output_dir,
-            referenced_images=set(inventory))
-        try:
-            images.extend(copy_presentation_assets(
-                _identity_kits_for_output(ctx, articles_to_build,
-                                           incremental),
-                ctx.output_dir))
-        except PropertyError as exc:
-            log('error', str(exc))
-            sys.exit(1)
-
-    save_nav_cache(nav_cache_path, fresh_fingerprint)
-    _write_manifest(
-        ctx.output_dir, ctx.articles,
-        include_index=claimant is None and not ctx.args.get('--no-index'),
-        images=images, presentation_presets=ctx.presentation_presets)
-    tail = ' + index' if claimant is None and not ctx.args.get('--no-index') else ''
-    if incremental:
-        progress(f'Incremental build complete: {articles_to_build[0]["page_dest"]}'
-                 f'{tail} -> {ctx.output_dir}')
-    else:
-        progress(f'Build complete: {len(articles_to_build)} articles{tail} '
-                 f'-> {ctx.output_dir}')
-
-    if ctx.args.get('--open'):
-        import webbrowser
-        index_url = (ctx.output_dir / 'index.html').resolve().as_uri()
-        webbrowser.open(index_url)
 
 
 def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_stamp=''):
@@ -23510,13 +23636,6 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
         sys.exit(1)
 
     progress(f'Incremental build: {ctx.sd} (nav/index unaffected since the last build)')
-    _mkdir(ctx.output_dir, parents=True, exist_ok=True)
-
-    progress(f'  {entry["page_dest"]} ← {entry["page_source"]}')
-    html = _render_article(
-        ctx, entry, source_path, build_stamp,
-        include_nav=not ctx.args.get('--no-nav'))
-    _write_file(ctx.output_dir / entry['page_dest'], html)
 
     # Same §11.3.3 branch as the full build when an index is requested — the
     # fast path writes the index too, so leaving the claim out there would
@@ -23524,8 +23643,8 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     claimant = resolve_index_claim(
         ctx.claim_articles, ctx.articles,
         index_enabled=not ctx.args.get('--no-index'))
-    _finish_build(
-        ctx, claimant, [entry], nav_cache_path, fresh_fingerprint,
+    _execute_publication(
+        ctx, [entry], claimant, nav_cache_path, fresh_fingerprint,
         build_stamp=build_stamp, incremental=True)
 
 
@@ -23801,9 +23920,9 @@ def _manifest_paths(manifest, key, output_dir, manifest_path):
     return set(values)
 
 
-def _write_manifest(output_dir, articles_built, include_index=True,
+def _manifest_text(output_dir, articles_built, include_index=True,
                     images=(), presentation_presets=(), single_html=None):
-    """Writes .lwp-manifest.json in public/ listing every file the build
+    """Plans .lwp-manifest.json in public/ listing every file the build
     produced, so `clean` can purge orphans without guessing.
 
     Carries the PREVIOUS build's list forward under `previous`, because
@@ -23814,7 +23933,7 @@ def _write_manifest(output_dir, articles_built, include_index=True,
     files = [single_html] if single_html else [e['page_dest'] for e in articles_built]
     if include_index:
         files.append('index.html')
-    # What copy_images says it published, from the SOURCE. This used to
+    # What the publication plan will publish, from the SOURCE. This used to
     # walk output_dir/img instead, which answers "what is there" when the
     # question a manifest exists to answer is "what did this build make".
     # The two differ by exactly the file the author deleted.
@@ -23824,13 +23943,18 @@ def _write_manifest(output_dir, articles_built, include_index=True,
     if existing.exists():
         try:
             prior = json.loads(read_text_file(existing))
+            if (not isinstance(prior, dict)
+                    or any(not isinstance(prior.get(key, []), list)
+                           or any(not isinstance(value, str) for value in prior.get(key, []))
+                           for key in ('files', 'previous'))):
+                raise PropertyError(f'Invalid manifest {existing}: expected an object with file lists')
             # The union: a file this build stopped producing must stay
             # accountable across several builds, or two rebuilds in a row
             # lose track of it and it is published forever.
             previous = sorted(set(prior.get('files', []))
                               | set(prior.get('previous', [])))
-        except (ValueError, OSError):
-            previous = []
+        except (ValueError, OSError, RecursionError) as exc:
+            raise PropertyError(f'Invalid manifest {existing}: {exc}') from exc
     manifest = {'schema': 'lightwebpres.manifest/2', 'files': files,
                 'previous': previous}
     if len(presentation_presets) > 1:
@@ -23839,8 +23963,7 @@ def _write_manifest(output_dir, articles_built, include_index=True,
              'identity_digest': preset.identity_kit.digest,
              'preset_digest': preset.digest}
             for preset in presentation_presets]
-    _write_file(output_dir / _MANIFEST_NAME,
-                json.dumps(manifest, indent=2, ensure_ascii=False))
+    return json.dumps(manifest, indent=2, ensure_ascii=False)
 
 
 def cmd_clean(series_dir, args):
@@ -24101,27 +24224,11 @@ def cmd_build(series_dir, args):
     if args.get('--single-html'):
         if args.get('--only'):
             _resolve_only_entry(ctx, args['--only'])
-        html, inventory = _render_single_html(ctx, build_stamp)
-        _mkdir(ctx.output_dir, parents=True, exist_ok=True)
-        _write_file(ctx.output_dir / args['--single-html'], html)
-        if not args.get('--no-readme'):
-            _write_file(ctx.sd / 'README.md', build_readme(
-                ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings, args['--single-html']))
-        images = []
-        if not args.get('--inline-images'):
-            images = copy_images(ctx.sources_dir, ctx.output_dir, referenced_images=set(inventory))
-            images.extend(copy_presentation_assets(
-                _identity_kits_for_output(ctx, ctx.articles, False), ctx.output_dir))
-        _write_manifest(ctx.output_dir, ctx.articles, include_index=False, images=images,
-                        presentation_presets=ctx.presentation_presets,
-                        single_html=args['--single-html'])
         # Do not let a later multipage --only reuse a fingerprint from before
         # this topology switch. The ordinary missing-cache path rebuilds it.
-        save_nav_cache(args.get('--nav-cache') or default_nav_cache_path(ctx.sd), {})
-        progress(f'Build complete: {len(ctx.articles)} articles in {args["--single-html"]} -> {ctx.output_dir}')
-        if args.get('--open'):
-            import webbrowser
-            webbrowser.open((ctx.output_dir / args['--single-html']).resolve().as_uri())
+        _execute_publication(ctx, ctx.membership.rendered, None,
+                             args.get('--nav-cache') or default_nav_cache_path(ctx.sd),
+                             {}, build_stamp=build_stamp)
         return args['--single-html']
 
     # §11.3.3, decided before anything is written and before the --only
@@ -24221,47 +24328,15 @@ def cmd_build(series_dir, args):
     progress(f'  Output: {ctx.output_dir}')
     progress(f'  Lang: {ctx.lang}')
 
-    # Load the optional index page extension (raw HTML+JS, inserted as-is
-    # right before </body> — the only extension point for the index page,
-    # since settings.conf/nav.js don't cover site-specific index features)
-    index_extra = _index_extra(ctx)
-
-    _mkdir(ctx.output_dir, parents=True, exist_ok=True)
-
-    # Build each article (every page_source was checked to exist by
-    # load_build_context — fatal before any output is written)
-    include_nav = not args.get('--no-nav')
     # --drafts-only: build only status: draft articles. The
     # index and nav still point to every article, so links may reach pages
     # that were not built — accepted, it is a preview not a publication.
-    articles_to_build = ctx.articles
-    if args.get('--drafts-only'):
-        articles_to_build = [e for e in ctx.articles if e.get('status') == 'draft']
-        if not articles_to_build:
-            log('error', 'No draft articles found in this series.')
-            sys.exit(1)
-    for entry in articles_to_build:
-        source_file = entry['page_source']
-        output_file = entry['page_dest']
-        source_path = _resolve_contained(ctx.sources_dir, source_file)
-        if source_path is None:
-            log('error', f'Source path traversal: {ctx.sources_dir / source_file} '
-                f'(listed in series.json).')
-            sys.exit(1)
-
-        progress(f'  {output_file} ← {source_file}')
-        html = _render_article(
-            ctx, entry, source_path, build_stamp, include_nav=include_nav)
-
-        _write_file(ctx.output_dir / output_file, html)
-
-    # Build the index — unless a lone article has claimed its name
-    # (§11.3.3), in which case the page just written IS what lives there
-    # and dropping an index on top of it would destroy it.
-    # --no-index: skip index.html generation entirely.
-    _finish_build(
-        ctx, claimant, articles_to_build, nav_cache_path, fresh_fingerprint,
-        build_stamp=build_stamp, index_extra=index_extra)
+    articles_to_build = ctx.membership.rendered
+    if args.get('--drafts-only') and not articles_to_build:
+        log('error', 'No draft articles found in this series.')
+        sys.exit(1)
+    _execute_publication(ctx, articles_to_build, claimant, nav_cache_path,
+                         fresh_fingerprint, build_stamp=build_stamp)
 
 
 def cmd_check(series_dir, args):
@@ -24282,108 +24357,9 @@ def cmd_check(series_dir, args):
     claimant = (None if args.get('--single-html') else resolve_index_claim(
         ctx.claim_articles, ctx.articles, index_enabled=not args.get('--no-index')))
 
-    ok_count = 0
-    diff_count = 0
-
-    def compare(name, generated, existing_path):
-        nonlocal ok_count, diff_count
-        if existing_path is None or not existing_path.exists():
-            print(f'[NEW] {name} does not exist yet')
-            diff_count += 1
-            return
-        # Never generated here, on either side of the comparison: a build
-        # stamp's timestamp is different on every single run by design, so
-        # comparing it against anything (including itself, moments later)
-        # would always drift — check's job is real content drift, not
-        # "time has passed". strip_build_stamp() on the disk copy is what
-        # keeps a series built with --build-stamp still checkable.
-        existing = strip_build_stamp(read_text_file(existing_path))
-        if existing.strip() == generated.strip():
-            print(f'[OK] {name}')
-            ok_count += 1
-        else:
-            print(f'[DRIFT] {name}')
-            diff = list(difflib.unified_diff(
-                existing.strip().splitlines(), generated.strip().splitlines(),
-                lineterm='', n=1))
-            for line in diff[:20]:
-                print(' ', line)
-            diff_count += 1
-
-    def compare_asset(name, source_path, existing_path):
-        nonlocal ok_count, diff_count
-        if existing_path is None or not existing_path.is_file():
-            print(f'[NEW] {name} does not exist yet')
-            diff_count += 1
-            return
-        try:
-            expected = source_path.read_bytes()
-            existing = existing_path.read_bytes()
-        except OSError as exc:
-            log('error', f'{name}: cannot read presentation asset ({exc})')
-            sys.exit(1)
-        if existing == expected:
-            print(f'[OK] {name}')
-            ok_count += 1
-        else:
-            print(f'[DRIFT] {name}')
-            diff_count += 1
-
-    if args.get('--single-html'):
-        generated, inventory = _render_single_html(ctx)
-        compare(args['--single-html'], generated,
-                _optional_contained_file(ctx.output_dir, args['--single-html'], args['--single-html']))
-        if not args.get('--inline-images'):
-            for relative in inventory:
-                source = _resolve_contained(ctx.sources_dir, relative)
-                if source is not None and source.is_file():
-                    compare_asset(relative, source,
-                                  _optional_contained_file(ctx.output_dir, relative, relative))
-    for entry in ([] if args.get('--single-html') else ctx.articles):
-        source_path = _resolve_contained(ctx.sources_dir, entry['page_source'])
-        if source_path is None:
-            log('error', f'Source path traversal: {ctx.sources_dir / entry["page_source"]} '
-                f'(listed in series.json).')
-            sys.exit(1)
-        generated = _render_article(
-            ctx, entry, source_path,
-            include_nav=not args.get('--no-nav'), render_args=args)
-        compare(
-            entry['page_dest'], generated,
-            _optional_contained_file(ctx.output_dir, entry['page_dest'],
-                                     entry['page_dest']))
-
-    # §11.3.3: when a lone article's page_dest IS index.html, `build`
-    # produces no series index at all — that file is the article's own
-    # page, already compared in the loop above. Rendering an index here
-    # and diffing it against that page would report a [DRIFT] on a series
-    # that is correctly built and that no rebuild could ever settle: the
-    # CI gate would stay red for as long as the arrangement lasts.
-    if claimant is None and not args.get('--single-html') and not args.get('--no-index'):
-        compare('index.html',
-                _render_index(ctx, _index_extra(ctx)),
-                _optional_contained_file(ctx.output_dir, 'index.html',
-                                         'index.html'))
-    if not args.get('--no-readme'):
-        compare('README.md',
-                build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings, args.get('--single-html')),
-                _optional_contained_file(ctx.sd, 'README.md', 'README.md'))
-    if not args.get('--inline-images'):
-        for identity_kit in _identity_kits_for_output(ctx, ctx.articles, False):
-            if identity_kit.default:
-                continue
-            for _asset_name, asset in sorted(identity_kit.assets.items()):
-                relative = (PurePosixPath('assets') / 'presentations' / identity_kit.id
-                            / identity_kit.version / asset['public_relative']).as_posix()
-                compare_asset(
-                    relative, asset['path'],
-                    _optional_contained_file(ctx.output_dir, relative, relative))
-
-    print(f'{ok_count} file(s) OK, {diff_count} file(s) different.')
-    if diff_count == 0:
-        print('All files are up to date.')
-    else:
-        sys.exit(1)
+    with PublicationPlan() as plan:
+        _plan_publication(ctx, plan, ctx.membership.rendered, claimant)
+        plan.compare()
 
 
 # ============================================================================
@@ -26098,7 +26074,7 @@ def cmd_install(target_dir, args):
 
     if theme_key is not None and not theme_catalog.has(theme_key):
         log('error', f'Unknown theme: {theme_key!r}. Valid themes: '
-            f'{", ".join(sorted(theme_catalog.themes))}')
+            f'{", ".join(sorted(theme_catalog.theme_ids))}')
         sys.exit(1)
 
     try:
@@ -26803,6 +26779,13 @@ def cmd_theme_vendor(target_dir, args):
         log('error', str(exc))
         sys.exit(1)
 
+    native_ids = [theme_id for theme_id in ids if theme_id == NATIVE_THEME_ID]
+    if native_ids:
+        progress(f'{NATIVE_THEME_ID} is supplied by the executable; nothing to vendor.')
+        ids = [theme_id for theme_id in ids if theme_id != NATIVE_THEME_ID]
+    if not ids:
+        return
+
     destination = templates_dir / 'themes'
     try:
         _mkdir(destination, parents=True, exist_ok=True)
@@ -27425,8 +27408,8 @@ def cmd_set_presentation_preset(series_dir, args):
 def cmd_themes(args):
     """theme list (§11.9) — lists the effective global catalogue, optionally
     narrowed by facet, so a theme can be chosen from the terminal instead
-    of only from the generated gallery page. Prints slugs, because a slug
-    is what `init --theme` and `series theme set` take."""
+    of only from the generated gallery page. Prints canonical theme ids so
+    the value can be passed directly to `init --theme` or `series theme set`."""
     import textwrap
 
     try:
@@ -27444,13 +27427,13 @@ def cmd_themes(args):
         # and letting the reader wonder whether the command ran.
         print(f'No theme matches {active}.')
         print(f'Drop a filter, or run `lightwebpres theme list` for all '
-              f'{len(catalog.themes)}.')
+              f'{len(catalog.theme_ids)}.')
         return
 
     if active:
-        print(f'{len(matches)} of {len(catalog.themes)} themes match {active}:')
+        print(f'{len(matches)} of {len(catalog.theme_ids)} themes match {active}:')
     else:
-        print(f'{len(catalog.themes)} themes (built-in themes are included):')
+        print(f'{len(catalog.theme_ids)} themes (built-in themes are included):')
     print()
 
     for slug, theme, facets in matches:
@@ -27477,9 +27460,9 @@ def cmd_themes(args):
     print('Narrow the list with, for example:')
     print('  lightwebpres theme list --polarity dark --family light')
     print('Read one out — palette, fonts, and the contrast level it')
-    print('reaches, measured — with `lightwebpres theme show <slug>`.')
-    print('Apply one with `init --theme <slug>` (new series) or')
-    print('`series theme set --theme <slug>` (existing one); see them rendered with')
+    print('reaches, measured — with `lightwebpres theme show <theme-id>`.')
+    print('Apply one with `init --theme <theme-id>` (new series) or')
+    print('`series theme set --theme <theme-id>` (existing one); see them rendered with')
     print('`lightwebpres theme gallery`.')
 
 
@@ -27547,7 +27530,7 @@ def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False
     source = entry.get('source') if entry else None
     if not slug and presentation_preset is not None:
         if (presentation_preset.resource_collection == 'builtin'
-                or presentation_preset.theme_id == 'builtin:light'
+                or presentation_preset.theme_id == NATIVE_THEME_ID
                 or (presentation_preset.resource_collection == 'kit'
                     and presentation_preset.identity_kit.themes.get(
                         presentation_preset.theme_id, {}).get('origin') == 'builtin')):
@@ -27685,7 +27668,7 @@ def cmd_theme_info(positional, args):
         log('error', str(exc))
         sys.exit(1)
     if args.get('--all'):
-        slugs = list(catalog.themes.keys())
+        slugs = list(catalog.theme_ids)
     elif positional:
         slugs = positional
     else:
@@ -27705,8 +27688,8 @@ def cmd_theme_info(positional, args):
         for s in unknown:
             log('error', f'{s!r} is not a built-in theme or known local '
                 f'catalogue theme.')
-        log('error', f'The {len(catalog.themes)} valid slugs are:')
-        for line in textwrap.wrap('  '.join(catalog.themes), width=_TERM_WIDTH - 4,
+        log('error', f'The {len(catalog.theme_ids)} valid slugs are:')
+        for line in textwrap.wrap('  '.join(catalog.theme_ids), width=_TERM_WIDTH - 4,
                                   break_on_hyphens=False):
             log('error', f'  {line}')
         sys.exit(1)
@@ -28020,7 +28003,7 @@ def cmd_set_theme(target_dir, args):
     if not theme_catalog.has(new_slug):
         log('error', f'Unknown theme: {new_slug!r}. '
               f'Run `lightwebpres theme list` to list the '
-              f'{len(theme_catalog.themes)} valid slugs.')
+               f'{len(theme_catalog.theme_ids)} valid slugs.')
         sys.exit(1)
     settings_path = templates_dir / SETTINGS_FILENAME
     contained_settings = _optional_contained_file(
@@ -28062,8 +28045,8 @@ def cmd_set_theme(target_dir, args):
 # SERIES-INFO COMMAND (specifications.md §11.11)
 # ============================================================================
 
-# /4 includes series_meta.reading and the explicit native presentation report,
-# whose renderer flag is now native_renderer rather than default.
+# /5 includes the explicit identity report and series_meta.reading, with the
+# renderer flag named native_renderer rather than default.
 # A consumer can test the string instead of guessing an executable's age from
 # the keys it happens to find.
 SERIES_INFO_SCHEMA = 'lightwebpres.series-info/5'
@@ -28346,8 +28329,9 @@ def cmd_series_info(series_dir, args):
 # produces no error — the mechanism worked, on an input its author had
 # forgotten — so nothing but a report can catch it.
 
-# /2 adds the preset base as a visible theme-property cascade level.
-RESOLVE_SCHEMA = 'lightwebpres.resolve/2'
+# /3 adds the series-wide preset query to the report contract and uses the
+# canonical implicit native selector instead of the retired virtual "default".
+RESOLVE_SCHEMA = 'lightwebpres.resolve/3'
 
 # Names that exist in the vocabulary but have no resolved value, and what
 # to say instead. Refusing with the reason beats resolving to a lie.
@@ -28436,6 +28420,8 @@ def classify_resolve_name(name):
     vocabularies instead. After `comment` is excluded (above), every one
     of them belongs to exactly one level, so the lookup never has to
     choose."""
+    if name == 'presentation_preset':
+        return 'series-field'
     if '.' in name:
         return 'theme-property'
     if '_' in name:
@@ -28529,7 +28515,7 @@ def resolve_series_field(name, series_meta):
     elif name == 'default_tag':
         default = 'default'
     elif name == 'presentation_preset':
-        default = 'default'
+        default = 'builtin/standard'
     elif name in ('lang_tags', 'selectors'):
         default = {}
     else:
@@ -29005,19 +28991,19 @@ def cmd_themes_gallery(positional, args):
             import textwrap
             for s in unknown:
                 log('error', f'{s!r} is not a known theme.')
-            log('error', f'The {len(catalog.themes)} valid slugs are:')
-            for line in textwrap.wrap('  '.join(catalog.themes), width=_TERM_WIDTH - 4,
+            log('error', f'The {len(catalog.theme_ids)} valid slugs are:')
+            for line in textwrap.wrap('  '.join(catalog.theme_ids), width=_TERM_WIDTH - 4,
                                       break_on_hyphens=False):
                 log('error', f'  {line}')
             sys.exit(1)
 
     # Select the themes to render.
     if args.get('--all'):
-        selected = list(catalog.themes.keys())
+        selected = list(catalog.theme_ids)
     elif positional:
         selected = positional
     else:
-        selected = list(catalog.themes.keys())
+        selected = list(catalog.theme_ids)
 
     out = Path(output_path).resolve()
 
@@ -29793,7 +29779,8 @@ OPTIONS
 THEMES ({theme_count} embedded entries before external layers, see specifications.md §9.5)
   The global catalogue combines the embedded themes with optional complete
   external snapshots from installed and user roots. A series operation adds
-  templates/themes on top. Themes are chosen by slug, and found by facet — family (declared),
+  templates/themes on top. Themes are chosen by palette slug or qualified native id
+  (such as builtin:light), and found by facet — family (declared),
   polarity (light/dark) and hue, both computed from the background:
     lightwebpres theme list                       all available themes, with their facets
     lightwebpres theme list --family terrain      one editorial family
@@ -29811,8 +29798,9 @@ THEMES ({theme_count} embedded entries before external layers, see specification
   And read one out — palette, fonts, facets, and the contrast level it
   reaches, per WCAG category, MEASURED through the property registry
   rather than declared by hand:
-    lightwebpres theme show evergreen
-    lightwebpres series theme my-series      the effective theme, after
+     lightwebpres theme show evergreen
+     lightwebpres theme show builtin:light
+     lightwebpres series theme my-series      the effective theme, after
                                                the values that series pins
   Read that as a design note about the theme, not as a grade: no theme is
   expected to reach any level, and none is rewritten, refused or hidden for
@@ -29829,7 +29817,9 @@ THEMES ({theme_count} embedded entries before external layers, see specification
     lightwebpres theme path
   `theme create` writes the user catalogue, `theme migrate` reduces an old
   complete settings scaffold while preserving pins, and `theme vendor` copies
-  selected complete snapshots into a series.
+  selected complete snapshots into a series. The native builtin:light resource
+  is supplied by the executable and is not copied; a local bare light snapshot
+  remains vendorable as its own series file.
 
 IDENTITY KITS
   Complete kits use schema lightwebpres.identity-kit/1 and live at

@@ -1896,10 +1896,17 @@ and render failures non-zero CI results. `--templates` limits the check to
 the presentation layer, including resolved styles, without rendering or
 per-article checks. It is cheaper than the full audit, which costs about a build.
 
-`verify` asks the other question: it rebuilds every article in memory and
-compares it against `public/` (ignoring build stamps and surrounding
-whitespace), exiting non-zero when output differs. Run it before `build` to
-catch a `public/` that was hand-edited or never rebuilt after a source change.
+`verify` prepares the same outputs as `build` in temporary storage and compares
+them against the published files. HTML and README comparisons ignore build
+stamps and surrounding whitespace; copied images and kit assets are compared
+byte for byte in both multipage and combined-HTML modes. It exits non-zero on
+drift or missing output. Run it before `build` to catch a publication that was
+hand-edited or never rebuilt after a source change.
+
+Build finishes rendering, asset reads, manifest checks and destination-conflict
+checks before replacing published files. These preparation errors preserve the
+previous output. Promotion is atomic per file, with bookkeeping last; a disk
+failure during promotion does not roll back an entire publication directory.
 
 Use the same supported rendering options as the build, including `--lang`,
 `--themes`, `--no-essential-theme`, `--single-html [FILE]` and `--inline-images`
@@ -2308,15 +2315,16 @@ Do not rely on its in-memory files surviving a reload or closing the tab.
    testing. Verify the destination before entering a token: requests go to
    that instance directly.
 2. Choose **Pull**, then the build language and **Build**. Read the log before
-   proceeding. Pull downloads repository inputs; the local browser engine
+   proceeding. Pull downloads repository inputs at one immutable commit; the local browser engine
    builds them without sending content to a separate build service.
 3. Enter a useful commit message and choose **Push** only when you intend to
    modify that remote branch. Push sends sources and settings as well as
-   `public/`, excluding derived build-state files. It does not merge changes
-   or detect edits made on the branch since Pull: an old browser snapshot can
-   overwrite a colleague's newer source. Avoid concurrent branch edits during
-   this workflow; if remote inputs changed, save any local work separately,
-   pull again and rebuild before pushing. Inspect the resulting commits and,
+   `public/`, excluding derived build-state files and unchanged content. It
+   refuses a branch changed since Pull, checks file revisions during updates,
+   and verifies each confirmed commit's parent before advancing its snapshot.
+   On a conflict or uncertain result, save local work separately, Pull again
+   and rebuild; the client does not merge competing edits. A no-change Push
+   creates no commit. Inspect the resulting commits and,
    if configured, the hosting pipeline and published site. A push itself is
    not proof that hosting deployed successfully.
 

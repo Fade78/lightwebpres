@@ -553,6 +553,7 @@
   let snapshotTarget = null;
   let observedTarget = connectionTarget();
   let gitNeedsPull = false;
+  let gitPullReason = '';
 
   function connectionTarget() {
     const { baseUrl, projectId, branch } = connectionValues();
@@ -575,14 +576,15 @@
       if (seriesDir || gitOperation !== null) {
         // Latch invalidation even if the old target is restored while awaiting an operation.
         gitNeedsPull = true;
+        gitPullReason = '';
         gitBuilt = false;
       }
     }
     updateGitButtons();
     if (gitNeedsPull) {
-      setStatus('GitLab target changed. Pull again before Build or Push, even if you restore '
+      setStatus(gitPullReason || ('GitLab target changed. Pull again before Build or Push, even if you restore '
         + 'the previous target. Local files remain in this tab until the next Pull '
-        + '(no GitLab snapshot download). Any in-flight operation still uses its original target.', 'error');
+        + '(no GitLab snapshot download). Any in-flight operation still uses its original target.'), 'error');
     }
     return !gitNeedsPull;
   }
@@ -751,6 +753,7 @@
     snapshotTarget = null;
     observedTarget = target;
     gitNeedsPull = false;
+    gitPullReason = '';
     gitBuilt = false;
     updateGitButtons();
     setStatus('Pulling ' + c.branch + ' from ' + c.baseUrl + '…');
@@ -842,11 +845,19 @@
         commitMessageEl.value || 'Update from LightWebPres git-sync',
       );
       const [ok, summary] = resultProxy.toJs();
+      if (!ok) {
+        gitBuilt = false;
+        gitNeedsPull = true;
+        gitPullReason = summary;
+      }
       if (checkGitTarget()) {
         setStatus(ok ? summary : ('Push failed: ' + summary), ok ? 'ok' : 'error');
       }
     } catch (err) {
-      setStatus('Push failed: ' + err, 'error');
+      gitBuilt = false;
+      gitNeedsPull = true;
+      gitPullReason = 'Push failed: ' + err + '. Pull again before Build or Push.';
+      setStatus(gitPullReason, 'error');
     } finally {
       destroyPyProxy(resultProxy);
       destroyPyProxy(pushFn);
