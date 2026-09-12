@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.59.2
+## v0.59.2
 
 Theme listing now uses bare slugs for every theme, including `light`, and displays
 loading origin independently of palette credits. All shipped themes use
