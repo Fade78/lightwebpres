@@ -213,7 +213,7 @@ syntax and every edge case.
 | `cover` | `slug`, `kicker`, `tags:`, `# Title`, `summary`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note` | any number, anywhere — it is a look, not a structural marker |
 | standard *(the default)* | `slug`, `kicker`, `tags:`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note`, then free Markdown | as many as you want |
 | `series-nav` | `slug`, `tags:`, `slide-layout`, `slide-header`, `slide-footer`, `comment:` — the navigation itself is generated from `series.json` | 0 or 1 per article |
-| `full-article` | `slug`, `article: filename.md`, `tags:`, `slide-layout`, `slide-header`, `slide-footer` and `comment:` | any number, each with its own file |
+| `full-article` | `slug`, `kicker`, `article: filename.md`, `tags:`, `slide-layout`, `slide-header`, `slide-footer` and `comment:` | any number, each with its own file |
 | `unit-index` | `slug`, optional `## Title`, `kicker`, `summary`, `tags`, `note`, `comment`, `index-max-columns`, `index-selector`, `slide-layout`, `slide-header`, `slide-footer`; no free body | any number, anywhere |
 
 Five, and only five. Mistype one, such as `<!-- lwp:slide:covre -->`, and the
@@ -330,7 +330,8 @@ required fields, cardinalities, source order, empty-value rules, reserved IDs
 and parseable skeletons. JSON is the default. `--article first-page.md` avoids
 slugs already declared in that source. It writes nothing.
 
-A `full-article` slide needs `article: filename.md`, pointing to a separate
+A `full-article` slide accepts an optional `kicker:` label such as `Glossary`
+or `Appendices`, then needs `article: filename.md`, pointing to a separate
 plain Markdown file under `sources/`, with no LWP metadata or slide markers.
 Omitting `article:` is fatal; an explicitly empty `article:` warns and omits
 that unfinished slide. A non-empty reference to a missing file is fatal.
@@ -917,6 +918,10 @@ The kit manifest's `label` names the identity, not whichever preset happens
 to be initial. Its optional `default_preset` names a local preset, otherwise
 the first preset in manifest order is used. `slide_layouts` and `slide_chrome`
 declare preset defaults in that manifest only.
+
+For example, the tracked guide kit is labelled `LightWebPres`, while its
+`docs` preset is labelled `LightWebPres documentation`. The two labels name
+different controls in the Appearance picker.
 
 `slide-layout`, `slide-header` and `slide-footer` work on all five slide types.
 Existing kits may omit a dedicated `unit-index` layout and use standard with chrome.
@@ -1653,6 +1658,9 @@ Browser emulation is not verification on a physical device.
 | H | Open the help overlay, which lists every key on this table |
 | Esc | Leave fullscreen; also closes the speaker panel |
 
+While the theme picker is open, typing an unmodified letter focuses its search
+field and starts filtering. Escape closes the picker.
+
 Every navigation action leaves its selected target visible. An index card or a
 series-navigation card is kept entirely inside the viewport when it fits. A
 slide taller than the screen is the necessary exception: it enters with its
@@ -2042,6 +2050,9 @@ to 100 characters and 200 UTF-8 bytes; reserved Windows names receive a
 
 An explicit bare `.html` or `.htm` filename takes precedence; paths, URLs and
 empty values are invalid. `--single-html=collection.html` is also supported.
+The root `build.single_html` value in `series.json` supplies the default
+combined filename when the CLI does not provide one; an explicit CLI filename
+still takes precedence.
 Before the positional series directory, the next separate argument is a
 filename only if it ends in `.html` or `.htm`; otherwise it remains the series
 directory. Use `build --single-html -- archive.html` for a series directory

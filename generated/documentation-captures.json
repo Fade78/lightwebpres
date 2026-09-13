@@ -17,7 +17,7 @@
     "examples/kits/lightwebpres-docs/0.1.0/assets/lightwebpres-mark.svg": "169a4e1da38ede3198bfa39d78349ba4c0e8e833e5d929de0640e458a80963a5",
     "examples/kits/lightwebpres-docs/0.1.0/chrome.json": "7dbf8889fe5f04c8f430183a41168433a6ac9a14a187780424a3e5b7fa179527",
     "examples/kits/lightwebpres-docs/0.1.0/index.html": "d095805bd00e23b766b3500c310b6421a8a957c5b61b50769c76ddc2d58b9c9b",
-    "examples/kits/lightwebpres-docs/0.1.0/manifest.json": "fd58eac2a8af00738fbb7bb979feb835cc3135e41b2111e4d67068eb67a76c1e",
+    "examples/kits/lightwebpres-docs/0.1.0/manifest.json": "cfb03a421c2c8633ffd2d65cf26adbd9644806ccf681cd61b2fee97ffd203070",
     "examples/kits/lightwebpres-docs/0.1.0/slides/cover-hero.html": "e0f2fab70e56028587455454e3f9c075d8cfe7f07c058b38699281d7740e3d4e",
     "examples/kits/lightwebpres-docs/0.1.0/slides/cover.html": "db11f6f1f094e8115a958b6acc0f20dd1736298a4cf9eda539e5d2d1b282f585",
     "examples/kits/lightwebpres-docs/0.1.0/slides/full-article.html": "4574ccbf75f70bbcdfbf12fc70ca8984fa4e6a703fe3f1e529c587d428483fab",
@@ -27,7 +27,7 @@
     "examples/kits/lightwebpres-docs/0.1.0/starters/blank/starter.json": "9c9556978e90cd4bd1f3a2dc1dd422a5f172e9c65d4187d84d004df10c5d424a",
     "examples/kits/lightwebpres-docs/0.1.0/structure.css": "4501d6bff633ce1e06facf5fd2c9d0c811236e6cd20447a4e761182e0e8a3b08",
     "examples/kits/lightwebpres-docs/0.1.0/themes/docs.conf": "76b6e1114db4013088106c8bbe9f645bb70ec311a393f9f33729bdf72a089707",
-    "lightwebpres": "598466188ae9d48e6084324d8f09d93cdb96606538560448923081235a43b931",
+    "lightwebpres": "a8bfd0a82090b296e3891a619a0becabe27582b6ff7925784b55f61e55f040c6",
     "tools/screenshot-documentation.cjs": "103a637ed81cb9bf022dc9d0db2c6b9a33f79546a50d38685bd700980743a225"
   },
   "browser": "145.0.7632.6",

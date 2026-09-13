@@ -153,11 +153,13 @@ Follow the [six guide routes](GUIDE.md) or explore the
   to embed supported images; `--output` still names a directory. The filename
   comes from the series title, or pass `--single-html collection.html` to choose
   it explicitly. Fullscreen survives article switches, and printing includes
-  only the active filtered
-  article, or only the series contents when that view is active. Uniform text
-  fitting can cover the current article or the entire series, selected in
-  Display settings. See the [combined-HTML guide](GUIDE.md#publish-a-series-in-one-html-file) for extension
-  restrictions, links and portability limits.
+   only the active filtered
+   article, or only the series contents when that view is active. Uniform text
+   fitting can cover the current article or the entire series, selected in
+   Display settings. Set `build.single_html` in `series.json` to make a chosen
+   filename the default for this mode; an explicit CLI filename still wins.
+   See the [combined-HTML guide](GUIDE.md#publish-a-series-in-one-html-file) for extension
+   restrictions, links and portability limits.
 - **An index when you need one.** `series.json` determines article order and
   navigation. A lone article can claim `index.html`; `--no-index` lets you
   integrate pages into a site whose landing page is managed elsewhere.

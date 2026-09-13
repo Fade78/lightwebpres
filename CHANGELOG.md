@@ -58,6 +58,9 @@ captures now describe and exercise the canonical contract. The golden demo,
 documentation captures, product comparison and generated guide were rebuilt
 from the current executable.
 
+The official guide's embedded Identity Kit now labels its identity
+`LightWebPres`, independently of its `LightWebPres documentation` preset label.
+
 ## v0.59.2
 
 Theme listing now uses bare slugs for every theme, including `light`, and displays

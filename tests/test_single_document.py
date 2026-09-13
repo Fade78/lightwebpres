@@ -113,6 +113,18 @@ class SingleDocument(unittest.TestCase):
                          (self.output / 'a.html').read_text(encoding='utf-8'))
         self.cli('verify')
 
+    def test_build_section_selects_combined_filename_and_cli_can_override_it(self):
+        self.data['build'] = {'single_html': 'configured.htm'}
+        self.save_series()
+
+        self.cli('build')
+        self.assertTrue((self.output / 'configured.htm').is_file())
+        self.assertFalse((self.output / 'index.html').exists())
+        self.cli('verify')
+
+        self.bundle(filename='explicit.html')
+        self.assertTrue((self.output / 'explicit.html').is_file())
+
     def test_payload_is_inert_and_local_ids_are_not_globally_renamed(self):
         html, payload = self.bundle()
         self.assertEqual(payload['version'], 1)
@@ -218,6 +230,21 @@ class SingleDocument(unittest.TestCase):
         opened.assert_called_once_with((self.output / 'bundled-series.html').as_uri())
         self.assertTrue((self.output / 'renamed-series.html').is_file())
         self.cli('verify', '--single-html')
+
+    def test_watch_serves_the_configured_combined_name(self):
+        lwp = fixtures.load_lightwebpres_module()
+        self.data['build'] = {'single_html': 'configured.htm'}
+        self.save_series()
+
+        with mock.patch.object(lwp, '_cmd_watch_poll', side_effect=KeyboardInterrupt), \
+                mock.patch('http.server.HTTPServer') as server, \
+                mock.patch('webbrowser.open') as opened:
+            server.return_value.serve_forever = mock.Mock()
+            self.assertEqual(lwp.cmd_watch(
+                str(self.root), {'--serve': True, '--open': True, '--port': '8123'}), 0)
+
+        opened.assert_called_once_with(
+            'http://127.0.0.1:8123/configured.htm')
 
     def test_include_drafts_no_nav_no_readme_and_htm_filename(self):
         html, payload = self.bundle('--include-drafts', '--no-nav', '--no-readme',

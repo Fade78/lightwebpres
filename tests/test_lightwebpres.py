@@ -2182,7 +2182,7 @@ class SlideTypesAreARegistry(unittest.TestCase):
             self.assertFalse((root / 'public' / 'a.html').exists(),
                              'a page was published from an article the engine refused')
 
-    def test_all_four_known_types_still_build(self):
+    def test_all_known_types_still_build(self):
         md = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: k53\n# Title\nsummary: S.\n\n'
@@ -2200,6 +2200,27 @@ class SlideTypesAreARegistry(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_full_article_accepts_and_renders_its_own_kicker(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: k57\n# Title\nsummary: S.\n\n'
+            '---\n\n'
+            '<!-- lwp:slide:full-article -->\nslug: glossary\n'
+            'kicker: Glossaire\narticle: a_article.md\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            (root / 'sources' / 'a_article.md').write_text(
+                '# Long form\n\nA paragraph.\n', encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<span class="slide-kicker">Glossaire</span>', html)
+            self.assertNotIn(
+                '<span class="slide-kicker" data-lwp-i18n="full_article_kicker">Glossaire</span>',
+                html)
+
     def test_help_describes_every_type_the_parser_accepts(self):
         """A help text listing three of four types, or describing one the
         parser stopped accepting, is worse than none — it is read as the
@@ -2207,6 +2228,10 @@ class SlideTypesAreARegistry(unittest.TestCase):
         construction; the test is what proves the generation is wired."""
         result = run('--help')
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('series.json "appearance.themes"', result.stdout)
+        self.assertIn('series.json "appearance.presets"', result.stdout)
+        self.assertNotIn('root series.json "themes"', result.stdout)
+        self.assertNotIn('root series.json "presentation_presets"', result.stdout)
         for slide_type in self.lwp.SLIDE_TYPES:
             self.assertIn(slide_type.name, result.stdout)
             # A distinctive run of the summary, not the whole thing: the
@@ -2685,10 +2710,10 @@ class SeriesNavFullArticleStrictContent(unittest.TestCase):
             self.assertIn('never renders', result.stderr)
             self.assertIn('Some stray text.', result.stderr)
 
-    def test_stray_field_in_full_article_is_fatal(self):
+    def test_unrecognized_field_in_full_article_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:
             _, result = self._build(
-                tmp, '<!-- lwp:slide:full-article -->\nslug: k66\narticle: art.md\nkicker: Oops\n',
+                tmp, '<!-- lwp:slide:full-article -->\nslug: k66\narticle: art.md\nsummary: Oops\n',
                 extra_files={'art.md': '# Art\n\nBody.\n'})
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('never renders', result.stderr)

@@ -10,6 +10,7 @@ import unittest
 
 
 EXECUTABLE = Path(__file__).resolve().parents[1] / 'lightwebpres'
+MANIFEST_SCHEMA = 'lightwebpres.manifest/2'
 
 
 class PublicationSafety(unittest.TestCase):
@@ -107,7 +108,8 @@ class PublicationSafety(unittest.TestCase):
                           'a\x00.html', '.', 'manual/./a.html', 'manual//a.html',
                           'manual/', None, {'path': 'a.html'}):
                 with self.subTest(key=key, value=value):
-                    manifest = {'files': [], 'previous': ['orphan.html']}
+                    manifest = {'schema': MANIFEST_SCHEMA,
+                                'files': [], 'previous': ['orphan.html']}
                     manifest[key].append(value)
                     (public / '.lwp-manifest.json').write_text(
                         json.dumps(manifest), encoding='utf-8')
@@ -125,6 +127,7 @@ class PublicationSafety(unittest.TestCase):
         if os.name != 'nt':
             literal.write_bytes(b'Old Linux output')
         (public / '.lwp-manifest.json').write_text(json.dumps({
+            'schema': MANIFEST_SCHEMA,
             'files': ['manual\\a.html'], 'previous': [],
         }), encoding='utf-8')
         self.cli('build', self.root)
@@ -145,6 +148,7 @@ class PublicationSafety(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(name.encode('ascii'))
         (public / '.lwp-manifest.json').write_text(json.dumps({
+            'schema': MANIFEST_SCHEMA,
             'files': [], 'previous': list(assets),
         }), encoding='utf-8')
         before = self.snapshot()
@@ -155,6 +159,23 @@ class PublicationSafety(unittest.TestCase):
             self.assertFalse((public / name).exists())
         self.assertEqual((public / 'img/nested/manual.svg').read_bytes(),
                          b'img/nested/manual.svg')
+
+    def test_clean_rejects_missing_or_foreign_manifest_schema(self):
+        public = self.root / 'public'
+        public.mkdir()
+        orphan = public / 'orphan.html'
+        orphan.write_bytes(b'Previously generated')
+        for schema in (None, 'foreign.manifest/1'):
+            with self.subTest(schema=schema):
+                manifest = {'files': [], 'previous': ['orphan.html']}
+                if schema is not None:
+                    manifest['schema'] = schema
+                (public / '.lwp-manifest.json').write_text(
+                    json.dumps(manifest), encoding='utf-8')
+                before = self.snapshot()
+                result = self.cli('clean', self.root, '--force', code=1)
+                self.assertIn('schema', result.stderr)
+                self.assertEqual(self.snapshot(), before)
 
     def test_second_template_update_preserves_both_customizations(self):
         nav = self.root / 'templates' / 'nav.js'

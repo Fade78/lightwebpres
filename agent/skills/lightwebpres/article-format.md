@@ -157,7 +157,7 @@ layer and the `typo`, `typo_units`, `typo_thousands` opt-outs.
 | `cover` | `slug`, `kicker`, `tags`, `# Title`, `summary`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note` | Any number, anywhere; a layout style, not a structural marker. No free body: text after its fields is fatal. |
 | standard (default, or explicit `<!-- lwp:slide -->`) | `slug`, `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note`, then free Markdown text | As many as you want |
 | `series-nav` | `slug`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `comment` | 0 or 1 per article; navigation generated from `series.json` |
-| `full-article` | `slug`, `article: filename.md`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `comment` | Any number, each with its own file; `article` is required for publication. Explicit empty `article:` warns and omits the unfinished slide. |
+| `full-article` | `slug`, `kicker`, `article: filename.md`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `comment` | Any number, each with its own file; `article` is required for publication. `kicker` labels the included long-form piece and defaults to the localized `full_article_kicker` string. Explicit empty `article:` warns and omits the unfinished slide. |
 | `unit-index` | `slug`, `kicker`, `tags`, `## Title`, `summary`, `index-max-columns`, `index-selector`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note` | Any number, anywhere; generated contents for this logical unit, no free body |
 
 All fields other than `slug` and `full-article`'s `article` are optional.

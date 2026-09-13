@@ -2,7 +2,7 @@
   "schema": "lightwebpres.identity-kit/1",
   "id": "lightwebpres-docs",
   "version": "0.1.0",
-  "label": "LightWebPres documentation",
+  "label": "LightWebPres",
   "default_preset": "docs",
   "layouts": {
     "cover": {

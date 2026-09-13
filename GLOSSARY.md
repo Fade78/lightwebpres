@@ -285,6 +285,7 @@ A `<!-- lwp:slide:full-article -->` slide's own header.
 | Field | Default | Description |
 |---|---|---|
 | `slug` | None — required on every slide; a slide without one is a fatal build error naming `series slug set` | The slide's own name in a URL, and its whole identity (§12.1.1): never its rank, never its title, so it does not move when the deck is reordered or the heading rewritten. A build error if it is not `[A-Za-z0-9][A-Za-z0-9._-]*`, since it becomes an `id`, a URL fragment and the tail of a shared QR code, and a build error if two slides on a page take the same one |
+| `kicker` | the localized `full_article_kicker` string when absent | Editorial label above the included long-form article, such as `Glossary` or `Appendices` |
 | `tags` | `default` when absent or empty | Optional slide tags; `excluded` removes the generated slide before rendering |
 | `article` | None — required for publication; an explicit empty value warns and omits the draft slide | External `.md` file included as the article's long-form body |
 

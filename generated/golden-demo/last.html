@@ -6315,10 +6315,31 @@ document.addEventListener('DOMContentLoaded', function() {
       // buttons (and disclosure summaries) retain browser activation.
       if (spaceKey && (e.defaultPrevented || (e.target.closest
           && e.target.closest('button, [role="button"], summary')))) return;
-       if (themeMenu && themeMenu.classList.contains('open')) {
-        if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
+      if (themeMenu && themeMenu.classList.contains('open')) {
+        if (e.key === 'Escape'
+            || ((e.key === 'c' || e.key === 'C')
+                && (!themeFilter || themeFilter.hidden))) {
           e.preventDefault();
           closeThemeMenu();
+        } else if (themeFilter && !themeFilter.hidden
+                   && /^\p{L}$/u.test(e.key)) {
+          // A letter typed while another picker control has focus starts a
+          // search instead of being swallowed by the dialog's key trap.
+          e.preventDefault();
+          var fromThemeFilter = e.target === themeFilter;
+          themeFilter.focus();
+          var filterValue = themeFilter.value;
+          var filterStart = (fromThemeFilter
+            && typeof themeFilter.selectionStart === 'number')
+            ? themeFilter.selectionStart : filterValue.length;
+          var filterEnd = (fromThemeFilter
+            && typeof themeFilter.selectionEnd === 'number')
+            ? themeFilter.selectionEnd : filterValue.length;
+          themeFilter.value = filterValue.slice(0, filterStart) + e.key
+            + filterValue.slice(filterEnd);
+          themeFilter.setSelectionRange(filterStart + e.key.length,
+                                        filterStart + e.key.length);
+          themeFilter.dispatchEvent(new Event('input', {bubbles: true}));
         } else if (e.target === themeSource && e.key !== 'Tab') {
           return;
         } else if (e.target && e.target.closest
@@ -6338,23 +6359,23 @@ document.addEventListener('DOMContentLoaded', function() {
           // still enter the option list from it.
           return;
         } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-           e.preventDefault();
-           var presentationFocus = e.target && e.target.closest
-             && e.target.closest('.presentation-option');
-           if (presentationFocus) {
-             movePresentationFocus(e.key === 'ArrowDown' ? 'down' : 'right');
-           } else {
-             moveThemeFocus(e.key === 'ArrowDown' ? 'down' : 'right');
-           }
+          e.preventDefault();
+          var presentationFocus = e.target && e.target.closest
+            && e.target.closest('.presentation-option');
+          if (presentationFocus) {
+            movePresentationFocus(e.key === 'ArrowDown' ? 'down' : 'right');
+          } else {
+            moveThemeFocus(e.key === 'ArrowDown' ? 'down' : 'right');
+          }
         } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-           e.preventDefault();
-           var presentationFocus = e.target && e.target.closest
-             && e.target.closest('.presentation-option');
-           if (presentationFocus) {
-             movePresentationFocus(e.key === 'ArrowUp' ? 'up' : 'left');
-           } else {
-             moveThemeFocus(e.key === 'ArrowUp' ? 'up' : 'left');
-           }
+          e.preventDefault();
+          var presentationFocus = e.target && e.target.closest
+            && e.target.closest('.presentation-option');
+          if (presentationFocus) {
+            movePresentationFocus(e.key === 'ArrowUp' ? 'up' : 'left');
+          } else {
+            moveThemeFocus(e.key === 'ArrowUp' ? 'up' : 'left');
+          }
         } else if (e.key === 'Home') {
           e.preventDefault();
           if (e.target && e.target.closest
@@ -6378,8 +6399,8 @@ document.addEventListener('DOMContentLoaded', function() {
               ? '.theme-option[data-theme]' : '.theme-option') : null;
           if (firstThemeOption) {
             firstThemeOption.click();
-         }
-       } else if (e.key === 'Tab') {
+          }
+        } else if (e.key === 'Tab') {
          var themeFocus = focusablesWithin(themeMenu);
          if (themeFocus.length) {
            e.preventDefault();

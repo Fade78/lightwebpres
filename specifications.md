@@ -808,7 +808,10 @@ Générée depuis `series.json`. L'article courant est marqué `series-current`.
 ```
 
 Le contenu est inclus depuis un fichier Markdown externe pointé par la
-directive `article:` dans le Markdown étendu.
+directive `article:` dans le Markdown étendu. Le libellé peut être remplacé par
+un champ `kicker:` placé dans l'en-tête de la fiche, par exemple `kicker:
+Glossaire` ou `kicker: Appendices`. En l'absence de ce champ,
+`full_article_kicker` fournit le libellé localisé.
 
 #### 3.3.5 Numéros de slide gravés (opt-in)
 
@@ -1272,7 +1275,7 @@ champ est défini comme une surcharge assumée.
 | `<!-- lwp:slide:cover -->`      | cover       | Slide de couverture (fond sombre)     | 0 à N (libre)       | libre    |
 | `<!-- lwp:slide -->`             | standard    | Fiche standard (défaut)                | 0 à N (libre)       | libre    |
 | `<!-- lwp:slide:series-nav -->` | series-nav  | Navigation de série (calculée)        | 0 ou 1              | libre    |
-| `<!-- lwp:slide:full-article -->`| full-article | Article complet (include `.md`)     | 0 à N (libre)       | libre    |
+| `<!-- lwp:slide:full-article -->`| full-article | Article complet (include `.md`), avec `kicker:` optionnel | 0 à N (libre) | libre |
 | `<!-- lwp:slide:unit-index -->` | unit-index | Contents selected from this unit's published slides (§3.3.6) | 0 to N | anywhere |
 
 `cover` est un **style de mise en page**, pas un marqueur structurel unique :
@@ -1385,6 +1388,7 @@ Dans une fiche `full-article` :
 
 ```
 <!-- lwp:slide:full-article -->
+kicker: Glossaire
 article: snapchat_article.md
 ```
 
@@ -2089,7 +2093,7 @@ d'aide (`help_*`), panneau présentateur (`presenter_*`), menu de tags
 | `series_back_to_index`       | Texte du lien de retour à l'index (nav de série)     |
 | `series_untitled_fallback`   | Titre de secours si `series_meta.title` est absent   |
 | `draft_banner`               | Texte du bandeau brouillon (`--include-drafts`, §11.3/§20.6) |
-| `full_article_kicker`        | Kicker de la fiche `full-article` (« Article complet ») |
+| `full_article_kicker`        | Kicker par défaut de la fiche `full-article` (« Article complet »), utilisé si `kicker:` est absent |
 | `source_label`               | Préfixe avant la valeur de `source`                  |
 | `copy_link`                  | Libellé de la ligne « copier le lien » de la matrice de partage |
 | `copy_link_done`             | Retour visuel transitoire après une copie            |
@@ -3349,8 +3353,9 @@ all published choices. Every selected kit's themes are published as
 does not generate a resource cross-product. Identity labels stay fixed;
 default/initial markers describe selections, not identities.
 
-Escape closes the dialogue; arrows, Home and End navigate choices, and Enter
-applies the focused choice. Available preset choices retain their browser
+Escape closes the dialogue; while the theme search is visible, an unmodified
+letter focuses it and starts the search. Arrows, Home and End navigate choices,
+and Enter applies the focused choice. Available preset choices retain their browser
 `sessionStorage` contract across all pages and the index of the same deck:
 the key includes deck identity, catalogue identity and selector order.
 Selecting the primary removes the stored preset choice. No reader choice
@@ -9252,8 +9257,8 @@ Erreur fatale. Un article ne peut contenir qu'une seule navigation de série.
 Erreur fatale. Ces deux types de fiche ne rendent **aucun** contenu
 libre : leurs seules lignes reconnues sont `slug:`, `tags:`, les trois champs
 de présentation `slide-layout:`/`slide-header:`/`slide-footer:` et `comment:`
-(tous les deux types), plus `article:` (fiche `full-article` uniquement)
-(§4.6, `comment` est reconnu sur tout type et jamais rendu). Toute autre ligne non vide
+(tous les deux types), plus `article:` et `kicker:` (fiche `full-article`
+uniquement) (§4.6, `comment` est reconnu sur tout type et jamais rendu). Toute autre ligne non vide
 (du texte, un champ de fiche standard, un `article:` sur une
 `series-nav`...) arrête le build avec un message citant le début de la
 ligne fautive, plutôt que de disparaître silencieusement du rendu.

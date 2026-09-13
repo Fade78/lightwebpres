@@ -218,6 +218,14 @@ class IdentityKits(unittest.TestCase):
         self.assertIn('Studio footer', html)
         self.assertIn('class="lwp-presentation--studio"', html)
 
+    def test_site_kit_identity_label_is_separate_from_preset_label(self):
+        root = (Path(__file__).resolve().parents[1]
+                / 'examples' / 'kits' / 'lightwebpres-docs' / '0.1.0')
+        identity_kit = self.lwp._load_identity_kit(root, 'series')
+        self.assertEqual(identity_kit.label, 'LightWebPres')
+        self.assertEqual(identity_kit.presets['docs'].label,
+                         'LightWebPres documentation')
+
     def test_kit_label_default_preset_and_reserved_ids_are_validated(self):
         for changes in ({'label': ''}, {'label': None}, {'label': '  '},
                         {'default_preset': 'missing'}, {'default_preset': None},

@@ -204,6 +204,19 @@ async function main() {
       + JSON.stringify(themeGrid));
   }
 
+  await page.locator('#themeOptions [data-theme="print-oldpress"]').focus();
+  await page.keyboard.press('c');
+  const typedThemeSearch = await page.evaluate(() => ({
+    focused: document.activeElement && document.activeElement.id,
+    value: document.getElementById('themeFilter').value,
+  }));
+  if (typedThemeSearch.focused !== 'themeFilter'
+      || typedThemeSearch.value !== 'c') {
+    fail('typing a letter did not focus and seed the theme search: '
+      + JSON.stringify(typedThemeSearch));
+  }
+  await page.locator('#themeFilter').fill('');
+
   await page.keyboard.press('ArrowDown');
   const themeDownFromFilterFocus = await page.evaluate(() =>
     document.activeElement && document.activeElement.getAttribute('data-theme'));
@@ -810,7 +823,7 @@ async function main() {
         || presentationPicker.title !== 'Choisir une apparence'
         || presentationPicker.presentationTitle !== 'Preset'
         || presentationPicker.identityTitle !== 'Identité'
-        || presentationPicker.identities.join('|') !== 'LightWebPres documentation'
+        || presentationPicker.identities.join('|') !== 'LightWebPres'
         || presentationPicker.themeTitle !== 'Thème'
         || presentationPicker.options !== 2
         || presentationPicker.active !== 'lightwebpres-docs@0.1.0/docs') {

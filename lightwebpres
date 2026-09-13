@@ -13237,10 +13237,31 @@ document.addEventListener('DOMContentLoaded', function() {
       // buttons (and disclosure summaries) retain browser activation.
       if (spaceKey && (e.defaultPrevented || (e.target.closest
           && e.target.closest('button, [role="button"], summary')))) return;
-       if (themeMenu && themeMenu.classList.contains('open')) {
-        if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
+      if (themeMenu && themeMenu.classList.contains('open')) {
+        if (e.key === 'Escape'
+            || ((e.key === 'c' || e.key === 'C')
+                && (!themeFilter || themeFilter.hidden))) {
           e.preventDefault();
           closeThemeMenu();
+        } else if (themeFilter && !themeFilter.hidden
+                   && /^\p{L}$/u.test(e.key)) {
+          // A letter typed while another picker control has focus starts a
+          // search instead of being swallowed by the dialog's key trap.
+          e.preventDefault();
+          var fromThemeFilter = e.target === themeFilter;
+          themeFilter.focus();
+          var filterValue = themeFilter.value;
+          var filterStart = (fromThemeFilter
+            && typeof themeFilter.selectionStart === 'number')
+            ? themeFilter.selectionStart : filterValue.length;
+          var filterEnd = (fromThemeFilter
+            && typeof themeFilter.selectionEnd === 'number')
+            ? themeFilter.selectionEnd : filterValue.length;
+          themeFilter.value = filterValue.slice(0, filterStart) + e.key
+            + filterValue.slice(filterEnd);
+          themeFilter.setSelectionRange(filterStart + e.key.length,
+                                        filterStart + e.key.length);
+          themeFilter.dispatchEvent(new Event('input', {bubbles: true}));
         } else if (e.target === themeSource && e.key !== 'Tab') {
           return;
         } else if (e.target && e.target.closest
@@ -13260,23 +13281,23 @@ document.addEventListener('DOMContentLoaded', function() {
           // still enter the option list from it.
           return;
         } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-           e.preventDefault();
-           var presentationFocus = e.target && e.target.closest
-             && e.target.closest('.presentation-option');
-           if (presentationFocus) {
-             movePresentationFocus(e.key === 'ArrowDown' ? 'down' : 'right');
-           } else {
-             moveThemeFocus(e.key === 'ArrowDown' ? 'down' : 'right');
-           }
+          e.preventDefault();
+          var presentationFocus = e.target && e.target.closest
+            && e.target.closest('.presentation-option');
+          if (presentationFocus) {
+            movePresentationFocus(e.key === 'ArrowDown' ? 'down' : 'right');
+          } else {
+            moveThemeFocus(e.key === 'ArrowDown' ? 'down' : 'right');
+          }
         } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-           e.preventDefault();
-           var presentationFocus = e.target && e.target.closest
-             && e.target.closest('.presentation-option');
-           if (presentationFocus) {
-             movePresentationFocus(e.key === 'ArrowUp' ? 'up' : 'left');
-           } else {
-             moveThemeFocus(e.key === 'ArrowUp' ? 'up' : 'left');
-           }
+          e.preventDefault();
+          var presentationFocus = e.target && e.target.closest
+            && e.target.closest('.presentation-option');
+          if (presentationFocus) {
+            movePresentationFocus(e.key === 'ArrowUp' ? 'up' : 'left');
+          } else {
+            moveThemeFocus(e.key === 'ArrowUp' ? 'up' : 'left');
+          }
         } else if (e.key === 'Home') {
           e.preventDefault();
           if (e.target && e.target.closest
@@ -13300,8 +13321,8 @@ document.addEventListener('DOMContentLoaded', function() {
               ? '.theme-option[data-theme]' : '.theme-option') : null;
           if (firstThemeOption) {
             firstThemeOption.click();
-         }
-       } else if (e.key === 'Tab') {
+          }
+        } else if (e.key === 'Tab') {
          var themeFocus = focusablesWithin(themeMenu);
          if (themeFocus.length) {
            e.preventDefault();
@@ -18558,11 +18579,12 @@ SLIDE_TYPES = (
         'series.json — you place the marker, the build writes the list. '
         'At most one per article.', max_count=1),
     SlideType(
-        'full-article', None, ('slug', 'article', 'tags',
+        'full-article', None, ('slug', 'article', 'kicker', 'tags',
                                *_PRESENTATION_SLIDE_FIELDS, 'comment'), None,
         'Pulls in a long-form .md file named by its `article:` field, '
-        'which is required for publication. A page may carry several, each '
-        'with its own file (§22.8).', required_fields=('slug', 'article')),
+        'which is required for publication, with an optional editorial '
+        'kicker. A page may carry several, each with its own file (§22.8).',
+        required_fields=('slug', 'article')),
     SlideType(
         'unit-index', '##', ('slug', 'kicker', 'tags', 'summary',
                              *_UNIT_INDEX_FIELDS, *_PRESENTATION_SLIDE_FIELDS,
@@ -19031,6 +19053,11 @@ def parse_markdown_extended(md_text):
                         presentation_match.group(2))
                     continue
                 if slide.slide_type == 'full-article':
+                    kicker_match = re.match(r'^kicker:[ \t]*(.*)$', stripped)
+                    if kicker_match:
+                        slide.raw_meta['kicker'] = strip_ws(kicker_match.group(1))
+                        slide.kicker = strip_ws(kicker_match.group(1)) or None
+                        continue
                     article_match = re.match(r'^article:[ \t]*(.*)$', stripped)
                     if article_match:
                         slide.article_field_present = True
@@ -19796,12 +19823,17 @@ def _render_slide_default(slide, slide_num, total_slides, typo_engine, strings,
 
     elif slide.slide_type == 'full-article':
         # Content will be injected later
-        tag_text = strings.get('full_article_kicker', 'Full article')
+        tag_text = apply_typo(
+            typo_engine,
+            escape_amps(slide.kicker or
+                        strings.get('full_article_kicker', 'Full article')),
+            disabled)
+        tag_i18n = '' if slide.kicker else ' data-lwp-i18n="full_article_kicker"'
         return (f'<section class="slide full-article" id="{ident}" '
                 f'data-tags="{data_tags}">\n'
                 + (f'  <span class="slide-num">{num_str}</span>\n'
                    if show_slide_num else '')
-                + f'  <span class="slide-kicker" data-lwp-i18n="full_article_kicker">{tag_text}</span>\n'
+                + f'  <span class="slide-kicker"{tag_i18n}>{tag_text}</span>\n'
                 # Keyed by RANK, deliberately, and it is the one thing here
                 # that still is. This token never reaches a reader: it is
                 # minted and consumed inside one function, and the rank is
@@ -24137,6 +24169,7 @@ _lightwebpres_completion() {{
 
 
 _MANIFEST_NAME = '.lwp-manifest.json'
+_MANIFEST_SCHEMA = 'lightwebpres.manifest/2'
 
 
 def _safe_manifest_path(output_dir, value):
@@ -24197,8 +24230,10 @@ def _manifest_text(output_dir, articles_built, include_index=True,
         try:
             prior = json.loads(read_text_file(existing))
             if (not isinstance(prior, dict)
-                    or any(not isinstance(prior.get(key, []), list)
-                           or any(not isinstance(value, str) for value in prior.get(key, []))
+                    or prior.get('schema') != _MANIFEST_SCHEMA
+                    or any(key not in prior
+                           or not isinstance(prior.get(key), list)
+                           or any(not isinstance(value, str) for value in prior.get(key))
                            for key in ('files', 'previous'))):
                 raise PropertyError(f'Invalid manifest {existing}: expected an object with file lists')
             # The union: a file this build stopped producing must stay
@@ -24208,7 +24243,7 @@ def _manifest_text(output_dir, articles_built, include_index=True,
                               | set(prior.get('previous', [])))
         except (ValueError, OSError, RecursionError) as exc:
             raise PropertyError(f'Invalid manifest {existing}: {exc}') from exc
-    manifest = {'schema': 'lightwebpres.manifest/2', 'files': files,
+    manifest = {'schema': _MANIFEST_SCHEMA, 'files': files,
                 'previous': previous}
     if len(presentation_presets) > 1:
         manifest['presentation_presets'] = [
@@ -24252,6 +24287,13 @@ def cmd_clean(series_dir, args):
         sys.exit(1)
     if not isinstance(manifest, dict):
         log('error', f'Invalid manifest {manifest_path}: expected an object.')
+        sys.exit(1)
+    if manifest.get('schema') != _MANIFEST_SCHEMA:
+        log('error', f'Invalid manifest {manifest_path}: expected schema '
+            f'{_MANIFEST_SCHEMA!r}.')
+        sys.exit(1)
+    if any(key not in manifest for key in ('files', 'previous')):
+        log('error', f'Invalid manifest {manifest_path}: expected file lists.')
         sys.exit(1)
     current = _manifest_paths(manifest, 'files', output_dir, manifest_path)
     previous = _manifest_paths(manifest, 'previous', output_dir, manifest_path)
@@ -24414,7 +24456,8 @@ def cmd_watch(series_dir, args):
         httpd = http.server.HTTPServer(('127.0.0.1', port), handler)
         threading.Thread(target=httpd.serve_forever, daemon=True).start()
         from urllib.parse import quote
-        url = f'http://127.0.0.1:{port}/' + (quote(entry_name) if args.get('--single-html') else '')
+        url = f'http://127.0.0.1:{port}/' + (
+            quote(entry_name) if entry_name != 'index.html' else '')
         progress(f'[watch] serving {output_dir} at {url}')
         if args.get('--open'):
             webbrowser.open(url)
@@ -30070,14 +30113,15 @@ OPTIONS
     theme in the effective catalogue. The base theme in templates/settings.conf
     is always included first; when settings has property pins, custom(<theme>)
     is included before that raw base. Without this option, build uses
-    the root series.json "themes" list when present. Built pages expose C
+    series.json "appearance.themes" when present, or its default theme policy.
+    Built pages expose C
     for the picker and M for the global presenter menu.
   --presentation-presets selectors
     build/verify/watch: include comma-separated presentation selectors in the
     runtime Appearance picker. The series-wide primary preset is always first;
-    without this option, build uses the root series.json "presentation_presets"
-    list when present. Native Standard (builtin/standard) is appended when
-    compatible; an incompatible implicit alternative is omitted with a warning.
+    without this option, build uses series.json "appearance.presets" when
+    present, or Native Standard (builtin/standard) when absent. No preset is
+    added implicitly.
   --no-essential-theme
     build/verify/watch: do not embed the essential bundle by default.
     Every build otherwise ships Monochrome, Monochrome Night and Print Ink

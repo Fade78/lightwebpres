@@ -240,6 +240,8 @@ and replace punctuation with hyphens, retaining Unicode letters. An empty
 result falls back to the series directory name, then `series`, not a translated
 "untitled" label. Automatic stems are bounded to 100 characters and 200 UTF-8
 bytes, reserved Windows names receive `series-`, and `.html` is appended.
+Set `build.single_html` in the root `series.json` object to choose the default
+combined filename for the series; an explicit CLI filename takes precedence.
 
 An explicit bare `.html` or `.htm` filename always wins; paths, URLs and empty
 values are invalid. `--single-html=collection.html` also works. Before the

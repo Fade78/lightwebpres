@@ -24,8 +24,10 @@ series-wide choice is stored in `series.json` under `appearance.presets`.
 
 The kit's `lightwebpres.identity-kit/1` manifest gives it a fixed identity
 `label` and named presets; `default_preset`, or the first preset in manifest
-order, selects its default without changing the identity's name. Its references
-are local files or native layouts/themes, never dependencies on another kit.
+order, selects its default without changing the identity's name. Here the
+identity is labelled `LightWebPres`, while the `docs` preset is labelled
+`LightWebPres documentation`. Its references are local files or native
+layouts/themes, never dependencies on another kit.
 
 The kit is deliberately not installed into the user's catalogue. Keeping
 its physical `kits/<id>/<version>/` namespace here makes the example
