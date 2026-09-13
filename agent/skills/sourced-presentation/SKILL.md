@@ -2,7 +2,7 @@
 name: sourced-presentation
 description: "Use when creating, researching, reviewing, improving or bringing a sourced presentation and its long-form article into conformity with a brief or editorial specification, including a series of pages. Covers French rédaction, relecture, mise en conformité and explicitly requested refonte. Preserve successful writing and established research by default; verify claims, explanations and short reading paths. Use for editorial content, not a styling-only or publishing-only task."
 metadata:
-  version: "0.20"
+  version: "0.21"
 ---
 
 # Sourced editorial presentation
@@ -128,11 +128,13 @@ by convenience. The intention governs both article and cards.
 
 ## Verify and deliver
 
-- [ ] **11 — Read before the conclusion.** Read the explanation in order
-  without borrowing clarity from the highlighted ending or your knowledge
-  of the sources. Can the reader identify the events and relationships
-  already described? The conclusion may add a deduction; it must not repair
-  an ambiguous subject, comparison or unexplained operation.
+- [ ] **11 — Complete the writer's counter-reading.** After drafting, read
+  what the text actually says, not the intended meaning. Read explanations
+  before their conclusions; resolve actors, operations and references without
+  borrowing clarity from the sources. A conclusion may add a deduction, not
+  repair missing explanation. When editing is authorized, the writer repairs
+  ordinary defects before handoff using the [self-review loop](references/verification.md#self-review-before-handoff).
+  In an audit, correct the report, not the reviewed content.
 
 - [ ] **12 — Test both ends.** Read the article continuously: is its argument
   established and defensible? Read each card whole, then title–stake–conclusion,

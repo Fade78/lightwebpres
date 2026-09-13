@@ -57,10 +57,26 @@ sobre n'exige pas un style administratif, ni une adresse familière un ton forc�
 
 ## Contrôler la reformulation
 
-Vérifier la fidélité documentaire, puis lire le français pour lui-même.
-Simuler une lecture à voix haute des phrases difficiles pour éprouver rythme
-et enchaînements ; ne pas présenter cette simulation comme une réception humaine.
-Recontrôler ensuite modalités, conditions, quantités, comparaisons et citations.
-En amélioration, comparer au texte de départ : réparer le défaut identifié
-en préservant les qualités acquises. Un changement de rythme ou un désaccord
-de goût ne justifie pas une réécriture générale.
+Après rédaction, le rédacteur mène une contrelecture distincte avant remise.
+Elle porte sur le texte réellement écrit, y compris les champs courts et les
+notes, pas seulement sur les phrases qu'il avait prévu de modifier.
+
+1. **Sens exprimé.** Lire chaque unité dans l'ordre, l'explication avant sa
+   conclusion. Vérifier ce que chaque phrase attribue effectivement à son
+   sujet, à son verbe et à ses compléments : action, relation, destinataire,
+   condition ou conséquence. Ne pas compléter une omission par sa connaissance
+   du dossier. La phrase peut être compréhensible grâce au contexte tout en
+   attribuant l'opération au mauvais objet.
+2. **Français employé.** Contrôler si cette relation se dit naturellement dans
+   le registre demandé, avec les associations de mots, prépositions et
+   rattachements précis. Retrouver le sens après interprétation ne suffit pas.
+   Simuler une lecture à voix haute des phrases difficiles peut aider ; ce
+   n'est pas un test de réception auprès de lecteurs.
+3. **Correction et fidélité.** Réparer le défaut, relire l'unité entière puis
+   ses parcours courts. Recontrôler modalités, conditions, quantités,
+   comparaisons et citations, et préserver les qualités du texte de départ.
+
+Ces opérations appliquent les critères ci-dessus, sans imposer un tableau par
+phrase. Suivre la [boucle de vérification](verification.md#self-review-before-handoff)
+pour conclure ou signaler une difficulté résiduelle. Un synonyme, un changement
+de rythme ou un désaccord de goût ne justifie pas une réécriture générale.

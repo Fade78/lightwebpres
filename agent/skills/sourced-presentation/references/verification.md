@@ -56,13 +56,34 @@ reviewing knowledge; explicit thesis, reasoning and decisive objections
 when arguing. If the intention changes within a page, check that the
 transition does not pass a recommendation off as an empirical finding.
 
-Check idiomatic writing independently of documentary fidelity. For French,
-use [French writing checks](french.md), then recheck scope after reformulation.
-For a revision, compare the before/after text against the recorded defect and
-qualities to retain: factual accuracy, explanation, idiom, voice and progression.
-Record kept, improved, redesigned or blocked units and why. Rework a regression
-or retain the baseline; surface an unresolved tradeoff instead of calling a
-different wording better. A correct fact does not excuse an unclear sentence.
+## Self-review before handoff
+
+The writer completes the applicable reading passes after drafting, before
+handing off the text or asking another agent to finish ordinary proofreading.
+This is a separate examination of the written result, not a claim that drafting
+was careful. It covers the authorized unit, including short fields and notes,
+not only edited sentences. An audit-only mandate still forbids editing the
+reviewed content; self-review also applies to the audit report itself.
+
+1. **Find the defect in the actual words.** Read in order without filling gaps
+   from the evidence packet or the highlighted conclusion. Check who or what
+   performs the operation, its object and recipient, the condition and the
+   relationship to the preceding sentence. Examine non-action statements as
+   relationships rather than inventing an actor for every sentence.
+2. **Check expression separately.** Judge idiom, register and explanatory
+   sufficiency, not just grammatical plausibility or recoverable intent.
+   For French, use [French writing checks](french.md).
+3. **Repair and reread.** When editing is authorized, fix the identified
+   defect, then reread the whole affected unit and its short paths. Compare
+   before and after with the evidence and qualities to retain: factual scope,
+   explanation, idiom, voice and progression. Reopen sources only when the
+   change or a genuine doubt requires it. Rework a regression or retain the baseline.
+
+Repeat on identified defects, not speculative stylistic alternatives. Finish
+when the required checks leave no identified defect to repair within the
+mandate, or report the specific blocked point. Record kept, improved, redesigned
+and blocked units briefly; no per-sentence paperwork is required. A correct fact
+does not excuse an unclear sentence, and a completed loop does not prove perfection.
 
 Enumerate items before a judgment check. Search locates candidates; silence
 does not prove completeness. Counts need a defined unit. For bulk changes,
@@ -79,10 +100,18 @@ targets and the fact supported. Removing one call does not authorize
 deleting a definition still used elsewhere. Prefer native format support;
 custom wrappers can bypass reference handling and hide content loss.
 
-Use an independent review as findings to examine. Verify each against
-current text and sources; record fixed, already resolved or rejected items
-with reasons, keeping undecided findings open. Agreement between reviewers
-is not independent evidence of a fact.
+## Independent review
+
+Do not make another agent's routine copyediting a required production stage.
+Seek targeted review for an unresolved inference, documentary uncertainty,
+high-stakes judgment or an explicit review requirement; it can occur earlier
+when the decision needs it. An independent evaluation of the method is also
+distinct from using reviewers to finish each deliverable.
+
+Treat review findings as claims to examine against the current text and sources.
+Record fixed, already resolved or rejected items with reasons, keeping undecided
+findings open. After accepting a correction, the writer reruns the affected
+self-review checks. Agreement between reviewers is not independent evidence of a fact.
 
 Report actual reading scope and access. Simulated reader reactions and
 readability checks are not reception studies. One strong pilot, an author's
