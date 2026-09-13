@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.60.0"
+VERSION = "0.60.1"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -4302,6 +4302,8 @@ IDENTITY_KIT_SCHEMA = 'lightwebpres.identity-kit/1'
 COMMONS_PRESET_SCHEMA = 'lightwebpres.commons-preset/1'
 _PRESENTATION_ID_RE = re.compile(r'^[a-z][a-z0-9-]*$')
 _PRESENTATION_VERSION_RE = re.compile(r'^\d+\.\d+\.\d+$')
+_PRESENTATION_VERSION_SELECTOR_RE = re.compile(
+    r'^(?:latest|\d+(?:\.\d+){0,2})$')
 _PRESENTATION_SLIDE_TYPES = (
     'cover', 'standard', 'series-nav', 'full-article', 'unit-index',
 )
@@ -5487,6 +5489,7 @@ class IdentityCatalog:
         self.identity_kits[(identity_kit.id, identity_kit.version)] = identity_kit
 
     def resolve_preset(self, selector, origin):
+        """Resolve an exact, partial or ``latest`` kit version selector."""
         if selector is None:
             return BUILTIN_STANDARD_PRESET
         kit_id, version, preset_id = parse_presentation_preset_selector(
@@ -5497,7 +5500,22 @@ class IdentityCatalog:
                 raise PropertyError(
                     f'{origin}: Commons preset commons/{preset_id} was not found')
             return preset
-        identity_kit = self.identity_kits.get((kit_id, version))
+        identity_kit = None
+        if version != 'latest' and version.count('.') == 2:
+            identity_kit = self.identity_kits.get((kit_id, version))
+        else:
+            requested = (None if version == 'latest' else
+                         tuple(int(part) for part in version.split('.')))
+            matches = []
+            for (candidate_id, candidate_version), candidate in self.identity_kits.items():
+                if candidate_id != kit_id:
+                    continue
+                candidate_parts = tuple(int(part)
+                                       for part in candidate_version.split('.'))
+                if requested is None or candidate_parts[:len(requested)] == requested:
+                    matches.append((candidate_parts, candidate_version, candidate))
+            if matches:
+                identity_kit = max(matches, key=lambda item: (item[0], item[1]))[2]
         if identity_kit is None:
             available = ', '.join(
                 item.selector
@@ -5542,7 +5560,7 @@ def parse_presentation_preset_selector(value, origin):
         raise PropertyError(f'{origin}: invalid identity kit id {kit_id!r}')
     if kit_id in ('builtin', 'commons'):
         raise PropertyError(f'{origin}: identity kit id {kit_id!r} is reserved')
-    if not _PRESENTATION_VERSION_RE.fullmatch(version):
+    if not _PRESENTATION_VERSION_SELECTOR_RE.fullmatch(version):
         raise PropertyError(f'{origin}: invalid identity kit version {version!r}')
     if not _PRESENTATION_ID_RE.fullmatch(preset_id):
         raise PropertyError(f'{origin}: invalid presentation preset id {preset_id!r}')
@@ -5587,7 +5605,56 @@ def _presentation_library_roots():
     return roots
 
 
-def _load_presentation_root(catalog, root, scope, label):
+def _identity_kit_requirements(selectors):
+    """Return the requested kit ids and version selectors, or ``None``.
+
+    ``None`` means that a caller needs the complete catalogue. An invalid
+    selector is deliberately only indexed here; the normal resolver remains
+    responsible for reporting its grammar error without making an unrelated
+    catalogue entry part of that failure.
+    """
+    if selectors is None:
+        return None
+    if isinstance(selectors, str):
+        selectors = (selectors,)
+    elif not isinstance(selectors, (list, tuple, set, frozenset)):
+        selectors = (selectors,)
+    requirements = {}
+    for value in selectors:
+        if not isinstance(value, str):
+            continue
+        for selector in value.split(','):
+            selector = selector.strip()
+            if selector.count('@') != 1:
+                continue
+            kit_id, remainder = selector.split('@', 1)
+            if not _PRESENTATION_ID_RE.fullmatch(kit_id):
+                continue
+            if kit_id in ('builtin', 'commons'):
+                continue
+            version = remainder.split('/', 1)[0]
+            requirements.setdefault(kit_id, set()).add(version)
+    return {kit_id: frozenset(versions)
+            for kit_id, versions in requirements.items()}
+
+
+def _identity_kit_version_requested(version, selectors):
+    """Whether one catalogue version can satisfy a requested selector."""
+    if not _PRESENTATION_VERSION_RE.fullmatch(version):
+        return False
+    for selector in selectors:
+        if selector == 'latest' or selector.count('.') == 2:
+            if selector == 'latest' or version == selector:
+                return True
+        elif (selector.isdigit() or
+              re.fullmatch(r'\d+\.\d+', selector)):
+            if version == selector or version.startswith(selector + '.'):
+                return True
+    return False
+
+
+def _load_presentation_root(catalog, root, scope, label,
+                            requested_kits=None):
     root = Path(root)
     if not root.exists():
         return
@@ -5600,14 +5667,23 @@ def _load_presentation_root(catalog, root, scope, label):
     except OSError as exc:
         raise PropertyError(f'{label} {root}: cannot list identity kits ({exc})')
     for identifier in identifiers:
+        if (requested_kits is not None
+                and identifier.name not in requested_kits):
+            continue
         if not _PRESENTATION_ID_RE.fullmatch(identifier.name):
             raise PropertyError(f'{identifier}: invalid identity kit id')
+        requested_versions = (None if requested_kits is None else
+                              requested_kits.get(identifier.name, ()))
         try:
             versions = sorted((child for child in identifier.iterdir() if child.is_dir()),
                               key=lambda child: child.name)
         except OSError as exc:
             raise PropertyError(f'{identifier}: cannot list versions ({exc})')
         for version in versions:
+            if (requested_versions is not None
+                    and not _identity_kit_version_requested(
+                        version.name, requested_versions)):
+                continue
             if not _PRESENTATION_VERSION_RE.fullmatch(version.name):
                 raise PropertyError(f'{version}: invalid identity kit version')
             try:
@@ -5624,21 +5700,28 @@ def _load_presentation_root(catalog, root, scope, label):
     catalog.roots.append(root)
 
 
-def load_identity_catalog(templates_dir=None):
-    """Native identity, then installed < user < series kits and Commons."""
+def load_identity_catalog(templates_dir=None, selectors=None):
+    """Load native, selected kits and Commons in their precedence order.
+
+    Without ``selectors`` this retains the complete catalogue behavior used by
+    inventory commands. A selector-scoped load avoids validating unrelated
+    Identity Kit directories before the requested presentation is resolved.
+    """
     catalog = IdentityCatalog()
+    requested_kits = _identity_kit_requirements(selectors)
     installed = {str(Path(root).resolve()) for root in _installed_presentation_roots()}
     for root in _presentation_library_roots():
         scope = 'installed' if str(Path(root).resolve()) in installed else 'user'
         _load_presentation_root(
             catalog, root, scope,
             'installed identity kit directory' if scope == 'installed'
-            else 'user identity kit directory')
+            else 'user identity kit directory', requested_kits=requested_kits)
     if templates_dir is not None:
         series_root = _resolve_contained(templates_dir, 'kits')
         if series_root is not None:
             _load_presentation_root(catalog, series_root, 'series',
-                                    'series identity kit directory')
+                                    'series identity kit directory',
+                                    requested_kits=requested_kits)
     theme_catalog = None
     for root, scope in _commons_roots(templates_dir):
         if not root.exists():
@@ -5662,7 +5745,8 @@ def load_identity_catalog(templates_dir=None):
 
 def _presentation_preset_or_die(selector, origin, templates_dir=None):
     try:
-        return load_identity_catalog(templates_dir).resolve_preset(selector, origin)
+        return load_identity_catalog(
+            templates_dir, selectors=selector).resolve_preset(selector, origin)
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
@@ -5676,7 +5760,8 @@ def _requested_presentation_preset(catalog, selector, origin):
 def _requested_presentation_preset_or_die(selector, origin, templates_dir=None):
     try:
         return _requested_presentation_preset(
-            load_identity_catalog(templates_dir), selector, origin)
+            load_identity_catalog(templates_dir, selectors=selector),
+            selector, origin)
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
@@ -21976,6 +22061,19 @@ def series_appearance_of(series_data, tolerate_invalid=False, errors=None):
     }
 
 
+def _series_presentation_selectors(series_data, args=None):
+    """Return raw preset choices before the catalogue is resolved."""
+    args = args or {}
+    override = args.get('--presentation-presets')
+    if override is not None:
+        return override
+    if isinstance(series_data, dict):
+        appearance = series_data.get('appearance')
+        if isinstance(appearance, dict) and 'presets' in appearance:
+            return appearance['presets']
+    return _APPEARANCE_DEFAULT_PRESETS
+
+
 def _appearance_theme_is_facet(selector):
     """Whether a theme token is a collective facet selector."""
     if not isinstance(selector, str) or ':' not in selector:
@@ -23186,7 +23284,9 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
                      else load_series_data(sd))
     series_meta = series_meta_of(series_data)
     try:
-        identity_catalog = load_identity_catalog(templates_dir)
+        identity_catalog = load_identity_catalog(
+            templates_dir,
+            selectors=_series_presentation_selectors(series_data, args))
         appearance = resolve_series_appearance(
             series_data, identity_catalog, theme_catalog, args)
         for option, value in (
@@ -23985,8 +24085,8 @@ def cmd_completion(args):
     # shell would otherwise offer every file in the directory.
     owned_list = ' '.join(sorted(tool_owned_files()))
 
-    # What each command ACCEPTS, from the same table the parser refuses
-    # against. Offering the union was the program telling you to type what
+    # What each command accepts and exposes, from the same table the parser
+    # refuses against. Offering the union was the program telling you to type what
     # the program will reject: reported from a real shell, `build --` put
     # `--polarity`, `--hue`, `--family`, `--shell` and `--format` in front
     # of someone, and `build --polarity` then answered "not an option of
@@ -23996,7 +24096,8 @@ def cmd_completion(args):
     # and `build` are one command and two paths, and a table indexed by
     # the internal name could not say so.
     def offers(key):
-        return ' '.join(sorted(_COMMAND_OPTIONS.get(key, set())
+        return ' '.join(sorted((_COMMAND_OPTIONS.get(key, set())
+                                - _RETIRED_COMMAND_OPTIONS.get(key, frozenset()))
                                | _GLOBAL_MODIFIERS | {'--help'}))
 
     per_command = {}
@@ -25907,7 +26008,9 @@ def cmd_audit(series_dir, args):
     presentation_preset = BUILTIN_STANDARD_PRESET
     presentation_errors = 0
     try:
-        identity_catalog = load_identity_catalog(templates_dir)
+        identity_catalog = load_identity_catalog(
+            templates_dir,
+            selectors=_series_presentation_selectors(series_data, args))
         appearance = resolve_series_appearance(
             series_data, identity_catalog, theme_catalog, args)
         presentation_preset = appearance.primary_preset
@@ -26170,6 +26273,37 @@ RETIRED_VARIABLES = {
 }
 
 
+def audit_identity_kit_paths(appearance=None, presentation_preset=None):
+    """Print the resolved roots of the identity kits selected by the series.
+
+    The catalogue can contain unused kits from several scopes. Audit names
+    only the identities involved in ``appearance.presets`` and prints each
+    identity/version once, so a preset alternative does not duplicate its
+    kit. The native identity has no filesystem root: its source is the
+    executable itself.
+    """
+    presets = (appearance.presets if appearance is not None else
+               ((presentation_preset,) if presentation_preset is not None else
+                ()))
+    kits = {}
+    for preset in presets:
+        identity_kit = preset.identity_kit
+        kits.setdefault((identity_kit.id, identity_kit.version), identity_kit)
+    if not kits:
+        return
+
+    print('Identity kit paths (audit)')
+    for identity_kit in sorted(kits.values(), key=lambda kit: kit.selector):
+        if identity_kit.root is None:
+            path = f'embedded in {Path(__file__).resolve()}'
+        else:
+            try:
+                path = str(identity_kit.root.resolve())
+            except (OSError, RuntimeError):
+                path = str(identity_kit.root)
+        print(f'  {identity_kit.selector}: {path}')
+
+
 def audit_presentation(templates_dir, catalog=None, identity_catalog=None,
                        presentation_error=False, presentation_preset=None,
                        appearance=None):
@@ -26195,6 +26329,7 @@ def audit_presentation(templates_dir, catalog=None, identity_catalog=None,
     not here: audit_resolved_theme() measures colours, and this function
     stays the one that only reads files."""
     warnings = 0
+    audit_identity_kit_paths(appearance, presentation_preset)
 
     def _retired_in(text):
         return sorted({old for old in RETIRED_VARIABLES
@@ -26457,7 +26592,7 @@ def cmd_install(target_dir, args):
     }
     appearance = {}
     if preset_selector is not None:
-        appearance['presets'] = [presentation_preset.selector]
+        appearance['presets'] = [preset_selector.strip()]
     if theme_key is not None:
         appearance['themes'] = [theme_key]
     if appearance:
@@ -26740,7 +26875,9 @@ def cmd_refresh_templates(target_dir, args):
         pins = pinned_settings(old)
         try:
             series_data = load_series_data(_sd)
-            identity_catalog = load_identity_catalog(templates_dir)
+            identity_catalog = load_identity_catalog(
+                templates_dir,
+                selectors=_series_presentation_selectors(series_data))
             appearance = resolve_series_appearance(
                 series_data, identity_catalog, theme_catalog)
         except PropertyError as exc:
@@ -26799,7 +26936,9 @@ def cmd_refresh_templates(target_dir, args):
     if not settings_path.exists():
         try:
             series_data = load_series_data(_sd)
-            identity_catalog = load_identity_catalog(templates_dir)
+            identity_catalog = load_identity_catalog(
+                templates_dir,
+                selectors=_series_presentation_selectors(series_data))
             appearance = resolve_series_appearance(
                 series_data, identity_catalog, theme_catalog)
         except PropertyError as exc:
@@ -27077,7 +27216,9 @@ def cmd_theme_migrate(target_dir, args):
         series_data = load_series_data(sd)
         if not isinstance(series_data, dict):
             raise PropertyError('theme migrate requires a series.json object')
-        identity_catalog = load_identity_catalog(templates_dir)
+        identity_catalog = load_identity_catalog(
+            templates_dir,
+            selectors=_series_presentation_selectors(series_data))
         current_appearance = resolve_series_appearance(
             series_data, identity_catalog, catalog)
     except (OSError, PropertyError) as exc:
@@ -27153,7 +27294,9 @@ def cmd_theme_vendor(target_dir, args):
     try:
         catalog = load_theme_catalog(sd, templates_dir)
         series_data = load_series_data(sd)
-        identity_catalog = load_identity_catalog(templates_dir)
+        identity_catalog = load_identity_catalog(
+            templates_dir,
+            selectors=_series_presentation_selectors(series_data))
         appearance = resolve_series_appearance(
             series_data, identity_catalog, catalog)
         raw = args.get('--themes') or args.get('--theme')
@@ -27553,7 +27696,9 @@ def cmd_preset_show(selector, args):
 
 
 def _series_preset_or_die(series_data, templates_dir):
-    identity_catalog = load_identity_catalog(templates_dir)
+    identity_catalog = load_identity_catalog(
+        templates_dir,
+        selectors=_series_presentation_selectors(series_data))
     theme_catalog = load_theme_catalog(
         Path(templates_dir).parent, templates_dir)
     return resolve_series_appearance(
@@ -27611,7 +27756,7 @@ def cmd_set_presentation_preset(series_dir, args):
     try:
         current_meta = series_meta_of(series_data)
         validate_series(series_data.get('articles', ()))
-        catalog = load_identity_catalog(templates_dir)
+        catalog = load_identity_catalog(templates_dir, selectors=selector)
         preset = _requested_presentation_preset(catalog, selector, '--preset')
         theme_catalog = load_theme_catalog(sd, templates_dir)
         settings_path = _resolve_contained(templates_dir, SETTINGS_FILENAME)
@@ -27631,7 +27776,7 @@ def cmd_set_presentation_preset(series_dir, args):
             updated['appearance'] = appearance
         if not isinstance(appearance, dict):
             raise PropertyError('series.json: "appearance" must be an object')
-        appearance['presets'] = [preset.selector]
+        appearance['presets'] = [selector.strip()]
         proposed_appearance = resolve_series_appearance(
             updated, catalog, theme_catalog)
         resolve_theme_properties(proposed_appearance.initial_theme_layer, pins)
@@ -28321,7 +28466,9 @@ def cmd_series_theme(series_dir, args):
     try:
         theme_catalog = load_theme_catalog(directory, templates_dir)
         series_data = load_series_data(directory)
-        identity_catalog = load_identity_catalog(templates_dir)
+        identity_catalog = load_identity_catalog(
+            templates_dir,
+            selectors=_series_presentation_selectors(series_data))
         appearance = resolve_series_appearance(
             series_data, identity_catalog, theme_catalog, args)
     except PropertyError as exc:
@@ -28398,7 +28545,9 @@ def cmd_set_theme(target_dir, args):
         if not isinstance(series_data, dict):
             raise PropertyError('series theme set requires a series.json object')
         series_meta_of(series_data)
-        identity_catalog = load_identity_catalog(templates_dir)
+        identity_catalog = load_identity_catalog(
+            templates_dir,
+            selectors=_series_presentation_selectors(series_data))
         current_appearance = resolve_series_appearance(
             series_data, identity_catalog, theme_catalog)
 
@@ -28464,7 +28613,9 @@ def series_theme(templates_dir, series_data=None, args=None):
         series_data = load_series_data(templates_dir.parent)
     catalog = load_theme_catalog(series_dir=templates_dir.parent,
                                  templates_dir=templates_dir)
-    identity_catalog = load_identity_catalog(templates_dir)
+    identity_catalog = load_identity_catalog(
+        templates_dir,
+        selectors=_series_presentation_selectors(series_data, args))
     return resolve_series_appearance(
         series_data, identity_catalog, catalog, args).theme_id
 
@@ -28711,7 +28862,9 @@ def cmd_series_info(series_dir, args):
 
     try:
         theme_catalog = load_theme_catalog(sd, templates_dir)
-        identity_catalog = load_identity_catalog(templates_dir)
+        identity_catalog = load_identity_catalog(
+            templates_dir,
+            selectors=_series_presentation_selectors(series_data, args))
         appearance = resolve_series_appearance(
             series_data, identity_catalog, theme_catalog, args)
         theme = appearance.theme_id
@@ -29149,13 +29302,15 @@ def cmd_resolve(series_dir, name, args):
 
     (sd, sources_dir, templates_dir, _legacy, _interface, _typography,
      _, _, _) = resolve_paths(series_dir, args)
+    series_data = load_series_data(sd)
     try:
         theme_catalog = load_theme_catalog(sd, templates_dir)
-        identity_catalog = load_identity_catalog(templates_dir)
+        identity_catalog = load_identity_catalog(
+            templates_dir,
+            selectors=_series_presentation_selectors(series_data, args))
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
-    series_data = load_series_data(sd)
     series_meta = series_meta_of(series_data)
     try:
         appearance = resolve_series_appearance(
@@ -30030,7 +30185,7 @@ COMMANDS
     Describes one presentation preset without changing a series
   lightwebpres series preset [directory] [--format text|json]
     Shows the series-wide presentation preset a build resolves
-  lightwebpres series preset set [directory] --preset id@version/preset|commons/id|builtin/standard [--keep-theme|--use-preset-theme]
+  lightwebpres series preset set [directory] --preset id@version/preset|commons/id|builtin/standard
     Vendors and selects a preset without applying its starter
   lightwebpres kit compose <recipe.json> --output <directory>
     Creates directory/id/version as a complete independent Identity Kit.
@@ -30110,9 +30265,9 @@ OPTIONS
   --themes selectors|all
     build/verify/watch/theme vendor: include comma-separated slugs, facet selectors
     (background|bg, family|fam, background hue|bgh), essential, or every
-    theme in the effective catalogue. The base theme in templates/settings.conf
-    is always included first; when settings has property pins, custom(<theme>)
-    is included before that raw base. Without this option, build uses
+    theme in the effective catalogue. The resolved base theme is always included
+    first; when settings has property pins, custom(<theme>) is included before
+    that raw base. Without this option, build uses
     series.json "appearance.themes" when present, or its default theme policy.
     Built pages expose C
     for the picker and M for the global presenter menu.
@@ -30121,7 +30276,9 @@ OPTIONS
     runtime Appearance picker. The series-wide primary preset is always first;
     without this option, build uses series.json "appearance.presets" when
     present, or Native Standard (builtin/standard) when absent. No preset is
-    added implicitly.
+    added implicitly. Identity Kit versions accept X, X.Y, X.Y.Z or latest;
+    a partial or latest selector resolves to the highest available matching
+    version, while X.Y.Z stays pinned.
   --no-essential-theme
     build/verify/watch: do not embed the essential bundle by default.
     Every build otherwise ships Monochrome, Monochrome Night and Print Ink
@@ -30153,7 +30310,9 @@ OPTIONS
     declared starter unless --no-starter. series preset set: change an
     existing series without applying a starter. `builtin/standard` selects
     native Standard with the Light theme; `commons/id` selects a shared preset.
-    Omitting the series preset also resolves to builtin/standard.
+    Omitting the series preset also resolves to builtin/standard. For an
+    Identity Kit, version may be X, X.Y, X.Y.Z or latest; partial/latest
+    selects the highest available matching version.
   --no-starter
     init --preset: skip that preset's optional starter
   --language-file path
@@ -30191,7 +30350,7 @@ OPTIONS
   --inline-images
     build/verify/watch: embed local Markdown and kit images, including SVG,
     as data URIs (no img/ directory copied). External dependencies may remain.
-  --single-html [filename.html]
+  --single-html [FILE]
     build/verify/watch: publish the series in one HTML, with deliberate
     article switching and printing of the active article. Combine with
     --inline-images to embed supported images. --output remains a directory.
@@ -30247,10 +30406,10 @@ THEMES ({theme_count} built-in themes before external layers, see specifications
   Then apply one, at scaffold time or afterwards:
     lightwebpres init my-series --theme evergreen
     lightwebpres series theme set my-series --theme evergreen
-  series theme set rewrites the one `theme:` line of templates/settings.conf
-  and nothing else: your uncommented values are untouched and still apply on
-  top of the new theme. The stylesheet is composed at build time, so
-  upgrading the executable never silently reverts anything.
+  series theme set changes the first item of series.json appearance.themes
+  and nothing in templates/settings.conf: your uncommented values are untouched
+  and still apply on top of the new theme. The stylesheet is composed at build
+  time, so upgrading the executable never silently reverts anything.
   Preview every theme rendered against real slide content, with facet
   filters, at:
     lightwebpres theme gallery
@@ -30317,8 +30476,9 @@ SETTINGS (templates/settings.conf, see specifications.md §9)
   Every visual decision is a typed property, `component.axis: value`, and
   settings.conf lists ALL of them, commented out at the current theme's
   values. Uncomment a line to pin it: it survives every theme change and
-  every executable upgrade, and lightwebpres never rewrites your file
-  (`series theme set` touches only the `theme:` line).
+  every executable upgrade, and lightwebpres never rewrites your file.
+  `series theme set` changes only the theme selection in series.json
+  appearance.themes.
   Shared values themes provide, referenced by bare words:
     color.page    the page background
     color.ink     body text          color.ink-quiet   secondary text
@@ -30573,6 +30733,13 @@ _COMMAND_OPTIONS = {
     'completion': {'--shell'},
 }
 
+# These retired flags remain parser-visible only so `series preset set` can
+# explain the removed theme-selection path instead of treating it as a typo.
+# They are intentionally absent from command help and shell completion.
+_RETIRED_COMMAND_OPTIONS = {
+    'set-preset': frozenset({'--keep-theme', '--use-preset-theme'}),
+}
+
 # --- Refonte CLI v0.24.0 ----------------------------------------------------
 # Options accepted BEFORE the command (git-style): --lang, the logging
 # switches and --version/--help act immediately. The option nearest the
@@ -30597,8 +30764,8 @@ _GLOBAL_FLAGS = frozenset({'--quiet', '--verbose', '--no-color', '--timestamp',
 _GLOBAL_VALUES = frozenset({'--lang'})
 
 # Canonical commands are the source of truth. Shortcuts are
-# a root-level comfort layer; legacy aliases are the previous names, kept for
-# one MAJOR with a [WARNING] on stderr.
+# a root-level comfort layer; these are canonical user-facing shortcuts, not
+# deprecated aliases.
 # Each entry maps the user-facing token → the internal `cmd_*` dispatch key.
 # The dispatch key is also what _COMMAND_OPTIONS is indexed by, so the option
 # tables above stay valid without duplication.
@@ -30620,12 +30787,9 @@ _SHORTCUTS = {
 # `update`; a lone `template` is NOT a shortcut: the `series template`
 # reading command it would have led to was abandoned.
 # (No other two-word shortcuts yet — `template update` is handled inline.)
-# Legacy names → new dispatch key. Each emits a [WARNING] on stderr naming the
-# new form. The dispatch key is the OLD cmd_* name (option tables stay valid).
-# Spellings this program used to accept and no longer does. They are NOT
-# commands: nothing here is offered by completion, named in --help, or
-# written in any document. The table exists for one purpose, which is to
-# refuse them by name.
+# Retired names map to an explanatory refusal message. They are NOT commands:
+# nothing here is offered by completion, named in --help, or written in any
+# document. The table exists for one purpose, which is to refuse them by name.
 #
 # They were accepted as deprecated aliases, each printing a [WARNING] and
 # then working. That is a worse teacher than a refusal: the completion
@@ -30783,8 +30947,8 @@ def print_command_help(command):
     grammar was the one that failed.
 
     Built from _COMMAND_OPTIONS rather than sliced out of the full help
-    text, so it cannot drift: an option added to a command appears here
-    the same day."""
+    text, excluding options retained only to explain their retirement, so it
+    cannot drift: an option added to a command appears here the same day."""
     name = canonical(command)
     # The argument shape comes from the same table that enforces it, so
     # the synopsis cannot promise a form the parser refuses.
@@ -30802,11 +30966,14 @@ def print_command_help(command):
         ' <slug>...')
     print(f'lightwebpres {name}{shape} [options]')
     print()
-    own = sorted(_COMMAND_OPTIONS.get(command, set()) - _GLOBAL_OPTIONS)
+    own = sorted(_COMMAND_OPTIONS.get(command, set())
+                 - _GLOBAL_OPTIONS
+                 - _RETIRED_COMMAND_OPTIONS.get(command, frozenset()))
     if own:
         print('OPTIONS')
         for opt in own:
-            takes = ' <value>' if opt in _VALUE_OPTIONS else ''
+            takes = (' ' + {'--single-html': '[FILE]'}.get(opt, '<value>')
+                     if opt in _VALUE_OPTIONS else '')
             print(f'  {opt}{takes}')
     else:
         print('This command takes no options of its own.')

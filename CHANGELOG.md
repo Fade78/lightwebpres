@@ -33,7 +33,28 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.60.0
+## Unreleased — 0.60.1
+
+Full-article slides can now replace their localized kicker with an explicit
+`kicker:` field. Publication cleanup validates the
+`lightwebpres.manifest/2` schema before touching output, and watch serves the
+configured combined-HTML filename.
+
+The theme picker starts its search when an unmodified letter is typed while a
+choice has focus. The official guide's embedded Identity Kit labels its
+identity `LightWebPres`, independently of its `LightWebPres documentation`
+preset label.
+
+Identity Kit preset selectors in `series.json` accept exact, partial and
+floating versions (`X.Y.Z`, `X.Y`, `X` or `latest`). Partial and `latest`
+selectors resolve the highest available matching version and remain persisted
+as given. `audit` reports the resolved filesystem path of every selected
+Identity Kit.
+
+The specifications, glossary, guide, examples and generated captures describe
+these changes and are rebuilt from the current executable.
+
+## v0.60.0
 
 Presentation selection is now declared by the canonical root
 `series.json.appearance` object. Its ordered `presets` and `themes` lists
@@ -57,9 +78,6 @@ The specifications, glossary, guide, agent skill, examples and generated
 captures now describe and exercise the canonical contract. The golden demo,
 documentation captures, product comparison and generated guide were rebuilt
 from the current executable.
-
-The official guide's embedded Identity Kit now labels its identity
-`LightWebPres`, independently of its `LightWebPres documentation` preset label.
 
 ## v0.59.2
 

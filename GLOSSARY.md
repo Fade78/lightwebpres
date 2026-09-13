@@ -167,15 +167,16 @@ In the object form of `series.json`, these keys live beside `series_meta` and
 
 | Field | Default | Description |
 |---|---|---|
-| `appearance` | omitted: `presets` is `builtin/standard`, `themes` is `preset, essential` | Object beside `series_meta` and `articles` with non-empty `presets` and `themes` lists. The first preset is primary; the first individual theme token sets the initial theme policy. Explicit lists are exact; `--themes` and `--presentation-presets` replace them for one invocation (§9.3.7, §9.3.8) |
+| `appearance` | omitted: `presets` is `builtin/standard`, `themes` is `preset, essential` | Optional object beside `series_meta` and `articles`; it may contain either or both non-empty `presets` and `themes` lists. The first preset is primary; the first individual theme token sets the initial theme policy. Explicit lists are exact; `--themes` and `--presentation-presets` replace them for one invocation (§9.3.7, §9.3.8) |
 | `build` | `{}` | Optional output defaults: `single_html` is a plain combined-output filename and `inline_images` is boolean |
 
 The list is build configuration, not a persisted reader choice. A reader's
 presentation choice is kept in the browser session and never written back to
 `series.json`.
 
-The legacy author selectors `presentation_preset`, root `presentation_presets`,
-and root `themes` are rejected. Use the corresponding lists under `appearance`.
+The legacy author selectors `series_meta.presentation_preset`, article-level
+`presentation_preset`, root `presentation_presets`, and root `themes` are
+rejected. Use the corresponding lists under `appearance`.
 
 ## Language pack files
 
@@ -407,7 +408,7 @@ description; the terms are fixed here, in English.
 | **native resource** | Built-in reusable layout `builtin:standard` or minimal theme `builtin:light`. The native preset selector is `builtin/standard`. The catalogue lists bare `light` with its effective origin; `builtin:light` forces the native resource and remains its runtime identity. Native composition retains symbolic references. Using a native layout inside a kit preserves that kit's chrome. |
 | **Commons** | Shared resource collection, not an identity: the global theme catalogue under `themes/` (`LWP_THEMES_DIR`) plus native-layout preset descriptors under `commons/presets/<id>.json` (`LWP_COMMONS_DIR`), with series overrides in `templates/themes/` and `templates/commons/presets/`. |
 | **Commons preset** | Five-field `lightwebpres.commons-preset/1` descriptor: `schema`, `id`, `label`, `description`, `theme`. Binds a global theme slug or `builtin:<slug>` to native layouts, without a starter; selected as `commons/<id>`. The theme's origin is independent of the descriptor's loading scope. |
-| **presentation preset** | Named binding of a theme and layout/chrome defaults; selected as `builtin/standard`, `commons/<id>` or `id@MAJOR.MINOR.PATCH/preset`. The first `appearance.presets` entry persists the initial selection, with identity inferred from that reference. |
+| **presentation preset** | Named binding of a theme and layout/chrome defaults; selected as `builtin/standard`, `commons/<id>` or `id@<version>/preset`, where `<version>` is `X`, `X.Y`, `X.Y.Z` or `latest`. Partial/latest selectors resolve the highest available matching kit version; `X.Y.Z` pins one version. The first `appearance.presets` entry persists the initial selection, with identity inferred from that reference. |
 | **resource collection** | Which resource catalogue a preset belongs to: `builtin`, `commons` or `kit`. This is separate from identity ownership and from the location where the loader found it. |
 | **resource origin** | Loading provenance computed by loaders: `builtin`, `installed`, `user` or `series`. All shipped themes use `builtin`, displayed as **Built-in** / **Intégré**. Origin is separate from resource ownership, collection and palette `source` credits; it cannot be declared by a theme or kit. `theme list --origin` filters effective catalogue entries after precedence. Kits carry no extension, inter-kit dependency, lineage or authenticity record. |
 | **kit composition** | `kit compose recipe.json --output directory` validates and publishes an autonomous `directory/id/version/` tree. The strict `lightwebpres.kit-composition/1` recipe has `schema`, `sources`, `manifest`, `files`; the final manifest explicitly names every final reference. No guessed remapping or dependency closure. |

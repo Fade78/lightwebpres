@@ -148,6 +148,63 @@ class IdentityKits(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('builtin/standard', result.stderr)
 
+    def test_selector_grammar_accepts_partial_and_latest_versions(self):
+        for value in ('studio@1/brief', 'studio@1.2/brief',
+                      'studio@1.2.3/brief', 'studio@latest/brief'):
+            with self.subTest(value=value):
+                kit_id, version, preset_id = self.lwp.parse_presentation_preset_selector(
+                    value, 'test')
+                self.assertEqual((kit_id, preset_id), ('studio', 'brief'))
+                self.assertIn(version, ('1', '1.2', '1.2.3', 'latest'))
+
+    def test_partial_version_selectors_resolve_the_highest_compatible_kit(self):
+        for version in ('1.2.0', '1.2.9', '1.3.0', '2.0.0'):
+            self._kit(version=version)
+        catalog = self.lwp.load_identity_catalog(self.root / 'templates')
+        expected = {
+            'studio@1.2.0/brief': 'studio@1.2.0/brief',
+            'studio@1.2/brief': 'studio@1.2.9/brief',
+            'studio@1/brief': 'studio@1.3.0/brief',
+            'studio@latest/brief': 'studio@2.0.0/brief',
+        }
+        for selector, resolved in expected.items():
+            with self.subTest(selector=selector):
+                self.assertEqual(catalog.resolve_preset(selector, 'test').selector,
+                                 resolved)
+
+        series = fixtures.scaffold(
+            self.root, fixtures.IdentityKitFixtures._article())
+        series_path = series / 'series.json'
+        data = json.loads(series_path.read_text(encoding='utf-8'))
+        data['appearance'] = {'presets': ['studio@1/brief']}
+        series_path.write_text(json.dumps(data), encoding='utf-8')
+        shown = fixtures.run('series', 'preset', str(series), '--format', 'json')
+        self.assertEqual(shown.returncode, 0, shown.stderr)
+        self.assertEqual(json.loads(shown.stdout)['preset']['selector'],
+                         'studio@1.3.0/brief')
+        selected = fixtures.run('series', 'preset', 'set', str(series),
+                                '--preset', 'studio@1/brief')
+        self.assertEqual(selected.returncode, 0, selected.stderr)
+        self.assertEqual(json.loads(series_path.read_text(encoding='utf-8'))
+                         ['appearance']['presets'], ['studio@1/brief'])
+
+    def test_build_ignores_an_unselected_invalid_user_identity_kit(self):
+        self._kit()
+        invalid = self.root / 'library' / 'kits' / 'private' / 'docs'
+        invalid.mkdir(parents=True)
+        series = fixtures.scaffold(
+            self.root, fixtures.IdentityKitFixtures._article())
+        series_path = series / 'series.json'
+        data = json.loads(series_path.read_text(encoding='utf-8'))
+        data['appearance'] = {'presets': ['studio@1.0.0/brief']}
+        series_path.write_text(json.dumps(data), encoding='utf-8')
+
+        result = fixtures.run(
+            'build', str(series), '--single-html', 'combined.html')
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((series / 'public' / 'combined.html').exists())
+
     def test_help_names_current_identity_catalogues_and_native_selection(self):
         result = fixtures.run('--help')
         self.assertEqual(result.returncode, 0, result.stderr)

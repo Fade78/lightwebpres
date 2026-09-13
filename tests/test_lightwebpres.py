@@ -2878,8 +2878,7 @@ class CliStrictParsing(unittest.TestCase):
 
 
 class CliVersionAndShortcuts(unittest.TestCase):
-    """Phase 1 of the CLI refonte (DECISION-CLI.md / PLAN-CLI.md):
-    --version, subcommand shortcuts, and legacy aliases with a [WARN]."""
+    """CLI version reporting, canonical shortcuts and retired-name refusals."""
 
     def test_product_semver_precedence(self):
         ordered = (
@@ -3138,14 +3137,13 @@ class CliVersionAndShortcuts(unittest.TestCase):
             f'in the comment; an address a reader cannot reach is not one')
 
     def test_no_document_tells_a_reader_to_type_a_retired_command(self):
-        """A document that teaches a retired name teaches a warning.
+        """A document that teaches a retired name teaches a refusal.
 
-        Thirteen names have a canonical replacement — `install` → `init`,
-        `themes-gallery` → `theme gallery`, `refresh-templates` →
-        `template update` — kept as aliases for one MAJOR, each printing
-        a `[WARNING]` that `--quiet` swallows. So a reader who follows
-        such a document gets working output today and a broken command at
-        the next MAJOR, with nothing in between to warn them.
+        Retired names such as `install` → `init`, `themes-gallery` → `theme
+        gallery` and `refresh-templates` → `template update` are refused with
+        a replacement message. A reader who follows such a document gets a
+        broken command instead of being taught a spelling the tool no longer
+        accepts.
 
         The class has bitten: the sibling project taught retired names for
         months. Measured here when this was written: zero sites, and this
@@ -3608,9 +3606,9 @@ class CliVersionAndShortcuts(unittest.TestCase):
         self.assertNotIn('<slug>', first, first)
 
     def test_an_error_names_the_command_the_user_typed(self):
-        """_COMMAND_OPTIONS is keyed by the LEGACY token, so a message that
-        echoed a key recommended the command the same program tells you not
-        to use: `status --strict` answered "not an option of `series-info`"
+        """_COMMAND_OPTIONS is keyed by an internal dispatch token, so a
+        message that echoed a key recommended the command the user should not
+        type: `status --strict` answered "not an option of `series-info`"
         for eight of the thirteen commands, and `series theme` answered
         "series-theme", which is not a CLI token at all."""
         with tempfile.TemporaryDirectory() as tmp:
@@ -5213,7 +5211,8 @@ class CliVersionAndShortcuts(unittest.TestCase):
 
         Both directions, against the table the parser refuses against:
         nothing offered that the command refuses, and nothing withheld
-        that it accepts. The second half is what catches a command
+        that it accepts and exposes. Retired options that exist only to
+        produce a named refusal are deliberately withheld. The second half is what catches a command
         dropping out of the case block and falling to the default arm,
         which is a narrower lie but a lie all the same.
 
@@ -5226,7 +5225,9 @@ class CliVersionAndShortcuts(unittest.TestCase):
             words = ['lightwebpres'] + path.split() + ['--']
             offered = set(self._complete(script, words, len(words) - 1))
             self.assertTrue(offered, f'`{path} --` offers nothing at all')
-            accepted = lwp._COMMAND_OPTIONS[key] | lwp._GLOBAL_OPTIONS
+            accepted = (lwp._COMMAND_OPTIONS[key]
+                        - lwp._RETIRED_COMMAND_OPTIONS.get(key, frozenset())
+                        | lwp._GLOBAL_OPTIONS)
             self.assertFalse(
                 offered - accepted,
                 f'completion offers {sorted(offered - accepted)} for '
@@ -9112,6 +9113,17 @@ class IdentityKitFixtures(unittest.TestCase):
             self.assertEqual(report['preset']['slide_layouts']['cover'], 'hero')
             self.assertEqual(report['preset']['slide_chrome']['all']['footer'],
                              {'text': 'Kit footer'})
+
+    def test_audit_reports_each_selected_identity_kit_path_once(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, primary, other, _simple, _other_selector = self._runtime_series(tmp)
+            result = run('audit', str(root), '--templates')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Identity kit paths (audit)', result.stdout)
+            self.assertIn(f'  {self.KIT_ID}@{self.KIT_VERSION}: {primary.resolve()}',
+                          result.stdout)
+            self.assertIn(f'  other@2.0.0: {other.resolve()}', result.stdout)
+            self.assertEqual(result.stdout.count(str(primary.resolve())), 1)
 
     def test_runtime_presentation_presets_render_ordered_layers_and_index(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -14694,6 +14706,21 @@ class HelpListsEveryAcceptedOption(unittest.TestCase):
                  'build/verify: use this unified language pack'):
             self.assertIn(needle, result.stdout, needle)
         self.assertIn('## Title', result.stdout)
+        self.assertNotIn('--keep-theme', result.stdout)
+        self.assertNotIn('--use-preset-theme', result.stdout)
+
+        contextual = run('series', 'preset', 'set', '--help')
+        self.assertEqual(contextual.returncode, 0, contextual.stderr)
+        build_help = run('build', '--help')
+        self.assertEqual(build_help.returncode, 0, build_help.stderr)
+        self.assertIn('--single-html [FILE]', build_help.stdout)
+        self.assertNotIn('--keep-theme', contextual.stdout)
+        self.assertNotIn('--use-preset-theme', contextual.stdout)
+
+        completion = run('completion', '--shell', 'bash')
+        self.assertEqual(completion.returncode, 0, completion.stderr)
+        self.assertNotIn('--keep-theme', completion.stdout)
+        self.assertNotIn('--use-preset-theme', completion.stdout)
 
     def test_help_synopses_name_the_essential_opt_out(self):
         commands = run('--help').stdout.split('OPTIONS', 1)[0]

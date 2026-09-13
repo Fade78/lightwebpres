@@ -3730,7 +3730,11 @@ et ne déclenche pas le rendu, donc il reste bon marché :
    sans perdre les épingles.
 4. **Le kit résolu** : son manifeste, ses chemins, fragments, chrome,
    assets, starter et CSS structurel sont validés avant le rendu. Un défaut
-   est nommé sans que l'audit simple modifie quoi que ce soit.
+   est nommé sans que l'audit simple modifie quoi que ce soit. Le rapport
+   imprime aussi, sous `Identity kit paths (audit)`, la racine résolue de
+   chaque kit retenu par `appearance.presets`, une seule fois par identité et
+   version. L'identité native est indiquée comme embarquée dans l'exécutable;
+   les kits externes donnent leur chemin de catalogue réel.
 5. **La feuille résolue** : les trois façons dont une feuille composée
    cesse de fonctionner — un contrôle de navigation qu'on ne voit plus,
    du texte peint de la couleur de son fond, une taille absolue sous le
@@ -4751,8 +4755,13 @@ ou authenticité.
 la série**, index compris. Le premier élément est la sélection initiale et les
 suivants sont les alternatives publiées. L'identité est déduite de chaque
 référence, sans second champ. Les sélecteurs sont `builtin/standard`,
-`commons/<id>` et `<id>@MAJOR.MINOR.PATCH/<preset>`, par exemple
-`corporate@1.0.0/brief`. L'omission sélectionne implicitement
+`commons/<id>` et `<id>@<version>/<preset>`, par exemple
+`corporate@1.0.0/brief`. Pour un kit d'identité, `<version>` peut être `X`,
+`X.Y`, `X.Y.Z` ou `latest`. Une forme partielle ou `latest` résout la version
+disponible la plus récente qui correspond ; `X.Y.Z` reste épinglée. La
+référence partielle ou `latest` reste écrite telle quelle dans `series.json`;
+le sélecteur résolu peut donc suivre une nouvelle version sans modifier chaque
+série. L'omission sélectionne implicitement
 `builtin/standard`; `init --preset` et `series preset set` écrivent la référence
 en tête de cette liste. Les identifiants utilisent minuscules, chiffres et
 traits d'union ; `builtin` et `commons` sont réservés et ne peuvent nommer un kit.

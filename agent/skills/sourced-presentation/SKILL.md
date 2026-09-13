@@ -1,11 +1,11 @@
 ---
 name: sourced-presentation
-description: "Create, revise and verify editorial content pairing a public slide presentation with a rigorously sourced long-form article. Use for research, drafting, corrections and rereading: establish the argument in the article, make the cards compelling, and verify their fidelity across explanatory, knowledge-review and argumentative intentions."
+description: "Use when creating, researching, reviewing, improving or bringing a sourced presentation and its long-form article into conformity with a brief or editorial specification, including a series of pages. Covers French rédaction, relecture, mise en conformité and explicitly requested refonte. Preserve successful writing and established research by default; verify claims, explanations and short reading paths. Use for editorial content, not a styling-only or publishing-only task."
 metadata:
-  version: "0.19"
+  version: "0.20"
 ---
 
-# Sourced editorial presentation checklist
+# Sourced editorial presentation
 
 Build an editorial pair: **a public slide presentation and a referenced
 long-form article**. Together they form a page, possibly within a series.
@@ -20,10 +20,31 @@ and explanation, not inflated facts.
 | Connection | Every card's claims and implied relationships are established in the article. Cards may select and reorder, not strengthen the evidence. |
 
 Local specifications set audience, language, format, tools and permissions;
-they cannot authorize unsupported claims. Record checks only for units
-actually examined. Reuse existing research. For a new presentation, apply
-all gates and all five reading passes; for a correction, reopen affected
-gates. Use this checklist as a workflow, not a prose template.
+they cannot authorize unsupported claims. Reuse established research and
+successful writing. A factually sound passage may still need a linguistic
+or explanatory correction. Record checks only for units actually examined.
+
+## Enter the right workflow
+
+Read [Workflow](references/workflow.md) to distinguish action (audit, propose,
+correct), scope (card, page, series) and revision mode. **Improvement is the
+default for existing content; redesign requires explicit authorization.**
+“Bring into conformity” requests correction, not automatic redesign; “assess
+conformity” requests an audit. A model or skill change is not permission to
+regenerate successful work. Preserve a recoverable starting point and compare
+the repair against both its defect and the qualities it must retain.
+
+Use the supplied brief and current records; [Brief prompts](assets/brief.md)
+help only where a decision is missing. Use the tools and format contract
+available in the environment; do not assume another skill is installed.
+**Before writing or judging French content, including titles and summaries,
+read [French writing checks](references/french.md).** Do not wait to notice
+a language defect. In any language, check idiomatic expression separately
+from documentary fidelity, then verify that the wording preserves the evidence.
+
+For new content, apply all gates and the five reading passes. For revisions,
+apply affected gates within the mandate; preserve passages without a relevant
+defect. The checklist guides work, not a compulsory rewrite or prose template.
 
 ## Choose the editorial intention
 
@@ -42,10 +63,10 @@ by convenience. The intention governs both article and cards.
 ## Prepare
 
 - [ ] **1 — Scope and permission.** Read the current mandate, source packet,
-  article, cards and work state. Identify what changed and which units it
-  affects. Discussion is not permission to edit or publish. Reuse dated
-  research; reopen affected, ambiguous or time-sensitive claims. For a
-  revision, consult [change triggers](references/verification.md#change-triggers).
+  article, cards and work state. Identify affected requirements and units.
+  Follow the chosen mode; discussion is not permission to edit or publish.
+  Reuse dated research; reopen affected, ambiguous or time-sensitive claims
+  using [change triggers](references/verification.md#change-triggers).
 
 - [ ] **2 — Audience and route.** Choose the dominant intention and name the
   reader's knowledge, question and intended gain. Map entry → gain → next
@@ -59,11 +80,12 @@ by convenience. The intention governs both article and cards.
   proof. Check relevant support, counterevidence, null and inconclusive
   findings using the same criteria. See [evidence checks](references/evidence.md).
 
-- [ ] **4 — Establish the article.** Build its own argument: facts, reasoning,
-  pertinent objections and limits, including useful material beyond the
-  cards. Verify claims against sources and revisit sources for omissions.
-  Establish a card's new claim in the article first. Neither the editorial
-  thesis nor a bibliography substitutes for evidence.
+- [ ] **4 — Establish the article.** Build or preserve its own argument:
+  facts, reasoning, pertinent objections and limits, including useful material
+  beyond the cards. For new content, verify every claim; for revisions, verify
+  new or changed claims and reopen genuine doubts. Revisit relevant findings
+  for omissions. Establish a card's new claim in the article first.
+  Neither the editorial thesis nor a bibliography substitutes for evidence.
 
 ## Write
 
@@ -118,11 +140,12 @@ by convenience. The intention governs both article and cards.
   What earns that impact? Check evidential scope throughout. A solid article
   does not certify compelling cards, or compelling cards a solid article.
 
-- [ ] **13 — Verify the connection and route.** Enumerate affected claims
-  and units. Trace every card's claims and implied relationships to the
-  article and sources; check omissions, repetition and stranded contributions.
-  Revisit the page and series progression. Would reversed outcomes receive
-  the same scrutiny? A successful pilot or empty search is not exhaustive verification.
+- [ ] **13 — Verify the connection and route.** Trace affected claims and
+  implied relationships to the article and sources. Check omissions,
+  repetition, stranded contributions and the page/series progression.
+  Compare the repair to the preserved baseline: resolve its defect without
+  losing established qualities. Would reversed outcomes receive the same
+  scrutiny? A successful pilot or empty search is not exhaustive verification.
 
 - [ ] **14 — Check the actual artifact.** Use the authorized toolchain and
   current format contract. Check fields retained or ignored, notes, links,
@@ -141,9 +164,12 @@ by convenience. The intention governs both article and cards.
 
 | Trigger | Reference |
 |---|---|
+| Creation, audit, correction, conformity request or authorized redesign | [Workflow](references/workflow.md) |
+| Missing brief decisions that block the task | [Brief prompts](assets/brief.md) |
+| Writing or judging French content, before starting either | [French](references/french.md) |
 | Research, changed factual scope, study, number, quotation, allegation or guarantee | [Evidence](references/evidence.md) |
 | Editorial intention, article/card roles, impact, unclear prose or incomplete takeaway | [Explanation](references/explanation.md) |
-| Revision scope, moving units, rechecking, format or delivery | [Verification](references/verification.md) |
+| Revision scope, moving units, comparison, rechecking, format or delivery | [Verification](references/verification.md) |
 
 Read the relevant section before judging that issue. These references
 expand the gates; they do not add mandatory ceremony to unrelated tasks.

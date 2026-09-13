@@ -128,8 +128,8 @@ class ADeckIsUsableWithoutAMouse(unittest.TestCase):
         cls.tmpdir = tempfile.TemporaryDirectory()
         root = Path(cls.tmpdir.name) / 'series'
         (root / 'sources').mkdir(parents=True)
-        # `series theme set` writes templates/settings.conf and needs the
-        # directory to exist.
+        # `series theme set` reads templates/settings.conf and needs the
+        # directory to exist, although it writes the selection to series.json.
         (root / 'templates').mkdir()
         # series_meta gives the page a real footer. Without one there is
         # nothing to spill onto the extra sheet a forced break creates, so

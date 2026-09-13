@@ -64,11 +64,12 @@ answer different questions: the latter include the series' effective resources
 and settings. Use `resolve` for a property whose winning layer is unclear.
 
 Choose the smallest layer that meets the brief. `series theme set` changes
-the theme selection while preserving settings pins. `init --preset` may apply
-a kit's starter; `series preset set` selects/vendors without applying that
-starter. Inspect contextual help for the theme-preservation choice before
-changing an existing preset. Do not overwrite a shared theme or kit version
-merely because the series needs a local variation.
+`appearance.themes` while preserving settings pins. `init --preset` may apply
+a kit's starter; `series preset set` changes `appearance.presets` and
+selects/vendors without applying that starter, while preserving the theme
+selection, pins and custom CSS. There is no theme-preservation option on that
+command. Do not overwrite a shared theme or kit version merely because the
+series needs a local variation.
 
 For composition, obtain source kit roots, the final identity/version, target
 manifest, desired files and authorized output catalogue. Read
@@ -101,6 +102,9 @@ Plain `audit` exits zero even for reported render failures. Read the findings;
 Reports include unused/missing rendered images, malformed metadata or notes,
 symlinks leaving logical roots and unreadable resolved styles. If rendering
 fails, image usage can be unavailable rather than known to be unused.
+The presentation section also prints the resolved filesystem path of each
+selected identity kit once; the native identity is reported as embedded in
+the executable. Use these paths to identify which kit tree the audit checked.
 Do not infer success from plain audit's exit status.
 
 Wide Markdown-table warnings are **ESTIMATE** findings before reader scaling

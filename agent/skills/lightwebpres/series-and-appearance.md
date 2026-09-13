@@ -294,8 +294,10 @@ fragment, asset and validation contract is specifications.md §9.9.
 
 The root `appearance.presets` list persists the initial choice and published
 alternatives. Each selector is `builtin/standard`, `commons/<id>` or
-`id@MAJOR.MINOR.PATCH/preset`; identity is inferred from each reference and
-applies to the entire series and index. Omission uses
+`id@<version>/preset`, where `<version>` is `X`, `X.Y`, `X.Y.Z` or `latest`.
+A partial or `latest` selector resolves to the highest available matching kit
+version; an exact `X.Y.Z` selector remains pinned. Identity is inferred from
+each reference and applies to the entire series and index. Omission uses
 `["builtin/standard"]`. `init --preset` and `series preset set` write the
 selected reference as the first item. Neither native choice vendors resources.
 

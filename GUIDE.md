@@ -898,9 +898,11 @@ origins are computed by the loaders.
 
 The persisted appearance declaration is the root `appearance` object. Its
 `presets` list uses `builtin/standard`, `commons/<id>` or
-`id@MAJOR.MINOR.PATCH/preset`; the first item is the initial presentation and
-later items are explicit alternatives. The identity is inferred from each
-reference. Omission uses `builtin/standard`; `init --preset` and
+`id@<version>/preset`. For an Identity Kit, `<version>` may be `X`, `X.Y`,
+`X.Y.Z` or `latest`: partial and `latest` selectors resolve the highest
+available matching version, while `X.Y.Z` stays pinned. The first item is the
+initial presentation and later items are explicit alternatives. The identity
+is inferred from each reference. Omission uses `builtin/standard`; `init --preset` and
 `series preset set` write the selected reference as the first item. The
 `themes` list controls the initial theme and its alternatives. Neither native
 choice vendors resources.

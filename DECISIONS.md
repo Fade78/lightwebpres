@@ -3470,9 +3470,11 @@ native path.
 
 The identity catalogue resolves native, Commons and kit presets. A
 `PresentationPreset` points internally to `identity_kit`, not to a package.
-The persisted selectors and fields remain unchanged: `presentation_preset`,
-`presentation_presets`, `articles[]`, `page_source` and `page_dest` remain the
-canonical author vocabulary under B67.
+At this increment, the persisted selectors and fields were still described as
+`presentation_preset`, `presentation_presets`, `articles[]`, `page_source` and
+`page_dest`. B69 later replaced the persisted appearance selectors with the
+root `appearance.presets` and `appearance.themes` lists; `articles[]`,
+`page_source` and `page_dest` remain canonical author fields.
 
 Standalone `.conf` themes remain in the separate ThemeCatalog. A user or
 series-local theme can be consumed by the native identity without becoming an
