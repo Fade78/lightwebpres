@@ -19,9 +19,8 @@ LWP_IDENTITY_KITS_DIR="$PWD/examples/kits" ./lightwebpres init my-series --prese
 
 `init --preset` applies the preset's declared starter by default; add
 `--no-starter` to leave it out. For an existing series, use
-`series preset set my-series --preset lightwebpres-docs@0.1.0/docs` and choose
-`--keep-theme` or `--use-preset-theme` if `settings.conf` has an explicit
-`theme:`.
+`series preset set my-series --preset lightwebpres-docs@0.1.0/docs`. The
+series-wide choice is stored in `series.json` under `appearance.presets`.
 
 The kit's `lightwebpres.identity-kit/1` manifest gives it a fixed identity
 `label` and named presets; `default_preset`, or the first preset in manifest

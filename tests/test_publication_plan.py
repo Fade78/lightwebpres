@@ -47,7 +47,7 @@ class PublicationPlanning(unittest.TestCase):
     def kit(self):
         shutil.copytree(ROOT / 'examples/kits/lightwebpres-docs/0.1.0',
                         self.root / 'templates/kits/lightwebpres-docs/0.1.0')
-        self.data['series_meta'] = {'presentation_preset': 'lightwebpres-docs@0.1.0/docs'}
+        self.data['appearance'] = {'presets': ['lightwebpres-docs@0.1.0/docs']}
         self.save()
 
     def presets(self):
@@ -72,9 +72,9 @@ class PublicationPlanning(unittest.TestCase):
                 self.save()
                 result = self.cli('build')
                 self.assertNotIn('presentation is unavailable', result.stderr)
-                self.assertIn('builtin/standard', self.presets())
+                self.assertEqual(self.presets(), ['lightwebpres-docs@0.1.0/docs'])
         self.cli('build', '--include-drafts')
-        self.assertNotIn('builtin/standard', self.presets())
+        self.assertEqual(self.presets(), ['lightwebpres-docs@0.1.0/docs'])
 
     def test_excluded_slides_do_not_constrain_runtime_compatibility(self):
         self.kit()

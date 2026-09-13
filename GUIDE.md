@@ -149,6 +149,10 @@ For a series containing **only** your article, this is a complete alternative
 ```json
 {
   "series_meta": {"title": "My first series"},
+  "appearance": {
+    "presets": ["builtin/standard"],
+    "themes": ["nebula"]
+  },
   "articles": [{"page_source": "first-page.md"}]
 }
 ```
@@ -668,7 +672,10 @@ an automatic second unit, named queries, long-form text and an empty result.
     "scroll_duration": 200,
     "lang_tags": {"fr": "fr", "en": "en"}
   },
-  "themes": ["essential", "family:terrain"],
+  "appearance": {
+    "presets": ["builtin/standard"],
+    "themes": ["essential", "family:terrain"]
+  },
   "articles": [
     {"page_source": "apple-pie.md"}
   ]
@@ -888,18 +895,20 @@ inside a kit keeps that kit's chrome. Kits cannot depend on Commons or other
 kits, extend them, or declare provenance, parentage or authenticity. Resource
 origins are computed by the loaders.
 
-The only persisted selection is `series_meta.presentation_preset`:
-`builtin/standard`, `commons/<id>` or `id@MAJOR.MINOR.PATCH/preset`.
-The identity is inferred from this reference. The selection belongs neither
-in article metadata nor in an `articles[]` entry. Omission selects
-`builtin/standard` implicitly. `init --preset builtin/standard` and
-`series preset set --preset builtin/standard` persist that explicit reference;
-plain `init` leaves the field absent. Neither native choice vendors resources.
+The persisted appearance declaration is the root `appearance` object. Its
+`presets` list uses `builtin/standard`, `commons/<id>` or
+`id@MAJOR.MINOR.PATCH/preset`; the first item is the initial presentation and
+later items are explicit alternatives. The identity is inferred from each
+reference. Omission uses `builtin/standard`; `init --preset` and
+`series preset set` write the selected reference as the first item. The
+`themes` list controls the initial theme and its alternatives. Neither native
+choice vendors resources.
 
 ```json
 {
-  "series_meta": {
-    "presentation_preset": "corporate@1.0.0/brief"
+  "appearance": {
+    "presets": ["corporate@1.0.0/brief"],
+    "themes": ["preset", "essential"]
   }
 }
 ```
@@ -913,7 +922,7 @@ declare preset defaults in that manifest only.
 Existing kits may omit a dedicated `unit-index` layout and use standard with chrome.
 They override the selected preset's defaults for one slide, not through an
 author JSON cascade. The preset's theme supplies the typed base unless
-`settings.conf` explicitly selects another theme. Precedence is: base theme
+`appearance.themes` selects another theme. Precedence is: base theme
 < `settings.conf` pins < article `style.*` < instance styles;
 `templates/custom.css` remains the final advanced CSS layer. Assets are
 published under `public/assets/presentations/<id>/<version>/...`, or embedded
@@ -937,22 +946,22 @@ metadata; there is no article-level preset selection.
 ./lightwebpres preset list
 ./lightwebpres preset show builtin/standard
 ./lightwebpres series preset my-series
-./lightwebpres series preset set my-series --preset builtin/standard --use-preset-theme
+./lightwebpres series preset set my-series --preset builtin/standard
 ./lightwebpres init my-series --preset builtin/standard
 ```
 
-`series preset set` vendors and selects without applying a starter. It
-preserves pins and `custom.css`; with an explicit `theme:` in `settings.conf`,
-it requires `--keep-theme` or `--use-preset-theme`, which removes that line.
-`--keep-theme` requires an explicit `theme:`. Kits live under
+`series preset set` vendors and selects without applying a starter. It updates
+`appearance.presets` and preserves property pins and `custom.css`.
+`settings.conf` contains active property pins only; an old `theme:` line is
+rejected. Use `series theme set` to write `appearance.themes`. Kits live under
 `kits/<id>/<version>/` in a catalogue and
 `templates/kits/<id>/<version>/` once vendored.
 `LWP_IDENTITY_KITS_DIR` replaces the user catalogue location; an
 id/version collision shadows the entire kit. See `specifications.md`
 §9.9 for manifest, validation and security details.
 
-For a kit preset, `init --preset` validates and vendors the complete kit, writes the
-selector and generates settings from its theme. It applies the declared
+For a kit preset, `init --preset` validates and vendors the complete kit, writes
+the selector in `appearance.presets` and generates settings from its theme. It applies the declared
 starter unless `--no-starter` is passed. Neither option changes the meaning
 of the `template` commands. Choose an installed selector from `preset list`;
 `corporate@1.0.0/brief` is illustrative, not a supplied kit. Native selection
@@ -993,8 +1002,8 @@ The `id` matches the filename; `theme` is a global theme slug or `builtin:<slug>
 For example, `light` follows catalogue precedence, while `builtin:light` and
 `builtin:nord` force the shipped resources even when local themes shadow them.
 Select it with `./lightwebpres series preset set my-series --preset commons/reading`.
-If the series has an explicit theme, also choose `--keep-theme` or
-`--use-preset-theme`.
+If the series has an explicit theme, change `appearance.themes` or use
+`series theme set`; preset selection does not require a second flag.
 
 ### Grow a kit from native layouts
 
@@ -1149,19 +1158,19 @@ recipe filename becomes a runtime dependency.
 ### Keep alternate presentations available
 
 A series has one primary presentation, but a build can carry other named
-presets for the reader to choose without rebuilding. A kit or Commons primary
-also makes the compatible native `builtin/standard` available automatically, after
-the declared alternatives. Put other alternatives at the root of
-`series.json`, or pass them for one build:
+presets for the reader to choose without rebuilding. Put the complete ordered
+list in `appearance.presets`, or replace it for one build with
+`--presentation-presets`:
 
 ```json
 {
-  "series_meta": {
-    "presentation_preset": "lightwebpres-docs@0.1.0/docs"
-  },
-  "presentation_presets": [
-    "builtin/standard"
-  ]
+  "appearance": {
+    "presets": [
+      "lightwebpres-docs@0.1.0/docs",
+      "builtin/standard"
+    ],
+    "themes": ["preset", "essential"]
+  }
 }
 ```
 
@@ -1169,14 +1178,13 @@ the declared alternatives. Put other alternatives at the root of
 ./lightwebpres build my-series --presentation-presets builtin/standard
 ```
 
-The primary preset is always emitted first and remains the no-JavaScript
-fallback. The CLI list overrides the JSON list; it adds alternatives rather
-than replacing the primary. Duplicate selectors are removed, and an unknown
-selector fails before output is written. The preset must be available in the
-effective catalogue. Listing `builtin/standard` explicitly is optional for a
-kit or Commons preset. If a slide uses a kit-only `slide-layout`, `slide-header` or
-`slide-footer`, the implicit default is omitted with a warning; explicitly
-requesting `builtin/standard` keeps the normal validation error.
+The first preset is emitted first and remains the no-JavaScript fallback. The
+CLI list replaces the configured list for that invocation, and its first item
+becomes primary. Duplicate selectors are removed, and an unknown selector
+fails before output is written. The preset must be available in the effective
+catalogue. `builtin/standard` must be listed explicitly when it is wanted; a
+kit-only `slide-layout`, `slide-header` or `slide-footer` makes that explicit
+request fail validation.
 
 When a real Identity Kit is published, **C** opens the Appearance picker with
 **Identity**, **Preset** and **Theme** controls. These axes remain available
@@ -1187,7 +1195,7 @@ and hidden Commons preset choices are not restored from the browser session.
 
 An available preset choice changes the whole deck, including the index, and
 lasts across pages in the current browser session. It
-does not edit the series. If `settings.conf` names an explicit `theme:`, that
+does not edit the series. If `appearance.themes` names an explicit theme, that
 theme remains fixed; otherwise the preset's typed theme follows the selected
 presentation until the reader chooses an explicit theme. In kit-aware mode,
 **Follow preset** resets that explicit runtime choice. In theme-only mode,
@@ -1260,23 +1268,26 @@ Apply one at init time, or change your mind later:
 ./lightwebpres series theme set my-series --theme crimson
 ```
 
-A theme is a word in a data file: `series theme set` rewrites the one `theme:`
-line of `templates/settings.conf` and nothing else. No CSS is touched —
-the stylesheet is composed in memory at every build.
+A theme is a selector in `series.json`: `series theme set` writes the first
+item of `appearance.themes` and nothing else. `templates/settings.conf` holds
+property pins, not a theme selection. No CSS is touched — the stylesheet is
+composed in memory at every build.
 
-By default, the build embeds the essential runtime theme bundle for the
-reader; `--no-essential-theme` opts out, while explicit selections add to or
-shape the catalogue:
+When `appearance.themes` is omitted, the build embeds the essential runtime
+theme bundle for the reader; `--no-essential-theme` opts out. Explicit lists
+choose and order their own catalogue:
 
 ```bash
 ./lightwebpres build my-series --lang en --themes print-ink,print-grey
 ./lightwebpres build my-series --lang en --themes all
 ```
 
-Or keep the selection in the root of `series.json`:
+Or keep the selection in `appearance.themes` in `series.json`:
 
 ```json
-"themes": ["essential", "background:light", "bgh:red"]
+"appearance": {
+  "themes": ["essential", "background:light", "bgh:red"]
+}
 ```
 
 `essential` embeds Monochrome, Monochrome Night and Print Ink. A selector
@@ -1301,15 +1312,15 @@ for one output slug is refused before writes, even with `--force`; export one
 of them under a new slug with `theme create` when both are needed. No theme file
 uses `extends`.
 
-The effective theme in `templates/settings.conf` is always included as the
-first base choice, even if it is not in the list. When that file has property
-pins, the first runtime choice is named `custom(<theme>)` and the raw base
-theme is also present; those settings pins apply only to the custom choice.
-The setting is read at build time, so an author's edit remains the source of
-truth. `style.*` page properties and theme variables declared in `custom.css`
-are left alone while a reader switches. **C** opens the searchable Appearance
-picker when the build carries presentation or theme alternatives, and otherwise
-has nothing to open.
+When `appearance.themes` is absent, the default is `["preset", "essential"]`.
+When it is present, the list is exact: `preset` follows the selected preset,
+the first individual theme fixes the initial theme, and `all`, `essential` or
+facet selectors add ordered alternatives. `--themes` replaces the configured
+list for one build; `--no-essential-theme` changes only the omitted default.
+Property pins in `settings.conf`, `style.*` page properties and variables in
+`custom.css` are left alone while a reader switches. **C** opens the picker
+when the build carries presentation or theme alternatives, and otherwise has
+nothing to open.
 **M** opens the global presenter menu; the same menu is available from the
 bottom-right navigation button. The selection lasts for the other pages of
 the same deck in the current browser session. The session key includes the
@@ -1378,7 +1389,7 @@ Opt out of the automatic essential-theme bundle:
 ```
 
 The flag removes only that automatic bundle. Explicit `--themes` or
-`series.json["themes"]` choices, published preset alternatives and selected
+`series.json["appearance"]["themes"]` choices, published preset alternatives and selected
 kits' themes remain available. An Identity Kit can therefore still offer the
 Appearance picker with this flag. Without it, the essential three ship on
 every build, deduplicated against the primary theme, so a series whose
@@ -1926,7 +1937,7 @@ separate non-inline build is needed for this CI check.
 
 Most of what ends up on a page was never written on that page: a title
 falls back through `series.json`, the meta block and the cover slide, a
-colour falls through `settings.conf`, the theme and the built-in
+colour falls through the appearance theme, `settings.conf` and the built-in
 defaults. When the result surprises you, ask:
 
 ```bash

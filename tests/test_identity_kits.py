@@ -210,7 +210,7 @@ class IdentityKits(unittest.TestCase):
         series = fixtures.scaffold(self.root, fixtures.IdentityKitFixtures._article())
         data_path = series / 'series.json'
         data = json.loads(data_path.read_text(encoding='utf-8'))
-        data['series_meta'] = {'presentation_preset': preset.selector}
+        data['appearance'] = {'presets': [preset.selector]}
         data_path.write_text(json.dumps(data), encoding='utf-8')
         built = fixtures.run('build', str(series), '--no-essential-theme')
         self.assertEqual(built.returncode, 0, built.stderr)
@@ -316,10 +316,8 @@ class IdentityKits(unittest.TestCase):
         self.assertEqual(resolved['color.page'], '#123456FF')
         self.assertEqual(resolved['page.bg'], '#123456FF')
         self.assertEqual(resolved['color.ink'], expected['color.ink'])
-        (templates / 'settings.conf').write_text('theme: nord\n', encoding='utf-8')
-        layers, _ = self.lwp.series_style_context(templates, preset_theme=preset.theme_props)
-        self.assertEqual(self.lwp.resolve_theme_properties(*layers),
-                         self.lwp.resolve_theme_properties(self.lwp.theme_property_layer('nord')))
+        with self.assertRaisesRegex(self.lwp.PropertyError, 'theme.*legacy'):
+            self.lwp.parse_settings_text('theme: nord\n', catalog=catalog)
 
     def test_native_standard_keeps_registry_references_for_author_pins(self):
         templates = self.root / 'templates'
@@ -405,7 +403,7 @@ class IdentityKits(unittest.TestCase):
         series = fixtures.scaffold(self.root, fixtures.IdentityKitFixtures._article())
         data_path = series / 'series.json'
         data = json.loads(data_path.read_text(encoding='utf-8'))
-        data['series_meta'] = {'presentation_preset': 'commons/night'}
+        data['appearance'] = {'presets': ['commons/night']}
         data_path.write_text(json.dumps(data), encoding='utf-8')
         cache = series / '.lwp-cache' / 'commons.json'
         args = ('--no-essential-theme', '--nav-cache', str(cache))
@@ -415,9 +413,7 @@ class IdentityKits(unittest.TestCase):
         expected = self.lwp.resolve_theme_properties(self.lwp.theme_property_layer('dracula'))
         self.assertIn(f'--color-page: {expected["color.page"]};', html)
         report = json.loads((series / 'public' / '.lwp-manifest.json').read_text(encoding='utf-8'))
-        commons = next(p for p in report['presentation_presets'] if p['selector'] == 'commons/night')
-        self.assertTrue(commons['preset_digest'])
-        self.assertEqual(commons['identity_digest'], '')
+        self.assertNotIn('presentation_presets', report)
         value = json.loads(descriptor.read_text(encoding='utf-8'))
         value['description'] = 'A changed description without any kit changes.'
         descriptor.write_text(json.dumps(value), encoding='utf-8')
@@ -462,7 +458,7 @@ class IdentityKits(unittest.TestCase):
                                       '--preset', 'commons/night')
                 self.assertEqual(result.returncode, 0, result.stderr)
             data = json.loads((series / 'series.json').read_text(encoding='utf-8'))
-            self.assertEqual(data['series_meta']['presentation_preset'], 'commons/night')
+            self.assertEqual(data['appearance']['presets'], ['commons/night'])
             data['articles'] = [{'page_source': 'a.md'}]
             (series / 'series.json').write_text(json.dumps(data), encoding='utf-8')
             (series / 'sources' / 'a.md').write_text(
@@ -516,8 +512,8 @@ class IdentityKits(unittest.TestCase):
         initialized = fixtures.run('init', str(series), '--preset', 'builtin/standard')
         self.assertEqual(initialized.returncode, 0, initialized.stderr)
         series_path = series / 'series.json'
-        self.assertEqual(json.loads(series_path.read_text())['series_meta']['presentation_preset'],
-                         'builtin/standard')
+        self.assertEqual(json.loads(series_path.read_text())['appearance']['presets'],
+                         ['builtin/standard'])
         self.assertIn('# scaffold-for: builtin/standard',
                       (series / 'templates/settings.conf').read_text())
         self.assertFalse((series / 'templates/kits').exists())
@@ -530,8 +526,8 @@ class IdentityKits(unittest.TestCase):
         for selector in ('commons/night', 'builtin/standard'):
             selected = fixtures.run('series', 'preset', 'set', str(series), '--preset', selector)
             self.assertEqual(selected.returncode, 0, selected.stderr)
-            self.assertEqual(json.loads(series_path.read_text())['series_meta']['presentation_preset'],
-                             selector)
+            self.assertEqual(json.loads(series_path.read_text())['appearance']['presets'],
+                             [selector])
 
     def test_commons_init_and_set_dry_run_leave_dependencies_and_series_untouched(self):
         self._external_commons()
@@ -556,7 +552,7 @@ class IdentityKits(unittest.TestCase):
         self.assertEqual(fixtures.run('init', str(series)).returncode, 0)
         series_path = series / 'series.json'
         settings = series / 'templates/settings.conf'
-        settings.write_text('theme: nord\ncolor.page: #123456FF\n', encoding='utf-8')
+        settings.write_text('color.page: #123456FF\n', encoding='utf-8')
         before_series, before_settings = series_path.read_bytes(), settings.read_bytes()
         write_file = self.lwp._write_file
 
@@ -568,7 +564,7 @@ class IdentityKits(unittest.TestCase):
         with mock.patch.object(self.lwp, '_write_file', side_effect=fail_series_write):
             with self.assertRaises(SystemExit):
                 self.lwp.cmd_set_presentation_preset(series, {
-                    '--preset': 'commons/night', '--use-preset-theme': True})
+                    '--preset': 'commons/night'})
         self.assertEqual(series_path.read_bytes(), before_series)
         self.assertEqual(settings.read_bytes(), before_settings)
         self.assertFalse((series / 'templates/commons').exists())

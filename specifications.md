@@ -563,7 +563,7 @@ lightwebpres theme migrate [répertoire]
 lightwebpres theme vendor [répertoire] [--themes sélecteurs] [--force]
 lightwebpres theme path
 lightwebpres series preset [répertoire] [--format text|json]
-lightwebpres series preset set [répertoire] --preset <builtin/standard|commons/id|id@version/preset> [--keep-theme|--use-preset-theme]
+lightwebpres series preset set [répertoire] --preset <builtin/standard|commons/id|id@version/preset>
 lightwebpres status [répertoire] [--format text|json]
 lightwebpres series status [répertoire] [--format text|json]
 lightwebpres series tags [répertoire] [--tag nom] [--format text|json]
@@ -588,22 +588,20 @@ lightwebpres --help
   commentée de `settings.conf` aux valeurs du thème de base résolu, en
   conservant les lignes épinglées (§9.4.3)
 - `--language-file` : fichier de langue unifié explicite, priorité max sur les sources split et legacy (§19.5)
-- `--force` : `init`, `theme create` et `theme vendor` — procède même si le répertoire cible n'est pas vide, remplace un snapshot existant demandé, ou remplace une copie vendue (`series theme set` n'a plus de `--force` : il ne réécrit que la ligne `theme:` de `settings.conf`, il n'y a plus rien à forcer — §11.10)
+- `--force` : `init`, `theme create` et `theme vendor` — procède même si le répertoire cible n'est pas vide, remplace un snapshot existant demandé, ou remplace une copie vendue (`series theme set` n'a plus de `--force` : il réécrit la déclaration d'apparence de `series.json` — §11.10)
 - `--theme` : `init`/`series theme set`/`theme vendor` — applique ou vend une palette du catalogue effectif (§9.5)
 - `--preset` : `init`/`series preset set` — sélectionne un preset de
   présentation du catalogue effectif (§9.9)
 - `--no-starter` : `init --preset` seulement — n'applique pas le starter
   optionnel déclaré par ce preset (§9.9.4)
-- `--keep-theme` / `--use-preset-theme` : `series preset set` seulement —
-  choisit explicitement le sort d'un `theme:` actif (§11.18)
 - `--polarity` / `--hue` / `--family` : `theme list` seulement — restreint la liste par facette (§9.5.2, §11.9)
 - `--gitlab-ci` : `init` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
 - `--no-typography` : `build`/`verify`/`watch` — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
 - `--scroll-duration` : `build`/`verify`/`watch` — durée entière non négative en millisecondes du glissé entre fiches ; `0` le désactive. Sans cette option, `series_meta.scroll_duration` s'applique, puis le défaut de `200` ms (§8.4, §20.5)
 - `--include-drafts`: `build`/`verify`/`watch` also include articles marked `status: draft` (§20.6), with a draft banner. Articles marked `status: ignored` are never built.
-- `--themes` : `build`/`verify`/`watch`/`theme vendor` — embarque ou vend des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules ; les slugs viennent du catalogue effectif et le thème de base effectif (celui de `settings.conf`, ou celui du preset) reste toujours le premier pour un build, précédé de `custom(<thème>)` si le fichier porte des pins (§9.3.7)
-- `--presentation-presets` : `build`/`verify`/`watch` — publie des alternatives de présentation séparées par des virgules dans le sélecteur runtime ; le preset primaire de la série reste toujours le premier, et l'option CLI prime la liste racine `series.json["presentation_presets"]` (§9.3.8)
-- `--no-essential-theme` : `build`/`verify`/`watch` seulement — ne pas embarquer le lot `essential` par défaut (§9.3.7); une sélection explicite `--themes` reste appliquée
+- `--themes` : `build`/`verify`/`watch`/`theme vendor` — embarque ou vend des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules ; l'option remplace `appearance.themes` pour cette invocation (§9.3.7)
+- `--presentation-presets` : `build`/`verify`/`watch` — remplace `appearance.presets` pour cette invocation par des sélecteurs séparés par des virgules ; le premier sélecteur devient le primaire (§9.3.8)
+- `--no-essential-theme` : `build`/`verify`/`watch` seulement — ne pas ajouter le lot `essential` lorsque `appearance.themes` est absent (§9.3.7); une liste explicite reste exacte
 - `--only`: `build` rebuilds one article (§11.3.1); with `--single-html`, it validates the target then rebuilds the complete combined file (§11.3.8).
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
@@ -685,11 +683,11 @@ porte les réglages de série (détail complet en §20) :
   `nav_desc` (carte de navigation affichée dans la page d'un *autre*
    article), `author`/`license`/`date` (champs éditoriaux affichés,
    §20.3.1), `status` (§20.6).
-- **De présentation — réglage de série, hors des entrées d'article** :
-  `series_meta.presentation_preset` choisit un preset par
-  `builtin/standard`, `commons/id` ou `id@MAJOR.MINOR.PATCH/preset`.
-  Cette référence unique détermine l'identité et les défauts de toute la série ;
-  son absence désigne `builtin/standard` (§9.9).
+- **D'apparence et de publication — réglage de série, hors des entrées d'article** :
+  le bloc racine `appearance` porte les listes `presets` et `themes`.
+  Le premier preset détermine l'identité et la présentation initiale de toute
+  la série ; son absence désigne `builtin/standard`. Le premier thème
+  individuel détermine la politique chromatique initiale (§9.9, §20.4).
 
 Le contenu d'une fiche `cover` (kicker, titre, summary) vient exclusivement des
 champs de la fiche elle-même dans le `.md` (§3.3.1) — `series.json` ne porte
@@ -1141,9 +1139,10 @@ temps de cuisson varie... ») : c'est le cas normal d'usage, et les deux
 doivent être rendus comme deux `<p>` distincts à l'intérieur du même
 `<div class="fact-content">` (§6.1).
 
-Le bloc `lwp:meta` ne peut pas modifier la présentation de cette page :
-`presentation_preset` n'est accepté que dans `series_meta`. Les défauts de
-layout et de chrome appartiennent au manifeste du kit, non au bloc meta ;
+Le bloc `lwp:meta` ne peut pas modifier l'apparence de cette page : les
+sélecteurs de preset et de thème y sont rejetés et se déclarent dans le bloc
+racine `appearance`. Les défauts de layout et de chrome appartiennent au
+manifeste du kit, non au bloc meta ;
 les champs Markdown `slide-layout`, `slide-header` et `slide-footer`
 restent les seuls overrides par fiche (§4.3, §9.9.3).
 
@@ -1869,7 +1868,7 @@ thème serait physiquement incapable de l'honorer.
 | | ce qui est décidé | cascade |
 |---|---|---|
 | **structure** | `notes_placement`, `notes_tooltip` | défaut → `series_meta` → bloc meta de l'article |
-| **apparence** | corps du texte, filet, couleur, numéro | le registre de propriétés (§9) : défauts → thème du preset (ou `theme:` explicite) → `settings.conf` → `style.*` → balise d'instance |
+| **apparence** | corps du texte, filet, couleur, numéro | le registre de propriétés (§9) : défauts → thème de l'apparence initiale → `settings.conf` → `style.*` → balise d'instance |
 
 La cascade de structure reprend la forme qu'`author` / `license` / `date`
 ont déjà : déclarée pour la série dans `series_meta`, redéfinie par
@@ -2913,14 +2912,14 @@ historique `monospace, monospace` devient inutile.
 ### 9.3 La cascade à cinq couches et les trois fichiers
 
 ```
-  défauts du registre  →  thème de base du preset*  →  settings.conf  →  style.* de page  →  styles d'instance
+  défauts du registre  →  thème de base de l'apparence*  →  settings.conf  →  style.* de page  →  styles d'instance
           └──────────────── fusion, renvois et typage par page ────────────────┘                  (§9.6)
                                              ↓
                                   CSS composé en mémoire
                                              ↓
                                 custom.css (dernier)
 
-  * une ligne theme: active dans settings.conf remplace ce thème de base.
+  * appearance.themes peut fixer un thème ou suivre le preset primaire.
 ```
 
 **La chaîne n'est pas homogène, et la couture doit être vue.** Les quatre
@@ -2932,12 +2931,12 @@ différent pour cette page. Les styles d'instance ne peuvent pas fonctionner
 ainsi : ils visent une occurrence, pas une page ; ils passent donc par la
 cascade CSS. La couture est là, entre « par page » et « par instance ».
 
-Le thème de base vient du preset sélectionné, sauf lorsqu'une ligne `theme:`
-active de `templates/settings.conf` le remplace. Sans sélection persistée, le
-preset natif `builtin/standard` fournit le thème minimal Light. Les pins de
-`settings.conf` passent ensuite devant cette base, puis les propriétés
-`style.*` de la page ; elles ne sont jamais remplacées par un changement de
-preset.
+Le thème de base vient de la politique `appearance.themes` : un thème
+individuel le fixe, tandis que `preset` suit le thème du preset primaire. Sans
+déclaration, le preset natif `builtin/standard` fournit le thème minimal Light.
+Les pins de `settings.conf` passent ensuite devant cette base, puis les
+propriétés `style.*` de la page ; elles ne sont jamais remplacées par un
+changement de preset.
 
 **La feuille composée** conserve le squelette statique (`TEMPLATE_SKELETON`) :
 la mise en page que les propriétés typées ne pilotent pas. Pour un kit qui
@@ -2956,40 +2955,40 @@ page où elle est inlinée.
 | Fichier | Propriétaire | Écrit par le système |
 |---|---|---|
 | feuille émise | le système | régénérée à chaque build, jamais sur disque |
-| `templates/settings.conf` | l'auteur | **jamais**, sauf demande explicite (`series theme set` réécrit la seule ligne `theme:`, §9.4.2) |
+| `templates/settings.conf` | l'auteur | **jamais** (les pins restent dans ce fichier ; `series theme set` écrit `series.json`, §9.4.2) |
 | `templates/custom.css` | l'auteur | **jamais** (créé vide à l'init) |
 | `nav.js`, `interface/*.json`, `typography/*.json`, `language/*.json` | l'outil | **absents par défaut** — l'outil les garde en interne. `template write` en pose une copie sur demande, `template update` retire une copie identique à l'intégrée (§9.4.5) |
 
 **C'est ce partage qui supprime l'appareillage.** Le marqueur de
-personnalisation, sa variante héritée, la recherche de sa première
-occurrence, la vérification d'identité octet pour octet, le `--force` de
-`series theme set`, le `[SKIP]` sans marqueur : une dizaine de mécanismes dont
-l'unique raison d'être était que le système écrivait dans le fichier que
-l'auteur édite. La bonne façon de ne pas détruire le travail de
-quelqu'un n'est pas de le détecter, c'est de ne pas écrire là où il est.
+personnalisation, sa variante héritée, la recherche de sa première occurrence,
+la vérification d'identité octet pour octet, le `[SKIP]` sans marqueur : une
+dizaine de mécanismes dont l'unique raison d'être était que le système écrivait
+dans le fichier que l'auteur édite. La bonne façon de ne pas détruire le
+travail de quelqu'un n'est pas de le détecter, c'est de ne pas écrire là où il
+est.
 
 #### 9.3.1 `templates/settings.conf` : les valeurs, et le scaffold
 
 Le format est celui du bloc meta d'un article : des lignes `clé: valeur`, des
-commentaires `#`, rien d'autre. Deux clés spéciales : `theme: <slug>` choisit
-explicitement le thème de la série et masque alors le thème de base du preset ;
-absente, le preset fournit ce thème de base. `# scaffold-for: <sélecteur>` —
-un commentaire — enregistre le thème explicite ou le sélecteur de preset sous
-lequel le fichier a été généré, ce qui permet à `audit` de signaler un scaffold
-désaccordé (§9.4.4).
+commentaires `#`, rien d'autre. Le fichier ne contient que des propriétés
+typées épinglées par l'auteur. `# scaffold-for: <sélecteur>` — un commentaire —
+enregistre le thème ou le preset de l'apparence initiale sous lequel le fichier
+a été généré, ce qui permet à `audit` de signaler un scaffold désaccordé
+(§9.4.4). Une sélection de thème se déclare dans `appearance.themes`.
 
 **Les erreurs sont nommées.** Une ligne qui n'est pas `clé: valeur` est
 une erreur qui donne le fichier et la ligne, et rappelle que les règles
 CSS vont dans `custom.css` — un fichier qui ressemble à des propriétés
 et avalerait du CSS en silence serait l'ancienne surface de retour. Une
 clé inconnue, une valeur mal typée, un renvoi cassé sont des erreurs de
-`build` qui nomment la clé (§9.2). Un `theme:` inconnu nomme la ligne et
-renvoie vers `lightwebpres theme list`.
+`build` qui nomment la clé (§9.2). Une ligne active `theme:` est une ancienne
+sélection et produit une erreur qui renvoie vers `series.json` et
+`appearance.themes`.
 
 Une propriété connue suivie d'une valeur vide (`page.bg:`) est absente de
 la couche : elle annule un éventuel pin antérieur et laisse la valeur du
 thème s'appliquer. Une clé inconnue, même vide, reste une erreur nommée ;
-`theme:` doit toujours nommer un thème connu.
+`theme:` n'est plus une propriété acceptée dans ce fichier.
 
 **Le scaffold.** Le fichier est généré **une fois** (à l'init, §9.4.1) avec
 **toutes** les propriétés présentes, en commentaire, à la valeur du thème de
@@ -3255,35 +3254,21 @@ contrairement à `settings.conf`/`custom.css`/`nav.js`.
 
 #### 9.3.7 Thèmes compilés à la demande
 
-Par défaut, `build`, `verify` et `watch` embarquent dans chaque page le lot
-`essential` — `monochrome`, `monochrome-night` et `print-ink` — comme
-alternatives runtime. `--no-essential-theme` désactive cet embarquement par
-défaut. Une sélection explicite `--themes <selectors|all>` ou la clé racine
-facultative `themes` de `series.json` est ensuite appliquée : une option CLI
-prime sur la liste JSON; sans `--no-essential-theme`, la sélection explicite
-s'ajoute au lot `essential`; avec cette option, elle constitue le catalogue
-demandé. Sans sélection explicite et avec `--no-essential-theme`, les thèmes
-des kits sélectionnés restent publiés ; sans kit, aucun payload de thèmes
-n'est émis. Le payload est inline, sans
-dépendance réseau : il émet l'ordre des variables une fois et, pour chaque
-thème demandé, les seules valeurs qui diffèrent de la variante primaire, ainsi
-qu'un aperçu résolu pour le sélecteur. La partie supérieure reprend la cover du
-thème : fond de page sous le dégradé de couverture (angle et deux arrêts),
-encre de couverture et police du titre. La partie inférieure reprend la fiche
-standard pour ses labels : fond de page, encre et police du kicker.
+Lorsque `appearance.themes` est absent, `build`, `verify` et `watch` utilisent
+le défaut `['preset', 'essential']`. `preset` suit le thème du preset primaire;
+`essential` ajoute `monochrome`, `monochrome-night` et `print-ink`. Une liste
+explicite `appearance.themes` est exacte : elle choisit et ordonne les tokens
+publiés, sans ajout implicite. `--themes <selectors|all>` remplace cette liste
+pour une invocation. `--no-essential-theme` change seulement le défaut absent
+en `['preset']`; il ne retire pas un `essential` explicitement demandé.
 
-Le thème de base primaire est le `theme:` explicite de
-`templates/settings.conf` lorsqu'il est actif ; sinon, c'est le thème typé du
-preset sélectionné. Le thème natif `builtin:light` porte le label fixe Light.
-Lorsqu'au
-moins une propriété est épinglée, le payload expose d'abord une variante
-dynamique `custom(<thème>)`, composée du thème de base et de ces propriétés ;
-le thème de base brut reste ensuite présent sous son propre identifiant. La
-lecture se fait au build : une modification utilisateur de `settings.conf` est
-donc la source de vérité et ne doit pas être remplacée par l'option `--themes`.
-`all` ajoute tous les thèmes du catalogue effectif. Une sélection est une liste
-séparée par des virgules sur la CLI, ou une liste JSON de chaînes sous `themes`.
-Chaque élément peut être un slug, `all`, `essential`, ou un sélecteur `X:Y` :
+Le premier token individuel de `appearance.themes` (`preset` exclu) fixe le
+thème initial. Si aucun token individuel n'est présent, le thème suit le preset
+primaire. Les sélecteurs collectifs (`all`, `essential` et `X:Y`) n'utilisent
+pas la priorité du thème initial. Une sélection est une liste séparée par des
+virgules sur la CLI, ou une liste JSON de chaînes sous `appearance.themes`.
+Chaque élément peut être un slug, `preset`, `all`, `essential`, ou un sélecteur
+`X:Y` :
 
 | Forme | Facette | Valeur exemple |
 |---|---|---|
@@ -3295,41 +3280,41 @@ Chaque élément peut être un slug, `all`, `essential`, ou un sélecteur `X:Y` 
 `print-ink`. Si un de ces slugs est ombré par un thème local, sa variante
 intégrée reste accessible dans le payload sous la forme `builtin:<slug>`.
 Chaque sélecteur ajoute ses correspondances dans l'ordre du catalogue; les
-doublons sont supprimés et le primaire reste en tête. Un nom de
-facette, une valeur, un slug inconnu, une liste vide ou une configuration JSON
-mal typée est une erreur nommée. La forme longue `background hue:red` doit être
-citée dans un shell.
+doublons sont supprimés. Un nom de facette, une valeur, un slug inconnu, une
+liste vide ou une configuration JSON mal typée est une erreur nommée. La forme
+longue `background hue:red` doit être citée dans un shell.
 
-Par défaut, tout build embarque le lot `essential` — `monochrome`,
-`monochrome-night` et `print-ink` — en plus de toute sélection explicite, afin
-que la touche C soit fonctionnelle sur toute page : un lecteur dispose toujours
-d'un thème à contraste élevé, d'un thème sur fond sombre et d'un thème prêt pour
-le papier. `--no-essential-theme` supprime cet embarquement par défaut; la page
-peut encore porter les thèmes de kits sélectionnés ou les alternatives de
-presets, ainsi que les thèmes explicitement demandés par `--themes` ou la clé
-racine `themes` de `series.json`.
+Le thème initial concret est le preset lorsqu'il est suivi, ou le premier
+thème individuel lorsqu'il est fixé. Les pins de propriétés de
+`templates/settings.conf` composent une variante `custom(<thème>)` au-dessus
+de ce thème, tandis que `style.*` et `custom.css` restent des couches d'auteur.
+`settings.conf` ne sélectionne plus de thème : une ligne active `theme:` est
+rejetée; `series theme set` écrit `appearance.themes`.
+
+Le payload est inline, sans dépendance réseau : il émet l'ordre des variables
+une fois et, pour chaque thème demandé, les seules valeurs qui diffèrent de la
+variante primaire, ainsi qu'un aperçu résolu pour le sélecteur. La partie
+supérieure reprend la cover du thème; la partie inférieure reprend la fiche
+standard pour ses labels.
 
 ### 9.3.8 Présentations compilées à la demande
 
-La présentation primaire est celle de `series_meta.presentation_preset`, ou le
-preset natif `builtin/standard` si ce champ est absent. `build`, `verify` et `watch`
-peuvent toutefois publier plusieurs présentations dans la même page. La liste
-vient de `--presentation-presets <selectors>`, ou de la clé racine
-`series.json["presentation_presets"]` lorsqu'il n'y a pas d'option CLI. La CLI
-prime la liste JSON. La valeur CLI est une liste séparée par des virgules ; la
-valeur JSON est une liste non vide de chaînes non vides (chaque chaîne peut aussi
-contenir des sélecteurs séparés par des virgules).
+La présentation primaire est le premier élément de `appearance.presets`, ou le
+preset natif `builtin/standard` si le bloc `appearance` est absent. `build`,
+`verify` et `watch` peuvent publier plusieurs présentations dans la même page.
+La liste CLI `--presentation-presets <selectors>` remplace la liste configurée
+pour cette invocation ; sa première valeur devient le primaire. La valeur
+JSON est une liste non vide de chaînes non vides, et chaque chaîne peut aussi
+contenir des sélecteurs séparés par des virgules.
 
-The primary is always inserted first, even when not repeated in the list.
-Duplicates retain their first occurrence. `builtin/standard` can be an
-alternative; unknown, empty or wrongly typed selectors fail before writing.
-If only the primary remains, its preset metadata is still published, without
-duplicate content fragments. Identity/Preset picker axes depend on whether a
-real Identity Kit is published, not on the number of presets. For a primary
-other than `builtin/standard` (kit or Commons), the build implicitly appends
-`builtin/standard` after explicit alternatives if slide overrides are
-compatible. Otherwise it omits that candidate with a warning; an explicit
-incompatible request remains an error.
+Les doublons conservent leur première occurrence. Aucun preset n'est ajouté
+implicitement : `builtin/standard` doit être déclaré lorsqu'il est voulu.
+Les sélecteurs inconnus, vides ou mal typés échouent avant l'écriture. Si seul
+le primaire reste, ses métadonnées de preset sont publiées sans fragments de
+contenu dupliqués. Les axes Identity/Preset du picker dépendent de la
+publication d'un véritable kit d'identité, pas du nombre de presets. Une
+demande explicite d'un preset incompatible avec les overrides de fiche reste
+une erreur.
 
 Pour chaque preset retenu, le build rend toutes les fiches et l'index. Le HTML
 statique, la feuille primaire et le repli sans JavaScript restent ceux du preset
@@ -3371,14 +3356,13 @@ the key includes deck identity, catalogue identity and selector order.
 Selecting the primary removes the stored preset choice. No reader choice
 modifies `series.json`, sources or templates.
 
-Preset and Theme remain independent. An explicit `theme:` in `settings.conf`
-stays fixed when the presentation changes. Without it, the preset's typed
-theme follows the presentation until the reader selects an explicit theme.
-In kit-aware mode, **Follow preset** clears that runtime override. In
-theme-only mode, Follow preset is absent: the actual theme is selected, and
-selecting the primary theme clears the runtime override and restores the
-author's base appearance. Theme choices retain the separate session contract
-below, not the reading-preference storage introduced in §9.3.9.
+Preset and Theme remain independent. When the theme policy follows the preset,
+the preset's typed theme changes with the presentation until the reader selects
+an explicit runtime theme. In kit-aware mode, **Follow preset** clears that
+runtime override. In theme-only mode, Follow preset is absent: selecting the
+primary theme clears the runtime override and restores the author's base
+appearance. Theme choices retain the separate session contract below, not the
+reading-preference storage introduced in §9.3.9.
 
 La feuille CSS statique reste celle de la variante primaire : le thème de base
 seul, ou `custom(<thème>)` lorsque `settings.conf` porte des propriétés
@@ -3593,14 +3577,14 @@ propriété invalide.
 #### 9.4.1 `init --preset`
 
 `init --preset` valide et, pour un preset de kit, vendorise le kit sous
-`templates/kits/`, écrit son sélecteur dans `series_meta`, puis écrit la
-surface de personnalisation. `settings.conf` est un scaffold complet des
-propriétés du thème typé du preset, avec `# scaffold-for:` réglé sur le
-sélecteur ; aucune ligne `theme:` n'est active sans `--theme`. Cette option
-reste disponible : son thème explicite masque la base du preset et devient le
-repère du scaffold. `custom.css` est vide (§9.3.2). `--preset builtin/standard`
-persiste cette référence et produit le scaffold du thème natif Light ; `init`
-sans `--preset` laisse le champ absent et sélectionne ce même preset implicitement.
+`templates/kits/`, écrit son sélecteur en tête de `appearance.presets`, puis
+écrit la surface de personnalisation. `settings.conf` est un scaffold complet
+des propriétés du thème de l'apparence initiale, avec `# scaffold-for:` réglé
+sur le sélecteur ; il ne contient aucune sélection de thème. `--theme` écrit
+`appearance.themes` et choisit la base du scaffold. `custom.css` est vide
+(§9.3.2). `--preset builtin/standard` écrit cette référence dans
+`appearance.presets` et produit le scaffold du thème natif Light ; `init` sans
+`--preset` laisse l'apparence absente et utilise le même preset implicitement.
 Un preset Commons vendorise son descripteur et son thème externe sélectionné,
 s'il en possède un ; un thème natif ou intégré ne demande aucune copie.
 
@@ -3613,30 +3597,26 @@ fatale qui liste les choix valides.
 
 #### 9.4.2 `series theme set`
 
-`series theme set [répertoire] --theme <slug>` réécrit **la seule ligne du
-fichier qui soit à l'outil** : la ligne `theme:` de `settings.conf` (ou
-le placeholder commenté `# theme:` du scaffold, ou en tête de fichier si
-ni l'un ni l'autre n'existe). Tout ce que l'ancienne implémentation
-gardait — fichiers à moitié recolorés, marqueurs mentant sur le thème,
-`--force` — existait parce que l'outil écrivait dans le fichier que
-l'auteur édite ; il n'y a plus rien à garder, et **`--force` n'existe
-plus**. Comportements, tous vérifiés :
+`series theme set [répertoire] --theme <slug>` écrit
+`series.json.appearance.themes` avec le slug demandé. Il ne modifie ni
+`settings.conf`, ni `custom.css`, ni les fichiers de kit. Les anciennes séries
+qui portent une ligne active `theme:` dans `settings.conf` doivent passer par
+`theme migrate` avant un build normal. **`--force` n'existe plus**.
 
-Un thème ainsi déclaré masque le thème de base du preset sélectionné, sans
-modifier le preset, ses layouts, son chrome ou ses assets. Retirer cette ligne
-par `series preset set --use-preset-theme` révèle de nouveau cette base.
+Un thème ainsi déclaré fixe la base typée de l'apparence initiale, sans
+modifier le preset, ses layouts, son chrome ou ses assets. Pour suivre de
+nouveau le preset, l'auteur écrit `appearance.themes: ["preset"]`.
 
 - répertoire jamais installé (pas de `templates/`) : erreur propre
   renvoyant vers `init` — `series theme set` configure une série, il n'en
   crée pas ;
-- `templates/` présent mais pas de `settings.conf` (série d'avant la
-  refonte) : un scaffold neuf est écrit pour le thème demandé — écrire
-  un fichier qui n'existe pas ne trahit aucune promesse de propriété ;
+- `templates/` présent mais pas de `settings.conf` : la déclaration de série
+  est mise à jour sans créer de fichier de propriétés ; `settings.conf` reste
+  une surface appartenant à l'auteur ;
 - thème déjà en place : `Theme unchanged`, rien n'est écrit ;
 - sinon : `Theme changed: <ancien|default> -> <nouveau>`, et le message
-  rappelle que les valeurs décommentées restent en place et s'appliquent
-  par-dessus le nouveau thème, et que les commentaires du scaffold
-  montrent encore l'ancien (ce que `audit` signale, §9.4.4).
+  rappelle que les propriétés épinglées de `settings.conf` restent en place
+  et s'appliquent par-dessus le nouveau thème.
 
 Les valeurs épinglées survivent **volontairement** : elles sont la
 sémantique voulue par l'auteur. Le risque résiduel — des valeurs
@@ -4762,13 +4742,14 @@ ou authenticité.
 
 #### 9.9.1 Sélection, portée et catalogue
 
-Seul `series_meta.presentation_preset` persiste la sélection initiale, **unique
-pour toute la série**, index compris. L'identité est déduite de cette référence,
-sans second champ. Les sélecteurs sont `builtin/standard`, `commons/<id>` et
-`<id>@MAJOR.MINOR.PATCH/<preset>`, par exemple `corporate@1.0.0/brief`.
-L'omission du champ sélectionne implicitement `builtin/standard` ; `init --preset`
-et `series preset set` persistent toute sélection explicite, y compris
-`builtin/standard`. Les identifiants utilisent minuscules, chiffres et
+`appearance.presets` persiste la liste des présentations, **unique pour toute
+la série**, index compris. Le premier élément est la sélection initiale et les
+suivants sont les alternatives publiées. L'identité est déduite de chaque
+référence, sans second champ. Les sélecteurs sont `builtin/standard`,
+`commons/<id>` et `<id>@MAJOR.MINOR.PATCH/<preset>`, par exemple
+`corporate@1.0.0/brief`. L'omission sélectionne implicitement
+`builtin/standard`; `init --preset` et `series preset set` écrivent la référence
+en tête de cette liste. Les identifiants utilisent minuscules, chiffres et
 traits d'union ; `builtin` et `commons` sont réservés et ne peuvent nommer un kit.
 
 `presentation_preset` dans une entrée `articles[]` ou un bloc `lwp:meta` est
@@ -4899,10 +4880,10 @@ asset du mauvais `kind`, est fatal avant l'écriture des pages.
 
 #### 9.9.4 Thème, CSS structurel, assets et starters
 
-Le thème du preset devient la base typée **seulement** si
-`templates/settings.conf` ne choisit pas explicitement `theme:`. La précédence
-reste donc : défauts du registre, thème de base du preset, pins de
-`settings.conf`, `style.*` de la page, puis styles d'instance. Le CSS
+Le thème du preset devient la base typée lorsque la politique
+`appearance.themes` suit le preset. Un premier thème individuel peut fixer une
+autre base. La précédence reste donc : défauts du registre, thème de base de
+l'apparence, pins de `settings.conf`, `style.*` de la page, puis styles d'instance. Le CSS
 `structure_css` du kit est composé après le squelette et avant la sortie
 typée ; `templates/custom.css` reste le dernier mot de l'auteur.
 
@@ -5104,22 +5085,22 @@ Crée la structure de travail dans `[répertoire]` :
    kit doit y être vendorisé ; `templates/commons/presets/` et `templates/themes/`
    accueillent les ressources Commons nécessaires
 3. Écrit la surface de personnalisation (§9.3, §9.4.1) :
-   - `templates/settings.conf` — le scaffold complet : toutes les
-     propriétés en commentaire à la valeur du thème explicitement choisi, ou
-     sinon à celle du thème typé du preset ; une ligne `theme: <nom>` n'est
-     active que si `--theme <nom>` est fourni. Les pins restent donc libres de
-     primer le preset ; `<nom>` inconnu est une erreur fatale, qui liste les
-     noms valides
+    - `templates/settings.conf` — le scaffold complet : toutes les
+      propriétés en commentaire à la valeur du thème de l'apparence initiale.
+      Le fichier ne contient aucune sélection de thème ; `--theme <nom>` écrit
+      `appearance.themes` et choisit la base du scaffold. Les pins restent donc
+      libres de primer cette base ; `<nom>` inconnu est une erreur fatale, qui
+      liste les noms valides
    - `templates/custom.css` — vide, zéro octet (§9.3.2)
    (pas de `templates/style.css` : la feuille est composée au build, §9.3 ;
    pas de `templates/nav.js` ni de pack de langue : ils appartiennent à
    l'outil et y restent, §9.4.5)
 4. Crée un `series.json` de départ : `series_meta` pré-rempli de
-   valeurs génériques (`title`/`subtitle`/`version`/`intro`, plus
-   `author`/`license` vides — présents pour faire connaître les champs,
-   rien n'est rendu tant qu'ils sont vides) et un tableau `articles` vide ; un
-   `--preset` y écrit `presentation_preset`, y compris pour `builtin/standard` ;
-   sans cette option, le champ reste absent
+    valeurs génériques (`title`/`subtitle`/`version`/`intro`, plus
+    `author`/`license` vides — présents pour faire connaître les champs,
+    rien n'est rendu tant qu'ils sont vides) et un tableau `articles` vide ; un
+    `--preset` y écrit la référence en tête de `appearance.presets`, y compris
+    pour `builtin/standard` ; sans cette option, le bloc reste absent
 5. Crée un `.gitlab-ci.yml` de base, **mais seulement si `--gitlab-ci` est
    passé** — `init` seul ne présuppose jamais un déploiement GitLab
    (§10) ; par défaut, aucun fichier de CI n'est créé. La commande de
@@ -5136,7 +5117,7 @@ Crée la structure de travail dans `[répertoire]` :
 
 Avec `--preset`, `init` valide d'abord le sélecteur et ses ressources. Pour un
 preset de kit, il vendorise le kit entier sous `templates/kits/`, écrit
-sa sélection dans `series_meta`, produit le scaffold depuis son thème typé,
+sa sélection dans `appearance.presets`, produit le scaffold depuis son thème typé,
 puis applique son starter déclaré sauf avec `--no-starter`. Le sélecteur
 `builtin/standard` ne vendorise rien, persiste le choix explicite et utilise le thème Light.
 Un preset Commons vendorise son descripteur et son thème externe sélectionné,
@@ -5255,23 +5236,21 @@ du défaut intégré de `200` ms. La valeur est injectée dans chaque page, y
 compris `index.html`, afin que le menu présentateur puisse alterner entre elle
 et `0`.
 
-`--themes selectors|all` est optionnel. Quand il est fourni, le build ajoute à
-chaque page le payload décrit en §9.3.7. Sans l'option, la liste racine
-`series.json.themes` est utilisée si elle existe. Sur la CLI, les sélecteurs
-sont séparés par des virgules; dans JSON, `themes` est une liste de chaînes.
-Le thème de base effectif — `theme:` explicite ou thème du preset — est ajouté
-en première position dans tous les cas ; si `settings.conf` porte des
-propriétés, sa variante `custom(<thème>)` le précède et le snapshot brut est
-conservé. La sélection n'écrit pas dans les sources. Sans option ni clé
-JSON, le build embarque néanmoins le lot `essential` par défaut (§9.3.7);
-`--no-essential-theme` le désactive.
+`--themes selectors|all` est optionnel. Quand il est fourni, le build remplace
+`appearance.themes` pour cette invocation et ajoute à chaque page le payload
+décrit en §9.3.7. Sur la CLI, les sélecteurs sont séparés par des virgules ;
+dans JSON, `appearance.themes` est une liste de chaînes. Le premier thème
+individuel fixe la base, ou `preset` suit le preset primaire. Les pins de
+`settings.conf` composent ensuite la variante `custom(<thème>)`. La sélection
+n'écrit pas dans les sources. Sans option ni déclaration de thème, le build
+utilise `preset` puis `essential` par défaut (§9.3.7) ;
+`--no-essential-theme` réduit ce défaut à `preset`.
 
-`--presentation-presets selectors` suit la même priorité entre CLI et
-`series.json.presentation_presets`, mais ne choisit jamais le primaire : il
-ajoute les alternatives au preset résolu par `series_meta.presentation_preset`.
-La sortie primaire reste l'HTML statique ; la présence d'au moins une
-alternative entraîne la génération des fragments et de l'index de chaque preset,
-ainsi que du payload décrit en §9.3.8.
+`--presentation-presets selectors` remplace `appearance.presets` pour cette
+invocation et son premier sélecteur devient le primaire. La sortie primaire
+reste l'HTML statique ; la présence d'au moins une alternative entraîne la
+génération des fragments et de l'index de chaque preset, ainsi que du payload
+décrit en §9.3.8.
 
 ### 11.3.1 `build --only` : reconstruction d'un seul article
 
@@ -5718,14 +5697,15 @@ HTML instead of per-article pages and a separate index (§11.3.8). `--no-index`
 and `--no-readme` reproduce the build's output suppression, including in
 combined-HTML mode.
 
-Comme `build`, `verify` résout le preset de `series_meta` avant le rendu en
-mémoire. Articles, index, enveloppes, chrome, thème de base et CSS structurel
-doivent donc correspondre au même contexte que la sortie vérifiée.
+Comme `build`, `verify` résout `appearance` avant le rendu en mémoire. Articles,
+index, enveloppes, chrome, thème de base et CSS structurel doivent donc
+correspondre au même contexte que la sortie vérifiée.
 
 `--themes` doit reprendre la sélection utilisée par le build dont `public/`
 est vérifié si le build l'avait explicitement fournie. Sans l'option, la même
-clé racine `series.json.themes` est relue. Dans les deux cas, la sélection est
-transmise au rendu en mémoire et ne modifie rien sur disque. `--no-essential-theme`
+liste `series.json.appearance.themes` est relue. Dans les deux cas, la sélection
+est transmise au rendu en mémoire et ne modifie rien sur disque.
+`--no-essential-theme`
 suit la même règle : il doit reproduire la décision du build vérifié — un
 `verify` lancé avec une décision différente de celle du build produit des
 payloads différents et signale un `[DRIFT]` correct, pas un faux positif.
@@ -5778,7 +5758,7 @@ déclenche pas le rendu.
 
 Trois regards, sur trois objets différents. Le premier lit l'**arbre
 syntaxique** des sources. Le deuxième lit la **feuille résolue** — le
-résultat de la cascade, thème de base du preset ou `theme:` explicite, puis
+résultat de la cascade, thème de base de l'apparence initiale, puis
 `settings.conf` et les `style.*` d'un article — parce qu'un texte peint de la couleur de son fond est
 correct à chaque couche et n'existe qu'une fois composé. Le troisième
 **rend la série en mémoire**, jette le HTML et rapporte ce que la
@@ -6560,21 +6540,19 @@ ne peuvent pas contenir de saut de ligne et `family` doit être une valeur de
 doit rester exactement `<slug>.conf`. Un fichier existant n'est remplacé
 qu'avec `--force`.
 
-**`theme migrate`** lit le `settings.conf` d'une série et en extrait le thème
-choisi ainsi que les lignes de propriétés épinglées. Il réécrit explicitement
-la surface en forme minimale : la ligne `theme:` et les seules propriétés
-actives. Une clé qui n'appartient plus au registre n'est pas supprimée : elle
-est gardée commentée sous la marque `no longer recognized` et signalée. Les
-commentaires du scaffold ne deviennent jamais des épingles. La commande ne
-modifie pas `custom.css` et ne relance pas le build.
+**`theme migrate`** lit le `settings.conf` d'une ancienne série et déplace le
+thème actif vers `series.json.appearance.themes`, tout en conservant les lignes
+de propriétés épinglées. Il réécrit ensuite `settings.conf` sous la forme
+minimale de propriétés typées. Une clé qui n'appartient plus au registre n'est
+pas supprimée : elle est gardée commentée sous la marque `no longer recognized`
+et signalée. Les commentaires du scaffold ne deviennent jamais des épingles.
+La commande ne modifie pas `custom.css` et ne relance pas le build.
 
 **`theme vendor`** prend des slugs ou sélecteurs runtime (`all`, `essential`,
 facettes) et copie leurs snapshots complets dans `templates/themes/`. Sans
-`--themes`, le thème explicitement déclaré dans `settings.conf` est utilisé ;
-sans thème explicite (donc avec une base de preset), la commande exige une
-sélection. La copie est une vraie source de série : elle reste utilisable après
-disparition du catalogue utilisateur. Un fichier déjà présent et différent
-exige `--force`.
+`--themes`, la commande exige une sélection explicite. La copie est une vraie
+source de série : elle reste utilisable après disparition du catalogue
+utilisateur. Un fichier déjà présent et différent exige `--force`.
 The native Light resource is supplied by the executable and is not copied,
 whether selected by bare `light` or by `builtin:light`. `all` selects effective
 resources: a local snapshot shadowing `light` is copied normally. Any shipped
@@ -6592,33 +6570,28 @@ série opérée et ne sont pas ajoutées à cette commande sans cible.
 lightwebpres series theme set [répertoire] --theme <slug>
 ```
 
-Change le thème d'une série existante en réécrivant **la seule ligne de
-`templates/settings.conf` qui soit à l'outil** : la ligne `theme:` (ou le
-placeholder commenté `# theme: <slug>` du scaffold, ou en tête de fichier
-si ni l'un ni l'autre n'existe) — voir §9.4.2 pour le raisonnement.
-Aucun CSS n'est réécrit : la feuille est composée au prochain `build`
-depuis la couche du nouveau thème (§9.3), et les valeurs décommentées par
-l'auteur restent en place et s'appliquent par-dessus (§9.4.2).
+Change le thème d'une série existante en réécrivant la déclaration
+`series.json.appearance.themes` — voir §9.4.2 pour le raisonnement.
+Aucun CSS ni `settings.conf` n'est réécrit : la feuille est composée au
+prochain `build` depuis la couche du nouveau thème (§9.3), et les propriétés
+épinglées par l'auteur restent en place et s'appliquent par-dessus (§9.4.2).
 
 Comportements, tous vérifiés :
 
 - **Répertoire jamais installé** (pas de `templates/`) : erreur fatale
   (code de sortie non nul) renvoyant vers `init` — `series theme set`
   configure une série existante, il n'en crée pas.
-- **`templates/` présent mais pas de `settings.conf`** (série installée
-  avant la refonte §9) : un scaffold neuf est écrit pour le thème
-  demandé — écrire un fichier qui n'existe pas ne trahit aucune
-  promesse de propriété (§9.4.2).
+- **`templates/` présent mais pas de `settings.conf`** : la déclaration de
+  série est mise à jour sans créer de fichier de propriétés ; `settings.conf`
+  reste une surface appartenant à l'auteur (§9.4.2).
 - **Thème déjà en place** : `Theme unchanged: already <slug>. Nothing
   written.` — rien n'est écrit, plutôt que de mettre à jour une date de
   modification pour rien.
 - **Sinon** : `Theme changed: <ancien> -> <nouveau>`, l'ancien étant
-  `default` si aucune ligne `theme:` n'était active — le marqueur décrit
-  l'absence de thème explicite, sans modifier le preset. Le message rappelle
-  que les valeurs décommentées restent en place et s'appliquent
-  par-dessus le nouveau thème, que les commentaires du scaffold montrent
-  encore l'ancien (`audit` le signale, §9.4.4), et qu'un `build` doit
-  être relancé pour que le changement atteigne `public/`.
+  `default` si l'apparence suivait le preset. Le message rappelle que les
+  propriétés décommentées restent en place et s'appliquent par-dessus le
+  nouveau thème, et qu'un `build` doit être relancé pour que le changement
+  atteigne `public/`.
 - **`<slug>` inconnu de `THEMES`** : erreur fatale qui renvoie vers
   `lightwebpres theme list` (avec le compte des slugs valides).
 
@@ -6736,8 +6709,9 @@ La sortie texte est le défaut et vise la lecture humaine.
 | `schema` | string | `lightwebpres.series-info/5`: the public report contract identifier, following §13.9. This baseline reports the identity resource under `identity`, alongside `series_meta.reading`, explicit native references and the renamed `presentation.native_renderer` flag |
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
-| `series_meta` | objet | les champs de §20.5 — dont `title`, `subtitle`, `version`, `intro`, `author`, `license`, `scroll_duration` et `presentation_preset` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
+| `series_meta` | objet | les champs de §20.5 — dont `title`, `subtitle`, `version`, `intro`, `author`, `license` et `scroll_duration` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
 | `presentation` | object | The complete resolved preset report, with schema `lightwebpres.presentation-preset/3` (§11.18) |
+| `appearance` | objet | les listes demandées et la résolution initiale : `presets`, `themes`, `theme_policy`, `initial_preset`, `initial_theme` et les thèmes publiés |
 | `counts` | objet | un nombre par statut de §20.6 — `active`, `draft`, `ignored` — dont la somme est la liste entière. Un article `ignored` est toujours *dans* le fichier de série : le sortir discrètement de l'arithmétique ferait paraître la série plus petite qu'elle n'est |
 | `tags` | objet | l'inventaire de visibilité défini en §11.11.1, identique à la réponse de `series tags` sans son enveloppe `schema`/`target` |
 | `articles` | liste | un objet par article, **dans l'ordre de `series.json`** (ci-dessous) |
@@ -6748,7 +6722,7 @@ La sortie texte est le défaut et vise la lecture humaine.
 |---|---|---|
 | `kind` | `"series"` | la seule cible de cette commande ; présent pour que le bloc ait la forme de celui de `theme show` |
 | `directory` | chaîne | le chemin absolu de la série |
-| `theme` | chaîne ou `null` | le thème explicitement nommé dans `templates/settings.conf`; `null` quand le thème de base vient du preset |
+| `theme` | chaîne ou `null` | le thème fixé par `appearance.themes`; `null` quand la politique suit le preset |
 | `presentation_preset` | chaîne | le sélecteur du preset résolu, y compris `builtin/standard` pour le choix natif |
 
 Un article :
@@ -7228,7 +7202,7 @@ sémantique de `template`.
 lightwebpres preset list [--format text|json]
 lightwebpres preset show <builtin/standard|commons/id|id@version/preset> [--format text|json]
 lightwebpres series preset [répertoire] [--format text|json]
-lightwebpres series preset set [répertoire] --preset <builtin/standard|commons/id|id@version/preset> [--keep-theme|--use-preset-theme]
+lightwebpres series preset set [répertoire] --preset <builtin/standard|commons/id|id@version/preset>
 ```
 
 `preset list` exposes complete choices from the global catalogue:
@@ -7260,18 +7234,14 @@ legacy aliases or adapters.
 `series preset set` sélectionne un preset sans jamais appliquer son starter.
 Il valide le sélecteur, vendorise un kit sous
 `templates/kits/<id>/<version>/` ou les ressources Commons nécessaires, puis
-écrit le sélecteur dans `series_meta.presentation_preset`, y compris
+écrit le sélecteur en tête de `appearance.presets`, y compris
 `builtin/standard`, qui ne vendorise rien. Pour Commons, seuls le descripteur et
 son thème externe sélectionné sont vendorisés ; aucune copie n'est nécessaire
 pour un thème natif ou intégré. Une dépendance locale identique est réutilisée,
-un fichier conflictuel est refusé. Les pins de `settings.conf` et
-`custom.css` restent intacts.
-Une ligne `theme:` active doit être traitée explicitement : `--keep-theme` la
-conserve ; `--use-preset-theme` la retire pour révéler le thème du preset ; les
-deux options sont mutuellement exclusives. Sans l'une d'elles, le conflit est
-refusé. `--keep-theme` sans thème actif est aussi refusé. Les écritures du
-kit ou des ressources Commons, de `settings.conf` et de `series.json` sont préparées avec rollback en
-cas d'échec ; une restauration qui ne peut être complète est signalée.
+un fichier conflictuel est refusé. Les pins de `settings.conf`, la liste
+`appearance.themes` et `custom.css` restent intacts. Les écritures du kit ou des
+ressources Commons et de `series.json` sont préparées avec rollback en cas
+d'échec ; une restauration qui ne peut être complète est signalée.
 
 Un starter ne se choisit pas séparément : seul `init --preset` peut appliquer
 celui que le preset déclare (§11.1).
@@ -8694,10 +8664,12 @@ désormais.
     "title": "Les classiques de la pâtisserie",
     "subtitle": "Une série d'articles sur les techniques, les proportions et les erreurs à éviter",
     "version": "v0.1",
-    "intro": "« Une pâte trop travaillée devient élastique. » « Le sucre n'est pas qu'une question de goût. » ...",
-    "presentation_preset": "corporate@1.0.0/brief"
+    "intro": "« Une pâte trop travaillée devient élastique. » « Le sucre n'est pas qu'une question de goût. » ..."
   },
-  "themes": ["essential", "family:terrain"],
+  "appearance": {
+    "presets": ["corporate@1.0.0/brief", "builtin/standard"],
+    "themes": ["preset", "essential"]
+  },
   "articles": [
     {
       "page_source": "tarte-aux-pommes.md"
@@ -8721,11 +8693,11 @@ surcharge : `card_label` prend le pas sur celui du bloc meta de
 `creme-patissiere.md` sans y toucher — les autres champs d'affichage de
 cet article restent lus depuis son propre bloc meta ou son propre contenu.
 
-La clé racine facultative `themes` configure le sélecteur runtime des pages
-produites. C'est une liste non vide de chaînes, chacune étant un slug, `all`,
-`essential` ou un sélecteur de facette `X:Y` décrit en §9.3.7. Elle n'appartient
-pas à `articles[]` ni à `series_meta`. Une série au format tableau direct reste
-valide, mais ne peut pas porter cette clé; la forme objet est nécessaire pour
+Le bloc racine facultatif `appearance` configure les présentations et thèmes
+runtime des pages produites. Ses listes `presets` et `themes` sont non vides et
+leurs éléments sont des chaînes selon §9.3.7 et §9.3.8. Il n'appartient ni à
+`articles[]` ni à `series_meta`. Une série au format tableau direct reste
+valide, mais ne peut pas porter ce bloc ; la forme objet est nécessaire pour
 une sélection JSON.
 
 Nommage (gel v1.0) : la famille `page_*` regroupe tout ce qui concerne la
@@ -8765,18 +8737,13 @@ et de chrome appartiennent au manifeste du kit (§20.5.3).
 
 - Le tableau `articles` est **ordonné** : l'ordre des entrées définit l'ordre
   des articles dans la navigation et l'index.
-- Si `themes` est présent à la racine de la forme objet, il doit être une liste
-  non vide dont chaque élément est une chaîne non vide. Une liste vide, un
-  élément non textuel ou un sélecteur inconnu est une erreur fatale nommée.
-- Si `presentation_presets` est présent à la racine de la forme objet, il doit
-  être une liste non vide dont chaque élément est une chaîne non vide. Les
-  sélecteurs sont résolus contre le catalogue de présentation effectif, le
-  primaire de `series_meta` est ajouté en tête et les doublons sont supprimés;
-  un sélecteur inconnu ou vide est une erreur fatale nommée. Avec un primaire
-  distinct de `builtin/standard`, le candidat natif est ajouté s'il est compatible avec les
-  métadonnées de fiche ; sinon il est omis avec avertissement lorsqu'il n'a pas
-  été demandé explicitement.
-  `--presentation-presets` remplace cette liste pour l'invocation concernée.
+- Si `appearance` est présent à la racine de la forme objet, il doit être un
+  objet ne contenant que `presets` et `themes`. Chaque liste doit être non vide
+  et ne contenir que des chaînes non vides. Une clé inconnue, une liste vide,
+  un élément non textuel ou un sélecteur inconnu est une erreur fatale nommée.
+  Le premier preset est le primaire ; aucun preset supplémentaire n'est ajouté
+  implicitement. `--presentation-presets` et `--themes` remplacent leurs listes
+  respectives pour l'invocation concernée.
 - Les anciens noms `source`/`file`, retirés à la **v0.7.0**, produisent
   une **erreur fatale de migration explicite** (« renamed to
   page_source/page_dest in v0.7.0 — just rename the key, the value is
@@ -8901,29 +8868,27 @@ participe au parcours :
 
 ### 20.4 Métadonnées de la série (`series_meta`)
 
-Le fichier `series.json` peut contenir un objet `series_meta` (optionnel)
-qui décrit la série elle-même (pour l'index et le README), ainsi que les clés
-racine `themes` et `presentation_presets` (optionnelles) qui configurent les
-alternatives runtime (§9.3.7, §9.3.8) : il porte aussi l'unique sélection de
-preset de présentation de la série (§9.9).
+Le fichier `series.json` peut contenir un objet `series_meta` (optionnel) qui
+décrit la série elle-même (pour l'index et le README), ainsi qu'un objet racine
+`appearance` qui porte les choix de présentation et de thème (§9.3.7, §9.3.8,
+§9.9). Les valeurs de sortie physique optionnelles vivent dans l'objet racine
+`build`.
 
 Si la configuration objet est utilisée, `articles` est un tableau, `series_meta`
-est un objet lorsqu'il est présent, et `themes` ainsi que
-`presentation_presets` sont des listes de chaînes lorsqu'ils sont présents. Si
-`series_meta`, `themes` et `presentation_presets` sont absents, le fichier peut
-rester un tableau direct (rétrocompatible avec un format de série déjà utilisé).
-Ce tableau direct n'a pas de place pour `themes`, `presentation_presets` ni pour
-les réglages de présentation de `series_meta`.
+est un objet lorsqu'il est présent, `appearance` est un objet lorsqu'il est
+présent et `build` est un objet lorsqu'il est présent. `appearance.presets` et
+`appearance.themes`, lorsqu'ils sont présents, sont des listes non vides de
+chaînes. Si `series_meta`, `appearance` et `build` sont absents, le fichier peut
+rester un tableau direct. Ce tableau direct n'a pas de place pour les réglages
+d'apparence ou de build.
 
-La clé racine `presentation_presets`, lorsqu'elle est présente, est une liste
-non vide de chaînes non vides. Elle ne choisit pas la présentation primaire :
-elle nomme les alternatives que le build rendra avec elle. Le primaire résolu
-par `series_meta.presentation_preset` est toujours ajouté en tête, puis les
-doublons sont supprimés. Avec un primaire de kit ou Commons, le preset natif
-`builtin/standard` complète la liste quand il est compatible ; un override de fiche qui
-demande un kit le supprime seulement s'il n'était qu'un ajout implicite.
-La liste est ignorée au profit de `--presentation-presets` quand cette option
-est fournie.
+`appearance.presets` ordonne les présentations publiées : le premier sélecteur
+est le primaire et les suivants sont des alternatives. L'omission utilise
+`builtin/standard`; aucun preset n'est ajouté implicitement. La liste est
+remplacée par `--presentation-presets` lorsqu'elle est fournie, sans modifier
+le fichier source. `appearance.themes` ordonne les tokens de thème ; son
+omission utilise `preset` puis `essential`, tandis qu'une liste explicite est
+exacte. `--themes` la remplace pour une invocation.
 
 ### 20.5 Champs de `series_meta`
 
@@ -8943,7 +8908,6 @@ est fournie.
 | `notes_tooltip` | `on` ou `off` | non | Ajoute le corps de la note à l'info-bulle de l'appel ; cascade comme `notes_placement` (§6.5) |
 | `slide_page_numbers` | booléen ou chaîne (`on`/`off`) | non | Active les numéros gravés des fiches ; la valeur de série est surchargée par le bloc meta de l'article ou par l'option de build (§3.3.5) |
 | `slug_prefix` | string | non | Préfixe d'espace de noms appliqué à toutes les identités de fiche de la page (§12.1.1) |
-| `presentation_preset` | string | non | Référence unique `builtin/standard`, `commons/id` ou `id@MAJOR.MINOR.PATCH/preset` pour toute la série et son index ; identité déduite, absent = `builtin/standard` (§20.5.3) |
 | `selectors` | object of nonempty names to expression strings | no | Named build-time selectors; only reachable expressions compile (§3.4) |
 | `unit_index` | Boolean or on/off string | no | Automatic unit contents, default off; unit meta > CLI > series (§20.5.5) |
 | `unit_index_max_columns` | positive integer | no | Automatic index's responsive column ceiling, default 1 (§20.5.5) |
@@ -8991,14 +8955,14 @@ qu'aux slides, pas à un `tags:` explicite d'article.
 
 ### 20.5.3 Sélection de preset de présentation
 
-`series_meta.presentation_preset` est l'unique référence initiale persistée :
+`appearance.presets` est la liste persistée des présentations :
 `builtin/standard`, `commons/id` ou `id@MAJOR.MINOR.PATCH/preset`, résolue contre
-le catalogue. L'identité est déduite de cette référence ; elle ne possède pas
-de champ auteur. L'omission sélectionne implicitement `builtin/standard` ;
-la CLI persiste une sélection explicite, y compris cette référence native.
-La sélection s'applique à tous les articles et à l'index avant
-que leurs sources ne soient lues. Le label d'identité reste fixe : les défauts
-de sélection ne renomment jamais une identité (§9.9).
+le catalogue. Le premier élément est la référence initiale et les suivants
+sont les alternatives publiées. L'identité est déduite de chaque référence ;
+elle ne possède pas de champ auteur. L'omission sélectionne implicitement
+`builtin/standard`. La sélection s'applique à tous les articles et à l'index
+avant que leurs sources ne soient lues. Le label d'identité reste fixe : les
+défauts de sélection ne renomment jamais une identité (§9.9).
 
 Le bloc `lwp:meta` et les entrées `articles[]` ne peuvent ni choisir ni
 modifier ce preset. `presentation_preset` à ces niveaux est rejeté.
@@ -9014,14 +8978,12 @@ Malformed selectors, variants, models, slots or assets fail with their origin.
 
 ### 20.5.4 Alternatives runtime de présentation
 
-`series.json["presentation_presets"]` est une liste racine, distincte de
-`series_meta.presentation_preset`. Elle contient les sélecteurs que le lecteur
-pourra choisir en plus du primaire. `--presentation-presets` remplace cette
-liste pour un lancement de `build`, `verify` ou `watch`, sans modifier la série.
-Le primaire est toujours le premier élément effectif, même si la liste ne le
-contient pas ; les doublons sont retirés dans l'ordre ; `builtin/standard`
-désigne le choix natif et est ajouté implicitement à un primaire de kit ou Commons lorsqu'il
-est compatible (§9.3.8).
+`appearance.presets` est une liste racine non vide. Elle contient les
+présentations que le lecteur pourra choisir, dans l'ordre ; son premier élément
+est le primaire et les suivants sont les alternatives. `--presentation-presets`
+remplace cette liste pour un lancement de `build`, `verify` ou `watch`, sans
+modifier la série. Les doublons sont retirés dans l'ordre et aucun preset n'est
+ajouté implicitement, y compris `builtin/standard`.
 
 Le build valide chaque preset et chaque override de fiche pour chaque article
 avant d'écrire. Un seul primaire ne produit pas d'alternative de preset ; les

@@ -58,8 +58,9 @@ const {pathToFileURL} = require('node:url');
         + '<rect width="40" height="40" fill="red"/>'.repeat(120) + '</svg>');
       fs.writeFileSync(path.join(series, 'series.json'), JSON.stringify({
         series_meta: {title: 'No contents', default_tag: 'default'},
-        presentation_presets: count === 2
-          ? ['lightwebpres-docs@0.1.0/docs', 'lightwebpres-docs@0.1.0/compact'] : ['builtin/standard'],
+        appearance: {presets: count === 2
+          ? ['builtin/standard', 'lightwebpres-docs@0.1.0/docs',
+            'lightwebpres-docs@0.1.0/compact'] : ['builtin/standard']},
         articles: ['a', 'b'].slice(0, count).map(name => ({page_source: name + '.md', page_dest: name + '.html'})),
       }));
       for (const name of ['a', 'b'].slice(0, count)) {

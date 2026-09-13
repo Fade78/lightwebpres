@@ -120,7 +120,6 @@ Once per series, in `series.json`'s `series_meta` object.
 | `scroll_duration` | `200` ms | Duration of the deck's own slide glide. It must be a non-negative integer; `0` jumps instantly. `--scroll-duration` overrides it for one `build`, `verify` or `watch` invocation, and the presenter menu or **I** toggles between this configured value and `0` |
 | `reading` | `{}` resolves to the defaults below | Strict object of initial reader choices and reduction limits, only in `series_meta`; not a theme property or article cascade (§9.3.9) |
 | `lang_tags` | `{}` — no tag selects a typography pack | Object mapping a slide tag to a typography pack name, e.g. `{"fr": "fr", "en": "en"}`; the first mapped tag on a slide selects its engine (§20.5) |
-| `presentation_preset` | omitted: implicit `builtin/standard` | One initial reference for the whole series and index: `builtin/standard`, `commons/<id>` or `id@MAJOR.MINOR.PATCH/preset`. Identity is inferred, not persisted separately. Both `init --preset` and `series preset set` persist an explicit selection, including `builtin/standard`; plain `init` leaves the field absent |
 | `selectors` | `{}` | Named expression strings used by `selector:name`; validates mapping shape, then only reachable expression syntax/cycles/budgets. Compact and bounded JSONPath filter profiles, not full RFC 9535 (§3.4) |
 
 `slide_layouts` and `slide_chrome` belong to Identity Kit manifests, where
@@ -168,12 +167,15 @@ In the object form of `series.json`, these keys live beside `series_meta` and
 
 | Field | Default | Description |
 |---|---|---|
-| `themes` | omitted — the essential runtime bundle is still added by default | Ordered runtime theme selectors for `build`, `verify` and `watch`; an explicit `--themes` value overrides this list (§9.3.7) |
-| `presentation_presets` | omitted: a compatible kit or Commons primary also receives `builtin/standard` | Non-empty list of published runtime preset selectors; the primary `series_meta.presentation_preset` is inserted first, duplicates are removed, and native Standard is appended for a different primary unless a slide's kit-only layout/chrome override makes it incompatible. `--presentation-presets` overrides this list (§9.3.8) |
+| `appearance` | omitted: `presets` is `builtin/standard`, `themes` is `preset, essential` | Object beside `series_meta` and `articles` with non-empty `presets` and `themes` lists. The first preset is primary; the first individual theme token sets the initial theme policy. Explicit lists are exact; `--themes` and `--presentation-presets` replace them for one invocation (§9.3.7, §9.3.8) |
+| `build` | `{}` | Optional output defaults: `single_html` is a plain combined-output filename and `inline_images` is boolean |
 
 The list is build configuration, not a persisted reader choice. A reader's
 presentation choice is kept in the browser session and never written back to
 `series.json`.
+
+The legacy author selectors `presentation_preset`, root `presentation_presets`,
+and root `themes` are rejected. Use the corresponding lists under `appearance`.
 
 ## Language pack files
 
@@ -227,7 +229,7 @@ taking priority when both are set (§20.3.1).
 | `unit_index_selector` | meta block, `series_meta`, or `--unit-index-selector` | `*` (§20.5.5) | Automatic index's entry expression; same cascade, not a global publication predicate |
 
 A preset cannot be selected in an `articles[]` entry or an `lwp:meta` block:
-only `series_meta.presentation_preset` selects it for the whole series.
+only `appearance.presets` selects it for the whole series.
 
 ## Tag visibility reports
 
@@ -384,7 +386,7 @@ description; the terms are fixed here, in English.
 | **external theme snapshot** | A UTF-8 `.conf` file containing metadata and every property in the registry exactly once. It is complete by design: no CSS and no `extends`/include mechanism. |
 | **effective catalogue** | One bare-slug index for every theme, including `light`, resolved in builtin < installed < user < series precedence. A higher origin replaces the whole entry of the same slug. Global operations omit the series layer; series operations include `templates/themes/`. Built-in resources remain explicitly addressable as `builtin:<slug>` when shadowed. |
 | **catalogue root** | A directory searched for direct `.conf` snapshots: installed resources, the user root (`LWP_THEMES_DIR` or the platform default), or a series' `templates/themes/`. |
-| **settings** | The author's own property layer (`templates/settings.conf`), applied over the theme for the static sheet and the runtime `custom(<theme>)` variant. Written only on explicit request: `series theme set` changes its `theme:` line, and `theme migrate` reduces an old scaffold while preserving pins. |
+| **settings** | The author's own property layer (`templates/settings.conf`), applied over the theme for the static sheet and the runtime `custom(<theme>)` variant. It contains property pins only; `series theme set` changes `appearance.themes`, and `theme migrate` reduces an old scaffold while preserving pins. |
 | **scaffold** | The generated form of `settings.conf`: every property present, commented out, at the chosen theme's values (§9.3.1). Generated once from the registry, never rewritten on the tool's initiative; `# scaffold-for:` records the theme it was generated under. |
 | **pin** | Uncommenting a scaffold line (or writing one): the value overrides the selected theme in the static build and is carried by the runtime `custom(<theme>)` variant; raw runtime themes may replace it. It survives theme changes and upgrades (§9.3.1). |
 | **override** | The relation between layers: a value in a later layer covering an earlier one. |
@@ -404,11 +406,11 @@ description; the terms are fixed here, in English.
 | **native resource** | Built-in reusable layout `builtin:standard` or minimal theme `builtin:light`. The native preset selector is `builtin/standard`. The catalogue lists bare `light` with its effective origin; `builtin:light` forces the native resource and remains its runtime identity. Native composition retains symbolic references. Using a native layout inside a kit preserves that kit's chrome. |
 | **Commons** | Shared resource collection, not an identity: the global theme catalogue under `themes/` (`LWP_THEMES_DIR`) plus native-layout preset descriptors under `commons/presets/<id>.json` (`LWP_COMMONS_DIR`), with series overrides in `templates/themes/` and `templates/commons/presets/`. |
 | **Commons preset** | Five-field `lightwebpres.commons-preset/1` descriptor: `schema`, `id`, `label`, `description`, `theme`. Binds a global theme slug or `builtin:<slug>` to native layouts, without a starter; selected as `commons/<id>`. The theme's origin is independent of the descriptor's loading scope. |
-| **presentation preset** | Named binding of a theme and layout/chrome defaults; selected as `builtin/standard`, `commons/<id>` or `id@MAJOR.MINOR.PATCH/preset`. Only `series_meta.presentation_preset` persists the initial selection, with identity inferred from that reference. |
+| **presentation preset** | Named binding of a theme and layout/chrome defaults; selected as `builtin/standard`, `commons/<id>` or `id@MAJOR.MINOR.PATCH/preset`. The first `appearance.presets` entry persists the initial selection, with identity inferred from that reference. |
 | **resource collection** | Which resource catalogue a preset belongs to: `builtin`, `commons` or `kit`. This is separate from identity ownership and from the location where the loader found it. |
 | **resource origin** | Loading provenance computed by loaders: `builtin`, `installed`, `user` or `series`. All shipped themes use `builtin`, displayed as **Built-in** / **Intégré**. Origin is separate from resource ownership, collection and palette `source` credits; it cannot be declared by a theme or kit. `theme list --origin` filters effective catalogue entries after precedence. Kits carry no extension, inter-kit dependency, lineage or authenticity record. |
 | **kit composition** | `kit compose recipe.json --output directory` validates and publishes an autonomous `directory/id/version/` tree. The strict `lightwebpres.kit-composition/1` recipe has `schema`, `sources`, `manifest`, `files`; the final manifest explicitly names every final reference. No guessed remapping or dependency closure. |
-| **runtime presentation catalogue** | Ordered primary-plus-alternatives payload made by `presentation_presets` or `--presentation-presets`; it carries the rendered fragments, index variants, structure CSS and typed theme differences for the appearance picker. |
+| **runtime presentation catalogue** | Ordered primary-plus-alternatives payload made by `appearance.presets` or `--presentation-presets`; it carries the rendered fragments, index variants, structure CSS and typed theme differences for the appearance picker. |
 | **appearance picker** | The `C` dialogue offers Identity, Preset and Theme only when a real Identity Kit is published, even if native Standard is currently selected. Without a kit, including Commons-only presets, it offers Theme labels/help, no Identity/Preset axes and no Follow preset; selecting the primary actual theme restores the author's base. Hidden Commons preset choices are not restored. Available preset and explicit theme choices keep their browser-session persistence across articles and the index; in kit-aware mode, Follow preset resets the runtime theme override. No resource cross-product is generated. |
 | **Current identity filter** | Narrows published themes, not brand approval: native `builtin` includes published Commons/global themes, Light and native custom variants, excluding foreign kit themes; a real kit includes only its own qualified themes and custom variants, excluding unowned global themes and other kits. Commons availability to native LightWebPres is not declared kit membership. Applicable tests typed compatibility; All includes all published choices. |
 | **kit-qualified theme** | A runtime theme addressed as `kit:<id>@<version>/<theme>` under its owning kit. Native Light uses the same canonical `builtin:light` resource id in the global catalogue and runtime. All themes from selected kits are published, including those not used by a selected preset. |

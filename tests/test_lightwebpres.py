@@ -89,7 +89,18 @@ def scaffold(tmp, article_md, series_extra=None, source_name='a.md', file_name='
     entry = {'page_dest': file_name, 'page_source': source_name, 'nav_title': 'A', 'nav_desc': 'A'}
     if series_extra:
         entry.update(series_extra)
-    (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
+    series = {'articles': [entry]}
+    series_path = root / 'series.json'
+    if series_path.is_file():
+        try:
+            previous = json.loads(series_path.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            previous = None
+        if isinstance(previous, dict) and 'appearance' in previous:
+            # Adding a fixture article must not erase the series choice made
+            # by an earlier `init --theme` or `init --preset` step.
+            series['appearance'] = previous['appearance']
+    series_path.write_text(json.dumps(series), encoding='utf-8')
     return root
 
 
@@ -3939,8 +3950,10 @@ class CliVersionAndShortcuts(unittest.TestCase):
             result = run('series', 'theme', 'set', str(root), '--theme', 'nord',
                          env={'LWP_TEMPLATES_DIR': str(elsewhere)})
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('theme: nord',
-                          (elsewhere / 'settings.conf').read_text(encoding='utf-8'))
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            self.assertEqual(data['appearance']['themes'], ['nord'])
+            self.assertNotIn('theme:',
+                             (elsewhere / 'settings.conf').read_text(encoding='utf-8'))
 
     def test_resolve_theme_property_reads_a_moved_templates_directory(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -8744,7 +8757,8 @@ class TemplateOverride(unittest.TestCase):
             (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             (root / 'series.json').write_text(json.dumps({'articles': [
                 {'page_dest': 'a.html', 'page_source': 'a.md',
-                 'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
+                 'nav_title': 'A', 'nav_desc': 'A'}],
+                'appearance': {'themes': ['nord']}}), encoding='utf-8')
             settings = root / 'templates' / 'settings.conf'
             settings.write_text(settings.read_text(encoding='utf-8')
                                 + '\npage.bg:\n', encoding='utf-8')
@@ -8764,8 +8778,8 @@ class TemplateOverride(unittest.TestCase):
     def test_empty_settings_pins_are_absent_but_unknown_empty_keys_still_fail(self):
         lwp = load_lightwebpres_module()
         theme, props = lwp.parse_settings_text(
-            'theme: nord\npage.bg: #123456\npage.bg:\n')
-        self.assertEqual(theme, 'nord')
+            'page.bg: #123456\npage.bg:\n')
+        self.assertIsNone(theme)
         self.assertNotIn('page.bg', props)
 
         with self.assertRaises(lwp.PropertyError) as raised:
@@ -8990,7 +9004,7 @@ class IdentityKitFixtures(unittest.TestCase):
         identity_kit = self._write_identity_kit(root / 'templates' / 'kits')
         series_path = root / 'series.json'
         series = json.loads(series_path.read_text(encoding='utf-8'))
-        series['series_meta'] = {'presentation_preset': self.SELECTOR}
+        series['appearance'] = {'presets': [self.SELECTOR]}
         series_path.write_text(json.dumps(series), encoding='utf-8')
         return root, identity_kit
 
@@ -9027,10 +9041,9 @@ class IdentityKitFixtures(unittest.TestCase):
         simple_selector = f'{self.SELECTOR.rsplit("/", 1)[0]}/simple'
         series_path = root / 'series.json'
         series = json.loads(series_path.read_text(encoding='utf-8'))
-        series['series_meta'] = {'presentation_preset': self.SELECTOR}
-        series['presentation_presets'] = [
-            other_selector, simple_selector, other_selector,
-        ]
+        series['appearance'] = {'presets': [
+            self.SELECTOR, other_selector, simple_selector, other_selector,
+        ]}
         series_path.write_text(json.dumps(series), encoding='utf-8')
         return root, primary, other, simple_selector, other_selector
 
@@ -9091,9 +9104,9 @@ class IdentityKitFixtures(unittest.TestCase):
             self.assertEqual(data['primary'], self.SELECTOR)
             self.assertEqual(
                 [preset['selector'] for preset in data['presets']],
-                [self.SELECTOR, other, simple, 'builtin/standard'])
+                [self.SELECTOR, other, simple])
             self.assertEqual(set(data['variants']),
-                             {self.SELECTOR, simple, other, 'builtin/standard'})
+                             {self.SELECTOR, simple, other})
             self.assertEqual(set(data['variants'][self.SELECTOR]['sections']),
                              {'a-cover', 'a-standard'})
 
@@ -9110,20 +9123,18 @@ class IdentityKitFixtures(unittest.TestCase):
                              data['variants'][simple]['sections']['a-cover'])
 
             self.assertEqual(set(index_data['variants']),
-                             {self.SELECTOR, simple, other, 'builtin/standard'})
+                             {self.SELECTOR, simple, other})
             self.assertIn('presentation-other-index',
                           index_data['variants'][other]['index'])
-            self.assertNotIn('presentation-studio-cover',
-                             data['variants']['builtin/standard']['sections']['a-cover'])
-            self.assertNotIn('presentation-studio-index',
-                             index_data['variants']['builtin/standard']['index'])
+            self.assertNotIn('builtin/standard', data['variants'])
+            self.assertNotIn('builtin/standard', index_data['variants'])
 
             manifest = json.loads((output / '.lwp-manifest.json').read_text(
                 encoding='utf-8'))
             self.assertEqual(manifest['schema'], 'lightwebpres.manifest/2')
             self.assertEqual(
                 [preset['selector'] for preset in manifest['presentation_presets']],
-                [self.SELECTOR, other, simple, 'builtin/standard'])
+                [self.SELECTOR, other, simple])
             kit_manifest_entries = [preset for preset in manifest['presentation_presets']
                                    if preset['selector'] != 'builtin/standard']
             self.assertTrue(all(preset['identity_digest'] for preset in kit_manifest_entries))
@@ -9137,12 +9148,9 @@ class IdentityKitFixtures(unittest.TestCase):
                 preset for preset in data['presets'] if preset['selector'] == simple)
             self.assertTrue(simple_descriptor['theme_values'])
 
-            default_descriptor = next(
-                preset for preset in data['presets'] if preset['selector'] == 'builtin/standard')
-            self.assertEqual(default_descriptor['label'], 'Standard')
-            self.assertEqual(default_descriptor['family'], 'LightWebPres')
-            self.assertEqual(default_descriptor['label_key'], 'presentation_standard')
-            preview = default_descriptor['preview']
+            primary_descriptor = data['presets'][0]
+            self.assertEqual(primary_descriptor['selector'], self.SELECTOR)
+            preview = primary_descriptor['preview']
             self.assertTrue(preview['background'])
             self.assertTrue(preview['foreground'])
             self.assertEqual(set(preview['gradient']),
@@ -9150,7 +9158,7 @@ class IdentityKitFixtures(unittest.TestCase):
             self.assertEqual(set(preview['fonts']), {'cover', 'standard'})
             self.assertEqual(set(preview['standard']), {'background', 'foreground'})
 
-    def test_real_identity_kit_exposes_the_virtual_default_when_compatible(self):
+    def test_real_identity_kit_does_not_add_an_implicit_standard_preset(self):
         with tempfile.TemporaryDirectory() as tmp:
             root, _identity_kit = self._selected_series(tmp)
             output = root / 'public'
@@ -9162,10 +9170,7 @@ class IdentityKitFixtures(unittest.TestCase):
             data = self._presentation_data(article)
             self.assertEqual(
                 [preset['selector'] for preset in data['presets']],
-                [self.SELECTOR, 'builtin/standard'])
-            self.assertNotIn(
-                'presentation-studio-cover',
-                data['variants']['builtin/standard']['sections']['a-cover'])
+                [self.SELECTOR])
             self.assertIn('id="presentationOptions"', article)
 
     def test_implicit_default_does_not_break_identity_kit_specific_slide_overrides(self):
@@ -9181,8 +9186,6 @@ class IdentityKitFixtures(unittest.TestCase):
             built = run('build', str(root), '--output', str(output),
                         '--no-essential-theme')
             self.assertEqual(built.returncode, 0, built.stderr)
-            self.assertIn('implicit builtin/standard presentation is unavailable',
-                          built.stderr)
             article = (output / 'a.html').read_text(encoding='utf-8')
             self.assertEqual(
                 [preset['selector'] for preset in self._presentation_data(article)['presets']],
@@ -9200,16 +9203,15 @@ class IdentityKitFixtures(unittest.TestCase):
             article = (output / 'a.html').read_text(encoding='utf-8')
             data = self._presentation_data(article)
             self.assertEqual([preset['selector'] for preset in data['presets']],
-                             [self.SELECTOR, 'builtin/standard'])
-            self.assertNotIn('<div class="lwp-presentation--studio">',
-                             data['variants']['builtin/standard']['sections']['a-cover'])
+                             ['builtin/standard'])
+            self.assertEqual(data['variants'], {})
 
     def test_runtime_presentation_unknown_selector_fails_before_output(self):
         with tempfile.TemporaryDirectory() as tmp:
             root, _primary, _other, _simple, _other_selector = self._runtime_series(tmp)
             series_path = root / 'series.json'
             series = json.loads(series_path.read_text(encoding='utf-8'))
-            series['presentation_presets'].append('missing@1.0.0/brief')
+            series['appearance']['presets'].append('missing@1.0.0/brief')
             series_path.write_text(json.dumps(series), encoding='utf-8')
             output = root / 'public'
             result = run('build', str(root), '--output', str(output),
@@ -9326,20 +9328,20 @@ class IdentityKitFixtures(unittest.TestCase):
                            'builtin/standard', env=env)
             self.assertEqual(selected.returncode, 0, selected.stderr)
             data = json.loads((series / 'series.json').read_text(encoding='utf-8'))
-            self.assertEqual(data['series_meta']['presentation_preset'],
-                             'builtin/standard')
+            self.assertEqual(data['appearance']['presets'],
+                             ['builtin/standard'])
             current = run('series', 'preset', str(series), '--format', 'json',
                           env=env)
             self.assertEqual(current.returncode, 0, current.stderr)
             current_report = json.loads(current.stdout)
             self.assertEqual(current_report['schema'], 'lightwebpres.series-preset/3')
             self.assertTrue(current_report['preset']['native_renderer'])
-            data['series_meta']['presentation_preset'] = 'default'
+            data['appearance']['presets'] = ['default']
             (series / 'series.json').write_text(json.dumps(data), encoding='utf-8')
             persisted = run('series', 'preset', str(series), env=env)
             self.assertNotEqual(persisted.returncode, 0)
             self.assertIn('presentation_preset must be builtin/standard, commons/id or id@version/preset',
-                          persisted.stderr)
+                           persisted.stderr)
 
     def test_init_preset_applies_or_skips_its_declared_starter(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -9359,8 +9361,7 @@ class IdentityKitFixtures(unittest.TestCase):
             self.assertEqual(initialized.returncode, 0, initialized.stderr)
             data = json.loads((with_starter / 'series.json').read_text(
                 encoding='utf-8'))
-            self.assertEqual(data['series_meta']['presentation_preset'],
-                             self.SELECTOR)
+            self.assertEqual(data['appearance']['presets'], [self.SELECTOR])
             self.assertTrue((with_starter / 'sources' / 'starter.md').is_file())
             self.assertTrue((with_starter / 'templates' / 'kits'
                               / self.KIT_ID / self.KIT_VERSION
@@ -9375,7 +9376,7 @@ class IdentityKitFixtures(unittest.TestCase):
             self.assertEqual(data['articles'], [])
             self.assertFalse((without_starter / 'sources' / 'starter.md').exists())
 
-    def test_series_preset_set_preserves_pins_and_requires_theme_choice(self):
+    def test_series_preset_set_preserves_pins_and_theme_selection(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             catalogue = root / 'catalogue'
@@ -9385,20 +9386,22 @@ class IdentityKitFixtures(unittest.TestCase):
             initialized = run('init', str(series), env=env)
             self.assertEqual(initialized.returncode, 0, initialized.stderr)
             settings = series / 'templates' / 'settings.conf'
-            settings.write_text('theme: nord\ncolor.page: #123456FF\n',
+            settings.write_text('color.page: #123456FF\n',
                                 encoding='utf-8')
-
-            ambiguous = run('series', 'preset', 'set', str(series), '--preset',
-                            self.SELECTOR, env=env)
-            self.assertNotEqual(ambiguous.returncode, 0)
-            self.assertIn('explicitly selects theme', ambiguous.stderr)
+            series_path = series / 'series.json'
+            data = json.loads(series_path.read_text(encoding='utf-8'))
+            data.setdefault('appearance', {})
+            data['appearance']['themes'] = ['nord']
+            series_path.write_text(json.dumps(data), encoding='utf-8')
 
             kept = run('series', 'preset', 'set', str(series), '--preset',
-                        self.SELECTOR, '--keep-theme', env=env)
+                        self.SELECTOR, env=env)
             self.assertEqual(kept.returncode, 0, kept.stderr)
-            self.assertIn('theme: nord', settings.read_text(encoding='utf-8'))
             self.assertIn('color.page: #123456FF',
                           settings.read_text(encoding='utf-8'))
+            data = json.loads(series_path.read_text(encoding='utf-8'))
+            self.assertEqual(data['appearance']['presets'], [self.SELECTOR])
+            self.assertEqual(data['appearance']['themes'], ['nord'])
             report = run('series', 'theme', str(series), '--format', 'json',
                          env=env)
             self.assertEqual(report.returncode, 0, report.stderr)
@@ -9408,25 +9411,16 @@ class IdentityKitFixtures(unittest.TestCase):
             self.assertIn('color.page', theme['target']['pinned'])
             self.assertEqual(theme['palette']['page'], '#123456FF')
 
-            revealed = run('series', 'preset', 'set', str(series), '--preset',
-                           self.SELECTOR, '--use-preset-theme', env=env)
-            self.assertEqual(revealed.returncode, 0, revealed.stderr)
-            settings_text = settings.read_text(encoding='utf-8')
-            self.assertNotIn('theme: nord', settings_text)
-            self.assertIn('color.page: #123456FF', settings_text)
-            report = run('series', 'theme', str(series), '--format', 'json',
-                         env=env)
-            self.assertEqual(report.returncode, 0, report.stderr)
-            theme = json.loads(report.stdout)
-            self.assertIsNone(theme['target']['theme'])
-            self.assertEqual(theme['target']['presentation_preset'], self.SELECTOR)
-            self.assertEqual(theme['palette']['page'], '#123456FF')
+            legacy = run('series', 'preset', 'set', str(series), '--preset',
+                         self.SELECTOR, '--keep-theme', env=env)
+            self.assertNotEqual(legacy.returncode, 0)
+            self.assertIn('legacy', legacy.stderr)
 
     def test_author_presentation_overrides_and_article_selection_are_rejected(self):
         cases = (
-            ('series layouts', 'series_meta', 'slide_layouts',
+            ('series layouts', 'appearance', 'slide_layouts',
              {'cover': 'default'}, 'slide_layouts'),
-            ('series chrome', 'series_meta', 'slide_chrome',
+            ('series chrome', 'appearance', 'slide_chrome',
              {'all': {'footer': 'Author footer'}}, 'slide_chrome'),
             ('article preset', 'article', 'presentation_preset', self.SELECTOR,
              'puts "presentation_preset" on an article'),
@@ -9438,8 +9432,8 @@ class IdentityKitFixtures(unittest.TestCase):
                 root, _identity_kit = self._selected_series(tmp)
                 series_path = root / 'series.json'
                 series = json.loads(series_path.read_text(encoding='utf-8'))
-                target = (series['series_meta'] if location == 'series_meta'
-                          else series['articles'][0])
+                target = (series.setdefault('appearance', {})
+                          if location == 'appearance' else series['articles'][0])
                 target[field] = value
                 series_path.write_text(json.dumps(series), encoding='utf-8')
                 result = run('build', str(root), '--output', str(root / 'public'))
@@ -9591,8 +9585,7 @@ class IdentityKitFixtures(unittest.TestCase):
                            self.SELECTOR, env=env)
             self.assertEqual(selected.returncode, 0, selected.stderr)
             data = json.loads((series / 'series.json').read_text(encoding='utf-8'))
-            self.assertEqual(data['series_meta']['presentation_preset'],
-                             self.SELECTOR)
+            self.assertEqual(data['appearance']['presets'], [self.SELECTOR])
             self.assertEqual(data['articles'], [])
             self.assertFalse((series / 'sources' / 'starter.md').exists())
 
@@ -9605,7 +9598,7 @@ class IdentityKitFixtures(unittest.TestCase):
             series = root / 'series'
             self.assertEqual(run('init', str(series), env=env).returncode, 0)
             settings = series / 'templates' / 'settings.conf'
-            settings.write_text('theme: nord\ncolor.page: #123456FF\n',
+            settings.write_text('color.page: #123456FF\n',
                                 encoding='utf-8')
             collision = (series / 'templates' / 'kits' / self.KIT_ID
                          / self.KIT_VERSION)
@@ -9616,7 +9609,7 @@ class IdentityKitFixtures(unittest.TestCase):
             before_settings = settings.read_bytes()
 
             result = run('series', 'preset', 'set', str(series), '--preset',
-                         self.SELECTOR, '--use-preset-theme', env=env)
+                         self.SELECTOR, env=env)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('already exists; refusing to replace', result.stderr)
             self.assertEqual(series_path.read_bytes(), before_series)
@@ -9681,7 +9674,8 @@ class RefreshTemplates(unittest.TestCase):
             self.assertIn('settings.conf (new, builtin/standard)', result.stdout)
             self.assertIn('custom.css (new, empty)', result.stdout)
             settings = (root / 'templates' / 'settings.conf').read_text(encoding='utf-8')
-            self.assertIn('# theme: <slug>', settings)
+            self.assertIn('# scaffold-for: builtin/standard', settings)
+            self.assertNotIn('theme:', settings)
             self.assertTrue((root / 'templates' / 'custom.css').exists())
 
     def test_an_edited_settings_conf_is_never_rewritten(self):
@@ -9742,12 +9736,14 @@ class ScaffoldRegeneration(unittest.TestCase):
                             encoding='utf-8')
             run('series', 'theme', 'set', tmp, '--theme', 'crimson')
             self.assertIn('# scaffold-for: evergreen', self._settings(root))
+            series = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            self.assertEqual(series['appearance']['themes'], ['crimson'])
 
             r = run('template', 'update', tmp, '--scaffold')
             self.assertEqual(r.returncode, 0, r.stderr)
             after = self._settings(root)
             self.assertIn('# scaffold-for: crimson', after)   # realigned
-            self.assertIn('\ntheme: crimson', after)
+            self.assertNotIn('\ntheme: crimson', after)
             self.assertIn('\nkicker.fg: call', after)            # pin kept
             self.assertIn('2 pinned value(s) kept'
                           if '2 pinned' in r.stdout else 'pinned value', r.stdout)
@@ -10029,24 +10025,24 @@ class BuildStamp(unittest.TestCase):
 
 
 class Themes(unittest.TestCase):
-    """§9/§11.1/§11.7: install --theme writes a settings.conf scaffold that
-    DECLARES the theme (`theme: <slug>` plus every property commented at
-    that theme's value), and build composes the themed stylesheet in memory
-    into every page. The substituted style.css, its theme marker and the
-    marker-reading upgrade path are gone: a theme is one line in a file the
-    author owns, so there is nothing left to re-substitute or misread."""
+    """§9/§11.1/§11.7: install --theme writes the selection in
+    series.json.appearance and a settings.conf scaffold showing that theme's
+    values. Build composes the themed stylesheet in memory into every page.
+    The substituted style.css, its theme marker and the marker-reading
+    upgrade path are gone."""
 
     def test_install_without_theme_leaves_the_theme_line_commented(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('init', str(root)).returncode, 0)
             settings = (root / 'templates' / 'settings.conf').read_text(encoding='utf-8')
-            # No theme chosen is a state, not an omission: the placeholder
-            # stays commented and the scaffold says whose values it shows.
-            self.assertIn('# theme: <slug>', settings)
-            self.assertIn('# scaffold-for: default', settings)
+            # No theme chosen is a state, not an omission: the scaffold says
+            # that it follows the native preset and carries no selector.
+            self.assertNotIn('theme:', settings)
+            self.assertIn('# scaffold-for: builtin/standard', settings)
             self.assertIn('# color.mark: #FFFC00', settings)
-            self.assertNotRegex(settings, re.compile(r'^theme:', re.MULTILINE))
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            self.assertNotIn('appearance', data)
 
     def test_install_with_valid_theme_declares_it_in_the_scaffold(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -10054,9 +10050,11 @@ class Themes(unittest.TestCase):
             result = run('init', str(root), '--theme', 'nord')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Nord', result.stdout)
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            self.assertEqual(data['appearance']['themes'], ['nord'])
             settings = (root / 'templates' / 'settings.conf').read_text(encoding='utf-8')
-            self.assertIn('\ntheme: nord\n', settings)
             self.assertIn('# scaffold-for: nord', settings)
+            self.assertNotRegex(settings, re.compile(r'^theme:', re.MULTILINE))
             # Commented values show the CHOSEN theme's palette, so the
             # author uncomments what they see, not the default's leftovers.
             self.assertIn('# color.mark: #EBCB8B', settings)
@@ -10496,14 +10494,14 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             [theme['slug'] for theme in data['themes']],
             ['default'] + list(self.lwp.THEMES))
 
-    def test_series_json_themes_selects_runtime_and_verify_reuses_it(self):
+    def test_series_json_appearance_themes_selects_runtime_and_verify_reuses_it(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('init', str(root)).returncode, 0)
             self.assertEqual(run('demo', str(root)).returncode, 0)
             series = json.loads(
                 (root / 'series.json').read_text(encoding='utf-8'))
-            series['themes'] = ['essential']
+            series['appearance'] = {'themes': ['essential']}
             (root / 'series.json').write_text(
                 json.dumps(series), encoding='utf-8')
 
@@ -10518,28 +10516,27 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             verify = run('verify', str(root))
             self.assertEqual(verify.returncode, 0, verify.stderr)
 
-    def test_cli_themes_overrides_series_json_themes(self):
+    def test_cli_themes_overrides_series_json_appearance(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('init', str(root)).returncode, 0)
             self.assertEqual(run('demo', str(root)).returncode, 0)
             series = json.loads(
                 (root / 'series.json').read_text(encoding='utf-8'))
-            series['themes'] = ['essential']
+            series['appearance'] = {'themes': ['essential']}
             (root / 'series.json').write_text(
                 json.dumps(series), encoding='utf-8')
 
-            result = run('build', str(root), '--themes', 'print-grey')
+            result = run('build', str(root), '--themes', 'print-grey,essential')
             self.assertEqual(result.returncode, 0, result.stderr)
             data = self._data(
                 (root / 'public' / 'index.html').read_text(encoding='utf-8'))
             # essential is always embedded unless --no-essential-theme
             self.assertEqual(
                 [theme['slug'] for theme in data['themes']],
-                ['builtin:light', 'monochrome', 'monochrome-night', 'print-ink',
-                 'print-grey'])
+                ['print-grey', 'monochrome', 'monochrome-night', 'print-ink'])
 
-    def test_series_json_themes_requires_a_non_empty_list_of_strings(self):
+    def test_series_json_appearance_themes_requires_a_non_empty_list_of_strings(self):
         for invalid in ('essential', [], [''], ['essential', 4]):
             with self.subTest(invalid=invalid):
                 with tempfile.TemporaryDirectory() as tmp:
@@ -10548,41 +10545,41 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
                     self.assertEqual(run('demo', str(root)).returncode, 0)
                     series = json.loads(
                         (root / 'series.json').read_text(encoding='utf-8'))
-                    series['themes'] = invalid
+                    series['appearance'] = {'themes': invalid}
                     (root / 'series.json').write_text(
                         json.dumps(series), encoding='utf-8')
                     result = run('build', str(root))
                     self.assertNotEqual(result.returncode, 0)
-                    self.assertIn('series.json: "themes"', result.stderr)
+                    self.assertIn('series.json: "appearance.themes"', result.stderr)
 
-    def test_series_json_themes_rejects_an_unknown_selector(self):
+    def test_series_json_appearance_themes_rejects_an_unknown_selector(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('init', str(root)).returncode, 0)
             self.assertEqual(run('demo', str(root)).returncode, 0)
             series = json.loads(
                 (root / 'series.json').read_text(encoding='utf-8'))
-            series['themes'] = ['background:purple']
+            series['appearance'] = {'themes': ['background:purple']}
             (root / 'series.json').write_text(
                 json.dumps(series), encoding='utf-8')
             result = run('build', str(root))
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn('series.json: "themes"', result.stderr)
+            self.assertIn('series.json: appearance.themes', result.stderr)
             self.assertIn('unknown polarity value', result.stderr)
 
-    def test_invalid_series_json_themes_are_not_hidden_by_cli_override(self):
+    def test_invalid_series_json_appearance_is_not_hidden_by_cli_override(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('init', str(root)).returncode, 0)
             self.assertEqual(run('demo', str(root)).returncode, 0)
             series = json.loads(
                 (root / 'series.json').read_text(encoding='utf-8'))
-            series['themes'] = 'not-a-list'
+            series['appearance'] = {'themes': 'not-a-list'}
             (root / 'series.json').write_text(
                 json.dumps(series), encoding='utf-8')
             result = run('build', str(root), '--themes', 'print-grey')
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn('series.json: "themes"', result.stderr)
+            self.assertIn('series.json: "appearance.themes"', result.stderr)
 
     def test_unknown_runtime_theme_is_a_named_property_error(self):
         with self.assertRaises(self.lwp.PropertyError) as caught:
@@ -10590,7 +10587,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
         self.assertIn('--themes', str(caught.exception))
         self.assertIn('not-a-theme', str(caught.exception))
 
-    def test_watch_reloads_series_json_themes(self):
+    def test_watch_reloads_series_json_appearance_themes(self):
         import signal
         import subprocess as sp
         import threading as _threading
@@ -10624,7 +10621,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
                                 'watch did not enter its polling loop')
                 series = json.loads(
                     (root / 'series.json').read_text(encoding='utf-8'))
-                series['themes'] = ['essential']
+                series['appearance'] = {'themes': ['essential']}
                 (root / 'series.json').write_text(
                     json.dumps(series), encoding='utf-8')
                 self.assertTrue(wait_for('[watch] rebuilt.'),
@@ -10644,19 +10641,18 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
                 proc.stdout.close()
                 proc.stderr.close()
 
-    def test_build_reads_a_modified_settings_theme_and_keeps_it(self):
+    def test_build_reads_a_modified_series_theme_and_keeps_it(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(
                 run('init', str(root), '--theme', 'print-ink').returncode, 0)
             self.assertEqual(run('demo', str(root)).returncode, 0)
-            settings = root / 'templates' / 'settings.conf'
-            text = settings.read_text(encoding='utf-8')
-            settings.write_text(
-                text.replace('theme: print-ink',
-                             'theme: print-oldpress-red-ribbon'),
-                encoding='utf-8')
-            result = run('build', str(root), '--themes', 'print-grey')
+            series_path = root / 'series.json'
+            series = json.loads(series_path.read_text(encoding='utf-8'))
+            series['appearance']['themes'] = [
+                'print-oldpress-red-ribbon', 'essential', 'print-grey']
+            series_path.write_text(json.dumps(series), encoding='utf-8')
+            result = run('build', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             data = self._data(
                 (root / 'public' / 'index.html').read_text(encoding='utf-8'))
@@ -10664,8 +10660,8 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             self.assertEqual(
                 [theme['slug'] for theme in data['themes']],
                 ['print-oldpress-red-ribbon', 'monochrome', 'monochrome-night',
-                 'print-ink', 'print-grey', 'builtin:light'])
-            verify = run('verify', str(root), '--themes', 'print-grey')
+                 'print-ink', 'print-grey'])
+            verify = run('verify', str(root))
             self.assertEqual(verify.returncode, 0, verify.stderr)
 
     def test_settings_variant_and_custom_css_variables_have_separate_runtime_roles(self):
@@ -10679,20 +10675,22 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
                 'color.ink: #123456\n', encoding='utf-8')
             (root / 'templates' / 'custom.css').write_text(
                 ':root { --color-mark: #ABCDEF; }\n', encoding='utf-8')
-            result = run('build', str(root), '--themes', 'print-ink')
+            result = run('build', str(root), '--themes', 'print-ink,essential')
             self.assertEqual(result.returncode, 0, result.stderr)
             data = self._data(
                 (root / 'public' / 'index.html').read_text(encoding='utf-8'))
+            self.assertIsNotNone(data)
             pinned = {data['vars'][index] for index in data['pinned']}
-            self.assertEqual(data['primary'], 'custom(builtin:light)')
+            self.assertEqual(data['primary'], 'custom(print-ink)')
             self.assertEqual(
                 [theme['slug'] for theme in data['themes'][:2]],
-                ['custom(builtin:light)', 'builtin:light'])
+                ['custom(print-ink)', 'print-ink'])
             self.assertNotIn('--color-ink', pinned)
             self.assertIn('--color-mark', pinned)
             ink_index = data['vars'].index('--color-ink')
             self.assertEqual(
-                dict(data['themes'][1]['values'])[ink_index], '#1A1A2EFF')
+                dict(data['themes'][1]['values'])[ink_index],
+                self.lwp._theme_runtime_resolved('print-ink')['color.ink'])
 
     def test_help_names_runtime_theme_switching_and_carries_the_version_stamp(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -11265,13 +11263,13 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
             m = re.match(r'# ([a-z][\w.-]*): (.*)$', line)
             if m and m.group(1) in self.lwp.PROPERTY_REGISTRY:
                 uncommented.append(f'{m.group(1)}: {m.group(2)}')
-        theme, props = self.lwp.parse_settings_text(
-            'theme: nord\n' + '\n'.join(uncommented))
+        theme, props = self.lwp.parse_settings_text('\n'.join(uncommented))
+        self.assertIsNone(theme)
         self.assertEqual(len(props), len(self.lwp.PROPERTY_REGISTRY))
         # Every scaffolded value goes through the real cascade and type
         # check without an error — uncommenting can never be a trap.
         self.lwp.resolve_theme_properties(
-            self.lwp.theme_property_layer(theme), props)
+            self.lwp.theme_property_layer('nord'), props)
 
     def test_help_documents_the_emphasis_property_and_derived_count(self):
         result = run('--help')
@@ -12390,8 +12388,9 @@ class MeasurementReportsItDoesNotPolice(unittest.TestCase):
                 made = run('init', series, '--theme', slug)
                 self.assertEqual(made.returncode, 0,
                                  f'`init --theme {slug}` was refused: {made.stderr}')
-                settings = Path(series) / 'templates' / 'settings.conf'
-                self.assertIn(f'theme: {slug}', settings.read_text(encoding='utf-8'))
+                series_data = json.loads(
+                    (Path(series) / 'series.json').read_text(encoding='utf-8'))
+                self.assertEqual(series_data['appearance']['themes'], [slug])
                 changed = run('series', 'theme', 'set', series, '--theme', slug)
                 self.assertEqual(changed.returncode, 0,
                                  f'`series theme set --theme {slug}` was refused: '
@@ -13496,8 +13495,16 @@ class ExternalThemeCatalogue(unittest.TestCase):
             series = root / 'series'
 
             for argv in (('init', str(series), '--theme', 'custom'),
-                         ('demo', str(series)),
-                         ('build', str(series))):
+                         ):
+                result = run(*argv, env=env)
+                self.assertEqual(result.returncode, 0,
+                                 f'`{" ".join(argv)}`: {result.stderr}')
+
+            series_path = series / 'series.json'
+            series_data = json.loads(series_path.read_text(encoding='utf-8'))
+            series_data['appearance']['themes'] = ['custom', 'essential']
+            series_path.write_text(json.dumps(series_data), encoding='utf-8')
+            for argv in (('demo', str(series)), ('build', str(series))):
                 result = run(*argv, env=env)
                 self.assertEqual(result.returncode, 0,
                                  f'`{" ".join(argv)}`: {result.stderr}')
@@ -13541,23 +13548,25 @@ class ExternalThemeCatalogue(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
             env = self._env(Path(tmp))
-            self.assertEqual(run('init', str(root), '--theme', 'nord', env=env).returncode,
+            self.assertEqual(run('init', str(root), env=env).returncode,
                              0)
             settings = root / 'templates' / 'settings.conf'
             settings.write_text(
-                settings.read_text(encoding='utf-8')
+                'theme: nord\n' + settings.read_text(encoding='utf-8')
                 + 'color.page: #102030\npage.bg:\nold.property: keep-me\n',
                 encoding='utf-8')
 
             result = run('theme', 'migrate', str(root), env=env)
             self.assertEqual(result.returncode, 0, result.stderr)
             migrated = settings.read_text(encoding='utf-8')
-            self.assertIn('theme: nord', migrated)
+            self.assertNotIn('\ntheme: nord', '\n' + migrated)
             self.assertIn('color.page: #102030', migrated)
             self.assertIn(self.lwp.SETTINGS_RETIRED_MARKER, migrated)
             self.assertIn('# old.property: keep-me', migrated)
             self.assertNotIn('\npage.bg:', migrated)
             self.assertNotIn('\nold.property:', migrated)
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            self.assertEqual(data['appearance']['themes'], ['nord'])
 
     def test_vendor_makes_a_series_independent_of_the_user_catalogue(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -13620,13 +13629,13 @@ class ExternalThemeCatalogue(unittest.TestCase):
 
 class SetThemeCommand(unittest.TestCase):
     """§11.10 under the §9 rewrite: changing theme is changing one word.
-    set-theme rewrites THE `theme:` line of settings.conf and nothing
-    else. Everything the old implementation guarded against — half
+    `series theme set` rewrites only the `appearance.themes` declaration in
+    series.json. Everything the old implementation guarded against — half
     recoloured files, markers claiming themes a file does not carry,
-    --force — existed only because the tool wrote into the file the
-    author edits; those tests are retired with the mechanisms, and what
-    they ultimately protected (never destroy the author's work) is now
-    asserted directly, byte for byte."""
+    --force — existed only because the tool wrote into the file the author
+    edits; those tests are retired with the mechanisms, and what they
+    ultimately protected (never destroy the author's work) is now asserted
+    directly, byte for byte."""
 
     def setUp(self):
         self.lwp = load_lightwebpres_module()
@@ -13640,46 +13649,46 @@ class SetThemeCommand(unittest.TestCase):
                                  encoding='utf-8')
 
     def test_set_theme_rewrites_the_theme_line_and_nothing_else(self):
-        """The one write the tool is allowed in an author-owned file.
-        Asserted line by line on a file carrying an author's uncommented
-        value: everything but the `theme:` line must survive byte for
-        byte — including that pinned line."""
+        """The one write is the series appearance declaration.
+        settings.conf carries an author's uncommented value and must survive
+        byte for byte, because it is not the selection surface."""
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(run('init', tmp, '--theme', 'nord').returncode, 0)
             settings = Path(tmp) / 'templates' / 'settings.conf'
             self._uncomment(settings, '# color.mark: #EBCB8B', 'color.mark: #EBCB8B')
-            before = settings.read_text(encoding='utf-8').splitlines()
+            settings_before = settings.read_text(encoding='utf-8')
+            series_path = Path(tmp) / 'series.json'
+            before = json.loads(series_path.read_text(encoding='utf-8'))
 
             result = run('series', 'theme', 'set', tmp, '--theme', 'evergreen')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Theme changed: nord -> evergreen', result.stdout)
 
-            after = settings.read_text(encoding='utf-8').splitlines()
-            self.assertEqual(len(before), len(after))
-            changed = [(a, b) for a, b in zip(before, after) if a != b]
-            self.assertEqual(changed, [('theme: nord', 'theme: evergreen')])
+            after = json.loads(series_path.read_text(encoding='utf-8'))
+            self.assertEqual(after['appearance']['themes'], ['evergreen'])
+            before['appearance']['themes'] = ['evergreen']
+            self.assertEqual(after, before)
+            self.assertEqual(settings.read_text(encoding='utf-8'), settings_before)
 
-    def test_set_theme_allows_an_external_settings_symlink(self):
+    def test_set_theme_refuses_an_external_series_symlink(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(run('init', tmp, '--theme', 'nord').returncode, 0)
-            settings = Path(tmp) / 'templates' / 'settings.conf'
-            outside = Path(tmp) / 'outside-settings.conf'
-            outside.write_text(
-                'theme: nord\n# OUTSIDE-SETTINGS-SECRET\n', encoding='utf-8')
+            series = Path(tmp) / 'series.json'
+            outside = Path(tmp) / 'outside-series.json'
+            original = series.read_text(encoding='utf-8')
+            outside.write_text(original, encoding='utf-8')
             try:
-                settings.unlink()
-                settings.symlink_to(outside)
+                series.unlink()
+                series.symlink_to(outside)
             except OSError:
                 self.skipTest('symlinks unavailable on this filesystem')
 
             result = run('series', 'theme', 'set', tmp, '--theme', 'evergreen')
 
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertFalse(settings.is_symlink())
-            self.assertIn('theme: evergreen', settings.read_text(encoding='utf-8'))
-            self.assertEqual(
-                outside.read_text(encoding='utf-8'),
-                'theme: nord\n# OUTSIDE-SETTINGS-SECRET\n')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('symlink', result.stderr)
+            self.assertTrue(series.is_symlink())
+            self.assertEqual(outside.read_text(encoding='utf-8'), original)
 
     def test_setting_the_theme_already_in_place_writes_nothing(self):
         """Idempotence is a promise about the disk, not the message, so
@@ -13696,10 +13705,8 @@ class SetThemeCommand(unittest.TestCase):
             self.assertEqual(settings.stat().st_mtime_ns, before_mtime)
 
     def test_repeated_theme_changes_keep_the_file_stable(self):
-        """The old rewrite accumulated a blank line per run until
-        set-theme demanded --force against its own output. The new one
-        replaces a line in place, so any number of round trips must come
-        back to the exact installed file."""
+        """Theme changes never rewrite the author-owned property file, so
+        any number of round trips leaves it byte-for-byte stable."""
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(run('init', tmp, '--theme', 'nord').returncode, 0)
             settings = Path(tmp) / 'templates' / 'settings.conf'
@@ -13713,19 +13720,22 @@ class SetThemeCommand(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             result = run('series', 'theme', 'set', tmp, '--theme', 'nord')
             self.assertEqual(result.returncode, 1)
-            self.assertIn('Run init first', result.stderr)
+            self.assertIn('Run `lightwebpres init', result.stderr)
 
-    def test_templates_without_settings_gets_a_fresh_scaffold(self):
+    def test_templates_without_settings_keeps_the_property_file_absent(self):
         """A series installed before the rewrite has templates/ but no
-        settings.conf: nothing to preserve, so a full scaffold for the
-        chosen theme is written — the same file install --theme writes."""
+        settings.conf: the declaration changes without creating an
+        author-owned property file."""
         with tempfile.TemporaryDirectory() as tmp:
-            (Path(tmp) / 'templates').mkdir()
+            root = Path(tmp)
+            root.joinpath('templates').mkdir()
+            (root / 'series.json').write_text(
+                json.dumps({'articles': []}), encoding='utf-8')
             result = run('series', 'theme', 'set', tmp, '--theme', 'nord')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('fresh settings.conf written', result.stdout)
-            written = (Path(tmp) / 'templates' / 'settings.conf').read_text(encoding='utf-8')
-            self.assertEqual(written, self.lwp.build_settings_scaffold('nord'))
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            self.assertEqual(data['appearance']['themes'], ['nord'])
+            self.assertFalse((root / 'templates' / 'settings.conf').exists())
 
     def test_a_missing_theme_option_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -13746,8 +13756,8 @@ class SetThemeCommand(unittest.TestCase):
                           unknown.stderr)
 
     def test_the_default_theme_is_named_default_in_that_message(self):
-        """A file with no theme line is on the default theme, which is an
-        answer to "replaced by what" — not a missing value to elide."""
+        """An appearance that follows its preset reports `default`, which
+        answers "replaced by what" without exposing an implementation id."""
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(run('init', tmp).returncode, 0)
             result = run('series', 'theme', 'set', tmp, '--theme', 'crimson')
@@ -13755,23 +13765,19 @@ class SetThemeCommand(unittest.TestCase):
             self.assertIn('Theme changed: default -> crimson', result.stdout)
 
     def test_the_commented_placeholder_is_uncommented_in_place(self):
-        """On a default install the scaffold carries `# theme: <slug>`.
-        set-theme must turn THAT line into the declaration rather than
-        prepend a second one — otherwise the file grows a line per first
-        change and the placeholder keeps advertising a choice already
-        made. Line-diffed against the scaffold, same discipline as the
-        themed case."""
+        """On a default install the property scaffold has no selection.
+        `series theme set` writes the declaration in series.json and leaves
+        that author-owned file untouched."""
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(run('init', tmp).returncode, 0)
             settings = Path(tmp) / 'templates' / 'settings.conf'
-            before = settings.read_text(encoding='utf-8').splitlines()
+            before = settings.read_text(encoding='utf-8')
+            series_path = Path(tmp) / 'series.json'
             self.assertEqual(run('series', 'theme', 'set', tmp, '--theme', 'crimson').returncode, 0)
-            after = settings.read_text(encoding='utf-8').splitlines()
-            self.assertEqual(len(before), len(after))
-            changed = [(a, b) for a, b in zip(before, after) if a != b]
-            self.assertEqual(len(changed), 1)
-            self.assertTrue(changed[0][0].startswith('# theme: <slug>'), changed)
-            self.assertEqual(changed[0][1], 'theme: crimson')
+            after = settings.read_text(encoding='utf-8')
+            self.assertEqual(after, before)
+            data = json.loads(series_path.read_text(encoding='utf-8'))
+            self.assertEqual(data['appearance']['themes'], ['crimson'])
 
     def test_build_after_set_theme_emits_the_new_palette(self):
         """Changing the word must change the pages: the sheet is composed
@@ -13808,16 +13814,15 @@ class SetThemeCommand(unittest.TestCase):
             self.assertNotIn('#EBCB8B', static_css)
 
     def test_the_change_message_says_commented_values_show_the_old_theme(self):
-        """The scaffold's comments age when the theme changes, and the
-        remedy is to SAY so, never to rewrite the author's file — the
-        message is that promise, made audible at the moment it starts
-        being true."""
+        """The scaffold's comments are not rewritten when the theme changes;
+        the command explains that the selection moved and pins remain safe."""
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(run('init', tmp, '--theme', 'nord').returncode, 0)
             result = run('series', 'theme', 'set', tmp, '--theme', 'evergreen')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('Commented values still show the previous theme', result.stdout)
-            self.assertIn('uncommented values are untouched', result.stdout.lower())
+            self.assertIn('selection now lives in series.json appearance.themes',
+                          result.stdout)
+            self.assertIn('settings.conf pins are untouched', result.stdout)
 
 
 class DefaultStylesheetCoverage(unittest.TestCase):
@@ -19664,8 +19669,9 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
         version = run('--help').stdout.split('LightWebPres v', 1)[1].split(' ', 1)[0]
         self.assertEqual(report['lightwebpres_version'], version)
         self.assertEqual(set(report), {'schema', 'lightwebpres_version',
-                                       'target', 'series_meta', 'presentation',
-                                       'counts', 'tags', 'articles'})
+                                       'target', 'appearance', 'series_meta',
+                                       'presentation', 'counts', 'tags',
+                                       'articles'})
         self.assertEqual(set(report['target']),
                          {'kind', 'directory', 'theme', 'presentation_preset'})
         self.assertEqual(report['target']['kind'], 'series')
@@ -19675,10 +19681,10 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
         self.assertEqual(set(report['series_meta']),
                           {'title', 'subtitle', 'version', 'intro', 'author',
                             'license', 'default_tag', 'scroll_duration',
-                            'lang_tags', 'notes_placement', 'notes_tooltip',
-                             'slide_page_numbers', 'slug_prefix',
-                            'presentation_preset', 'reading', 'selectors',
-                            'unit_index', 'unit_index_max_columns', 'unit_index_selector'})
+                             'lang_tags', 'notes_placement', 'notes_tooltip',
+                              'slide_page_numbers', 'slug_prefix',
+                             'reading', 'selectors',
+                             'unit_index', 'unit_index_max_columns', 'unit_index_selector'})
         self.assertEqual(set(report['presentation']),
                          {'schema', 'selector', 'id', 'label', 'description',
                            'native_renderer', 'identity', 'theme', 'slide_layouts',
@@ -19992,7 +19998,8 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
                '<!-- lwp:slide:cover -->\nslug: k261\nkicker: Tag\n# {heading}\n'
                'summary: {summary}\n')
 
-    def _series(self, tmp, entries, sources, series_meta=None, settings=None):
+    def _series(self, tmp, entries, sources, series_meta=None, settings=None,
+                appearance=None):
         root = Path(tmp)
         (root / 'sources').mkdir(parents=True, exist_ok=True)
         for name, text in sources.items():
@@ -20000,6 +20007,8 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
         data = {'articles': entries}
         if series_meta is not None:
             data['series_meta'] = series_meta
+        if appearance is not None:
+            data['appearance'] = appearance
         (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
         if settings is not None:
             (root / 'templates').mkdir(exist_ok=True)
@@ -20007,12 +20016,13 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
                 settings, encoding='utf-8')
         return root
 
-    def _one_article(self, tmp, meta='', entry=None, **kwargs):
+    def _one_article(self, tmp, meta='', entry=None, appearance=None, **kwargs):
         sources = {'intro.md': self.ARTICLE.format(
             meta=meta, heading='Where it begins',
             summary='A first look at the whole thing.')}
         return self._series(tmp, [dict({'page_source': 'intro.md'},
-                                       **(entry or {}))], sources, **kwargs)
+                                       **(entry or {}))], sources,
+                            appearance=appearance, **kwargs)
 
     def _resolve(self, root, *args):
         result = run('resolve', str(root), *args, '--format', 'json')
@@ -20058,7 +20068,11 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             explicit = self._one_article(
-                tmp, series_meta={'presentation_preset': 'builtin/standard'})
+                tmp)
+            series_path = Path(explicit) / 'series.json'
+            config = json.loads(series_path.read_text(encoding='utf-8'))
+            config['appearance'] = {'presets': ['builtin/standard']}
+            series_path.write_text(json.dumps(config), encoding='utf-8')
             report = self._resolve(explicit, 'presentation_preset')
             self.assertEqual(report['query']['kind'], 'series-field')
             self.assertEqual(report['resolution']['value'], 'builtin/standard')
@@ -20120,7 +20134,8 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
         while proving nothing about losing levels."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._one_article(
-                tmp, settings='theme: nord\nnote.fg: call\n')
+                tmp, settings='note.fg: call\n',
+                appearance={'themes': ['nord']})
             levels = self._levels(self._resolve(root, 'note.fg'))
             self.assertTrue(levels['settings']['winner'])
             self.assertEqual(levels['settings']['value'], 'call')
@@ -20140,7 +20155,8 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
         file, the author can see it, and it does nothing."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._one_article(
-                tmp, settings='theme: nord\n# kicker.fg: call\n')
+                tmp, settings='# kicker.fg: call\n',
+                appearance={'themes': ['nord']})
             report = self._resolve(root, 'kicker.fg')
             levels = self._levels(report)
             self.assertFalse(levels['settings']['present'])
@@ -20149,7 +20165,8 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
 
     def test_an_instance_tag_is_named_in_the_chain_and_never_wins(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = self._one_article(tmp, settings='theme: nord\n')
+            root = self._one_article(tmp, settings='',
+                                     appearance={'themes': ['nord']})
             instance = self._levels(self._resolve(root, 'kicker.fg'))['instance']
             self.assertFalse(instance['winner'])
             self.assertFalse(instance['present'])
@@ -20160,7 +20177,8 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
     def test_the_article_layer_is_absent_until_article_is_passed(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._one_article(
-                tmp, meta='style.kicker.fg: #123456\n', settings='theme: nord\n')
+                tmp, meta='style.kicker.fg: #123456\n', settings='',
+                appearance={'themes': ['nord']})
 
             without = self._levels(self._resolve(root, 'kicker.fg'))['article']
             self.assertFalse(without['present'])
@@ -20176,7 +20194,8 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
     def test_a_reference_is_followed_and_the_hops_are_named(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._one_article(
-                tmp, settings='theme: nord\nkicker.fg: call\n')
+                tmp, settings='kicker.fg: call\n',
+                appearance={'themes': ['nord']})
             resolution = self._resolve(root, 'kicker.fg')['resolution']
             self.assertEqual(resolution['hops'], ['color.call'],
                              'a bare word is a reference (§9.2); showing only '
@@ -20380,7 +20399,8 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
 
     def test_it_writes_nothing_at_all(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = self._one_article(tmp, settings='theme: nord\n')
+            root = self._one_article(tmp, settings='',
+                                     appearance={'themes': ['nord']})
             before = {p: p.read_bytes() for p in root.rglob('*') if p.is_file()}
             for args in (('kicker.fg',), ('fact-label',),
                          ('page_title', '--article', 'intro.md')):
@@ -20429,7 +20449,8 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
     def test_the_text_format_shows_the_losing_levels_too(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._one_article(
-                tmp, settings='theme: nord\nkicker.fg: call\n')
+                tmp, settings='kicker.fg: call\n',
+                appearance={'themes': ['nord']})
             result = run('resolve', str(root), 'kicker.fg')
             self.assertEqual(result.returncode, 0, result.stderr)
             for level in ('instance', 'article', 'settings', 'theme', 'default'):

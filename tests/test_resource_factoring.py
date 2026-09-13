@@ -109,8 +109,9 @@ class ResourceFactoring(unittest.TestCase):
         manifest['presets']['compact']['label'] = 'Compact'
         manifest['presets']['compact']['slide_layouts']['cover'] = 'hero'
         (identity_kit / 'manifest.json').write_text(json.dumps(manifest))
-        self.series['series_meta']['presentation_preset'] = 'lightwebpres-docs@0.1.0/docs'
-        self.series['presentation_presets'] = ['lightwebpres-docs@0.1.0/compact', 'builtin/standard']
+        self.series['appearance'] = {'presets': [
+            'lightwebpres-docs@0.1.0/docs',
+            'lightwebpres-docs@0.1.0/compact', 'builtin/standard']}
         self.save()
 
     def cli(self, command, output, *options):

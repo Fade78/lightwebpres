@@ -211,10 +211,12 @@ holding directory or mistake a historical measurement for a current guarantee
 
 ## Conventions
 
-- **Identity / Preset / Theme** : l'identité est déduite de l'unique référence
-  `series_meta.presentation_preset` (`builtin/standard`, `commons/id` ou
-  `id@version/preset`). Le label d'identité est fixe ; le défaut désigne une
-  sélection, pas une identité. Les kits autonomes suivent
+- **Identity / Preset / Theme** : l'identité est déduite de chaque référence de
+  `appearance.presets` (`builtin/standard`, `commons/id` ou
+  `id@version/preset`). Le premier item est le choix initial et les suivants
+  sont des alternatives explicites ; le label d'identité est fixe et le défaut
+  désigne une sélection, pas une identité. `appearance.themes` porte la
+  politique de thème initiale et ses alternatives. Les kits autonomes suivent
   `lightwebpres.identity-kit/1`, sous `kits/` ou `templates/kits/`, avec
   `LWP_IDENTITY_KITS_DIR`. Commons garde les thèmes dans `themes/`
   (`LWP_THEMES_DIR`) et les presets dans `commons/presets/` (`LWP_COMMONS_DIR`).

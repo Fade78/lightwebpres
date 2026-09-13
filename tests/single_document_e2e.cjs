@@ -36,7 +36,7 @@ const { pathToFileURL } = require('node:url');
     cli('init', series);
     fs.writeFileSync(path.join(series, 'series.json'), JSON.stringify({
       series_meta: {title: 'Single document probe'},
-      presentation_presets: ['lightwebpres-docs@0.1.0/docs'],
+      appearance: {presets: ['builtin/standard', 'lightwebpres-docs@0.1.0/docs']},
       articles: [{page_source: 'a.md', page_dest: 'a.html'},
         {page_source: 'b.md', page_dest: 'b.html'}],
     }));
@@ -433,7 +433,7 @@ ${name === 'b' ? '<table id="scroll-table" style="min-width: 1600px"><tr><td>Wid
     cli('init', fitting);
     fs.writeFileSync(path.join(fitting, 'series.json'), JSON.stringify({
       series_meta: {title: 'Scope and frame', reading: {text_fit: 'uniform'}},
-      presentation_presets: ['lightwebpres-docs@0.1.0/docs'],
+      appearance: {presets: ['builtin/standard', 'lightwebpres-docs@0.1.0/docs']},
       articles: ['sparse', 'measured', 'gated'].map(name => ({page_source: name + '.md', page_dest: name + '.html'})),
     }));
     fs.writeFileSync(path.join(fitting, 'sources/sparse.md'), `<!-- lwp:meta -->

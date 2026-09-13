@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 10 · **à faire** 0 · **en cours** 3 · **terminé** 57 · **abandonné** 1 · **sans objet** 3
+**à étudier** 10 · **à faire** 0 · **en cours** 2 · **terminé** 58 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -120,7 +120,6 @@ gets its own entry and its own state**, however small.
 
 - **B62** — Le cover Lava reste sauvegardé dans Lava hot
 - **B67** — Logical units, scoped selectors and resolution policies
-- **B69** — Canonical theme-resource index and appearance resolution
 
 ### terminé
 
@@ -180,6 +179,7 @@ gets its own entry and its own state**, however small.
 - **B61** — Le redimensionnement repositionne la fiche courante
 - **B63** — Le lecteur peut changer d'enveloppe sans changer de source
 - **B68** — Identity Kit vocabulary and native identity boundary
+- **B69** — Canonical theme-resource index and appearance resolution
 - **B70** — Publication planning and revision-bound GitLab snapshots
 
 ### abandonné
@@ -3496,7 +3496,7 @@ all classes passed except the pre-existing documentation-link check for
 
 ## B69 — Canonical theme-resource index and appearance resolution
 
-**État :** en cours · **Depuis :** 2026-09-12
+**État :** terminé · **Depuis :** 2026-09-13
 
 The theme system has two valid internal representations that must not be
 collapsed. `THEMES` remains the palette table for the embedded colour
@@ -3511,19 +3511,25 @@ entry was an intermediate design, superseded by the owner's clarification below.
 The display entry is derived from the resolved native layer; the composition
 layer retains references.
 
-The broader appearance contract remains open: `series.json.appearance`, the
-distinction between initial choice and published alternatives, `ALL` and
-`ESSENTIAL`, settings migration, and publication-presence semantics. Loading
-origin is settled by the owner clarification below. Those decisions must consume this index
-rather than reconstructing a second catalogue in the build or browser.
+The owner subsequently made the appearance contract canonical: the root
+`series.json.appearance` object carries ordered `presets` and `themes` lists.
+The first preset is the initial presentation and later entries are explicit
+alternatives; the first theme token sets the initial theme policy. This
+supersedes B68's historical persisted-preset spelling, while `articles[]`,
+`page_source`, `page_dest` and related article fields remain unchanged. `ALL`,
+`ESSENTIAL` and settings migration are part of this contract; publication
+presence semantics remain a separate concern. Loading origin is settled by the
+owner clarification below. All appearance decisions consume this index rather
+than reconstructing a second catalogue in the build or browser.
 
 The runtime increment now derives theme resource ids from their owning identity
 and preset instead of reconstructing a second native id. `builtin:light` is the
 single native runtime resource, including custom variants and `all`; a local
 bare `light` and themes owned by real kits remain distinct. Browser tests cover
 unique native choices with both native and Commons presets, settings pins,
-desktop/mobile layouts and both interface languages. Broader appearance
-configuration and publication-selection policy remain open.
+desktop/mobile layouts and both interface languages. Appearance configuration
+is now represented by `series.json.appearance`; publication-selection policy
+remains separate.
 
 **Owner clarification after 0.59.2:** all shipped themes are built-in. Listing
 only Light with a qualified prefix mixed identity ownership and loading origin.
@@ -3550,8 +3556,8 @@ before writes and rejects two distinct resources claiming one filename, even
 with `--force` or an already-local selected snapshot.
 
 `theme list --origin` filters effective global entries after precedence; it does
-not load series roots implicitly. Series operations add their own layer. The
-broader `appearance` configuration and publication policy remain open in B69.
+not load series roots implicitly. Series operations add their own layer.
+Publication policy outside the appearance lists remains separate from B69.
 
 This clarification and consistency pass were verified on 2026-09-12 with 1,478
 tests across 233 classes and 8 workers, without failures or skips. Dedicated
@@ -3559,6 +3565,13 @@ regressions cover origin-order independence, bare/forced native selection,
 installed/user/series collisions, runtime identity deduplication, Commons
 portability, standalone helpers, directory disambiguation and vendor conflicts.
 An independent re-review found no remaining material issue in these paths.
+
+The canonical-appearance documentation and example sweep is complete. The
+executable, tests, active product references and generated examples now use
+the root `appearance` contract. The product/documentation captures and golden
+demo were regenerated from those sources and inspected. The final verification
+passed 1,478 tests across 233 classes with 8 workers, alongside the capture
+freshness guards and guide regeneration.
 
 ## B70 — Publication planning and revision-bound GitLab snapshots
 

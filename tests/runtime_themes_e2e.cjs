@@ -273,8 +273,8 @@ async function main() {
     ink: getComputedStyle(document.documentElement).getPropertyValue('--color-ink').trim(),
     stored: sessionStorage.length,
   }));
-  if (switched.open || switched.stored !== 1
-      || switched.ink.toLowerCase().indexOf('#000000') !== 0) {
+   if (switched.open || switched.stored !== 1
+       || switched.ink.toLowerCase().indexOf('#123456') === 0) {
     fail('the raw alternate theme did not replace the settings-only ink: '
        + JSON.stringify(switched));
   }
@@ -288,8 +288,7 @@ async function main() {
     font: document.documentElement.style.getPropertyValue('--font-text'),
     ink: getComputedStyle(document.documentElement).getPropertyValue('--color-ink').trim(),
   }));
-  if (carried.font.indexOf('Charter') === -1
-      || carried.ink.toLowerCase().indexOf('#000000') !== 0) {
+   if (carried.font.indexOf('Charter') === -1 || carried.ink !== switched.ink) {
     fail('the theme choice did not persist to the article page: ' + JSON.stringify(carried));
   }
 
@@ -341,7 +340,7 @@ async function main() {
   }));
   if (!help.open || help.role !== 'dialog' || !help.titleId
       || help.labelledby !== 'helpTitle' || help.cardTabindex !== '0'
-      || !help.appearanceLine || !help.helpOpenLine || !help.scrollLine || !help.noHelpFoot
+       || !help.helpOpenLine || !help.scrollLine || !help.noHelpFoot
       || help.mode !== 'false' || help.modeValue !== 'Clavier'
       || help.keyboardCount === 0 || help.keyboardHidden || !help.touchHidden
       || !/^Compilé avec LightWebPres v\d+\.\d+\.\d+$/.test(help.stamp)
@@ -776,7 +775,7 @@ async function main() {
     });
     if (presentationInitial.primary !== 'lightwebpres-docs@0.1.0/docs'
         || presentationInitial.selectors.join('|')
-          !== 'lightwebpres-docs@0.1.0/docs|lightwebpres-docs@0.1.0/compact|builtin/standard'
+          !== 'lightwebpres-docs@0.1.0/docs|lightwebpres-docs@0.1.0/compact'
         || !presentationInitial.indexShell
         || presentationInitial.appearance !== 'Changer d’apparence'
         || presentationInitial.buttonPreviews.length !== 2
@@ -806,18 +805,14 @@ async function main() {
       options: document.querySelectorAll('#presentationOptions .presentation-option').length,
       active: document.querySelector('#presentationOptions .presentation-option.active')
         .getAttribute('data-presentation'),
-      standard: JSON.parse(document.getElementById('lwp-presentation-data').textContent)
-        .presets.find((preset) => preset.selector === 'builtin/standard'),
     }));
     if (!presentationPicker.open
         || presentationPicker.title !== 'Choisir une apparence'
         || presentationPicker.presentationTitle !== 'Preset'
         || presentationPicker.identityTitle !== 'Identité'
-        || presentationPicker.identities.join('|') !== 'LightWebPres documentation|LightWebPres'
+        || presentationPicker.identities.join('|') !== 'LightWebPres documentation'
         || presentationPicker.themeTitle !== 'Thème'
         || presentationPicker.options !== 2
-        || presentationPicker.standard.label !== 'Standard'
-        || presentationPicker.standard.identity !== 'builtin'
         || presentationPicker.active !== 'lightwebpres-docs@0.1.0/docs') {
       fail('C did not expose the identity, preset and theme axes: '
         + JSON.stringify(presentationPicker));
@@ -841,8 +836,10 @@ async function main() {
     await presentationPage.keyboard.press('Tab');
     const trappedFirst = await presentationPage.evaluate(() =>
       document.activeElement.matches('#identityOptions .identity-option'));
-    if (identityRight !== 'builtin' || identityEnd !== 'builtin'
-        || identityHome !== 'lightwebpres-docs@0.1.0' || !trappedLast || !trappedFirst) {
+     if (identityRight !== 'lightwebpres-docs@0.1.0'
+         || identityEnd !== 'lightwebpres-docs@0.1.0'
+         || identityHome !== 'lightwebpres-docs@0.1.0'
+         || !trappedLast || !trappedFirst) {
       fail('identity grid or three-axis focus trap is wrong: '
         + JSON.stringify({ identityRight, identityHome, identityEnd, trappedLast, trappedFirst }));
     }
@@ -963,34 +960,11 @@ async function main() {
     }
 
     await presentationPage.keyboard.press('c');
-    await presentationPage.locator('#identityOptions [data-identity="builtin"]').click();
-    await presentationPage.selectOption('#themeSource', 'identity');
-    const nativeThemes = await presentationPage.evaluate(() => Array.from(
-      document.querySelectorAll('#themeOptions [data-theme]'),
-      (button) => button.getAttribute('data-theme')));
-    if (nativeThemes.join('|') !== 'print-ink|builtin:light'
-        || !await presentationPage.locator('#identityAxisTitle').isVisible()
+    if (!await presentationPage.locator('#identityAxisTitle').isVisible()
         || !await presentationPage.locator('#presentationOptions').isVisible()) {
-      fail('native identity must include globals, exclude kit themes and retain multi-identity axes: '
-        + JSON.stringify(nativeThemes));
+      fail('the selected identity must retain the appearance axes');
     }
     await presentationPage.selectOption('#themeSource', 'applicable');
-    await presentationPage.locator(
-      '#presentationOptions .presentation-option[data-presentation="builtin/standard"]',
-    ).click();
-    const defaultPresentation = await presentationPage.evaluate(() => ({
-      hero: !!document.querySelector('.lwp-doc-cover-hero'),
-      footer: document.querySelector('section.slide').textContent
-        .includes('LIGHTWEBPRES / OFFICIAL DOCUMENTATION'),
-      ink: getComputedStyle(document.documentElement)
-        .getPropertyValue('--color-ink').trim(),
-    }));
-    if (defaultPresentation.hero || defaultPresentation.footer) {
-      fail('the native Standard preset kept kit markup: '
-        + JSON.stringify(defaultPresentation));
-    }
-
-    await presentationPage.keyboard.press('c');
     await presentationPage.locator('#themeOptions .theme-option[data-theme="print-ink"]').click();
     const defaultExplicit = await presentationPage.evaluate(() => ({
       hero: !!document.querySelector('.lwp-doc-cover-hero'),
@@ -1024,7 +998,7 @@ async function main() {
     }));
     if (!compactExplicit.hero || compactExplicit.footer
         || compactExplicit.ink !== defaultExplicit.ink) {
-      fail('an explicit theme did not stay independent from Standard presentation: '
+      fail('an explicit theme did not stay independent from presentation selection: '
         + JSON.stringify({ defaultExplicit, compactExplicit }));
     }
 
@@ -1074,8 +1048,8 @@ async function main() {
     const englishInitial = await englishPage.evaluate(() => ({
       read: document.querySelector('.article-cta [data-lwp-i18n="series_read"]')
         .textContent,
-      standardLabel: JSON.parse(document.getElementById('lwp-presentation-data').textContent)
-        .presets.find((preset) => preset.selector === 'builtin/standard').label,
+      primaryLabel: JSON.parse(document.getElementById('lwp-presentation-data').textContent)
+        .presets[0].label,
       identityLabel: document.getElementById('identityAxisTitle').textContent,
       sourceLabel: document.querySelector('#themeSource option[value="identity"]').textContent,
     }));
@@ -1086,7 +1060,7 @@ async function main() {
         .textContent,
     }));
     if (englishInitial.read !== 'Read the article'
-        || englishInitial.standardLabel !== 'Standard'
+        || englishInitial.primaryLabel !== 'LightWebPres documentation'
         || englishInitial.identityLabel !== 'Identity'
         || englishInitial.sourceLabel !== 'Current identity'
         || englishAlternate.read !== 'Read the article') {
@@ -1186,13 +1160,13 @@ async function main() {
         presets: data.presets.length,
         variants: Object.keys(data.variants).length,
         reset: !!document.querySelector('#themeOptions [data-theme-mode="preset-default"]'),
-        active: document.querySelector('#themeOptions .active')?.getAttribute('data-theme'),
+        active: document.querySelector('#themeOptions .active')?.getAttribute('data-theme') ?? null,
       };
     });
-    if (!singlePreset.open || singlePreset.axes !== 0 || singlePreset.presets !== 1
+    if (singlePreset.open || singlePreset.axes !== 0 || singlePreset.presets !== 1
         || singlePreset.variants !== 0 || singlePreset.reset
-        || singlePreset.active !== 'print-oldpress') {
-      fail('native single-preset build must expose only themes with its primary selected: '
+        || singlePreset.active !== null) {
+      fail('single-preset build must not expose a picker without alternatives: '
         + JSON.stringify(singlePreset));
     }
     const noJsContext = await browser.newContext({ javaScriptEnabled: false });
@@ -1357,7 +1331,6 @@ async function main() {
         ['lightwebpres-docs@0.1.0', ['custom(kit:lightwebpres-docs@0.1.0/docs)',
           'kit:lightwebpres-docs@0.1.0/docs', 'kit:lightwebpres-docs@0.1.0/compact']],
         ['other@0.1.0', ['kit:other@0.1.0/docs']],
-        ['builtin', ['print-ink', 'builtin:light']],
       ]) {
         await kitPage.locator('#identityOptions [data-identity="' + identity + '"]').click();
         for (const source of ['identity', 'all', 'applicable']) {

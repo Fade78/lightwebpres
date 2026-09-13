@@ -44,7 +44,8 @@ class _ReadingControlsFixture(unittest.TestCase):
                             root / 'templates' / 'kits' / 'lightwebpres-docs' / '0.1.0')
             (root / 'series.json').write_text(json.dumps({
                 'series_meta': {'default_tag': 'main'},
-                'presentation_presets': ['lightwebpres-docs@0.1.0/docs'],
+                'appearance': {'presets': [
+                    'lightwebpres-docs@0.1.0/docs', 'builtin/standard']},
                 'articles': [{'page_dest': 'controls.html', 'page_source': 'controls.md',
                               'nav_title': 'Reading', 'nav_desc': 'Reading controls'},
                              {'page_dest': 'next.html', 'page_source': 'next.md',

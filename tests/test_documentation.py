@@ -135,11 +135,12 @@ class TheDocumentationDeliversItsExamples(unittest.TestCase):
                 with self.subTest(explicit=explicit):
                     series = Path(tmp) / ('explicit' if explicit else 'implicit')
                     run('init', series, *(['--preset', 'builtin/standard'] if explicit else []))
-                    meta = json.loads((series / 'series.json').read_text())['series_meta']
+                    config = json.loads((series / 'series.json').read_text())
+                    appearance = config.get('appearance', {})
                     if explicit:
-                        self.assertEqual(meta['presentation_preset'], 'builtin/standard')
+                        self.assertEqual(appearance['presets'], ['builtin/standard'])
                     else:
-                        self.assertNotIn('presentation_preset', meta)
+                        self.assertNotIn('appearance', config)
                     report = json.loads(run('series', 'preset', series, '--format', 'json'))
                     self.assertEqual(report['schema'], 'lightwebpres.series-preset/3')
                     self.assertEqual(report['preset']['schema'], 'lightwebpres.presentation-preset/3')
@@ -154,8 +155,8 @@ class TheDocumentationDeliversItsExamples(unittest.TestCase):
                     self.assertEqual(theme['target']['presentation_preset'], 'builtin/standard')
                     self.assertEqual((theme['label'], theme['source']), ('Light', 'builtin'))
                     run('series', 'preset', 'set', series, '--preset', 'builtin/standard')
-                    meta = json.loads((series / 'series.json').read_text())['series_meta']
-                    self.assertEqual(meta['presentation_preset'], 'builtin/standard')
+                    config = json.loads((series / 'series.json').read_text())
+                    self.assertEqual(config['appearance']['presets'], ['builtin/standard'])
                     for resource in ('kits', 'commons', 'themes'):
                         self.assertFalse((series / 'templates' / resource).exists())
 

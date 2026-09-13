@@ -40,7 +40,7 @@ const {collectConsoleErrors} = require('./console_errors.cjs');
     fs.writeFileSync(path.join(series, 'series.json'), JSON.stringify({
       series_meta: {title: 'Unit index browser probe', author: 'Series', default_tag: 'expert-fr',
         reading: {table_mode: 'scroll'}},
-      presentation_presets: ['lightwebpres-docs@0.1.0/docs'], articles,
+      appearance: {presets: ['builtin/standard', 'lightwebpres-docs@0.1.0/docs']}, articles,
     }));
     const slides = [
       '<!-- lwp:slide:cover -->\nslug: cover\n# Index field notes\nsummary: A compact directory of the published material.',

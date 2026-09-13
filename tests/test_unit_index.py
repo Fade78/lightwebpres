@@ -182,13 +182,15 @@ class UnitIndexBuild(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
 
-    def fixture(self, slides, meta='', series_meta=None, entry=None):
+    def fixture(self, slides, meta='', series_meta=None, entry=None, appearance=None):
         text = META.format(meta=meta) + '\n---\n\n'.join(slides)
         support.scaffold(self.root, text, entry)
         path = self.root / 'series.json'
         data = json.loads(path.read_text())
         if series_meta:
             data['series_meta'] = series_meta
+        if appearance:
+            data['appearance'] = appearance
         path.write_text(json.dumps(data), encoding='utf-8')
         return text
 
@@ -518,7 +520,7 @@ class UnitIndexBuild(unittest.TestCase):
 
     def test_existing_kit_standard_layout_and_chrome_are_used_without_manifest_change(self):
         self.fixture([COVER, INDEX.format(fields='')],
-                      series_meta={'presentation_preset': support.IdentityKitFixtures.SELECTOR})
+                     appearance={'presets': [support.IdentityKitFixtures.SELECTOR]})
         fixture = support.IdentityKitFixtures()
         identity_kit = fixture._write_identity_kit(self.root / 'templates' / 'kits')
         manifest_path = identity_kit / 'manifest.json'
@@ -537,7 +539,7 @@ class UnitIndexBuild(unittest.TestCase):
 
     def test_dedicated_kit_index_layout_and_chrome_override_standard_fallback(self):
         self.fixture([INDEX.format(fields='')],
-                      series_meta={'presentation_preset': support.IdentityKitFixtures.SELECTOR})
+                     appearance={'presets': [support.IdentityKitFixtures.SELECTOR]})
         fixture = support.IdentityKitFixtures()
         identity_kit = fixture._write_identity_kit(self.root / 'templates' / 'kits')
         path = identity_kit / 'manifest.json'

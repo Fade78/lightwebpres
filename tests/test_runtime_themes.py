@@ -267,6 +267,10 @@ class RuntimeThemesBrowser(unittest.TestCase):
             capture_output=True, text=True, timeout=60,
         )
         assert init.returncode == 0, init.stdout + init.stderr
+        series_path = root / 'series.json'
+        series = json.loads(series_path.read_text(encoding='utf-8'))
+        series.setdefault('appearance', {})['themes'] = ['print-oldpress', 'all']
+        series_path.write_text(json.dumps(series), encoding='utf-8')
         demo = subprocess.run(
             ['python3', str(LWP), 'demo', str(root)],
             capture_output=True, text=True, timeout=60,
@@ -278,8 +282,9 @@ class RuntimeThemesBrowser(unittest.TestCase):
         shutil.copytree(kit_source, kit_destination)
         series_path = root / 'series.json'
         series = json.loads(series_path.read_text(encoding='utf-8'))
-        series.setdefault('series_meta', {})['presentation_preset'] = \
-            'lightwebpres-docs@0.1.0/docs'
+        appearance = series.setdefault('appearance', {})
+        appearance['presets'] = ['lightwebpres-docs@0.1.0/docs']
+        appearance['themes'] = ['print-oldpress', 'all']
         series_path.write_text(json.dumps(series), encoding='utf-8')
         settings = root / 'templates' / 'settings.conf'
         settings.write_text(
@@ -292,7 +297,7 @@ class RuntimeThemesBrowser(unittest.TestCase):
             ':root { --color-mark: #ABCDEF; }\n', encoding='utf-8')
         build = subprocess.run(
             ['python3', str(LWP), 'build', str(root),
-             '--no-essential-theme', '--themes', 'print-ink',
+             '--no-essential-theme',
              '--scroll-duration', '350'],
             capture_output=True, text=True, timeout=60,
         )
@@ -354,16 +359,17 @@ class RuntimeThemesBrowser(unittest.TestCase):
         presentation_series_path = presentation_root / 'series.json'
         presentation_series = json.loads(
             presentation_series_path.read_text(encoding='utf-8'))
-        presentation_series.setdefault('series_meta', {})[
-            'presentation_preset'] = 'lightwebpres-docs@0.1.0/docs'
-        presentation_series['presentation_presets'] = [
+        presentation_appearance = presentation_series.setdefault('appearance', {})
+        presentation_appearance['presets'] = [
+            'lightwebpres-docs@0.1.0/docs',
             'lightwebpres-docs@0.1.0/compact',
         ]
+        presentation_appearance['themes'] = ['preset', 'all']
         presentation_series_path.write_text(
             json.dumps(presentation_series), encoding='utf-8')
         build = subprocess.run(
             ['python3', str(LWP), 'build', str(presentation_root),
-             '--no-essential-theme', '--themes', 'print-ink'],
+             '--no-essential-theme'],
             capture_output=True, text=True, timeout=60,
         )
         assert build.returncode == 0, build.stdout + build.stderr
@@ -372,7 +378,7 @@ class RuntimeThemesBrowser(unittest.TestCase):
         build = subprocess.run(
             ['python3', str(LWP), 'build', str(presentation_root),
              '--output', str(other_output), '--no-essential-theme',
-             '--themes', 'print-ink'],
+             ],
             capture_output=True, text=True, timeout=60,
         )
         assert build.returncode == 0, build.stdout + build.stderr
@@ -385,14 +391,14 @@ class RuntimeThemesBrowser(unittest.TestCase):
         foreign_css = foreign_kit / 'structure.css'
         foreign_css.write_text(foreign_css.read_text(encoding='utf-8').replace(
             '.lwp-presentation--lightwebpres-docs', '.lwp-presentation--other'), encoding='utf-8')
-        presentation_series['presentation_presets'].append('other@0.1.0/docs')
+        presentation_series['appearance']['presets'].append('other@0.1.0/docs')
         presentation_series_path.write_text(json.dumps(presentation_series), encoding='utf-8')
         (presentation_root / 'templates' / 'settings.conf').write_text(
             'color.ink: #123456\n', encoding='utf-8')
         build = subprocess.run(
             ['python3', str(LWP), 'build', str(presentation_root),
              '--output', str(presentation_output / 'multi-identity'),
-             '--no-essential-theme', '--themes', 'print-ink'],
+             '--no-essential-theme'],
             capture_output=True, text=True, timeout=60,
         )
         assert build.returncode == 0, build.stdout + build.stderr
@@ -463,8 +469,7 @@ class RuntimeThemesBrowser(unittest.TestCase):
             assert result.returncode == 0, result.stdout + result.stderr
         result = subprocess.run(
             ['python3', str(origin_lwp), 'build', str(origin_root),
-             '--no-essential-theme', '--themes',
-             'print-ink,origin-installed,origin-user,origin-series',
+             '--no-essential-theme', '--themes', 'all',
              '--output', str(static_output / 'origins')],
             env={**os.environ, 'LWP_THEMES_DIR': str(user_themes)},
             capture_output=True, text=True, timeout=60,
@@ -492,10 +497,10 @@ class RuntimeThemesBrowser(unittest.TestCase):
         }), encoding='utf-8')
         series_path = pinned_root / 'series.json'
         series = json.loads(series_path.read_text(encoding='utf-8'))
+        appearance = series.setdefault('appearance', {})
         for name, selector in [('native', 'builtin/standard'), ('commons', 'commons/night')]:
-            series['series_meta']['presentation_preset'] = selector
-            series['presentation_presets'] = (['builtin/standard', 'commons/day']
-                                             if name == 'commons' else ['builtin/standard'])
+            appearance['presets'] = ([selector, 'commons/day']
+                                     if name == 'commons' else [selector])
             series_path.write_text(json.dumps(series), encoding='utf-8')
             for variant, settings in [('pinned', 'color.page: #123456FF\n'), ('raw', '')]:
                 (pinned_root / 'templates' / 'settings.conf').write_text(settings, encoding='utf-8')

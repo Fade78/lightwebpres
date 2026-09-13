@@ -137,7 +137,7 @@ class ThemeOrigins(unittest.TestCase):
             'schema': 'lightwebpres.commons-preset/1', 'id': 'paper', 'label': 'Paper',
             'description': 'Series descriptor using a user theme', 'theme': 'light'}))
         data = json.loads((series / 'series.json').read_text())
-        data.setdefault('series_meta', {})['presentation_preset'] = 'commons/paper'
+        data.setdefault('appearance', {})['presets'] = ['commons/paper']
         (series / 'series.json').write_text(json.dumps(data))
         report = run('series', 'theme', str(series), '--format', 'json')
         self.assertEqual(report.returncode, 0, report.stderr)
@@ -182,7 +182,7 @@ class ThemeOrigins(unittest.TestCase):
             with self.subTest(reference=reference):
                 text = self.lwp.build_settings_scaffold(reference)
                 theme, pins = self.lwp.parse_settings_text(text)
-                self.assertEqual(theme, reference)
+                self.assertIsNone(theme)
                 self.assertEqual(pins, {})
                 report = self.lwp.theme_info_report('series', reference, None,
                                                     [self.lwp.theme_property_layer(reference)])

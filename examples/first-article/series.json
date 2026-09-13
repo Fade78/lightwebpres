@@ -1,4 +1,8 @@
 {
   "series_meta": {"title": "My first series"},
+  "appearance": {
+    "presets": ["builtin/standard"],
+    "themes": ["nebula"]
+  },
   "articles": [{"page_source": "first-page.md"}]
 }

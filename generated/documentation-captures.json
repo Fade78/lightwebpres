@@ -1,8 +1,8 @@
 {
   "inputs": {
-    "examples/first-article/series.json": "381a563a55fdbe2a06662adcab3995ae467a0b1b15fecec977d6c6c505ed6e75",
+    "examples/first-article/series.json": "1c7d8a162db17c57a1f32041596d148425685cb60a1c3b25be4f43f9f368809f",
     "examples/first-article/sources/first-page.md": "2a426775d0e718abb98baa31272a101e1dce074442a5f739b7f67a55c2ebfa66",
-    "examples/first-article/templates/settings.conf": "dfa374378eec18180cb460dc458d545d06603e75789e9f0505d6061543a22e29",
+    "examples/first-article/templates/settings.conf": "00dcebcf92ea9c9e4de7102c7e7b817bd8b94791d38b3ea1caa14200b5278a58",
     "examples/kit-composition/LICENSE-SVG.txt": "c1cbe8129ce2675413c2e59513a15c788a7652292609f1e5d860d3a39b19a462",
     "examples/kit-composition/recipe.json": "8944b24c69e25ced59f364bcd106bf5ef7fcf679e373c5f66a2ffa2098880791",
     "examples/kit-composition/sources/field-frames/1.0.0/layouts/sheet.html": "aaaa9cb3cdba2bc27badc254cc9330eb79a696fe0c5ad0442c4b7a64fa1d469d",
@@ -27,8 +27,8 @@
     "examples/kits/lightwebpres-docs/0.1.0/starters/blank/starter.json": "9c9556978e90cd4bd1f3a2dc1dd422a5f172e9c65d4187d84d004df10c5d424a",
     "examples/kits/lightwebpres-docs/0.1.0/structure.css": "4501d6bff633ce1e06facf5fd2c9d0c811236e6cd20447a4e761182e0e8a3b08",
     "examples/kits/lightwebpres-docs/0.1.0/themes/docs.conf": "76b6e1114db4013088106c8bbe9f645bb70ec311a393f9f33729bdf72a089707",
-    "lightwebpres": "8ad2a5a4b36b92a6565060da701c9967d9b0f7b87b8442e7c60dd6d1dbcd1db0",
-    "tools/screenshot-documentation.cjs": "acae54ac2e1c9a95494e49ef9e73f7811d3f13f95f2fe8ef59c8dd487f9c6ec1"
+    "lightwebpres": "598466188ae9d48e6084324d8f09d93cdb96606538560448923081235a43b931",
+    "tools/screenshot-documentation.cjs": "103a637ed81cb9bf022dc9d0db2c6b9a33f79546a50d38685bd700980743a225"
   },
   "browser": "145.0.7632.6",
   "source": "examples/first-article/sources/first-page.md",
@@ -56,16 +56,16 @@
       "text": "LWP DOCS Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/. Publish the whole public/ directory, not just its index. LIGHTWEBPRES / OFFICIAL DOCUMENTATION",
       "textRects": 14,
       "visibleImages": 1,
-      "headingFont": "Seravek, \"Gill Sans Nova\", Ubuntu, Calibri, \"DejaVu Sans\", sans-serif"
+      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif"
     },
     {
       "name": "composed",
       "selector": "field-notes@1.0.0/brief",
       "failures": [],
-      "text": "FIELD NOTES Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/ . Publish the whole public/ directory, not just its index. OBSERVE / RECORD / SHARE",
+      "text": "FIELD NOTES Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/. Publish the whole public/ directory, not just its index. OBSERVE / RECORD / SHARE",
       "textRects": 13,
       "visibleImages": 1,
-      "headingFont": "\"Nimbus Mono PS\", \"Courier New\", \"Liberation Mono\", \"DejaVu Sans Mono\", monospace"
+      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif"
     },
     {
       "name": "frames",
@@ -89,10 +89,10 @@
       "name": "ink",
       "selector": "field-ink@1.0.0/paper",
       "failures": [],
-      "text": "Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/ . Publish the whole public/ directory, not just its index.",
+      "text": "Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/. Publish the whole public/ directory, not just its index.",
       "textRects": 11,
       "visibleImages": 0,
-      "headingFont": "\"Nimbus Mono PS\", \"Courier New\", \"Liberation Mono\", \"DejaVu Sans Mono\", monospace"
+      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif"
     }
   ],
   "captures": [
@@ -100,13 +100,13 @@
       "file": "generated/appearance-choices.png",
       "width": 1600,
       "height": 1440,
-      "sha256": "f6e7a6cf0a698261a031c4687121cdb8c8550fd39eda6b7efe90b6b0e6ea5780"
+      "sha256": "c7b2b4b054dca0c5397bb92508428c56e56350c1997b87f54412a21ed8fff787"
     },
     {
       "file": "generated/identity-composition.png",
       "width": 1600,
       "height": 1080,
-      "sha256": "6514cc71be20b4d62348574ba0e5d59581395208c59e5ce07124273c21153fd0"
+      "sha256": "dda90dc72d46520f391734590af3778e294c37399b83656948aac04fbc18ef2b"
     }
   ],
   "assetPreviews": [

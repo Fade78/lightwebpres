@@ -1,10 +1,10 @@
 {
   "inputs": {
-    "lightwebpres": "8ad2a5a4b36b92a6565060da701c9967d9b0f7b87b8442e7c60dd6d1dbcd1db0",
+    "lightwebpres": "598466188ae9d48e6084324d8f09d93cdb96606538560448923081235a43b931",
     "tools/screenshot-product.cjs": "cd24ed3d7e56e916781ead59ed36ef2dc8369e0475cdb3de8cf0deba1815f82d",
-    "examples/first-article/series.json": "381a563a55fdbe2a06662adcab3995ae467a0b1b15fecec977d6c6c505ed6e75",
+    "examples/first-article/series.json": "1c7d8a162db17c57a1f32041596d148425685cb60a1c3b25be4f43f9f368809f",
     "examples/first-article/sources/first-page.md": "2a426775d0e718abb98baa31272a101e1dce074442a5f739b7f67a55c2ebfa66",
-    "examples/first-article/templates/settings.conf": "dfa374378eec18180cb460dc458d545d06603e75789e9f0505d6061543a22e29"
+    "examples/first-article/templates/settings.conf": "00dcebcf92ea9c9e4de7102c7e7b817bd8b94791d38b3ea1caa14200b5278a58"
   },
   "browser": "145.0.7632.6",
   "captures": [

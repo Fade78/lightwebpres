@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.59.2"
+VERSION = "0.60.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -5686,7 +5686,7 @@ def _presentation_runtime_parts(option, source):
     """Normalize the runtime preset selectors from JSON or the CLI."""
     if isinstance(option, str):
         parts = option.split(',')
-    elif isinstance(option, list):
+    elif isinstance(option, (list, tuple)):
         parts = []
         for index, value in enumerate(option):
             if not isinstance(value, str):
@@ -6746,9 +6746,10 @@ def _theme_runtime_variables():
 
 
 def build_theme_runtime(option, primary, source='--themes', catalog=None,
-                        settings_props=None, preset_props=None,
-                        preset_label=None, preset_family=None,
-                        preset_selector=None, strings=None, presets=None):
+                         settings_props=None, preset_props=None,
+                         preset_label=None, preset_family=None,
+                         preset_selector=None, strings=None, presets=None,
+                         appearance=None):
     """Builds the compact, page-independent part of the theme switch data.
 
     Variable names are emitted once and each alternative carries only the
@@ -6766,7 +6767,10 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
     no other kit or preset is discovered here.
     """
     presets = list(presets or ())
-    if option is None and not any(p.identity_kit.id != 'builtin' for p in presets):
+    if appearance is not None and len(appearance.theme_ids) <= 1:
+        return None
+    if (appearance is None and option is None
+            and not any(p.identity_kit.id != 'builtin' for p in presets)):
         return None
     catalog = catalog or ThemeCatalog()
     kit_themes = {}
@@ -6775,7 +6779,16 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
         for name, theme in identity_kit.themes.items():
             kit_themes[identity_kit.theme_resource_id(name)] = (identity_kit, theme, name)
     strings = strings or {}
-    if primary:
+    if appearance is not None:
+        selected = presets[0] if presets else None
+        base_id = appearance.theme_id or (
+            selected.theme_resource_id if selected is not None else
+            _THEME_RUNTIME_DEFAULT)
+        base_values = (None if appearance.theme_id is not None else
+                       dict(preset_props if preset_props is not None
+                            else selected.theme_props if selected is not None
+                            else {}))
+    elif primary:
         base_id = primary
         base_values = None
     elif preset_props:
@@ -6791,9 +6804,16 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
     if catalog.has(base_id):
         base_id = catalog.runtime_id(base_id)
     settings_props = dict(settings_props or {})
-    ids = ([base_id] if option is None else
-           _theme_runtime_ids(option, base_id, source, catalog))
-    ids.extend(theme_id for theme_id in kit_themes if theme_id not in ids)
+    if appearance is not None:
+        ids = list(appearance.theme_ids)
+    else:
+        ids = ([base_id] if option is None else
+               _theme_runtime_ids(option, base_id, source, catalog))
+        ids.extend(theme_id for theme_id in kit_themes if theme_id not in ids)
+    if not ids:
+        ids = [base_id]
+    if ids[0] != base_id:
+        ids.insert(0, base_id)
     custom_id = f'custom({base_id})' if settings_props else None
     if custom_id:
         ids.insert(0, custom_id)
@@ -6922,6 +6942,10 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
         themes.append(theme_data)
     data = {'version': 1, 'primary': ids[0], 'vars': variables,
             'themes': themes}
+    if appearance is not None:
+        data.update(theme_policy=appearance.theme_policy,
+                    initial_theme=appearance.theme_ids[0],
+                    requested_themes=list(appearance.theme_tokens))
     if catalog is not None and catalog.digest:
         data['catalog_digest'] = catalog.digest
     if presets:
@@ -6976,7 +7000,8 @@ def _presentation_selector(preset):
 
 
 def _presentation_runtime_context(presets, style_context, catalog,
-                                  effective_theme, strings=None):
+                                  effective_theme, strings=None,
+                                  appearance=None):
     """Build the page-independent runtime catalogue for presentation presets."""
     if not presets:
         return None
@@ -6997,7 +7022,9 @@ def _presentation_runtime_context(presets, style_context, catalog,
             resolved = primary_resolved
         else:
             preset_layers = [preset.theme_props]
-            preset_layers.append(settings_props)
+            if (appearance is None or
+                    preset.selector == presets[0].selector):
+                preset_layers.append(settings_props)
             resolved = resolve_theme_properties(*preset_layers)
         values = [[index, resolved[key]] for index, key in enumerate(keys)
                   if resolved[key] != primary_resolved[key]]
@@ -7394,13 +7421,12 @@ def _settings_assignment(raw):
 
 
 def parse_settings_text(text, source='settings.conf', catalog=None):
-    """(theme_slug_or_None, {property: raw value}) from an author's settings
-    file. `key: value` lines, `#` comments, nothing else — a file that looks
-    like properties and silently accepted CSS would be the old surface back.
-    Empty values remove a known property pin; unknown keys remain in the layer
-    so resolution can report them. Errors name their line: the silent no-op is
-    the failure mode this whole format exists to kill."""
-    theme = None
+    """(None, {property: raw value}) from an author's settings file.
+
+    ``settings.conf`` contains typed property pins only. Appearance selection
+    belongs to ``series.json``; keeping ``theme:`` readable here would create
+    a second source of truth for the initial theme.
+    """
     props = {}
     for lineno, raw in enumerate(text.splitlines(), 1):
         line = raw.strip()
@@ -7413,29 +7439,22 @@ def parse_settings_text(text, source='settings.conf', catalog=None):
         key, value = line.split(':', 1)
         key, value = key.strip(), value.strip()
         if key == 'theme':
-            if theme is not None:
-                raise PropertyError(
-                    f'{source}:{lineno}: theme is declared more than once')
-            catalog = catalog or ThemeCatalog()
-            known = catalog.has(value)
-            if not known:
-                raise PropertyError(
-                    f'{source}:{lineno}: unknown theme {value!r}. '
-                    f'Run `lightwebpres theme list` for the list.')
-            theme = value
+            raise PropertyError(
+                f'{source}:{lineno}: theme selection is legacy; use '
+                'series.json appearance.themes.')
         elif not value and key in PROPERTY_REGISTRY:
             # An empty known property is an explicit unpin, not a malformed
             # value. Keep unknown empty keys for the resolver's named error.
             props.pop(key, None)
         else:
             props[key] = value
-    return theme, props
+    return None, props
 
 
 def build_settings_scaffold(theme_key=None, pinned=None, catalog=None,
                             base_props=None, scaffold_for=None):
     """The complete settings file, every property present and commented out
-    at its value under the chosen theme. Complete outside, always: the
+    at its value under the resolved initial appearance. Complete outside, always: the
     author sees the whole surface with nothing to chase through an include,
     and uncommenting a line pins it in the static sheet and the runtime
     `custom(<theme>)` variant; raw runtime themes may replace it.
@@ -7445,7 +7464,9 @@ def build_settings_scaffold(theme_key=None, pinned=None, catalog=None,
     (references as bare words, `kicker.fg: ink-quiet`), because that is the
     vocabulary the author writes.
 
-    `pinned` (a {property: raw value} dict) regenerates in place: a pinned
+    `theme_key` is accepted as an internal base-layer hint during explicit
+    migrations, but is never written as a selection. `pinned` (a {property:
+    raw value} dict) regenerates in place: a pinned
     property that still exists is emitted UNCOMMENTED with the author's
     value, so a version upgrade refreshes the commented surface — new
     properties appear, gone ones vanish — without losing what the author
@@ -7466,14 +7487,13 @@ def build_settings_scaffold(theme_key=None, pinned=None, catalog=None,
 
     lines = [
         '# lightwebpres settings — plain `key: value` properties, one per line.',
-        '# lightwebpres never writes this file (`series theme set` rewrites',
-        '# only the theme line below, `template update --scaffold` refreshes',
+        '# lightwebpres never writes this file (`template update --scaffold`',
+        '# refreshes',
         '# the commented surface and keeps your uncommented lines). Uncomment',
         '# a line to pin it: it survives every theme change and every upgrade.',
         f'# CSS rules belong in {CUSTOM_CSS_FILENAME}.',
         '',
-        f'theme: {theme_key}' if theme_key else '# theme: <slug>   (default theme)',
-        f'# scaffold-for: {theme_key or scaffold_for or "default"}',
+        f'# scaffold-for: {scaffold_for or theme_key or "preset"}',
         '',
         '# ── shared values ──',
     ]
@@ -7531,7 +7551,8 @@ def pinned_settings(text):
     return pins
 
 
-def series_style_context(templates_dir, catalog=None, preset_theme=None):
+def series_style_context(templates_dir, catalog=None, preset_theme=None,
+                         theme_layer=None):
     """(layers, custom_css_text) for one series: the resolved-once part of
     composition, so a page carrying its own style.* properties can be
     recomposed without re-reading anything."""
@@ -7542,10 +7563,10 @@ def series_style_context(templates_dir, catalog=None, preset_theme=None):
         catalog = load_theme_catalog(templates_dir=templates_dir)
     settings_file = _optional_contained_file(
         templates_dir, SETTINGS_FILENAME, f'templates/{SETTINGS_FILENAME}')
-    theme_key, props = (parse_settings_text(read_text_file(settings_file),
-                                             catalog=catalog)
-                        if settings_file is not None and settings_file.exists()
-                        else (None, {}))
+    _theme_key, props = (parse_settings_text(read_text_file(settings_file),
+                                              catalog=catalog)
+                         if settings_file is not None and settings_file.exists()
+                         else (None, {}))
 
     legacy = templates_dir / 'style.css'
     if legacy.exists():
@@ -7553,11 +7574,10 @@ def series_style_context(templates_dir, catalog=None, preset_theme=None):
               f'is composed from {SETTINGS_FILENAME}. Move your values there '
               f'(audit names the variable renames) and delete it.')
 
-    # An explicit series `theme:` replaces the preset's typed base. Pins remain
-    # on top in both cases, so changing theme never discards an author's local
-    # corrections and `custom.css` remains the final expert layer.
-    if theme_key:
-        layers = [theme_property_layer(theme_key, catalog)]
+    # The resolved appearance supplies the base layer. Pins remain on top and
+    # `custom.css` remains the final expert layer.
+    if theme_layer is not None:
+        layers = [dict(theme_layer)]
     elif preset_theme:
         layers = [dict(preset_theme)]
     else:
@@ -21822,36 +21842,265 @@ def load_series_data(series_dir):
     return data
 
 
+SERIES_SCHEMA = 'lightwebpres.series/1'
+_APPEARANCE_DEFAULT_PRESETS = ('builtin/standard',)
+_APPEARANCE_DEFAULT_THEMES = ('preset', 'essential')
+_APPEARANCE_KEYS = frozenset(('presets', 'themes'))
+_SERIES_BUILD_KEYS = frozenset(('single_html', 'inline_images'))
+
+
+def series_appearance_of(series_data, tolerate_invalid=False, errors=None):
+    """Validate and return the one author-facing appearance declaration.
+
+    Appearance is deliberately resolved separately from the editorial
+    ``series_meta`` fields. The old root lists and the old settings/meta
+    selectors are not fallback inputs: accepting both shapes would make a
+    typo choose a different publication policy instead of failing at its
+    source.
+    """
+    if not isinstance(series_data, dict):
+        return {
+            'presets': _APPEARANCE_DEFAULT_PRESETS,
+            'presets_declared': False,
+            'themes': None,
+            'themes_declared': False,
+            'build': {},
+        }
+
+    def invalid(message):
+        if errors is not None:
+            errors.append(message)
+        if not tolerate_invalid:
+            raise PropertyError(message)
+
+    if 'themes' in series_data:
+        invalid('series.json: root "themes" is legacy; use '
+                '"appearance.themes".')
+    if 'presentation_presets' in series_data:
+        invalid('series.json: root "presentation_presets" is legacy; use '
+                '"appearance.presets".')
+    if ('schema' in series_data and
+            series_data['schema'] not in (None, SERIES_SCHEMA)):
+        invalid(f'series.json: unsupported schema {series_data["schema"]!r}; '
+                f'expected {SERIES_SCHEMA!r}.')
+
+    appearance = series_data.get('appearance')
+    if appearance is None:
+        appearance = {}
+    elif not isinstance(appearance, dict):
+        invalid('series.json: "appearance" must be an object.')
+        appearance = {}
+    unknown = sorted(set(appearance) - _APPEARANCE_KEYS)
+    if unknown:
+        invalid('series.json: "appearance" has unknown key(s): '
+                + ', '.join(unknown) + '.')
+
+    def string_list(key, default):
+        if key not in appearance:
+            return default, False
+        values = appearance[key]
+        if not isinstance(values, list) or not values:
+            invalid(f'series.json: "appearance.{key}" must be a non-empty '
+                    'list of strings.')
+            return default, True
+        for index, value in enumerate(values):
+            if not isinstance(value, str) or not value.strip():
+                invalid(f'series.json: "appearance.{key}" item {index} must '
+                        'be a non-empty string.')
+        return tuple(value.strip() for value in values), True
+
+    presets, _presets_declared = string_list(
+        'presets', _APPEARANCE_DEFAULT_PRESETS)
+    themes, themes_declared = string_list(
+        'themes', _APPEARANCE_DEFAULT_THEMES)
+
+    build = series_data.get('build', {})
+    if build is None:
+        build = {}
+    if not isinstance(build, dict):
+        invalid('series.json: "build" must be an object.')
+        build = {}
+    unknown_build = sorted(set(build) - _SERIES_BUILD_KEYS)
+    if unknown_build:
+        invalid('series.json: "build" has unknown key(s): '
+                + ', '.join(unknown_build) + '.')
+    if 'single_html' in build:
+        filename = build['single_html']
+        if (not isinstance(filename, str) or
+                not _is_safe_relative_filename(filename) or
+                not filename.lower().endswith(('.html', '.htm')) or
+                '#' in filename or '?' in filename):
+            invalid('series.json: "build.single_html" must be a plain .html '
+                    'or .htm filename.')
+    if 'inline_images' in build and not isinstance(build['inline_images'], bool):
+        invalid('series.json: "build.inline_images" must be a boolean.')
+
+    return {
+        'presets': presets,
+        'presets_declared': _presets_declared,
+        'themes': themes if themes_declared else None,
+        'themes_declared': themes_declared,
+        'build': build,
+    }
+
+
+def _appearance_theme_is_facet(selector):
+    """Whether a theme token is a collective facet selector."""
+    if not isinstance(selector, str) or ':' not in selector:
+        return False
+    name = selector.split(':', 1)[0].strip().casefold()
+    return name in _RUNTIME_THEME_FACET_ALIASES
+
+
+def _appearance_theme_resources(theme_tokens, presets, theme_catalog, source):
+    """Resolve appearance theme tokens to ordered canonical runtime ids."""
+    kit_themes = {}
+    for preset in presets:
+        identity_kit = preset.identity_kit
+        for name in identity_kit.themes:
+            resource_id = identity_kit.theme_resource_id(name)
+            kit_themes[resource_id] = (identity_kit, name)
+
+    def resource_id(token):
+        if theme_catalog.has(token):
+            return theme_catalog.runtime_id(token)
+        if token in kit_themes:
+            return token
+        raise PropertyError(f'{source} contains unknown theme selector '
+                            f'{token!r}')
+
+    individual = None
+    for token in theme_tokens:
+        folded = token.casefold()
+        if folded in ('preset', 'all', 'essential') or _appearance_theme_is_facet(token):
+            continue
+        individual = token
+        break
+
+    follow_preset = individual is None or individual.casefold() == 'preset'
+    primary = None if follow_preset else resource_id(individual)
+    initial = (presets[0].theme_resource_id if follow_preset else primary)
+
+    ids = []
+    seen = set()
+
+    def key_for(resource):
+        if resource in kit_themes:
+            return ('kit', resource)
+        if theme_catalog.has(resource):
+            return theme_catalog.resolve(resource).key
+        return ('resource', resource)
+
+    def add(resource):
+        marker = key_for(resource)
+        if marker not in seen:
+            seen.add(marker)
+            ids.append(resource)
+
+    add(initial)
+    for token in theme_tokens:
+        folded = token.casefold()
+        if folded == 'preset':
+            continue
+        if folded == 'all':
+            for slug in theme_catalog.theme_ids:
+                add(theme_catalog.runtime_id(slug))
+            for resource in kit_themes:
+                add(resource)
+            continue
+        if folded == 'essential':
+            for slug in ESSENTIAL_THEME_IDS:
+                add(theme_catalog.builtin_runtime_id(slug))
+            continue
+        if _appearance_theme_is_facet(token):
+            for slug in _theme_runtime_selector_ids(token, source, theme_catalog):
+                add(theme_catalog.runtime_id(slug))
+            continue
+        add(resource_id(token))
+    return {
+        'ids': tuple(ids),
+        'primary': primary,
+        'initial': initial,
+        'follow_preset': follow_preset,
+        'kit_themes': kit_themes,
+    }
+
+
+def resolve_series_appearance(series_data, identity_catalog, theme_catalog,
+                              args=None):
+    """Resolve presets, theme policy and runtime resources for one series."""
+    config = series_appearance_of(series_data)
+    args = args or {}
+
+    preset_value = args.get('--presentation-presets')
+    preset_source = '--presentation-presets'
+    if preset_value is None:
+        preset_value = config['presets']
+        preset_source = ('series.json: appearance.presets'
+                         if config['presets'] != _APPEARANCE_DEFAULT_PRESETS
+                         else 'series.json: appearance.presets (default)')
+    preset_selectors = _presentation_runtime_parts(preset_value, preset_source)
+    presets = []
+    seen_presets = set()
+    for selector in preset_selectors:
+        preset = identity_catalog.resolve_preset(selector, preset_source)
+        if preset.selector in seen_presets:
+            continue
+        seen_presets.add(preset.selector)
+        presets.append(preset)
+    if not presets:
+        raise PropertyError(f'{preset_source} must contain at least one preset')
+
+    theme_value = args.get('--themes')
+    theme_source = '--themes'
+    if theme_value is None:
+        theme_value = (config['themes'] if config['themes'] is not None
+                       else _APPEARANCE_DEFAULT_THEMES)
+        theme_source = ('series.json: appearance.themes'
+                        if config['themes_declared']
+                        else 'series.json: appearance.themes (default)')
+        if (not config['themes_declared'] and args.get('--no-essential-theme')):
+            theme_value = ('preset',)
+    theme_tokens = _theme_runtime_parts(theme_value, theme_source)
+    themes = _appearance_theme_resources(
+        theme_tokens, presets, theme_catalog, theme_source)
+
+    initial_layer = None
+    if themes['follow_preset']:
+        initial_layer = presets[0].theme_props
+    elif themes['primary'] in themes['kit_themes']:
+        identity_kit, name = themes['kit_themes'][themes['primary']]
+        initial_layer = identity_kit.theme_properties(name)
+    else:
+        initial_layer = theme_catalog.layer(themes['primary'])
+
+    return SimpleNamespace(
+        config=config,
+        preset_selectors=tuple(preset.selector for preset in presets),
+        preset_source=preset_source,
+        presets=tuple(presets),
+        primary_preset=presets[0],
+        theme_tokens=tuple(theme_tokens),
+        theme_source=theme_source,
+        theme_policy=('preset' if themes['follow_preset'] else 'fixed'),
+        theme_id=themes['primary'],
+        theme_ids=themes['ids'],
+        initial_theme_layer=initial_layer,
+        kit_themes=themes['kit_themes'],
+        build=config['build'],
+    )
+
+
 def series_themes_of(series_data):
-    """Returns the optional root runtime-theme selection from series.json."""
-    if not isinstance(series_data, dict) or 'themes' not in series_data:
-        return None
-    themes = series_data['themes']
-    if not isinstance(themes, list) or not themes:
-        raise PropertyError('series.json: "themes" must be a non-empty list '
-                            'of strings')
-    for index, value in enumerate(themes):
-        if not isinstance(value, str) or not value.strip():
-            raise PropertyError(f'series.json: "themes" item {index} must be '
-                                'a non-empty string')
-    return themes
+    """Retained only as a named error for callers of the removed API."""
+    raise PropertyError('series.json: root "themes" is legacy; use '
+                        '"appearance.themes".')
 
 
 def series_presentation_presets_of(series_data):
-    """Returns the optional root runtime-presentation selection."""
-    if not isinstance(series_data, dict) or 'presentation_presets' not in series_data:
-        return None
-    presets = series_data['presentation_presets']
-    if not isinstance(presets, list) or not presets:
-        raise PropertyError(
-            'series.json: "presentation_presets" must be a non-empty list '
-            'of strings')
-    for index, value in enumerate(presets):
-        if not isinstance(value, str) or not value.strip():
-            raise PropertyError(
-                f'series.json: "presentation_presets" item {index} must be '
-                'a non-empty string')
-    return presets
+    """Retained only as a named error for callers of the removed API."""
+    raise PropertyError('series.json: root "presentation_presets" is legacy; '
+                        'use "appearance.presets".')
 
 
 # Field names retired in v0.7.0 by the nomenclature freeze that 1.0 will
@@ -21866,7 +22115,7 @@ _PRESENTATION_MANIFEST_FIELDS = ('slide_layouts', 'slide_chrome')
 # series_meta string leaves used by build_index / resolve_article_fields.
 _SERIES_META_STRING_FIELDS = (
     'title', 'subtitle', 'version', 'intro', 'author', 'license',
-    'default_tag', 'slug_prefix', 'presentation_preset',
+    'default_tag', 'slug_prefix',
 )
 _SERIES_META_INTEGER_FIELDS = ('scroll_duration',)
 _SERIES_META_OBJECT_FIELDS = ('reading', 'selectors')
@@ -21986,6 +22235,11 @@ def series_meta_of(series_data, tolerate_invalid=False, errors=None):
         if tolerate_invalid:
             series_data['series_meta'] = {}
         return {}
+    if 'presentation_preset' in meta:
+        invalid('series.json: "series_meta.presentation_preset" is legacy; '
+                'use "appearance.presets".')
+        if tolerate_invalid:
+            meta.pop('presentation_preset', None)
     for field in _SERIES_META_STRING_FIELDS:
         if field in meta and meta[field] is not None and not isinstance(meta[field], str):
             invalid(f'series.json: "series_meta.{field}" must be a string '
@@ -22026,7 +22280,7 @@ def series_meta_of(series_data, tolerate_invalid=False, errors=None):
         if field not in meta:
             continue
         invalid(f'series.json: "series_meta.{field}" belongs in a kit preset. '
-                'Select it with series_meta.presentation_preset.')
+                'Select it with appearance.presets.')
         if tolerate_invalid:
             meta.pop(field, None)
     if 'default_tag' in meta:
@@ -22897,8 +23151,30 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
         typography_dir=typography_dir, series_dir=sd)
 
     series_data = (series_data_override if series_data_override is not None
-                    else load_series_data(sd))
+                     else load_series_data(sd))
     series_meta = series_meta_of(series_data)
+    try:
+        identity_catalog = load_identity_catalog(templates_dir)
+        appearance = resolve_series_appearance(
+            series_data, identity_catalog, theme_catalog, args)
+        for option, value in (
+                ('--single-html', appearance.build.get('single_html')),
+                ('--inline-images', appearance.build.get('inline_images'))):
+            if option not in args and value is not None:
+                args[option] = value
+        if '--single-html' in args:
+            filename = args['--single-html']
+            if filename is not True and (not _is_safe_relative_filename(filename)
+                    or not filename.lower().endswith(('.html', '.htm'))
+                    or '#' in filename or '?' in filename):
+                log('error', '--single-html requires a plain .html or .htm filename, not a path or URL.')
+                sys.exit(1)
+            if args.get('--drafts-only'):
+                log('error', '--single-html cannot be combined with --drafts-only.')
+                sys.exit(1)
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
     if args.get('--single-html') is True:
         import unicodedata
         title = html_unescape(re.sub(r'<[^<>]+>', ' ', str(series_meta.get('title') or '')))
@@ -22914,52 +23190,22 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
             stem = 'series-' + stem
         args['--single-html'] = stem + '.html'
     try:
-        identity_catalog = load_identity_catalog(templates_dir)
-        series_preset = identity_catalog.resolve_preset(
-            series_meta.get('presentation_preset'),
-            'series.json: series_meta.presentation_preset')
+        series_preset = appearance.primary_preset
         settings_file = _optional_contained_file(
             templates_dir, SETTINGS_FILENAME, f'templates/{SETTINGS_FILENAME}')
-        effective_theme = None
-        if settings_file is not None and settings_file.exists():
-            effective_theme, _ = parse_settings_text(
-                read_text_file(settings_file), catalog=theme_catalog)
+        _unused_theme, settings_props = (
+            parse_settings_text(read_text_file(settings_file),
+                                catalog=theme_catalog)
+            if settings_file is not None and settings_file.exists()
+            else (None, {}))
         style_context = series_style_context(
-            templates_dir, theme_catalog, series_preset.theme_props)
+            templates_dir, theme_catalog,
+            theme_layer=appearance.initial_theme_layer)
         css = compose_with(
-             style_context, structure_css=series_preset.identity_kit.structure_css)
-        presentation_option = args.get('--presentation-presets')
-        presentation_source = '--presentation-presets'
-        if presentation_option is None:
-            presentation_option = series_presentation_presets_of(series_data)
-            presentation_source = 'series.json: "presentation_presets"'
-        presentation_presets = _presentation_runtime_presets(
-            identity_catalog, series_preset, presentation_option,
-            presentation_source)
-        requested_default = bool(
-            presentation_option is not None
-            and 'builtin/standard' in _presentation_runtime_parts(
-                presentation_option, presentation_source))
-        implicit_default = (series_preset.selector != 'builtin/standard'
-                            and not requested_default)
-        series_json_themes = series_themes_of(series_data)
-        runtime_option = args.get('--themes')
-        runtime_source = '--themes'
-        if runtime_option is None:
-            runtime_option = series_json_themes
-            runtime_source = 'series.json: "themes"'
-        # Every build ships the essential bundle by default so the reader
-        # always has a high-contrast, dark-ground and print-friendly
-        # alternative (§9.3.7). `--no-essential-theme` opts out; an explicit
-        # `--themes` or `series.json["themes"]` still adds to the set.
-        if not args.get('--no-essential-theme'):
-            if runtime_option is None:
-                runtime_option = ['essential']
-                runtime_source = '--themes'
-            elif isinstance(runtime_option, list):
-                runtime_option = ['essential'] + runtime_option
-            else:
-                runtime_option = 'essential,' + runtime_option
+             style_context,
+             structure_css=series_preset.identity_kit.structure_css)
+        presentation_presets = list(appearance.presets)
+        effective_theme = appearance.theme_id
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
@@ -23047,29 +23293,23 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
                 try:
                     validate_article_presentation(entry, preset, source_slides)
                 except PropertyError as exc:
-                    if preset.selector == 'builtin/standard' and implicit_default:
-                        log('warn', f'{entry["page_source"]}: the implicit '
-                            f'builtin/standard presentation is unavailable ({exc}); '
-                            'it will not be published as a runtime alternative')
-                        presentation_presets.remove(preset)
-                        continue
                     selector = _presentation_selector(preset)
                     raise PropertyError(
                         f'{entry["page_source"]} -> slide -> {selector} -> {exc}')
         presentation_runtime = _presentation_runtime_context(
             presentation_presets, style_context, theme_catalog,
-            effective_theme, strings=strings)
+            effective_theme, strings=strings, appearance=appearance)
         theme_runtime = build_theme_runtime(
-            runtime_option, effective_theme, runtime_source,
+            None, effective_theme, appearance.theme_source,
             catalog=theme_catalog,
-            settings_props=(style_context[0][-1] if style_context[0]
-                            else {}),
+            settings_props=settings_props,
             preset_props=(series_preset.theme_props
-                          if effective_theme is None else None),
+                          if appearance.theme_id is None else None),
             preset_label=series_preset.theme_meta.get('label'),
             preset_family=series_preset.theme_meta.get('family'),
             preset_selector=series_preset.selector,
-            strings=strings, presets=presentation_presets)
+            strings=strings, presets=presentation_presets,
+            appearance=appearance)
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
@@ -23157,8 +23397,9 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
          style_context=style_context, args=args,
           lang_tag_engines=lang_tag_engines, theme_runtime=theme_runtime,
            theme_catalog=theme_catalog,
-            language_runtime=language_runtime, scroll_duration=scroll_duration,
-            effective_theme=effective_theme,
+             language_runtime=language_runtime, scroll_duration=scroll_duration,
+             effective_theme=effective_theme,
+             appearance=appearance,
              identity_catalog=identity_catalog,
             series_presentation_preset=series_preset,
             presentation_presets=tuple(presentation_presets),
@@ -24257,8 +24498,14 @@ def cmd_build(series_dir, args):
         'output_dir': os.path.abspath(ctx.output_dir),
         'series_meta': ctx.series_data.get('series_meta', {})
         if isinstance(ctx.series_data, dict) else {},
-        'themes': ctx.series_data.get('themes')
-        if isinstance(ctx.series_data, dict) else None,
+        'appearance': {
+            'presets': list(ctx.appearance.preset_selectors),
+            'themes': list(ctx.appearance.theme_tokens),
+            'theme_policy': ctx.appearance.theme_policy,
+            'theme_id': ctx.appearance.theme_id,
+            'theme_ids': list(ctx.appearance.theme_ids),
+            'build': dict(ctx.appearance.build),
+        },
         'theme_runtime': ctx.theme_runtime,
         'css': ctx.css,
         'nav_js': ctx.nav_js,
@@ -25483,7 +25730,7 @@ def judge_resolved_theme(resolved):
 
 
 def audit_resolved_theme(templates_dir, articles, sources_dir, catalog=None,
-                         presentation_preset=None):
+                         presentation_preset=None, appearance=None):
     """Judges the sheet the series actually composes, series then article.
 
     The other checks in `audit` read the source; this one reads the RESULT
@@ -25514,7 +25761,9 @@ def audit_resolved_theme(templates_dir, articles, sources_dir, catalog=None,
             parse_settings_text(read_text_file(settings_file), catalog=catalog)
             if settings_file is not None and settings_file.exists()
             else (None, {}))
-        if theme_key:
+        if appearance is not None:
+            layers = [appearance.initial_theme_layer]
+        elif theme_key:
             layers = [theme_property_layer(theme_key, catalog)]
         elif presentation_preset is not None:
             layers = [presentation_preset.theme_props]
@@ -25611,16 +25860,17 @@ def cmd_audit(series_dir, args):
     series_meta = series_meta_of(series_data, tolerate_invalid=True,
                                  errors=meta_errors)
     identity_catalog = None
+    appearance = None
     presentation_preset = BUILTIN_STANDARD_PRESET
     presentation_errors = 0
     try:
         identity_catalog = load_identity_catalog(templates_dir)
-        presentation_preset = identity_catalog.resolve_preset(
-            series_meta.get('presentation_preset'),
-            'series.json: series_meta.presentation_preset')
+        appearance = resolve_series_appearance(
+            series_data, identity_catalog, theme_catalog, args)
+        presentation_preset = appearance.primary_preset
     except PropertyError as exc:
         presentation_errors = 1
-        log('warn', f'presentation preset: {exc}')
+        log('warn', f'appearance: {exc}')
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     if args.get('--templates'):
         # `--templates` restricts audit to the
@@ -25788,9 +26038,10 @@ def cmd_audit(series_dir, args):
     warnings += audit_presentation(
         templates_dir, theme_catalog, identity_catalog,
         presentation_error=bool(presentation_errors),
-        presentation_preset=presentation_preset)
+        presentation_preset=presentation_preset, appearance=appearance)
     warnings += audit_resolved_theme(templates_dir, articles, sources_dir,
-                                     theme_catalog, presentation_preset)
+                                     theme_catalog, presentation_preset,
+                                     appearance=appearance)
 
     # What only a render can say (BACKLOG B19/B24).
     #
@@ -25877,7 +26128,8 @@ RETIRED_VARIABLES = {
 
 
 def audit_presentation(templates_dir, catalog=None, identity_catalog=None,
-                       presentation_error=False, presentation_preset=None):
+                       presentation_error=False, presentation_preset=None,
+                       appearance=None):
     """The presentation-layer part of audit (§11.5): warns, never blocks.
 
     What it looks at, in the order the templates directory gives it. A
@@ -25971,8 +26223,13 @@ def audit_presentation(templates_dir, catalog=None, identity_catalog=None,
         else:
             m = re.search(r'^# scaffold-for: (\S+)$', text, re.MULTILINE)
             scaffold_for = m.group(1) if m else None
-            declared_name = (declared or (presentation_preset.selector
-                              if presentation_preset is not None else 'builtin/standard'))
+            declared_name = (declared or
+                             ((appearance.theme_id or
+                               appearance.primary_preset.selector)
+                              if appearance is not None else
+                              presentation_preset.selector
+                              if presentation_preset is not None else
+                              'builtin/standard'))
             # Older or unselected scaffolds call the same native base "default".
             scaffold_name = 'builtin/standard' if scaffold_for == 'default' else scaffold_for
             if scaffold_for and scaffold_name != declared_name:
@@ -25985,7 +26242,10 @@ def audit_presentation(templates_dir, catalog=None, identity_catalog=None,
                       f'realign the commented surface, keeping every line '
                       f'you pinned.')
             try:
-                layers = [theme_property_layer(declared, catalog)] if declared else []
+                layers = ([appearance.initial_theme_layer]
+                          if appearance is not None else
+                          [theme_property_layer(declared, catalog)]
+                          if declared else [])
                 layers.append(props)
                 resolve_theme_properties(*layers)
             except PropertyError as exc:
@@ -26115,7 +26375,7 @@ def cmd_install(target_dir, args):
 
     # The author's surface (§9 rewrite), and ONLY the author's surface:
     # settings.conf, every property commented at its value under the
-    # chosen theme, and an empty custom.css for rules. No style.css — the
+    # resolved initial appearance, and an empty custom.css for rules. No style.css — the
     # stylesheet is composed in memory at build time and never owned by
     # anyone but the tool. An optional templates/index_extra.html is
     # inserted as-is into the index page if the author creates one (no
@@ -26131,16 +26391,17 @@ def cmd_install(target_dir, args):
     # contains all three. `template show` and `template write` hand them
     # over to whoever actually wants one.
     _write_file(td / 'templates' / SETTINGS_FILENAME,
-                build_settings_scaffold(
-                    theme_key, catalog=theme_catalog,
-                    base_props=(presentation_preset.theme_props
-                                if theme_key is None else None),
-                    scaffold_for=(presentation_preset.selector
-                                  if preset_selector is not None else None)))
+                 build_settings_scaffold(
+                     None, catalog=theme_catalog,
+                     base_props=(theme_catalog.layer(theme_key)
+                                 if theme_key is not None
+                                 else presentation_preset.theme_props),
+                     scaffold_for=(theme_key or presentation_preset.selector)))
     _write_file(td / 'templates' / CUSTOM_CSS_FILENAME, CUSTOM_CSS_STUB)
 
     # Empty series.json
     series_json = {
+        "schema": SERIES_SCHEMA,
         "series_meta": {
             "title": "My article series",
             "subtitle": "Series subtitle",
@@ -26151,13 +26412,17 @@ def cmd_install(target_dir, args):
         },
         "articles": []
     }
+    appearance = {}
     if preset_selector is not None:
-        series_json['series_meta']['presentation_preset'] = (
-            presentation_preset.selector)
+        appearance['presets'] = [presentation_preset.selector]
+    if theme_key is not None:
+        appearance['themes'] = [theme_key]
+    if appearance:
+        series_json['appearance'] = appearance
     if starter_entries:
         series_json['articles'] = list(starter_entries)
     _write_file(td / 'series.json',
-                json.dumps(series_json, ensure_ascii=False, indent=2))
+                json.dumps(series_json, ensure_ascii=False, indent=2) + '\n')
 
     # .gitlab-ci.yml — opt-in only (--gitlab-ci): init never assumes a
     # GitLab deployment, so a project doesn't end up depending on GitLab
@@ -26429,20 +26694,20 @@ def cmd_refresh_templates(target_dir, args):
                   f'create a fresh one).')
             sys.exit(1)
         old = read_text_file(settings_path)
-        theme_key, _ = parse_settings_text(old, catalog=theme_catalog)
         pins = pinned_settings(old)
         try:
             series_data = load_series_data(_sd)
-            presentation_preset = _series_preset_or_die(
-                series_data, templates_dir)
+            identity_catalog = load_identity_catalog(templates_dir)
+            appearance = resolve_series_appearance(
+                series_data, identity_catalog, theme_catalog)
         except PropertyError as exc:
             log('error', str(exc))
             sys.exit(1)
         new = build_settings_scaffold(
-            theme_key, pinned=pins, catalog=theme_catalog,
-            base_props=(presentation_preset.theme_props
-                        if theme_key is None else None),
-            scaffold_for=series_meta_of(series_data).get('presentation_preset'))
+            None, pinned=pins, catalog=theme_catalog,
+            base_props=appearance.initial_theme_layer,
+            scaffold_for=(appearance.theme_id or
+                          appearance.primary_preset.selector))
         if new == old:
             progress(f'templates/{SETTINGS_FILENAME} is already current. '
                   f'Nothing written.')
@@ -26450,8 +26715,8 @@ def cmd_refresh_templates(target_dir, args):
         _write_file(settings_path, new)
         kept = len(pins)
         unknown = [k for k in pins if k not in PROPERTY_REGISTRY]
-        progress(f'Regenerated templates/{SETTINGS_FILENAME} for theme '
-              f'{theme_key or presentation_preset.selector or "default"}: commented surface refreshed, '
+        progress(f'Regenerated templates/{SETTINGS_FILENAME} for appearance '
+               f'{appearance.theme_id or appearance.primary_preset.selector}: commented surface refreshed, '
               f'{kept} pinned value(s) kept.')
         if unknown:
             log('warn', f'{len(unknown)} pinned property(ies) no longer exist '
@@ -26491,14 +26756,19 @@ def cmd_refresh_templates(target_dir, args):
     if not settings_path.exists():
         try:
             series_data = load_series_data(_sd)
-            presentation_preset = _series_preset_or_die(series_data, templates_dir)
+            identity_catalog = load_identity_catalog(templates_dir)
+            appearance = resolve_series_appearance(
+                series_data, identity_catalog, theme_catalog)
         except PropertyError as exc:
             log('error', str(exc))
             sys.exit(1)
         _write_file(settings_path, build_settings_scaffold(
-            None, catalog=theme_catalog, base_props=presentation_preset.theme_props,
-            scaffold_for=series_meta_of(series_data).get('presentation_preset')))
-        refreshed.append(f'templates/{SETTINGS_FILENAME} (new, {presentation_preset.selector})')
+            None, catalog=theme_catalog,
+            base_props=appearance.initial_theme_layer,
+            scaffold_for=(appearance.theme_id or appearance.primary_preset.selector)))
+        refreshed.append(
+            f'templates/{SETTINGS_FILENAME} (new, '
+            f'{appearance.theme_id or appearance.primary_preset.selector})')
     custom_path = templates_dir / CUSTOM_CSS_FILENAME
     contained_custom = _optional_contained_file(
         templates_dir, CUSTOM_CSS_FILENAME, f'templates/{CUSTOM_CSS_FILENAME}')
@@ -26710,13 +26980,31 @@ def cmd_theme_create(positional, args):
     progress(f'  edit the typed properties, then use `{slug}` in settings.conf')
 
 
-def _minimal_settings_text(theme_key, pins, retired=()):
+def _legacy_settings_parts(text, source, catalog):
+    """Read an old settings file only for the explicit migration command."""
+    theme_key = None
+    remaining = []
+    for lineno, raw in enumerate(text.splitlines(), 1):
+        assignment = _settings_assignment(raw)
+        if assignment is None or assignment[0] != 'theme':
+            remaining.append(raw)
+            continue
+        if theme_key is not None:
+            raise PropertyError(f'{source}:{lineno}: duplicate theme selection')
+        theme_key = assignment[1]
+        if not theme_key or not catalog.has(theme_key):
+            raise PropertyError(f'{source}:{lineno}: unknown theme {theme_key!r}')
+    _unused_theme, props = parse_settings_text(
+        '\n'.join(remaining), source=source, catalog=catalog)
+    return theme_key, props
+
+
+def _minimal_settings_text(pins, retired=()):
     lines = [
-        '# lightwebpres settings — the selected theme and explicit pins.',
-        '# Values here are applied over the theme; CSS rules belong in custom.css.',
+        '# lightwebpres settings — explicit typed property pins.',
+        '# Appearance selection lives in series.json; CSS rules belong in custom.css.',
         '',
     ]
-    lines.append(f'theme: {theme_key}' if theme_key else '# theme: <slug>')
     if pins:
         lines += ['', '# explicit property pins']
         lines.extend(f'{key}: {value}' for key, value in pins.items())
@@ -26727,8 +27015,8 @@ def _minimal_settings_text(theme_key, pins, retired=()):
 
 
 def cmd_theme_migrate(target_dir, args):
-    """Converts a complete scaffold into the minimal settings surface."""
-    (_sd, _sources, templates_dir, _lang, _interface, _typography,
+    """Moves an old settings theme into series.json and keeps typed pins."""
+    (sd, _sources, templates_dir, _lang, _interface, _typography,
      _output, _language, _language_file) = resolve_paths(target_dir, args)
     settings_path = _resolve_contained(templates_dir, SETTINGS_FILENAME)
     if settings_path is None or not settings_path.exists():
@@ -26736,24 +27024,77 @@ def cmd_theme_migrate(target_dir, args):
             f'first, or migrate a series that already has settings.conf.')
         sys.exit(1)
     try:
-        catalog = load_theme_catalog(_sd, templates_dir)
+        catalog = load_theme_catalog(sd, templates_dir)
         old = read_text_file(settings_path)
-        theme_key, _ = parse_settings_text(old, catalog=catalog)
+        theme_key, _ = _legacy_settings_parts(
+            old, str(settings_path), catalog)
+        series_path = _resolve_contained(sd, 'series.json')
+        if series_path is None or not series_path.is_file():
+            raise PropertyError(f'{sd / "series.json"} is not a regular file')
+        series_data = load_series_data(sd)
+        if not isinstance(series_data, dict):
+            raise PropertyError('theme migrate requires a series.json object')
+        identity_catalog = load_identity_catalog(templates_dir)
+        current_appearance = resolve_series_appearance(
+            series_data, identity_catalog, catalog)
     except (OSError, PropertyError) as exc:
         log('error', f'{settings_path}: {exc}')
+        sys.exit(1)
+    if theme_key is not None and current_appearance.config['themes_declared']:
+        log('error', f'{settings_path}: theme selection conflicts with the '
+            'existing series.json appearance.themes; remove the old line or '
+            'resolve the conflict before migrating.')
         sys.exit(1)
     all_pins = pinned_settings(old)
     pins = {key: value for key, value in all_pins.items()
             if key in PROPERTY_REGISTRY}
     retired = {key: value for key, value in all_pins.items()
                if key not in PROPERTY_REGISTRY}
-    new = _minimal_settings_text(theme_key, pins, retired)
-    if new == old:
-        progress(f'{settings_path} is already in the minimal format. Nothing written.')
+    new = _minimal_settings_text(pins, retired)
+    updated_series = json.loads(json.dumps(series_data))
+    if theme_key is not None:
+        appearance = updated_series.setdefault('appearance', {})
+        if appearance is None:
+            appearance = {}
+            updated_series['appearance'] = appearance
+        if not isinstance(appearance, dict):
+            log('error', 'series.json: "appearance" must be an object')
+            sys.exit(1)
+        appearance['themes'] = [theme_key]
+    resolve_series_appearance(updated_series, identity_catalog, catalog)
+    series_old = read_text_file(series_path)
+    updated_series_text = json.dumps(
+        updated_series, ensure_ascii=False, indent=2) + '\n'
+    if new == old and updated_series_text == series_old:
+        progress(f'{settings_path} and {series_path} are already migrated. '
+                 'Nothing written.')
         return
-    _write_file(settings_path, new)
+    if (settings_path.is_symlink() or series_path.is_symlink()):
+        log('error', 'theme migrate refuses to replace a symlinked source file')
+        sys.exit(1)
+    settings_written = False
+    series_written = False
+    try:
+        _write_file(series_path, updated_series_text)
+        series_written = not _LOG_STATE['dry_run']
+        _write_file(settings_path, new)
+        settings_written = not _LOG_STATE['dry_run']
+    except OSError as exc:
+        if settings_written:
+            try:
+                _write_file(settings_path, old)
+            except OSError:
+                pass
+        if series_written:
+            try:
+                _write_file(series_path, series_old)
+            except OSError:
+                pass
+        log('error', f'{settings_path}: {exc}')
+        sys.exit(1)
     progress(f'{"Would migrate" if _LOG_STATE["dry_run"] else "Migrated"} '
-             f'{settings_path}: {len(pins)} pin(s) kept.')
+             f'{settings_path}: {len(pins)} pin(s) kept; '
+             f'{series_path} now carries the theme selection.')
     if retired:
         log('warn', f'{len(retired)} unknown pin(s) were kept commented in the '
             f'retired section; remove or rename them before using them.')
@@ -26768,25 +27109,26 @@ def cmd_theme_vendor(target_dir, args):
         sys.exit(1)
     try:
         catalog = load_theme_catalog(sd, templates_dir)
-        settings_path = _resolve_contained(templates_dir, SETTINGS_FILENAME)
-        settings_text = (read_text_file(settings_path)
-                         if settings_path is not None and settings_path.exists()
-                         else '')
-        effective, _ = parse_settings_text(settings_text, catalog=catalog)
+        series_data = load_series_data(sd)
+        identity_catalog = load_identity_catalog(templates_dir)
+        appearance = resolve_series_appearance(
+            series_data, identity_catalog, catalog)
         raw = args.get('--themes') or args.get('--theme')
         if raw is None:
-            if effective is None:
+            if not appearance.config['themes_declared']:
                 log('error', '`theme vendor` needs --themes SELECTORS when the '
-                    'series has no selected theme.')
+                    'series has no explicit appearance.themes selection.')
                 sys.exit(1)
-            raw = effective
-        ids = []
-        for selector in _theme_runtime_parts(raw, '`theme vendor`'):
-            for theme_id in _theme_runtime_selector_ids(selector,
-                                                         '`theme vendor`',
-                                                         catalog):
-                if theme_id not in ids:
-                    ids.append(theme_id)
+            ids = [theme_id for theme_id in appearance.theme_ids
+                   if catalog.has(theme_id)]
+        else:
+            ids = []
+            for selector in _theme_runtime_parts(raw, '`theme vendor`'):
+                for theme_id in _theme_runtime_selector_ids(selector,
+                                                             '`theme vendor`',
+                                                             catalog):
+                    if theme_id not in ids:
+                        ids.append(theme_id)
     except (OSError, PropertyError) as exc:
         log('error', str(exc))
         sys.exit(1)
@@ -27168,11 +27510,11 @@ def cmd_preset_show(selector, args):
 
 
 def _series_preset_or_die(series_data, templates_dir):
-    catalog = load_identity_catalog(templates_dir)
-    meta = series_meta_of(series_data)
-    return catalog.resolve_preset(
-        meta.get('presentation_preset'),
-        'series.json: series_meta.presentation_preset')
+    identity_catalog = load_identity_catalog(templates_dir)
+    theme_catalog = load_theme_catalog(
+        Path(templates_dir).parent, templates_dir)
+    return resolve_series_appearance(
+        series_data, identity_catalog, theme_catalog).primary_preset
 
 
 def cmd_series_preset(series_dir, args):
@@ -27201,37 +27543,6 @@ def cmd_series_preset(series_dir, args):
         _print_presentation_preset(report['preset'], fmt)
 
 
-def _remove_settings_theme(text):
-    """Leave all author pins intact while intentionally revealing preset base."""
-    lines = []
-    for raw in text.splitlines(keepends=True):
-        assignment = _settings_assignment(raw)
-        if assignment is not None and assignment[0] == 'theme':
-            continue
-        lines.append(raw)
-    return ''.join(lines)
-
-
-def _replace_settings_theme(text, theme_key):
-    """Replace the one active theme declaration without disturbing pins."""
-    lines = text.splitlines(keepends=True)
-    for index, raw in enumerate(lines):
-        assignment = _settings_assignment(raw)
-        if assignment is None or assignment[0] != 'theme':
-            continue
-        lines[index] = f'theme: {theme_key}' + ('\n' if raw.endswith('\n') else '')
-        return ''.join(lines)
-    for index, raw in enumerate(lines):
-        stripped = raw.strip()
-        if not stripped.startswith('#'):
-            continue
-        candidate = stripped[1:].strip()
-        if candidate.startswith('theme:'):
-            lines[index] = f'theme: {theme_key}' + ('\n' if raw.endswith('\n') else '')
-            return ''.join(lines)
-    return f'theme: {theme_key}\n' + text
-
-
 def cmd_set_presentation_preset(series_dir, args):
     """Select and vendor one preset without applying its starter."""
     selector = args.get('--preset')
@@ -27243,6 +27554,10 @@ def cmd_set_presentation_preset(series_dir, args):
     use_preset_theme = bool(args.get('--use-preset-theme'))
     if keep_theme and use_preset_theme:
         log('error', '`--keep-theme` and `--use-preset-theme` are mutually exclusive.')
+        sys.exit(1)
+    if keep_theme or use_preset_theme:
+        log('error', '`--keep-theme` and `--use-preset-theme` are legacy; '
+            'select the initial theme in series.json appearance.themes.')
         sys.exit(1)
     (sd, _sources, templates_dir, _lang, _interface, _typography,
      _output, _language, _language_file) = resolve_paths(series_dir, args)
@@ -27263,44 +27578,28 @@ def cmd_set_presentation_preset(series_dir, args):
         if settings_exists and not settings_path.is_file():
             raise PropertyError(f'{settings_path} is not a regular file')
         settings_text = read_text_file(settings_path) if settings_exists else ''
-        explicit_theme, pins = parse_settings_text(settings_text,
-                                                   catalog=theme_catalog)
-        if keep_theme and not explicit_theme:
-            raise PropertyError(
-                '`--keep-theme` needs an explicit theme: entry in '
-                f'{settings_path}.')
-        if explicit_theme and not (keep_theme or use_preset_theme):
-            raise PropertyError(
-                f'{settings_path} explicitly selects theme {explicit_theme!r}. '
-                'Choose --keep-theme to retain it or --use-preset-theme to '
-                'remove that selection and reveal the preset theme.')
-        updated_settings = (_remove_settings_theme(settings_text)
-                            if explicit_theme and use_preset_theme
-                            else settings_text)
-        selected_theme, selected_pins = parse_settings_text(
-            updated_settings, catalog=theme_catalog)
-        base_props = (theme_property_layer(selected_theme, theme_catalog)
-                      if selected_theme else preset.theme_props)
-        resolve_theme_properties(base_props, selected_pins)
+        _unused_theme, pins = parse_settings_text(
+            settings_text, catalog=theme_catalog)
 
         updated = json.loads(json.dumps(series_data))
-        updated.setdefault('series_meta', {})['presentation_preset'] = preset.selector
-        proposed_meta = series_meta_of(updated)
-        catalog.resolve_preset(
-            proposed_meta.get('presentation_preset'),
-            'series.json: series_meta.presentation_preset')
+        appearance = updated.setdefault('appearance', {})
+        if appearance is None:
+            appearance = {}
+            updated['appearance'] = appearance
+        if not isinstance(appearance, dict):
+            raise PropertyError('series.json: "appearance" must be an object')
+        appearance['presets'] = [preset.selector]
+        proposed_appearance = resolve_series_appearance(
+            updated, catalog, theme_catalog)
+        resolve_theme_properties(proposed_appearance.initial_theme_layer, pins)
 
         series_path = _resolve_contained(sd, 'series.json')
         if series_path is None or not series_path.is_file():
             raise PropertyError(f'{sd / "series.json"} is not a regular file')
         series_text = read_text_file(series_path)
         updated_series = json.dumps(updated, ensure_ascii=False, indent=2) + '\n'
-        settings_changed = updated_settings != settings_text
+        settings_changed = False
         series_changed = updated_series != series_text
-        if settings_changed and settings_path.is_symlink():
-            raise PropertyError(
-                f'{settings_path} is a symlink; refusing to replace it while '
-                'changing a preset')
         if series_changed and series_path.is_symlink():
             raise PropertyError(
                 f'{series_path} is a symlink; refusing to replace it while '
@@ -27412,12 +27711,8 @@ def cmd_set_presentation_preset(series_dir, args):
                 + '; '.join(rollback_errors))
         sys.exit(1)
     progress(f'Presentation preset set: {preset.selector}')
-    if explicit_theme and keep_theme:
-        progress(f'  kept explicit theme: {explicit_theme}')
-    elif explicit_theme and use_preset_theme:
-        progress('  removed explicit theme; settings pins now apply over the preset base.')
-    else:
-        progress('  no starter was applied; starters run only during init.')
+    progress('  theme policy and settings pins were left unchanged.')
+    progress('  no starter was applied; starters run only during init.')
 
 
 def cmd_themes(args):
@@ -27540,7 +27835,8 @@ def _theme_info_facets(kind, slug, resolved, catalog=None, base_entry=None):
 
 
 def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False,
-                       catalog=None, presentation_preset=None):
+                       catalog=None, presentation_preset=None, theme_entry=None,
+                       theme_origin=None, theme_id=None):
     """Everything `theme-info` knows about one theme, as the structure
     `--format json` prints and the text format reads out.
 
@@ -27548,9 +27844,12 @@ def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False
     the registry declares, not from a list written here, so a seventh
     shared value would appear the day it exists."""
     resolved = resolve_theme_properties(*layers)
-    resource = (catalog or ThemeCatalog()).resolve(slug) if slug else None
+    resource = ((catalog or ThemeCatalog()).resolve(slug)
+                if slug and (catalog or ThemeCatalog()).has(slug) else None)
     entry = (resource.entry if resource is not None else
-             (presentation_preset.theme_meta if presentation_preset is not None else None))
+             theme_entry if theme_entry is not None else
+             (presentation_preset.theme_meta
+              if presentation_preset is not None else None))
     source = entry.get('source') if entry else None
     if not slug and presentation_preset is not None:
         if (presentation_preset.resource_collection == 'builtin'
@@ -27564,7 +27863,7 @@ def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False
         'lightwebpres_version': VERSION,
         'target': {
             'kind': kind,
-            'theme': slug,
+            'theme': theme_id if theme_id is not None else slug,
             'presentation_preset': (presentation_preset.selector
                                     if presentation_preset is not None else None),
             'directory': directory,
@@ -27575,7 +27874,9 @@ def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False
         'note': entry.get('note') if entry else None,
         'source': source,
         'origin': (resource.origin if resource is not None else
-                   presentation_preset.theme_origin if presentation_preset is not None else None),
+                   theme_origin if theme_origin is not None else
+                   presentation_preset.theme_origin
+                   if presentation_preset is not None else None),
         'facets': _theme_info_facets(kind, slug, resolved, catalog, entry),
         'palette': {p.key[len('color.'):]: resolved[p.key]
                     for p in THEME_SHARED_PROPS if p.key.startswith('color.')},
@@ -27977,7 +28278,9 @@ def cmd_series_theme(series_dir, args):
     try:
         theme_catalog = load_theme_catalog(directory, templates_dir)
         series_data = load_series_data(directory)
-        presentation_preset = _series_preset_or_die(series_data, templates_dir)
+        identity_catalog = load_identity_catalog(templates_dir)
+        appearance = resolve_series_appearance(
+            series_data, identity_catalog, theme_catalog, args)
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
@@ -27987,18 +28290,27 @@ def cmd_series_theme(series_dir, args):
     text = (read_text_file(settings_file)
             if settings_file is not None and settings_file.exists() else '')
     try:
-        slug, props = parse_settings_text(text, catalog=theme_catalog)
-        layers = ([theme_property_layer(slug, theme_catalog)] if slug
-                  else [presentation_preset.theme_props]) + [props]
+        _unused_theme, props = parse_settings_text(text, catalog=theme_catalog)
+        layers = [appearance.initial_theme_layer, props]
         custom = _optional_contained_file(
             templates_dir, CUSTOM_CSS_FILENAME,
             f'templates/{CUSTOM_CSS_FILENAME}')
         has_rules = custom is not None and bool(re.sub(
             r'/\*.*?\*/', '', read_text_file(custom), flags=re.DOTALL).strip())
+        theme_entry = None
+        theme_origin = None
+        report_slug = appearance.theme_id
+        if appearance.theme_id in appearance.kit_themes:
+            identity_kit, theme_name = appearance.kit_themes[appearance.theme_id]
+            theme_entry = identity_kit.themes[theme_name]['meta']
+            theme_origin = identity_kit.scope
+            report_slug = None
         report = theme_info_report(
-            'series', slug, str(directory), layers, sorted(props),
+            'series', report_slug, str(directory), layers, sorted(props),
             custom_css=has_rules, catalog=theme_catalog,
-            presentation_preset=presentation_preset)
+            presentation_preset=appearance.primary_preset,
+            theme_entry=theme_entry, theme_origin=theme_origin,
+            theme_id=appearance.theme_id)
     except PropertyError as exc:
         log('error', f'{exc}')
         sys.exit(1)
@@ -28010,13 +28322,7 @@ def cmd_series_theme(series_dir, args):
 
 
 def cmd_set_theme(target_dir, args):
-    """set-theme command (§11.10) — records the theme choice by rewriting
-    the ONE line of settings.conf that is the tool's to write. Everything
-    the old implementation guarded against — half-recoloured files, markers
-    claiming themes a file does not carry, --force — existed because the
-    tool wrote into the file the author edits. It no longer does: the
-    stylesheet is composed at build time, so changing theme is changing a
-    word."""
+    """`series theme set` records the fixed initial theme in series.json."""
     new_slug = args.get('--theme')
 
     if new_slug is None:
@@ -28027,6 +28333,9 @@ def cmd_set_theme(target_dir, args):
     (td, _sources_dir, templates_dir, _lang_dir, _interface_dir,
      _typography_dir, _output_dir, _lang, _language_file) = resolve_paths(
          target_dir, args)
+    if not templates_dir.is_dir():
+        log('error', f'{td} has not been init\'d. Run `lightwebpres init {td}`')
+        sys.exit(1)
     try:
         theme_catalog = load_theme_catalog(td, templates_dir)
     except PropertyError as exc:
@@ -28037,38 +28346,57 @@ def cmd_set_theme(target_dir, args):
               f'Run `lightwebpres theme list` to list the '
                f'{len(theme_catalog.theme_ids)} valid slugs.')
         sys.exit(1)
-    settings_path = templates_dir / SETTINGS_FILENAME
-    contained_settings = _optional_contained_file(
-        templates_dir, SETTINGS_FILENAME, f'templates/{SETTINGS_FILENAME}')
-    if contained_settings is not None:
-        settings_path = contained_settings
-
-    if not settings_path.parent.is_dir():
-        # A directory that was never installed stays a clean error, as it
-        # always was — set-theme configures a series, it does not create one.
-        log('error', f'{settings_path.parent} not found. Run init first.')
+    series_path = _resolve_contained(td, 'series.json')
+    if series_path is None or not series_path.is_file():
+        log('error', f'{td / "series.json"} is not a regular file')
         sys.exit(1)
-    if not settings_path.exists():
-        # Installed before the rewrite: nothing to preserve, write a fresh
-        # scaffold for the chosen theme.
-        _write_file(settings_path, build_settings_scaffold(
-            new_slug, catalog=theme_catalog))
-        progress(f'Theme set: {new_slug} (fresh {SETTINGS_FILENAME} written)')
-        progress('Run build again to apply the new theme.')
-        return
+    try:
+        series_data = load_series_data(td)
+        if not isinstance(series_data, dict):
+            raise PropertyError('series theme set requires a series.json object')
+        series_meta_of(series_data)
+        identity_catalog = load_identity_catalog(templates_dir)
+        current_appearance = resolve_series_appearance(
+            series_data, identity_catalog, theme_catalog)
 
-    text = read_text_file(settings_path)
-    current, _props = parse_settings_text(text, catalog=theme_catalog)
-    if current == new_slug:
-        progress(f'Theme unchanged: already {new_slug}. Nothing written.')
-        return
+        settings_file = _optional_contained_file(
+            templates_dir, SETTINGS_FILENAME, f'templates/{SETTINGS_FILENAME}')
+        settings_text = (read_text_file(settings_file)
+                         if settings_file is not None and settings_file.exists()
+                         else '')
+        _unused_theme, pins = parse_settings_text(
+            settings_text, catalog=theme_catalog)
 
-    _write_file(settings_path, _replace_settings_theme(text, new_slug))
+        updated = json.loads(json.dumps(series_data))
+        appearance = updated.setdefault('appearance', {})
+        if appearance is None:
+            appearance = {}
+            updated['appearance'] = appearance
+        if not isinstance(appearance, dict):
+            raise PropertyError('series.json: "appearance" must be an object')
+        appearance['themes'] = [new_slug]
+        proposed = resolve_series_appearance(
+            updated, identity_catalog, theme_catalog)
+        resolve_theme_properties(proposed.initial_theme_layer, pins)
+        series_text = read_text_file(series_path)
+        updated_text = json.dumps(updated, ensure_ascii=False, indent=2) + '\n'
+        if updated_text == series_text:
+            progress(f'Theme unchanged: already {new_slug}. Nothing written.')
+            return
+        if series_path.is_symlink():
+            raise PropertyError(
+                f'{series_path} is a symlink; refusing to replace it while '
+                'changing the initial theme')
+    except (OSError, PropertyError) as exc:
+        log('error', str(exc))
+        sys.exit(1)
 
-    progress(f'Theme changed: {current or "default"} -> {new_slug}')
-    progress(f'  {settings_path}')
-    progress('  Your uncommented values are untouched and still apply on top.')
-    progress('  (Commented values still show the previous theme; audit notes it.)')
+    _write_file(series_path, updated_text)
+    previous = current_appearance.theme_id or 'default'
+    progress(f'Theme changed: {previous} -> {new_slug}')
+    progress(f'  {series_path}')
+    progress('  The theme selection now lives in series.json appearance.themes.')
+    progress('  Your settings.conf pins are untouched and still apply on top.')
     progress()
     progress('Run build again to apply the new theme.')
 
@@ -28085,19 +28413,17 @@ SERIES_INFO_SCHEMA = 'lightwebpres.series-info/5'
 SERIES_TAGS_SCHEMA = 'lightwebpres.series-tags/1'
 
 
-def series_theme(templates_dir):
-    """The theme slug a build of this series would run on, or None when
-    it names none — a series with no settings.conf, or one that pins
-    properties without naming a theme, runs on the registry's own
-    defaults (§9.3), and `null` says that better than a slug it does not
-    have. Same parser as the build, so the two cannot disagree."""
-    settings_file = _optional_contained_file(
-        templates_dir, SETTINGS_FILENAME, f'templates/{SETTINGS_FILENAME}')
-    if settings_file is None or not settings_file.exists():
-        return None
-    catalog = load_theme_catalog(templates_dir=templates_dir)
-    return parse_settings_text(read_text_file(settings_file),
-                               catalog=catalog)[0]
+def series_theme(templates_dir, series_data=None, args=None):
+    """The fixed theme selected by a series, or ``None`` when it follows its
+    primary presentation preset."""
+    templates_dir = Path(templates_dir)
+    if series_data is None:
+        series_data = load_series_data(templates_dir.parent)
+    catalog = load_theme_catalog(series_dir=templates_dir.parent,
+                                 templates_dir=templates_dir)
+    identity_catalog = load_identity_catalog(templates_dir)
+    return resolve_series_appearance(
+        series_data, identity_catalog, catalog, args).theme_id
 
 
 def _load_series_report_context(series_dir, args):
@@ -28133,8 +28459,24 @@ def series_tags_report(directory, series_data, articles, tag_filter=None):
     }
 
 
+def _series_appearance_report(appearance):
+    """The resolved author choices carried by series-info."""
+    if appearance is None:
+        return None
+    return {
+        'presets': list(appearance.preset_selectors),
+        'themes': list(appearance.theme_tokens),
+        'theme_policy': appearance.theme_policy,
+        'initial_preset': appearance.primary_preset.selector,
+        'initial_theme': (appearance.primary_preset.theme_resource_id
+                          if appearance.theme_policy == 'preset'
+                          else appearance.theme_id),
+        'published_themes': list(appearance.theme_ids),
+    }
+
+
 def series_info_report(directory, series_data, articles, resolution, theme,
-                       presentation_preset):
+                       presentation_preset, appearance=None):
     """Everything `series-info` knows about one series, as `--format
     json` prints it and the text format reads out.
 
@@ -28157,6 +28499,7 @@ def series_info_report(directory, series_data, articles, resolution, theme,
             'theme': theme,
             'presentation_preset': presentation_preset.selector,
         },
+        'appearance': _series_appearance_report(appearance),
         'series_meta': {field: meta.get(field)
                          for field in _SERIES_META_FIELDS},
         'presentation': _presentation_preset_report(presentation_preset),
@@ -28324,14 +28667,18 @@ def cmd_series_info(series_dir, args):
         _load_series_report_context(series_dir, args))
 
     try:
-        theme = series_theme(templates_dir)
-        presentation_preset = _series_preset_or_die(series_data, templates_dir)
+        theme_catalog = load_theme_catalog(sd, templates_dir)
+        identity_catalog = load_identity_catalog(templates_dir)
+        appearance = resolve_series_appearance(
+            series_data, identity_catalog, theme_catalog, args)
+        theme = appearance.theme_id
+        presentation_preset = appearance.primary_preset
     except PropertyError as exc:
-        log('error', f'templates/{SETTINGS_FILENAME}: {exc}')
+        log('error', str(exc))
         sys.exit(1)
 
     report = series_info_report(sd, series_data, articles, resolution, theme,
-                                presentation_preset)
+                                presentation_preset, appearance=appearance)
 
     # On stderr, so `--format json` stays a single JSON document on
     # stdout. Not an error: the answer for every other article is intact,
@@ -28468,7 +28815,8 @@ def classify_resolve_name(name):
 
 
 def resolve_theme_property(name, templates_dir, article_meta, article_name,
-                           catalog=None, presentation_preset=None):
+                           catalog=None, presentation_preset=None,
+                           appearance=None):
     """A theme property's cascade (§9.3), strongest level first.
 
     The VALUE comes from resolve_theme_properties() — the function the
@@ -28479,10 +28827,24 @@ def resolve_theme_property(name, templates_dir, article_meta, article_name,
         templates_dir, SETTINGS_FILENAME, f'templates/{SETTINGS_FILENAME}')
     text = (read_text_file(settings_file)
             if settings_file is not None and settings_file.exists() else '')
-    slug, pinned = parse_settings_text(text, catalog=catalog)
-    theme_layer = theme_property_layer(slug, catalog) if slug else {}
-    preset_layer = (presentation_preset.theme_props
-                    if presentation_preset is not None and not slug else {})
+    _unused_theme, pinned = parse_settings_text(text, catalog=catalog)
+    if appearance is not None and appearance.theme_id is not None:
+        if appearance.theme_id in appearance.kit_themes:
+            identity_kit, theme_name = appearance.kit_themes[appearance.theme_id]
+            theme_layer = identity_kit.theme_properties(theme_name)
+        else:
+            theme_layer = theme_property_layer(appearance.theme_id, catalog)
+        preset_layer = {}
+        selected_theme = appearance.theme_id
+    elif appearance is not None:
+        theme_layer = {}
+        preset_layer = appearance.initial_theme_layer
+        selected_theme = None
+    else:
+        theme_layer = {}
+        preset_layer = (presentation_preset.theme_props
+                        if presentation_preset is not None else {})
+        selected_theme = None
     article_layer = (page_style_properties(article_meta, article_name)
                      if article_meta is not None else {})
 
@@ -28505,12 +28867,13 @@ def resolve_theme_property(name, templates_dir, article_meta, article_name,
                     note=None if pinned else
                     'nothing pinned in templates/settings.conf'),
         _chain_link('theme', theme_layer.get(name, ''),
-                    note=None if slug else
-                    'the series names no theme, so it runs on the registry '
-                    'defaults or its selected presentation preset'),
+                    note=None if selected_theme else
+                    'the series follows its selected presentation preset; '
+                    'no fixed theme is named'),
         _chain_link('preset', preset_layer.get(name, ''),
-                    note=('masked by templates/settings.conf theme: '
-                          + slug) if slug and presentation_preset is not None
+                    note=('masked by the fixed series theme: '
+                          + selected_theme) if selected_theme and
+                    presentation_preset is not None
                     else None),
         _chain_link('default', prop.default),
     ]
@@ -28539,7 +28902,7 @@ def resolve_theme_property(name, templates_dir, article_meta, article_name,
     }
 
 
-def resolve_series_field(name, series_meta):
+def resolve_series_field(name, series_meta, appearance=None):
     """A `series_meta` field (§20.5): written once for the whole series,
     or absent. One level, and saying so is the answer."""
     if name == 'scroll_duration':
@@ -28547,12 +28910,17 @@ def resolve_series_field(name, series_meta):
     elif name == 'default_tag':
         default = 'default'
     elif name == 'presentation_preset':
-        default = 'builtin/standard'
+        default = (appearance.primary_preset.selector
+                   if appearance is not None else 'builtin/standard')
     elif name in ('lang_tags', 'selectors'):
         default = {}
     else:
         default = ''
-    chain = [_chain_link('series', series_meta.get(name)),
+    value = (appearance.primary_preset.selector
+             if (name == 'presentation_preset' and appearance is not None
+                 and appearance.config.get('presets_declared'))
+             else series_meta.get(name))
+    chain = [_chain_link('series', value),
              _chain_link('default', default)]
     winner = _crown(chain)
     return {'value': winner['value'] if winner['value'] is not None else '',
@@ -28747,9 +29115,9 @@ def cmd_resolve(series_dir, name, args):
     series_data = load_series_data(sd)
     series_meta = series_meta_of(series_data)
     try:
-        presentation_preset = identity_catalog.resolve_preset(
-            series_meta.get('presentation_preset'),
-            'series.json: series_meta.presentation_preset')
+        appearance = resolve_series_appearance(
+            series_data, identity_catalog, theme_catalog, args)
+        presentation_preset = appearance.primary_preset
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
@@ -28791,7 +29159,8 @@ def cmd_resolve(series_dir, name, args):
             resolution = resolve_theme_property(
                 name, templates_dir, article_meta, only or name,
                 catalog=theme_catalog,
-                presentation_preset=presentation_preset)
+                presentation_preset=presentation_preset,
+                appearance=appearance)
         elif kind == 'slide-field':
             if name not in _SLIDE_FIELD_ATTRS:
                 # `comment` is a slide field and is refused above, so it
@@ -28831,7 +29200,7 @@ def cmd_resolve(series_dir, name, args):
             if only is not None:
                 log('error', 'presentation_preset is series-wide; omit --article.')
                 sys.exit(1)
-            resolution = resolve_series_field(name, series_meta)
+            resolution = resolve_series_field(name, series_meta, appearance)
             resolution['preset'] = _presentation_preset_report(
                 presentation_preset)
         elif name in _TYPO_FIELD_NAMES:
@@ -29151,6 +29520,8 @@ def cmd_demo(target_dir, args):
     series_file = _optional_contained_file(td, 'series.json', 'series.json')
     if series_file is None:
         series_file = td / 'series.json'
+    existing_appearance = None
+    has_existing_appearance = False
     if series_file.exists():
         try:
             existing_series = json.loads(read_text_file(series_file))
@@ -29158,6 +29529,9 @@ def cmd_demo(target_dir, args):
             existing_series = None
         if isinstance(existing_series, dict):
             existing_articles = existing_series.get('articles', [])
+            if 'appearance' in existing_series:
+                existing_appearance = existing_series['appearance']
+                has_existing_appearance = True
         else:
             existing_articles = existing_series if isinstance(existing_series, list) else []
         if existing_articles:
@@ -29378,6 +29752,10 @@ This is the full article for the third demo article [^1].
             {"page_source": "last.md"}
         ]
     }
+    if has_existing_appearance:
+        # Demo replaces only the editorial example. An appearance selected by
+        # init is still the series author's choice and must survive it.
+        series_json['appearance'] = existing_appearance
     _write_file(series_file, json.dumps(series_json, ensure_ascii=False, indent=2))
 
     dry = _LOG_STATE['dry_run']

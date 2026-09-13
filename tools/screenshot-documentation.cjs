@@ -102,7 +102,7 @@ async function main() {
       fs.copyFileSync(path.join(root, 'examples/first-article/series.json'),
         path.join(series, 'series.json'));
       fs.copyFileSync(path.join(root, manifest.source), path.join(series, 'sources/first-page.md'));
-      cli('series', 'preset', 'set', series, '--preset', selector, '--use-preset-theme');
+      cli('series', 'preset', 'set', series, '--preset', selector);
       cli('build', series, '--lang', 'en');
       cli('verify', series, '--lang', 'en');
       const page = await browser.newPage({ viewport, deviceScaleFactor: 1,

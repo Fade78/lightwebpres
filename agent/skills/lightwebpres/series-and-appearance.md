@@ -40,16 +40,30 @@ that leave their logical root. Filename validation is not a symlink sandbox.
 `series_meta`, beside `articles`, holds series-wide `title`, `subtitle`,
 `version`, `intro`, `author`, `license`, `default_tag`, `scroll_duration`,
 `lang_tags`, `notes_placement`, `notes_tooltip`, `slide_page_numbers`,
-`slug_prefix`, `presentation_preset`, `reading`, `selectors`, `unit_index`,
+`slug_prefix`, `reading`, `selectors`, `unit_index`,
 `unit_index_max_columns`, `unit_index_selector`. The first four drive the generated
 index and README; `author`/`license` provide article fallbacks. `comment`
 also works here, or on an article entry, and is never read or rendered.
 
-No `articles[]` entry or `lwp:meta` block selects or refines a presentation
-preset. That choice belongs only to `series_meta.presentation_preset`.
-The optional root `presentation_presets` list declares build-time runtime
-alternatives, not a persisted reader selection. The root `themes` list does
-the same for extra runtime themes; neither list is an article field.
+Presentation choices live in one optional root `appearance` object, beside
+`series_meta` and `articles`:
+
+```json
+{
+  "appearance": {
+    "presets": ["builtin/standard"],
+    "themes": ["preset", "essential"]
+  }
+}
+```
+
+The first preset is the initial presentation and later entries are published
+alternatives. The first individual theme token chooses a fixed initial theme;
+`preset` follows the selected preset, while `all`, `essential` and facet
+selectors add ordered alternatives. Omission uses the defaults shown above;
+an explicit list is exact. `build` may also contain `single_html` and
+`inline_images` output defaults. No `articles[]` entry or `lwp:meta` block
+selects or refines a presentation.
 
 ## Tags And Visibility
 
@@ -278,17 +292,17 @@ JavaScript and each slide's `<section>`. A kit lives at
 `public/assets/presentations/<id>/<version>/...`. The complete manifest,
 fragment, asset and validation contract is specifications.md §9.9.
 
-Only `series_meta.presentation_preset` persists the initial choice:
-`builtin/standard`, `commons/<id>` or `id@MAJOR.MINOR.PATCH/preset`.
-Identity is inferred from it and applies to the entire series and index.
-Omission implicitly selects `builtin/standard`. `init --preset builtin/standard`
-and `series preset set --preset builtin/standard` persist the explicit
-reference; plain `init` leaves it absent. Neither native choice vendors resources.
+The root `appearance.presets` list persists the initial choice and published
+alternatives. Each selector is `builtin/standard`, `commons/<id>` or
+`id@MAJOR.MINOR.PATCH/preset`; identity is inferred from each reference and
+applies to the entire series and index. Omission uses
+`["builtin/standard"]`. `init --preset` and `series preset set` write the
+selected reference as the first item. Neither native choice vendors resources.
 
 ```json
 {
-  "series_meta": {
-    "presentation_preset": "corporate@1.0.0/brief"
+  "appearance": {
+    "presets": ["corporate@1.0.0/brief"]
   }
 }
 ```
@@ -338,25 +352,25 @@ then advanced final CSS in `templates/custom.css`.
 
 ## Runtime Presentation Alternatives
 
-A kit or Commons primary also exposes compatible native Standard.
-Additional choices are declared at the root of `series.json`:
+A series publishes the ordered presentation choices declared in
+`appearance.presets`. The first item is primary; no kit or Commons preset adds
+`builtin/standard` implicitly. Additional choices are explicit:
 
 ```json
 {
-  "series_meta": {
-    "presentation_preset": "corporate@1.0.0/brief"
-  },
-  "presentation_presets": ["builtin/standard"]
+  "appearance": {
+    "presets": ["corporate@1.0.0/brief", "builtin/standard"],
+    "themes": ["preset", "all"]
+  }
 }
 ```
 
-`build`, `verify`, `watch` accept `--presentation-presets selector[,selector...]`
-to override that root list. Alternatives add to, not replace, the primary.
-The effective list keeps the primary first and removes duplicates.
-Missing/unknown selectors fail before writing output. Each article and
-index carries primary HTML plus inert fragments for alternatives. Available
-reader presentation choices apply across the series, stay in browser session
-storage and never rewrite source files.
+`build`, `verify` and `watch` accept `--presentation-presets selector[,selector...]`
+to replace the configured list for one invocation; its first selector is the
+primary. Duplicates are removed in order and missing or unknown selectors fail
+before writing output. Each article and index carries primary HTML plus inert
+fragments for alternatives. Available reader presentation choices apply across
+the series, stay in browser session storage and never rewrite source files.
 
 **C** offers **Identity**, **Preset**, **Theme** only when a real Identity Kit
 is published; selecting native `builtin/standard` does not remove those axes.
@@ -382,8 +396,9 @@ resources; Commons remains a collection, not an identity. Do not rewrite
 payload origins or palette `source` credits from these display labels. Show
 themes filters published membership, not loading origin.
 
-An explicit `theme:` in `settings.conf` stays fixed when presentation changes.
-Without it, the preset's theme follows the selected presentation until the
+The first token in `appearance.themes` sets the initial theme policy; an
+explicit theme token stays fixed when presentation changes. Without an
+explicit token, the preset's theme follows the selected presentation until the
 reader chooses an explicit runtime theme. In kit-aware mode, **Follow preset**
 clears that override; in theme-only mode, select the primary theme instead.
 Kit-only slide overrides may make implicit native Standard incompatible;
@@ -391,8 +406,8 @@ it is then omitted with a warning. Explicit incompatible requests fail.
 
 ## Runtime Themes
 
-The root `themes` list contains strings from the effective series catalogue,
-including complete snapshots under `templates/themes/`:
+The `appearance.themes` list contains strings from the effective series
+catalogue, including complete snapshots under `templates/themes/`:
 
 ```json
 {
@@ -402,7 +417,10 @@ including complete snapshots under `templates/themes/`:
     "default_tag": "fr",
     "lang_tags": {"fr": "fr", "en": "en"}
   },
-  "themes": ["essential", "family:terrain"],
+  "appearance": {
+    "presets": ["builtin/standard"],
+    "themes": ["essential", "family:terrain"]
+  },
   "articles": [{"page_source": "apple-pie.md"}]
 }
 ```

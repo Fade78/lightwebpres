@@ -46,7 +46,7 @@ class ReadingFitBrowser(unittest.TestCase):
             cli('init', str(root))
             (root / 'series.json').write_text(json.dumps({
                 'series_meta': {'title': 'Reading fixture'},
-                'presentation_presets': ['commons/roomy'],
+                'appearance': {'presets': ['commons/roomy']},
                 'articles': [{'page_source': 'reading.md'}],
             }), encoding='utf-8')
             presets = root / 'templates' / 'commons' / 'presets'

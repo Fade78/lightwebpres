@@ -38,7 +38,7 @@ const { chromium } = require('playwright');
       fs.copyFileSync(path.join(root, 'examples/first-article/series.json'), path.join(series, 'series.json'));
       fs.copyFileSync(path.join(root, 'examples/first-article/sources/first-page.md'),
         path.join(series, 'sources/first-page.md'));
-      cli('series', 'preset', 'set', series, '--preset', preset, '--use-preset-theme');
+      cli('series', 'preset', 'set', series, '--preset', preset);
       cli('build', series, '--lang', 'en', '--scroll-duration', '0');
       for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
         const page = await browser.newPage({ viewport });

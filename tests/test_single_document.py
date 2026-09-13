@@ -278,7 +278,7 @@ class SingleDocument(unittest.TestCase):
         kit = self.root / 'templates' / 'kits' / 'lightwebpres-docs' / '0.1.0'
         shutil.copytree(ROOT / 'examples' / 'kits' / 'lightwebpres-docs' / '0.1.0', kit)
         selector = 'lightwebpres-docs@0.1.0/docs'
-        self.data['presentation_presets'] = [selector]
+        self.data['appearance'] = {'presets': [selector, 'builtin/standard']}
         self.save_series()
         html, payload = self.bundle('--inline-images')
         resources = runtime_data(html)

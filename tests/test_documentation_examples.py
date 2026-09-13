@@ -43,8 +43,15 @@ class KitCompositionExample(unittest.TestCase):
         shutil.copyfile(FIRST_ARTICLE / 'series.json', series / 'series.json')
         shutil.copyfile(FIRST_ARTICLE / 'sources/first-page.md',
                         series / 'sources/first-page.md')
-        self.cli('series', 'preset', 'set', series, '--preset', selector,
-                 '--keep-theme' if options else '--use-preset-theme')
+        config = json.loads((series / 'series.json').read_text(encoding='utf-8'))
+        config.setdefault('appearance', {})['themes'] = ['preset']
+        (series / 'series.json').write_text(json.dumps(config), encoding='utf-8')
+        self.cli('series', 'preset', 'set', series, '--preset', selector)
+        config = json.loads((series / 'series.json').read_text(encoding='utf-8'))
+        config['appearance']['presets'] = [selector, 'builtin/standard']
+        if '--theme' in options:
+            config['appearance']['themes'] = [options[options.index('--theme') + 1]]
+        (series / 'series.json').write_text(json.dumps(config), encoding='utf-8')
         self.cli('build', series, '--lang', 'en')
         self.cli('verify', series, '--lang', 'en')
         return (series / 'public/first-page.html').read_text(encoding='utf-8')
@@ -134,8 +141,7 @@ class KitCompositionExample(unittest.TestCase):
                       runtime['variants'][SELECTOR]['sections']['first-page'])
         self.assertNotIn('class="field-sheet"',
                          runtime['variants']['builtin/standard']['sections']['first-page'])
-        self.cli('series', 'preset', 'set', series, '--preset', 'builtin/standard',
-                 '--use-preset-theme')
+        self.cli('series', 'preset', 'set', series, '--preset', 'builtin/standard')
         self.cli('build', series, '--lang', 'en')
         self.cli('verify', series, '--lang', 'en')
         self.assertNotIn('class="field-sheet"',
@@ -148,8 +154,11 @@ class KitCompositionExample(unittest.TestCase):
         self.assertEqual(theme['target']['presentation_preset'], SELECTOR)
         self.assertIn('class="field-sheet"', override_html)
         self.assertIn(asset, override_html)
-        self.cli('series', 'preset', 'set', overridden, '--preset', SELECTOR,
-                 '--use-preset-theme')
+        overridden_config = json.loads((overridden / 'series.json').read_text(
+            encoding='utf-8'))
+        overridden_config['appearance']['themes'] = ['preset']
+        (overridden / 'series.json').write_text(
+            json.dumps(overridden_config), encoding='utf-8')
         restored = json.loads(self.cli('series', 'theme', overridden, '--format', 'json'))
         self.assertIsNone(restored['target']['theme'])
         self.assertEqual(restored['label'], 'Field Notes Paper')

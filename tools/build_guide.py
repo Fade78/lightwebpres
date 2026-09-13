@@ -45,8 +45,10 @@ SERIES = {
         'subtitle': 'The guide, built with the tool it describes',
         'intro': 'Every component named in the guide, rendered by the '
                  'engine the guide documents.',
-        'presentation_preset': PRESENTATION_PRESET,
         'scroll_duration': 0,
+    },
+    'appearance': {
+        'presets': [PRESENTATION_PRESET],
     },
     'articles': [{
         'page_source': 'guide.md',

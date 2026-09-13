@@ -71,8 +71,8 @@ keep that variable set when inspecting, initializing or building a series.
 ## Build the same first article
 
 This uses the exact Markdown and series metadata from `examples/first-article`.
-It deliberately does **not** copy that example's `templates/settings.conf`,
-which pins `nebula` and would override the preset theme.
+That source selects `nebula` in `appearance.themes` for the product preview;
+this composition instead follows the selected kit preset's theme.
 
 ```bash
 python3 "$repo/lightwebpres" init "$work/first-article" \
@@ -80,14 +80,24 @@ python3 "$repo/lightwebpres" init "$work/first-article" \
 cp "$repo/examples/first-article/sources/first-page.md" \
   "$work/first-article/sources/first-page.md"
 cp "$repo/examples/first-article/series.json" "$work/first-article/series.json"
+python3 - "$work/first-article/series.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+data = json.loads(open(path, encoding='utf-8').read())
+data.setdefault('appearance', {})['themes'] = ['preset']
+open(path, 'w', encoding='utf-8').write(json.dumps(data, indent=2) + '\n')
+PY
 python3 "$repo/lightwebpres" series preset set "$work/first-article" \
-  --preset field-notes@1.0.0/brief --use-preset-theme
+  --preset field-notes@1.0.0/brief
 python3 "$repo/lightwebpres" build "$work/first-article" --lang en
 python3 "$repo/lightwebpres" verify "$work/first-article" --lang en
 ```
 
-Copying `series.json` replaces the selection written by `init`, so the explicit
-`series preset set` restores it. Open
+Copying `series.json` replaces the selection written by `init`; the small edit
+above restores preset-controlled themes and the explicit `series preset set`
+restores `appearance.presets`. Open
 `$work/first-article/public/first-page.html` for the presentation, or
 `$work/first-article/public/index.html` for its index. The article filename is
 **`first-page.html`**, not `first-article.html`.
@@ -120,9 +130,9 @@ The composed kit has no starter and does not inherit one from a source.
 ## Preset theme versus explicit override
 
 `init --preset field-notes@1.0.0/brief` leaves the typed theme under the preset's
-control. `init --preset field-notes@1.0.0/brief --theme nord` instead pins `nord`
-in the new series' settings. The frame, masthead and kit selection remain Field
-Notes; only the typed theme base changes. `--theme` is not a `build` option.
+control. `init --preset field-notes@1.0.0/brief --theme nord` instead records
+`nord` in `appearance.themes`. The frame, masthead and kit selection remain
+Field Notes; only the typed theme base changes. `--theme` is not a `build` option.
 
 For an existing series, try the override and then restore the preset theme:
 
@@ -132,13 +142,13 @@ python3 "$repo/lightwebpres" build "$work/first-article" --lang en
 python3 "$repo/lightwebpres" series theme "$work/first-article" --format json
 
 python3 "$repo/lightwebpres" series preset set "$work/first-article" \
-  --preset field-notes@1.0.0/brief --use-preset-theme
+  --preset field-notes@1.0.0/brief
 python3 "$repo/lightwebpres" build "$work/first-article" --lang en
 ```
 
 The compass is an authored black-and-white SVG with its own white ground; a
-typed theme does not recolor its pixels. `--use-preset-theme` clears the explicit
-theme selection, not arbitrary property pins or custom CSS you may have added.
+typed theme does not recolor its pixels. To follow the preset again, set
+`appearance.themes` to `['preset']`; property pins and custom CSS remain separate.
 
 ## Inspect a source on its own
 

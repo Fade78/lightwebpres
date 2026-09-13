@@ -33,6 +33,31 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.60.0
+
+Presentation selection is now declared by the canonical root
+`series.json.appearance` object. Its ordered `presets` and `themes` lists
+separate the initial choice from explicit alternatives, while an omitted
+appearance uses the built-in standard preset and the default theme policy.
+
+The executable, reports and examples now resolve this contract through one
+catalogue. Native Light and shipped themes keep their resource identity and
+loading origin distinct, and runtime choices no longer duplicate one resource
+when bare and forced references meet. `settings.conf` remains limited to
+property pins; `series theme set` writes appearance policy instead of creating
+a second theme configuration.
+
+The former persisted and CLI appearance selectors are rejected rather than
+silently migrated or aliased. Public report fields that describe resolved
+presentation choices remain unchanged where they are part of the output
+contract. Demo generation preserves a series' selected appearance while
+refreshing its editorial content.
+
+The specifications, glossary, guide, agent skill, examples and generated
+captures now describe and exercise the canonical contract. The golden demo,
+documentation captures, product comparison and generated guide were rebuilt
+from the current executable.
+
 ## v0.59.2
 
 Theme listing now uses bare slugs for every theme, including `light`, and displays
