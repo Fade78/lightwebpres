@@ -51,6 +51,9 @@ selectors resolve the highest available matching version and remain persisted
 as given. `audit` reports the resolved filesystem path of every selected
 Identity Kit.
 
+Filtered builds no longer parse malformed, unselected Identity Kit or Commons
+entries; complete catalogue commands retain strict validation.
+
 The specifications, glossary, guide, examples and generated captures describe
 these changes and are rebuilt from the current executable.
 

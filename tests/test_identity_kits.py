@@ -205,6 +205,40 @@ class IdentityKits(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue((series / 'public' / 'combined.html').exists())
 
+    def test_native_build_does_not_parse_unselected_presentation_entries(self):
+        invalid_kit = (self.root / 'library' / 'kits' / 'broken' / '1.0.0')
+        invalid_kit.mkdir(parents=True)
+        (invalid_kit / 'manifest.json').write_text('{}', encoding='utf-8')
+        invalid_commons = (self.root / 'library' / 'commons' / 'presets'
+                           / 'broken.json')
+        invalid_commons.parent.mkdir(parents=True)
+        invalid_commons.write_text('{}', encoding='utf-8')
+        series = fixtures.scaffold(
+            self.root, fixtures.IdentityKitFixtures._article())
+
+        result = fixtures.run('build', str(series), '--single-html',
+                              'combined.html')
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((series / 'public' / 'combined.html').exists())
+
+    def test_selected_commons_does_not_parse_an_unselected_invalid_preset(self):
+        selected = self._commons(Path(os.environ['LWP_COMMONS_DIR']))
+        invalid = selected.parent / 'unused.json'
+        invalid.write_text('{}', encoding='utf-8')
+        series = fixtures.scaffold(
+            self.root, fixtures.IdentityKitFixtures._article())
+        series_path = series / 'series.json'
+        data = json.loads(series_path.read_text(encoding='utf-8'))
+        data['appearance'] = {'presets': ['commons/night']}
+        series_path.write_text(json.dumps(data), encoding='utf-8')
+
+        result = fixtures.run('build', str(series), '--single-html',
+                              'combined.html')
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((series / 'public' / 'combined.html').exists())
+
     def test_help_names_current_identity_catalogues_and_native_selection(self):
         result = fixtures.run('--help')
         self.assertEqual(result.returncode, 0, result.stderr)

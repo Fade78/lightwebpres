@@ -4498,6 +4498,17 @@ def _validate_presentation_tree(root, label):
             raise PropertyError(f'{entry}: escapes its resource root through a symlink')
 
 
+def _validate_presentation_path(root, path, label):
+    """Validate one selected presentation entry without walking its siblings."""
+    try:
+        resolved_root = Path(root).resolve()
+        resolved = Path(path).resolve()
+    except OSError as exc:
+        raise PropertyError(f'{label} {path}: cannot inspect resource entry ({exc})')
+    if resolved != resolved_root and resolved_root not in resolved.parents:
+        raise PropertyError(f'{path}: escapes its resource root through a symlink')
+
+
 def _read_presentation_text(path):
     try:
         return Path(path).read_text(encoding='utf-8')
@@ -5501,7 +5512,11 @@ class IdentityCatalog:
                     f'{origin}: Commons preset commons/{preset_id} was not found')
             return preset
         identity_kit = None
-        if version != 'latest' and version.count('.') == 2:
+        if kit_id == 'builtin':
+            # The executable version may be a prerelease, while the external
+            # kit grammar remains a numeric MAJOR.MINOR.PATCH.
+            identity_kit = self.identity_kits.get((kit_id, version))
+        elif version != 'latest' and version.count('.') == 2:
             identity_kit = self.identity_kits.get((kit_id, version))
         else:
             requested = (None if version == 'latest' else
@@ -5638,6 +5653,26 @@ def _identity_kit_requirements(selectors):
             for kit_id, versions in requirements.items()}
 
 
+def _commons_preset_requirements(selectors):
+    """Return requested Commons ids, or ``None`` for a full catalogue load."""
+    if selectors is None:
+        return None
+    if isinstance(selectors, str):
+        selectors = (selectors,)
+    elif not isinstance(selectors, (list, tuple, set, frozenset)):
+        selectors = (selectors,)
+    requirements = set()
+    for value in selectors:
+        if not isinstance(value, str):
+            continue
+        for selector in value.split(','):
+            selector = selector.strip()
+            if (selector.startswith('commons/')
+                    and _PRESENTATION_ID_RE.fullmatch(selector[8:])):
+                requirements.add(selector[8:])
+    return frozenset(requirements)
+
+
 def _identity_kit_version_requested(version, selectors):
     """Whether one catalogue version can satisfy a requested selector."""
     if not _PRESENTATION_VERSION_RE.fullmatch(version):
@@ -5656,6 +5691,8 @@ def _identity_kit_version_requested(version, selectors):
 def _load_presentation_root(catalog, root, scope, label,
                             requested_kits=None):
     root = Path(root)
+    if requested_kits is not None and not requested_kits:
+        return
     if not root.exists():
         return
     if not root.is_dir():
@@ -5709,6 +5746,7 @@ def load_identity_catalog(templates_dir=None, selectors=None):
     """
     catalog = IdentityCatalog()
     requested_kits = _identity_kit_requirements(selectors)
+    requested_commons = _commons_preset_requirements(selectors)
     installed = {str(Path(root).resolve()) for root in _installed_presentation_roots()}
     for root in _presentation_library_roots():
         scope = 'installed' if str(Path(root).resolve()) in installed else 'user'
@@ -5724,6 +5762,8 @@ def load_identity_catalog(templates_dir=None, selectors=None):
                                     requested_kits=requested_kits)
     theme_catalog = None
     for root, scope in _commons_roots(templates_dir):
+        if requested_commons is not None and not requested_commons:
+            continue
         if not root.exists():
             continue
         if not root.is_dir():
@@ -5733,10 +5773,23 @@ def load_identity_catalog(templates_dir=None, selectors=None):
             continue
         if not presets_root.is_dir():
             raise PropertyError(f'{presets_root} is not a real directory')
-        _validate_presentation_tree(root, 'Commons')
+        if requested_commons is None:
+            _validate_presentation_tree(root, 'Commons')
+            paths = sorted(presets_root.glob('*.json'))
+        else:
+            paths = []
+            for preset_id in sorted(requested_commons):
+                path = presets_root / f'{preset_id}.json'
+                if not (path.exists() or path.is_symlink()):
+                    continue
+                _validate_presentation_path(root, path, 'Commons')
+                paths.append(path)
+        if not paths:
+            catalog.roots.append(root)
+            continue
         if theme_catalog is None:
             theme_catalog = load_theme_catalog(templates_dir=templates_dir)
-        for path in sorted(presets_root.glob('*.json')):
+        for path in paths:
             preset = _load_commons_preset(path, scope, theme_catalog)
             catalog.commons_presets[preset.id] = preset
         catalog.roots.append(root)
