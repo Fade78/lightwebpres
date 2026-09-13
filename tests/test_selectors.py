@@ -54,6 +54,46 @@ class Selectors(unittest.TestCase):
             self.assertEqual(self.lwp.resolve_scoped(declarations, policy)['value'], 'series')
         self.assertNotIn('present', declarations[0])
 
+    def test_field_declarations_keep_identity_without_changing_resolution_trace(self):
+        scope = self.lwp.LogicalScope
+        declarations = [
+            self.lwp.FieldDeclaration(
+                'page_title', scope.SERIES, 'series.json', 'Series title'),
+            self.lwp.FieldDeclaration(
+                'page_title', scope.UNIT, 'unit-meta', 'Unit title'),
+        ]
+
+        result = self.lwp.resolve_scoped(declarations)
+
+        self.assertEqual(result['value'], 'Unit title')
+        self.assertEqual(result['scope'], scope.UNIT)
+        self.assertEqual(result['source'], 'unit-meta')
+        self.assertEqual(declarations[0].field, 'page_title')
+        self.assertEqual(declarations[0].scope, scope.SERIES)
+        self.assertEqual(declarations[0].source, 'series.json')
+        self.assertNotIn('field', result['candidates'][0])
+        self.assertEqual(declarations[0].present, None)
+
+    def test_field_registry_declares_scope_policy_composition_and_dispatch(self):
+        scope = self.lwp.LogicalScope
+        registry = self.lwp._FIELD_REGISTRY
+
+        page_title = registry['page_title']
+        self.assertEqual(page_title.kind, 'article-field')
+        self.assertEqual(page_title.scopes, (scope.UNIT,))
+        self.assertEqual(page_title.policy, 'specific-first')
+        self.assertEqual(page_title.composition, 'scalar')
+        self.assertEqual(page_title.handler, 'article')
+
+        chrome = registry['slide-header']
+        self.assertEqual(chrome.kind, 'slide-field')
+        self.assertEqual(set(chrome.scopes), {scope.UNIT, scope.SLIDE})
+        self.assertEqual(chrome.handler, 'slide')
+
+        self.assertEqual(registry['notes_placement'].handler, 'notes')
+        self.assertEqual(registry['slide_page_numbers'].policy, 'source-order')
+        self.assertEqual(registry['kicker.fg'].handler, 'theme')
+
     def test_fallbacks_absence_false_clear_and_field_specific_accept(self):
         candidates = [
             {'scope': None, 'source': 'registry', 'priority': 999, 'value': 'registry'},

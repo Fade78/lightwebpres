@@ -19331,17 +19331,13 @@ class LicenseTextsTravelWithTheExecutable(unittest.TestCase):
 
 
 class TestNamingConvention(unittest.TestCase):
-    """§20.0: a name's shape says what level it is set at — kebab-case for a
-    slide field, snake_case for an article/series field, dotted for a theme
-    property.
+    """§20.0: public shapes remain checked, while scope is explicit internally.
 
-    The rule is load-bearing, not cosmetic. Putting a field at the wrong
-    level produces no error (it is simply ignored), and `resolve` picks
-    which cascade to interrogate from the shape of the name alone. It is
-    also the rule most likely to be broken by accident: four article-level
-    fields were once named in kebab-case purely because they sat next to
-    `highlight-caption` and looked like CSS. Nothing checked, so the
-    resemblance won. This is the thing that checks."""
+    The registry is load-bearing, not cosmetic. Putting a field at the wrong
+    level produces no error (it is simply ignored), so every resolved name
+    must carry its logical ownership independently of punctuation. Fields
+    intentionally accepted at both unit and slide level are checked as
+    explicit overlaps rather than treated as naming failures."""
 
     SNAKE = re.compile(r'^[a-z][a-z0-9]*(_[a-z0-9]+)*$')
     KEBAB = re.compile(r'^[a-z][a-z0-9]*(-[a-z0-9]+)*$')
@@ -19382,30 +19378,36 @@ class TestNamingConvention(unittest.TestCase):
     def test_every_article_level_field_is_snake_case(self):
         for name in sorted(self._article_level_names()):
             with self.subTest(name):
-                self.assertNotIn(
-                    '-', name,
-                    f'{name!r} is an article-level field written in kebab-case: its '
-                    f'shape claims it belongs in a slide header, and `resolve` would '
-                    f'send it to the wrong cascade (§20.0)')
+                spec = self.lwp.field_spec(name)
+                if spec is not None and self.lwp.LogicalScope.SLIDE in spec.scopes:
+                    self.assertEqual(spec.handler, 'slide')
+                    continue
                 self.assertRegex(name, self.SNAKE, f'{name!r} is not snake_case')
 
-    def test_a_name_at_both_levels_is_one_resolve_refuses(self):
-        """A bare word has no shape to read, so a name living at BOTH
-        levels makes the rule say two things at once — and `resolve` has
-        to pick a cascade from it. One such name exists: `comment`, which
-        every level parses and no renderer reads.
+        for name in (set(self.lwp._ARTICLE_LEVEL_NAMES)
+                     | set(self.lwp._UNIT_INDEX_DEFAULTS)):
+            with self.subTest(registered_unit=name):
+                spec = self.lwp.field_spec(name)
+                self.assertIsNotNone(spec)
+                self.assertIn(self.lwp.LogicalScope.UNIT, spec.scopes)
 
-        The invariant is therefore not "no overlap" but "no SILENT
-        overlap": anything at both levels must be in the list of names
-        `resolve` refuses, with a reason. A new one added quietly would
-        make `resolve` answer about one level while the reader asked
-        about the other."""
-        overlap = self._article_level_names() & set(self.lwp.SLIDE_FIELD_NAMES)
-        unacknowledged = overlap - set(self.lwp._UNRESOLVABLE_NAMES)
-        self.assertEqual(
-            unacknowledged, set(),
-            f'{sorted(unacknowledged)} is read at both the slide and the '
-            f'article level, and `resolve` would silently pick one of them')
+        for name in set(self.lwp._SERIES_META_FIELDS) | {'presentation_preset'}:
+            with self.subTest(registered_series=name):
+                spec = self.lwp.field_spec(name)
+                self.assertIsNotNone(spec)
+                self.assertIn(self.lwp.LogicalScope.SERIES, spec.scopes)
+
+    def test_a_name_at_both_levels_has_an_explicit_registry_scope(self):
+        """Shared names must be visible in the registry instead of relying
+        on punctuation to choose one of their scopes."""
+        overlap = (set(self.lwp._ARTICLE_LEVEL_NAMES)
+                   & set(self.lwp.SLIDE_FIELD_NAMES))
+        for name in sorted(overlap):
+            with self.subTest(name):
+                spec = self.lwp.field_spec(name)
+                self.assertIsNotNone(spec)
+                self.assertIn(self.lwp.LogicalScope.UNIT, spec.scopes)
+                self.assertIn(self.lwp.LogicalScope.SLIDE, spec.scopes)
 
     def test_every_theme_property_is_dotted(self):
         registry = self.lwp.PROPERTY_REGISTRY

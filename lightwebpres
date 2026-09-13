@@ -17943,6 +17943,100 @@ class LogicalScope(IntEnum):
     SLIDE = 2
 
 
+class FieldDeclaration:
+    """One authored value before a field's resolution policy is applied.
+
+    The logical scope identifies the owning object. ``source`` remains the
+    authority that supplied the value; a series.json entry for a unit is not a
+    series-owned declaration. Optional presence/fallback flags preserve the
+    field-specific blank rules handled by ``resolve_scoped``.
+    """
+
+    __slots__ = ('field', 'scope', 'source', 'value', 'priority', 'present',
+                 'fallback', 'contributes')
+
+    def __init__(self, field, scope, source, value=None, priority=0,
+                 present=None, fallback=None, contributes=True):
+        self.field = field
+        self.scope = scope
+        self.source = source
+        self.value = value
+        self.priority = priority
+        self.present = present
+        self.fallback = fallback
+        self.contributes = contributes
+
+    def as_candidate(self):
+        """Return the legacy candidate mapping without mutating this value."""
+        candidate = {
+            'scope': self.scope,
+            'source': self.source,
+            'priority': self.priority,
+            'value': self.value,
+        }
+        if self.present is not None:
+            candidate['present'] = self.present
+        if self.fallback is not None:
+            candidate['fallback'] = self.fallback
+        if self.contributes is not True:
+            candidate['contributes'] = self.contributes
+        return candidate
+
+
+class FieldSpec:
+    """The internal contract for a field name and its resolution behavior."""
+
+    __slots__ = ('public_name', 'internal_name', 'kind', 'scopes', 'policy',
+                 'composition', 'handler')
+
+    def __init__(self, name, kind, scopes=(), policy='specific-first',
+                 composition='scalar', handler=None, internal_name=None):
+        self.public_name = name
+        self.internal_name = internal_name or name
+        self.kind = kind
+        self.scopes = tuple(scopes)
+        self.policy = policy
+        self.composition = composition
+        self.handler = handler
+
+    @property
+    def name(self):
+        """The public lookup spelling used by the current wire contract."""
+        return self.public_name
+
+    def add_scopes(self, scopes):
+        """Add an ownership scope while retaining declaration order."""
+        self.scopes = tuple(dict.fromkeys(self.scopes + tuple(scopes)))
+
+    def configure(self, policy=None, composition=None, handler=None):
+        """Apply the field's explicit resolution profile."""
+        if policy is not None:
+            self.policy = policy
+        if composition is not None:
+            self.composition = composition
+        if handler is not None:
+            self.handler = handler
+
+    def declaration(self, scope, source, value=None, priority=0,
+                   present=None, fallback=None, contributes=True):
+        """Create a declaration owned by one of this field's scopes."""
+        if scope is not None:
+            if isinstance(scope, bool) or not isinstance(scope, int):
+                raise ValueError('Logical scope must be 0, 1, 2 or None')
+            scope = LogicalScope(scope)
+            if self.scopes and scope not in self.scopes:
+                raise ValueError('%s does not accept scope %s' %
+                                 (self.name, scope.name.lower()))
+        return FieldDeclaration(self.internal_name, scope, source, value, priority,
+                                present, fallback, contributes)
+
+    def resolve(self, declarations, default=None, accept=None):
+        """Resolve declarations using this field's declared scalar policy."""
+        if self.policy is None:
+            raise ValueError('%s has no scalar resolution policy' % self.name)
+        return resolve_scoped(declarations, self.policy, default, accept)
+
+
 def resolve_scoped(candidates, policy='specific-first', default=None, accept=None):
     """Resolve before matching; trace eligibility without mutating declarations.
 
@@ -17958,7 +18052,8 @@ def resolve_scoped(candidates, policy='specific-first', default=None, accept=Non
         raise ValueError('Unknown resolution policy: %s' % policy)
     trace = []
     for candidate in candidates:
-        item = dict(candidate)
+        item = (candidate.as_candidate()
+                if isinstance(candidate, FieldDeclaration) else dict(candidate))
         scope = item.get('scope')
         if scope is not None:
             if isinstance(scope, bool) or not isinstance(scope, int):
@@ -18034,8 +18129,8 @@ def make_selector_record(series_fields, unit_sources, slide_fields, field_polici
     for scope, source, priority, values in sources:
         for field, value in values.items():
             fields.setdefault(field, []).append(
-                {'scope': scope, 'source': source, 'priority': priority,
-                 'value': value})
+                FieldDeclaration(field=field, scope=scope, source=source,
+                                priority=priority, value=value).as_candidate())
     record = {view: {} for view in ('series', 'unit', 'slide', 'effective',
                                    'specific', 'general', 'origin')}
     fields.setdefault('status', [])
@@ -19766,11 +19861,12 @@ def resolve_notes_settings(meta, series_meta, source_name, errors=None):
     default would leave an author reading a page that ignores what they
     asked for, with nothing to tell them why."""
     def pick(key, allowed, default):
+        spec = field_spec(key)
         candidates = [
-            {'scope': scope, 'source': origin, 'value': source.get(key),
-             'present': key in source}
+            spec.declaration(scope, origin, value=source.get(key),
+                             present=key in source).as_candidate()
             for scope, source, origin in ((LogicalScope.UNIT, meta, source_name),
-                                         (LogicalScope.SERIES, series_meta, 'series.json'))]
+                                          (LogicalScope.SERIES, series_meta, 'series.json'))]
         while True:
             resolved = resolve_scoped(candidates, policy='specific-first', default=default,
                                       accept=_structural_setting_present)
@@ -19815,15 +19911,19 @@ def resolve_slide_page_numbers(meta, series_meta, source_name, args):
 
     cli = args.get('--slides-page-numbers') if args else None
     key = 'slide_page_numbers'
+    spec = field_spec(key)
     candidates = [
-        {'scope': scope, 'source': origin, 'priority': priority,
-         'value': source.get(key), 'present': key in source,
-         'contributes': _structural_setting_present(source.get(key, ''))}
+        spec.declaration(
+            scope, origin, priority=priority, value=source.get(key),
+            present=key in source,
+            contributes=_structural_setting_present(source.get(key, '')))
+        .as_candidate()
         for scope, source, origin, priority in (
             (LogicalScope.UNIT, meta, source_name, 30),
             (LogicalScope.SERIES, series_meta, 'series.json', 10))]
-    candidates.append({'scope': None, 'fallback': False, 'source': 'command line',
-                       'priority': 20, 'value': cli, 'present': cli is not None})
+    candidates.append(spec.declaration(
+        None, 'command line', priority=20, value=cli,
+        present=cli is not None, fallback=False).as_candidate())
     resolved = resolve_scoped(candidates, policy='source-order', default=False)
     return parse(resolved['value'], resolved['source'])
 
@@ -19852,9 +19952,11 @@ _UNIT_INDEX_DEFAULTS = {'unit_index': 'off', 'unit_index_max_columns': 1,
 def _resolve_unit_index_setting(key, meta, series_meta, source_name, args=None):
     """One field's build/report policy, with unscoped CLI authority."""
     option = '--' + key.replace('_', '-')
+    spec = field_spec(key)
     candidates = [
-        {'scope': scope, 'source': label, 'priority': priority,
-         'fallback': False, 'present': field in source, 'value': source.get(field)}
+        spec.declaration(
+            scope, label, priority=priority, present=field in source,
+            value=source.get(field), fallback=False).as_candidate()
         for source, label, field, scope, priority in (
             (meta, source_name, key, LogicalScope.UNIT, 30),
             (args or {}, 'command line', option, None, 20),
@@ -22925,43 +23027,45 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
 
         def take(field, content=None, derived=None, series_default=None,
                  include_entry=True):
-            """One field's cascade, and the level the retained value came
-            from. The order is §20.3.1's, and it is written once here
-            rather than once per field so a level cannot be recorded as
-            one thing and resolved as another.
+            """Resolve one scalar through its declared field policy.
 
-            `None` means the level does not exist for this field, `''`
-            means it exists and is empty — a distinction the resolution
-            itself does not need (both fall through) but the report does:
-            `card_label` has no content level at all, while `page_desc`
-            has one that a coverless article leaves empty, and showing
-            them alike would invent a level.
-
-            Every level is recorded, not just the winner: `resolve`
-            (§11.12) reports the losing ones too, because a value alone
-            does not explain why the line an author just wrote changed
-            nothing. Recorded HERE, from the same list the loop walks, so
-            a level cannot be offered as a candidate and skipped as a
-            resolver."""
-            tried = []
+            The declaration list is also retained in the historical report
+            shape. That keeps `series-info` and `resolve` readable while the
+            common resolver owns the actual winner selection.
+            """
+            spec = field_spec(field)
+            if spec is None:
+                raise ValueError('No field specification for %s' % field)
+            declarations = []
             if include_entry:
-                tried.append(('series', selection_entry.get(field) or ''))
-            tried.append(('article', meta.get(field) or ''))
-            for level, value in ((_SERIES_DEFAULT_ORIGIN, series_default),
-                                 ('content', content), ('derived', derived)):
-                if value is not None:
-                    tried.append((level, value))
-            candidates[field] = tried
+                declarations.append(spec.declaration(
+                    LogicalScope.UNIT, 'series',
+                    selection_entry.get(field) or '', priority=20,
+                    present=field in selection_entry, fallback=False))
+            declarations.append(spec.declaration(
+                LogicalScope.UNIT, 'article', meta.get(field) or '',
+                priority=10, present=field in meta, fallback=False))
+            if series_default is not None:
+                declarations.append(spec.declaration(
+                    LogicalScope.SERIES, _SERIES_DEFAULT_ORIGIN,
+                    series_default, present=True, fallback=False))
+            if content is not None:
+                declarations.append(spec.declaration(
+                    None, 'content', content, present=True, fallback=True))
+            if derived is not None:
+                declarations.append(
+                    spec.declaration(None, 'derived', derived,
+                                     present=True, fallback=True))
+            candidates[field] = [
+                (declaration.source, declaration.value or '')
+                for declaration in declarations]
             for value in (content, derived):
                 if value:
                     selection_derived[field] = value
                     break
-            for level, value in tried:
-                if value:
-                    origins[field] = level
-                    return value
-            origins[field] = 'default'
-            return ''
+            resolved = spec.resolve(declarations, default='', accept=bool)
+            origins[field] = resolved['source'] if resolved['value'] else 'default'
+            return resolved['value'] or ''
 
         entry['page_dest'] = take('page_dest', derived=re.sub(
             r'\.md$', '.html', entry['page_source'], flags=re.IGNORECASE))
@@ -28984,7 +29088,7 @@ _NOTES_FIELD_DEFAULTS = {'notes_placement': 'local', 'notes_tooltip': 'off'}
 # else. A one-level cascade is still a cascade worth reporting — the
 # answer "you can only set this in the meta block" is the useful half.
 _TYPO_FIELD_NAMES = ('typo', 'typo_units', 'typo_thousands')
-_PRESENTATION_ARTICLE_FIELDS = ()
+_PRESENTATION_ARTICLE_FIELDS = ('slide-header', 'slide-footer')
 
 # Every name that resolves per article, whatever its own cascade — the
 # display fields, the editorial three, the notes settings, the typography
@@ -29009,6 +29113,59 @@ ARTICLE_META_KEYS = (frozenset(_ARTICLE_LEVEL_NAMES)
                       | {'comment', 'presentation_preset', 'slide_layouts',
                           'slide_chrome', 'unit_index', 'unit_index_max_columns',
                           'unit_index_selector'})
+
+
+def _build_field_registry():
+    """Build the name-to-scope registry from the engine's live vocabularies.
+
+    Registration order preserves the existing primary kind for overlapping
+    names. The scopes are still accumulated, so a name accepted at more than
+    one level is represented explicitly rather than inferred from punctuation.
+    """
+    registry = {}
+
+    def register(names, kind, scopes=(), policy='specific-first',
+                 composition='scalar', handler=None):
+        for name in names:
+            spec = registry.get(name)
+            if spec is None:
+                registry[name] = FieldSpec(
+                    name, kind, scopes, policy, composition, handler)
+            else:
+                spec.add_scopes(scopes)
+
+    register(PROPERTY_REGISTRY, 'theme-property',
+             composition='per-key-merge', handler='theme')
+    register(_SLIDE_FIELD_ATTRS, 'slide-field', (LogicalScope.SLIDE,),
+             policy=None, composition='sites', handler='slide')
+    register(_ARTICLE_LEVEL_NAMES, 'article-field', (LogicalScope.UNIT,),
+             handler='article')
+    register(_UNIT_INDEX_DEFAULTS, 'article-field', (LogicalScope.UNIT,),
+             policy='source-order', handler='unit-index')
+    register(_SERIES_META_FIELDS, 'series-field', (LogicalScope.SERIES,),
+             handler='series')
+    register(('presentation_preset',), 'series-field',
+             (LogicalScope.SERIES,), handler='presentation-preset')
+
+    for name in _NOTES_FIELD_DEFAULTS:
+        registry[name].configure(handler='notes')
+    for name in _UNIT_INDEX_DEFAULTS:
+        registry[name].configure(policy='source-order', handler='unit-index')
+    registry['slide_page_numbers'].configure(
+        policy='source-order', handler='slide-page-numbers')
+    for name in _TYPO_FIELD_NAMES:
+        registry[name].configure(handler='typo')
+    for name in ('author', 'license', 'slug_prefix'):
+        registry[name].configure(handler='article-or-series')
+    return registry
+
+
+_FIELD_REGISTRY = _build_field_registry()
+
+
+def field_spec(name):
+    """Return the explicit field contract for a known name, if any."""
+    return _FIELD_REGISTRY.get(name)
 
 
 def _chain_link(level, value, note=None):
@@ -29036,30 +29193,22 @@ def _crown(chain):
 
 
 def classify_resolve_name(name):
-    """Which cascade a name belongs to, from its SHAPE alone (§20.0).
+    """Which resolver owns a name, using the explicit registry first.
 
-    No option says which kind is meant, because the name already does:
-    dotted is a theme property, snake_case an article or series field,
-    kebab-case a slide field. That is the concrete payoff of the naming
-    convention — a flat query namespace, with no disambiguation table to
-    write and keep in step.
-
-    Bare single words have no shape marker, so they are looked up in the
-    vocabularies instead. After `comment` is excluded (above), every one
-    of them belongs to exactly one level, so the lookup never has to
-    choose."""
-    if name == 'presentation_preset':
-        return 'series-field'
+    Punctuation remains a useful fallback for naming diagnostics, but it is
+    no longer the dispatch mechanism for a known field. This keeps the
+    current wire vocabulary intact while allowing a future public spelling to
+    use the same shape at more than one logical scope.
+    """
+    spec = field_spec(name)
+    if spec is not None:
+        return spec.kind
     if '.' in name:
         return 'theme-property'
     if '_' in name:
         return 'article-field'
     if '-' in name:
         return 'slide-field'
-    if name in _SLIDE_FIELD_ATTRS:
-        return 'slide-field'
-    if name in _ARTICLE_LEVEL_NAMES or name in _SERIES_META_FIELDS:
-        return 'article-field'
     return None
 
 
@@ -29332,10 +29481,9 @@ def cmd_resolve(series_dir, name, args):
     """resolve command (§11.12) — what one name is worth here, and which
     level decided it.
 
-    The shape of the name picks the cascade (§20.0), so no option has to
-    say which kind of thing is being asked about. That is the convention
-    paying for itself: a flat namespace with no collisions, and no
-    disambiguation table to keep in step with four vocabularies."""
+    A known name is dispatched through the field registry. The current wire
+    naming convention remains useful to authors, but punctuation is not the
+    mechanism that chooses a logical scope or a cascade."""
     fmt = args.get('--format', 'text')
     if fmt not in ('text', 'json'):
         log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
@@ -29345,12 +29493,12 @@ def cmd_resolve(series_dir, name, args):
         log('error', f'{name}: {_UNRESOLVABLE_NAMES[name]}')
         sys.exit(1)
 
-    kind = classify_resolve_name(name)
+    spec = field_spec(name)
+    kind = spec.kind if spec is not None else classify_resolve_name(name)
     if kind is None:
         log('error', f'{name!r}: no field or property of that name. A bare '
-              f'word is looked up in the field vocabularies; a name with a '
-              f'dot is a theme property, one with an underscore an article '
-              f'field, one with a hyphen a slide field (§20.0).')
+              f'word is looked up in the field registry; punctuation is not '
+              f'a scope declaration (§20.0).')
         sys.exit(1)
 
     (sd, sources_dir, templates_dir, _legacy, _interface, _typography,
@@ -29398,7 +29546,8 @@ def cmd_resolve(series_dir, name, args):
             article_meta = article_meta or {}
 
     try:
-        if kind == 'theme-property':
+        handler = spec.handler if spec is not None else None
+        if handler == 'theme' or kind == 'theme-property':
             if name not in PROPERTY_REGISTRY:
                 tail = name.split('.')[-1]
                 near = [k for k in PROPERTY_REGISTRY if k.split('.')[-1] == tail]
@@ -29412,7 +29561,7 @@ def cmd_resolve(series_dir, name, args):
                 catalog=theme_catalog,
                 presentation_preset=presentation_preset,
                 appearance=appearance)
-        elif kind == 'slide-field':
+        elif handler == 'slide' or kind == 'slide-field':
             if name not in _SLIDE_FIELD_ATTRS:
                 # `comment` is a slide field and is refused above, so it
                 # is not offered here: a list that named it would send
@@ -29423,7 +29572,7 @@ def cmd_resolve(series_dir, name, args):
                       f'ones that resolve are: {", ".join(known)}.')
                 sys.exit(1)
             resolution, unread = survey_slide_field(name, articles, sources_dir, only)
-        elif name in _UNIT_INDEX_DEFAULTS:
+        elif handler == 'unit-index':
             resolved = _resolve_unit_index_setting(name, article_meta or {}, series_meta,
                                                    only or 'article')
             chain = []
@@ -29443,26 +29592,46 @@ def cmd_resolve(series_dir, name, args):
             resolution = {'value': resolved['value'],
                           'source': next(link['level'] for link in chain if link['winner']),
                           'chain': chain}
-        elif name in _NOTES_FIELD_DEFAULTS:
+        elif handler == 'notes':
             resolution = resolve_notes_field(name, series_meta, article_meta)
-        elif name == 'slide_page_numbers':
+        elif handler == 'slide-page-numbers':
             resolution = survey_slide_page_numbers(series_meta, article_meta)
-        elif name == 'presentation_preset':
+        elif handler == 'presentation-preset':
             if only is not None:
                 log('error', 'presentation_preset is series-wide; omit --article.')
                 sys.exit(1)
             resolution = resolve_series_field(name, series_meta, appearance)
             resolution['preset'] = _presentation_preset_report(
                 presentation_preset)
-        elif name in _TYPO_FIELD_NAMES:
+        elif handler == 'typo':
             resolution = resolve_typo_field(name, article_meta)
-        elif name in _SERIES_META_FIELDS and only is None:
+        elif handler == 'series' and only is None:
             # `author` and `license` live at both levels. Asked WITHOUT an
             # article, the question is about the series' own value, and
             # the kind says so rather than letting a reader apply the
             # article vocabulary to a series answer.
             kind = 'series-field'
             resolution = resolve_series_field(name, series_meta)
+        elif handler == 'series' and only is not None:
+            log('error', f'{name!r} is a series-level field; omit --article.')
+            sys.exit(1)
+        elif handler == 'article-or-series' and only is None:
+            # A field with both series and unit ownership answers the
+            # series question unless an article is explicitly selected.
+            kind = 'series-field'
+            resolution = resolve_series_field(name, series_meta)
+        elif handler in ('article', 'article-or-series'):
+            if only is None:
+                log('error', f'{name} is resolved per article, so `resolve` '
+                      f'needs to know which one: pass --article. The series '
+                      f'carries:')
+                for entry in articles:
+                    log('error', f'  {entry["page_source"]}')
+                sys.exit(1)
+            notes = resolve_article_fields(articles, sources_dir, series_meta)
+            index = next(i for i, e in enumerate(articles)
+                         if e['page_source'] == only)
+            resolution = resolve_article_field(name, articles[index], notes[index])
         elif name in _ARTICLE_LEVEL_NAMES:
             if only is None:
                 log('error', f'{name} is resolved per article, so `resolve` '
