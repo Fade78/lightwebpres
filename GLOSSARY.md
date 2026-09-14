@@ -168,6 +168,7 @@ In the object form of `series.json`, these keys live beside `series_meta` and
 | Field | Default | Description |
 |---|---|---|
 | `appearance` | omitted: `presets` is `builtin/standard`, `themes` is `preset, essential` | Optional object beside `series_meta` and `articles`; it may contain either or both non-empty `presets` and `themes` lists. The first preset is primary; the first individual theme token sets the initial theme policy. Explicit lists are exact; `--themes` and `--presentation-presets` replace them for one invocation (§9.3.7, §9.3.8) |
+| `chrome` | `{}` | Optional object beside `appearance`, `series_meta` and `articles`; series-wide header/footer layer keyed by `all` or slide type. Direct `header`/`footer` keys are shorthand for `all`; slots accept text, models, `""` or JSON `null` to clear inherited chrome (§9.9.1, §20.5.3) |
 | `build` | `{}` | Optional output defaults: `single_html` is a plain combined-output filename and `inline_images` is boolean |
 
 The list is build configuration, not a persisted reader choice. A reader's
@@ -345,9 +346,11 @@ false/null/empty values still satisfy a path-existence test (§3.4.3).
 ## Shared Identity Kit fields
 
 `slide-layout`, `slide-header` and `slide-footer` are accepted in the headers
-of all five types (`cover`, standard, `series-nav`, `full-article`, `unit-index`). They
-override the series preset's defaults for one slide. They do not define the
-page shell or navigation, and do not form an author-level JSON cascade.
+of all five types (`cover`, standard, `series-nav`, `full-article`, `unit-index`).
+The two chrome fields also work in an article's `lwp:meta` block, where they
+apply to every slide before slide-local overrides. The complete order is
+preset defaults < root `series.json.chrome` < article meta < slide header.
+They do not define the page shell or navigation.
 
 | Field | Default | Description |
 |---|---|---|
@@ -355,10 +358,14 @@ page shell or navigation, and do not form an author-level JSON cascade.
 | `slide-header` | preset-owned chrome default | Text, a JSON model object, or exactly `""` to remove the inherited header. An unquoted empty value is an error |
 | `slide-footer` | preset-owned chrome default | Same contract as `slide-header`, for the slide footer |
 
-The preset alone owns layout and chrome defaults; slide fields override them
-last. See `specifications.md` §9.9 and §20.5.3 for the manifest, fragments,
-assets and validation rules. A kit may omit the `unit-index` layout: it then
-uses the standard layout with chrome, without rewriting the kit manifest.
+The preset owns the defaults; root series chrome, article metadata and slide
+fields override them in that order. Textual chrome works with
+`builtin/standard`; named models and their assets must exist in every selected
+Identity Kit. Exactly `""` clears a slot, while an unquoted empty metadata value
+is invalid. See `specifications.md` §9.9 and §20.5.3 for fragments, assets and
+validation rules. A kit may omit the `unit-index` layout: it then uses the
+standard layout with chrome, without rewriting the kit manifest. The series
+`index.html` is not wrapped by this cascade.
 
 The historical `tag:` field is not an alias for either current field. Use
 `kicker:` for the visible label above a slide title, and `tags:` for tag

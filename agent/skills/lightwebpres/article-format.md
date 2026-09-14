@@ -115,6 +115,12 @@ a theme property, an underscore an article field, a hyphen a slide field.
 Slide fields have no cascade: their report lists where they are set.
 `--format json` is available for this report.
 
+Presentation chrome is the exception. `series.json.chrome` is the series-wide
+layer; `slide-header` and `slide-footer` in this article's meta block apply to
+all its slides, and the same fields in a slide header are strongest. The order
+is preset < series < article < slide. Text works with the native preset;
+models and asset bindings must be available in each selected Identity Kit.
+
 Editorial fields can be set in meta or in the series article entry:
 
 - `author`: falls back to `series_meta.author`; appears in the footer byline and `<meta name="author">`.

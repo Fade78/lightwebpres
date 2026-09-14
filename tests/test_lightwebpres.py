@@ -8893,6 +8893,156 @@ class TemplateOverride(unittest.TestCase):
             self.assertIn('</script>\n\n</body>', index_html)
 
 
+class ChromeCascade(unittest.TestCase):
+    """Series, article and slide chrome use one explicit cascade."""
+
+    @staticmethod
+    def _article(meta='', slides=None):
+        slides = slides or (
+            '<!-- lwp:slide:cover -->\n'
+            'slug: cover\n'
+            'slide-footer: ""\n'
+            '# Cover\n'
+            'summary: Summary.\n',
+            '<!-- lwp:slide -->\n'
+            'slug: middle\n'
+            '## Middle\n'
+            'summary: Summary.\n',
+            '<!-- lwp:slide -->\n'
+            'slug: last\n'
+            'slide-header: Page header\n'
+            'slide-footer: Page footer\n'
+            '## Last\n'
+            'summary: Summary.\n',
+        )
+        return (
+            '<!-- lwp:meta -->\n'
+            'page_dest: a.html\n'
+            'page_title: Test\n'
+            'nav_title: A\n'
+            'nav_desc: A\n'
+            + meta +
+            '---\n\n' +
+            '\n---\n\n'.join(slides)
+        )
+
+    def _series(self, tmp, chrome, meta='', slides=None):
+        root = scaffold(tmp, self._article(meta=meta, slides=slides))
+        data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+        data['chrome'] = chrome
+        (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+        return root
+
+    def test_series_textual_chrome_works_with_builtin_standard(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(
+                tmp,
+                {'header': {'text': 'Series header'},
+                 'footer': 'Series footer'},
+                meta=(
+                    'slide-header: Article header\n'
+                    'slide-footer: Article footer\n'))
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Article header', html)
+            self.assertIn('Article footer', html)
+            self.assertIn('Page header', html)
+            self.assertIn('Page footer', html)
+            self.assertNotIn('Series header', html)
+            self.assertNotIn('Series footer', html)
+            self.assertNotIn('Series header',
+                             (root / 'public' / 'index.html').read_text(encoding='utf-8'))
+
+    def test_series_chrome_falls_back_when_article_and_slide_do_not_override(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(
+                tmp,
+                {'all': {'header': 'Series header', 'footer': 'Series footer'}},
+                meta='',
+                slides=(
+                    '<!-- lwp:slide:cover -->\n'
+                    'slug: cover\n'
+                    '# Cover\n'
+                    'summary: Summary.\n',
+                    '<!-- lwp:slide -->\n'
+                    'slug: middle\n'
+                    '## Middle\n'
+                    'summary: Summary.\n',
+                ))
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertEqual(html.count('Series header'), 2)
+            self.assertEqual(html.count('Series footer'), 2)
+
+    def test_native_model_is_rejected_but_text_is_not(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, {'footer': {'model': 'missing'}})
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('has no chrome model', result.stderr)
+            self.assertFalse((root / 'public').exists())
+
+    def test_series_chrome_requires_an_object(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 'not-an-object')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('"chrome" must be an object', result.stderr)
+            self.assertFalse((root / 'public').exists())
+
+    def test_article_unquoted_empty_chrome_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, {}, meta='slide-footer: \n')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('unquoted empty value', result.stderr)
+            self.assertFalse((root / 'public').exists())
+
+    def test_series_info_reports_normalized_chrome(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(
+                tmp,
+                {'header': {'text': 'Series header'}, 'footer': 'Series footer'},
+                slides=(
+                    '<!-- lwp:slide:cover -->\n'
+                    'slug: cover\n'
+                    '# Cover\n'
+                    'summary: Summary.\n',
+                ))
+            result = run('status', str(root), '--format', 'json')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            self.assertEqual(
+                report['appearance']['chrome'],
+                {'all': {'header': {'text': 'Series header'},
+                         'footer': {'text': 'Series footer'}}})
+
+    def test_type_specific_series_chrome_overrides_all(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(
+                tmp,
+                {'all': {'header': 'All header', 'footer': 'All footer'},
+                 'cover': {'header': 'Cover header'}},
+                slides=(
+                    '<!-- lwp:slide:cover -->\n'
+                    'slug: cover\n'
+                    '# Cover\n'
+                    'summary: Summary.\n',
+                    '<!-- lwp:slide -->\n'
+                    'slug: standard\n'
+                    '## Standard\n'
+                    'summary: Summary.\n',
+                ))
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertEqual(html.count('Cover header'), 1)
+            self.assertEqual(html.count('All header'), 1)
+            self.assertEqual(html.count('All footer'), 2)
+
+
 class IdentityKitFixtures(unittest.TestCase):
     """Identity Kits are complete, versioned, series-wide choices."""
 
@@ -9113,6 +9263,35 @@ class IdentityKitFixtures(unittest.TestCase):
             self.assertEqual(report['preset']['slide_layouts']['cover'], 'hero')
             self.assertEqual(report['preset']['slide_chrome']['all']['footer'],
                              {'text': 'Kit footer'})
+
+    def test_series_empty_chrome_slot_clears_a_kit_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, _identity_kit = self._selected_series(tmp)
+            series_path = root / 'series.json'
+            series = json.loads(series_path.read_text(encoding='utf-8'))
+            series['chrome'] = {'footer': None}
+            series_path.write_text(json.dumps(series), encoding='utf-8')
+            output = root / 'public'
+            built = run('build', str(root), '--output', str(output))
+            self.assertEqual(built.returncode, 0, built.stderr)
+            article = (output / 'a.html').read_text(encoding='utf-8')
+            self.assertNotIn('Kit footer', article)
+
+    def test_series_model_chrome_uses_the_selected_identity_kit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, _identity_kit = self._selected_series(tmp)
+            series_path = root / 'series.json'
+            series = json.loads(series_path.read_text(encoding='utf-8'))
+            series['chrome'] = {
+                'cover': {'header': {'model': 'brand-header',
+                                     'text': 'Series kit header'}}}
+            series_path.write_text(json.dumps(series), encoding='utf-8')
+            output = root / 'public'
+            built = run('build', str(root), '--output', str(output))
+            self.assertEqual(built.returncode, 0, built.stderr)
+            article = (output / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Series kit header', article)
+            self.assertIn('assets/presentations/studio/1.2.3/mark.svg', article)
 
     def test_audit_reports_each_selected_identity_kit_path_once(self):
         with tempfile.TemporaryDirectory() as tmp:

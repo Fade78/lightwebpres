@@ -927,8 +927,12 @@ different controls in the Appearance picker.
 
 `slide-layout`, `slide-header` and `slide-footer` work on all five slide types.
 Existing kits may omit a dedicated `unit-index` layout and use standard with chrome.
-They override the selected preset's defaults for one slide, not through an
-author JSON cascade. The preset's theme supplies the typed base unless
+`slide-layout` overrides the selected preset's layout for one slide. For chrome,
+the optional root `series.json.chrome` layer
+comes after the preset, article `lwp:meta` values come after the series, and
+slide fields remain strongest. Textual chrome works with `builtin/standard`;
+named models and assets must be supplied by every selected Identity Kit. The
+preset's theme supplies the typed base unless
 `appearance.themes` selects another theme. Precedence is: base theme
 < `settings.conf` pins < article `style.*` < instance styles;
 `templates/custom.css` remains the final advanced CSS layer. Assets are
@@ -946,8 +950,11 @@ slide-footer: ""
 `slide-layout` names a supported variant; `default` retains the preset's
 default. Chrome accepts text or a supported JSON model. Exactly `""` removes
 inherited chrome; an unquoted empty value is fatal, as is an empty layout.
+In `series.json`, `chrome` accepts `all` or slide-type maps, with direct
+`header`/`footer` keys as an `all` shorthand; JSON `null` also clears a slot.
 Do not move manifest-only `slide_layouts` or `slide_chrome` into author
-metadata; there is no article-level preset selection.
+metadata; there is no article-level preset selection. The series index has no
+chrome slots and is not wrapped by this cascade.
 
 ```bash
 ./lightwebpres preset list
@@ -1190,8 +1197,8 @@ CLI list replaces the configured list for that invocation, and its first item
 becomes primary. Duplicate selectors are removed, and an unknown selector
 fails before output is written. The preset must be available in the effective
 catalogue. `builtin/standard` must be listed explicitly when it is wanted; a
-kit-only `slide-layout`, `slide-header` or `slide-footer` makes that explicit
-request fail validation.
+named kit-only layout variant or chrome model makes that explicit request fail
+validation, while textual chrome remains available natively.
 
 When a real Identity Kit is published, **C** opens the Appearance picker with
 **Identity**, **Preset** and **Theme** controls. These axes remain available

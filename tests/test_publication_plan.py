@@ -196,6 +196,30 @@ class PublicationPlanning(unittest.TestCase):
             self.assertEqual(parse.call_count, 1)
             self.assertEqual(compile_query.call_count, 1)
 
+    def test_single_preset_renders_each_primary_page_once(self):
+        lwp = load_lightwebpres_module()
+        source = self.root / 'sources/a.md'
+        with mock.patch.dict(os.environ, self.env), \
+                mock.patch.object(lwp, 'build_article',
+                                  wraps=lwp.build_article) as article_render, \
+                mock.patch.object(lwp, 'build_index',
+                                  wraps=lwp.build_index) as index_render:
+            ctx = lwp.load_build_context(self.root, {})
+            article = lwp._render_article(ctx, ctx.articles[0], source,
+                                          fragment_only=True)
+            index = lwp._render_index(ctx, fragment_only=True)
+
+        self.assertEqual(article_render.call_count, 1)
+        self.assertEqual(index_render.call_count, 1)
+        article_runtime = json.loads(
+            article['presentation_runtime'].split('>', 1)[1].rsplit(
+                '</script>', 1)[0])
+        index_runtime = json.loads(
+            index['presentation_runtime'].split('>', 1)[1].rsplit(
+                '</script>', 1)[0])
+        self.assertEqual(article_runtime['variants'], {})
+        self.assertEqual(index_runtime['variants'], {})
+
     def test_local_light_and_native_light_keep_distinct_runtime_identities(self):
         result = run('theme', 'create', 'light', '--from', 'nord', '--label', 'Local Light', env=self.env)
         self.assertEqual(result.returncode, 0, result.stderr)

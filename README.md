@@ -120,6 +120,12 @@ preset, or deliver your own kit. Authors select what ships; readers use
 include Monochrome, Monochrome Night and Print Ink. Contrast reports measure
 typed values, not arbitrary custom CSS or overall accessibility.
 
+Authors can also set presentation chrome without making a kit: root
+`series.json.chrome` supplies series defaults, `slide-header` and
+`slide-footer` in article metadata supply article defaults, and the same fields
+on a slide win last. Named chrome models still come from the selected Identity
+Kits; `""` or JSON `null` clears an inherited slot.
+
 Browse the [interactive theme gallery](generated/themes-gallery.html) or its
 [compact catalogue](generated/themes-gallery.png). For a complete, inspectable
 design workflow, the [Field Notes example](examples/kit-composition/README.md)

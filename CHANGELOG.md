@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.60.1
+## v0.60.1
 
 Full-article slides can now replace their localized kicker with an explicit
 `kicker:` field. Publication cleanup validates the
@@ -54,8 +54,20 @@ Identity Kit.
 Filtered builds no longer parse malformed, unselected Identity Kit or Commons
 entries; complete catalogue commands retain strict validation.
 
+Series authors can now declare presentation chrome independently of an Identity
+Kit. The root `series.json.chrome` layer cascades through article metadata to
+slide-local `slide-header` and `slide-footer` overrides; textual chrome works
+with `builtin/standard`, while named models remain kit-validated. Empty slots
+can explicitly clear inherited chrome.
+
 The specifications, glossary, guide, examples and generated captures describe
 these changes and are rebuilt from the current executable.
+
+Builds with one published presentation preset now render each article and the
+series index once instead of creating and discarding an identical capture.
+
+GitLab sync now uses the pulled file contents as a local push baseline, avoiding
+remote metadata requests for unchanged files.
 
 ## v0.60.0
 

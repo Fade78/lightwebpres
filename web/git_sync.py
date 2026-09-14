@@ -41,13 +41,24 @@ GIT_WORK_DIR = Path('/lwp_git_work')
 PUSH_CHUNK_SIZE = 100
 
 
+def _file_hashes(directory):
+    """Returns the local content baseline bound to a pulled revision."""
+    return {
+        path.relative_to(directory).as_posix(): hashlib.sha256(
+            path.read_bytes()).hexdigest()
+        for path in sorted(directory.rglob('*'))
+        if path.is_file()
+    }
+
+
 class GitSnapshot:
     """One pulled revision and destination; advances only after confirmed commits."""
 
-    def __init__(self, base_url, project_id, branch, directory, revision):
+    def __init__(self, base_url, project_id, branch, directory, revision, file_hashes):
         self.target = (base_url.rstrip('/'), str(project_id), branch)
         self.directory = Path(directory)
         self.revision = revision
+        self.file_hashes = dict(file_hashes)
         self.usable = True
 
     def matches(self, base_url, project_id, branch, directory):
@@ -194,7 +205,10 @@ async def pull(base_url, token, project_id, branch):
             _validate_zip_members(zf)
             zf.extractall(GIT_WORK_DIR)
         series_dir = _find_series_dir_in_archive(GIT_WORK_DIR)
-        _git_snapshot = GitSnapshot(base_url, project_id, branch, series_dir, revision)
+        _git_snapshot = GitSnapshot(
+            base_url, project_id, branch, series_dir, revision,
+            _file_hashes(series_dir),
+        )
         return str(series_dir), None
     except Exception as e:
         return None, f'{type(e).__name__}: {e}'
@@ -286,8 +300,8 @@ async def push(base_url, token, project_id, branch, series_dir, commit_message):
 
     try:
         await check_revision()
-        remote_paths = await _remote_paths(base_url, token, project_id, snapshot.revision)
-        actions = []
+        local_hashes = {}
+        local_files = []
         for f in sorted(snapshot.directory.rglob('*')):
             if not f.is_file():
                 continue
@@ -296,6 +310,22 @@ async def push(base_url, token, project_id, branch, series_dir, commit_message):
                 continue
             rel = relative.as_posix()
             content = f.read_bytes()
+            digest = hashlib.sha256(content).hexdigest()
+            local_hashes[rel] = digest
+            local_files.append((f, rel, digest))
+
+        remote_paths = await _remote_paths(base_url, token, project_id, snapshot.revision)
+        actions = []
+        for f, rel, digest in local_files:
+            # The remote tree remains authoritative for create/update. The
+            # local baseline only avoids the per-file metadata request when
+            # the path is known to exist remotely and has not changed locally.
+            if (rel in remote_paths
+                    and snapshot.file_hashes.get(rel) == digest):
+                continue
+            content = f.read_bytes()
+            if hashlib.sha256(content).hexdigest() != digest:
+                raise RuntimeError(f'local file changed while Push was preparing: {rel}')
             action = {'action': 'update' if rel in remote_paths else 'create',
                       'file_path': rel, 'encoding': 'base64',
                       'content': base64.b64encode(content).decode('ascii')}
@@ -309,11 +339,12 @@ async def push(base_url, token, project_id, branch, series_dir, commit_message):
                 checksum = metadata.get('content_sha256')
                 if not isinstance(checksum, str) or len(checksum) != 64:
                     raise RuntimeError(f'GitLab returned no content checksum for {rel}')
-                if hashlib.sha256(content).hexdigest() == checksum:
+                if digest == checksum:
                     continue
                 action['last_commit_id'] = revision
             actions.append(action)
         if not actions:
+            snapshot.file_hashes.update(local_hashes)
             return True, 'Nothing to push: no new or changed files.'
         for i in range(0, len(actions), PUSH_CHUNK_SIZE):
             await check_revision()
@@ -332,6 +363,7 @@ async def push(base_url, token, project_id, branch, series_dir, commit_message):
             if result.get('parent_ids') != [snapshot.revision]:
                 raise RuntimeError('The confirmed commit has an unexpected parent revision')
             snapshot.revision = _commit_revision(result)
+        snapshot.file_hashes.update(local_hashes)
     except Exception as exc:
         snapshot.usable = False
         return False, (f'Push stopped after {commit_count} commit(s) confirmed: {exc}. '

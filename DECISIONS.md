@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 10 · **à faire** 0 · **en cours** 2 · **terminé** 58 · **abandonné** 1 · **sans objet** 3
+**à étudier** 10 · **à faire** 0 · **en cours** 2 · **terminé** 59 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -181,6 +181,7 @@ gets its own entry and its own state**, however small.
 - **B68** — Identity Kit vocabulary and native identity boundary
 - **B69** — Canonical theme-resource index and appearance resolution
 - **B70** — Publication planning and revision-bound GitLab snapshots
+- **B71** — Author chrome independent of Identity Kits
 
 ### abandonné
 
@@ -3625,3 +3626,25 @@ passed 1,463 tests across 232 classes with 8 workers, without skips, on 2026-09-
 Golden output, gallery, product/documentation captures and the guide were
 regenerated from their sources; the captures were inspected. The independent
 follow-up review found no remaining material issue in these corrected boundaries.
+
+## B71 — Author chrome independent of Identity Kits
+
+**État :** terminé · **Depuis :** 2026-09-13
+
+Authors may declare presentation chrome at three authoring levels without
+changing the selected identity: root `series.json.chrome`, article
+`lwp:meta` fields, and slide-local `slide-header`/`slide-footer` fields. The
+resolution order is preset defaults, series, article, then slide; complete
+chrome slots replace earlier values, and an explicit empty slot clears
+inheritance. Textual chrome is available with `builtin/standard`; named models
+and their assets remain validated against every selected Identity Kit.
+
+The root declaration accepts `all` and the five slide types, with direct
+`header`/`footer` shorthand for `all`. It does not wrap the generated series
+index, which has no chrome slots. The implementation and focused regressions
+are in `lightwebpres` and `tests/test_lightwebpres.py`. The specifications,
+glossary, guide, README, product skill, examples and generated captures now
+describe the same contract.
+
+The focused B71 tests and the full parallel registry passed on 2026-09-14:
+**1,500 tests across 234 classes with 8 workers**, without failures or skips.

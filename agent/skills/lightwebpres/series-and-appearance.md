@@ -309,6 +309,23 @@ selected reference as the first item. Neither native choice vendors resources.
 }
 ```
 
+Series-wide chrome is a separate optional root key, beside `appearance`:
+
+```json
+{
+  "chrome": {
+    "all": {"header": "Internal briefing", "footer": null},
+    "cover": {"header": {"text": "Briefing"}}
+  }
+}
+```
+
+Direct root `header`/`footer` keys are shorthand for `all`. A slot may be
+text, a supported model object, `""` or JSON `null`; the last two clear an
+inherited slot. Text works with native `builtin/standard`; models and assets
+must be supplied by every selected kit. The series layer applies to article
+slides, not the generated series index.
+
 The `lightwebpres.identity-kit/1` manifest requires `id`, `version` and an
 identity `label`. Optional `default_preset` names a local preset; otherwise
 the first in manifest order is used. The label stays fixed regardless of
@@ -347,8 +364,10 @@ slide-footer: ""
 
 `slide-layout` must match `[a-z][a-z0-9-]*`; empty is fatal.
 `slide-header` and `slide-footer` take text, a JSON object model or exactly `""`
-to suppress inherited chrome; unquoted empty is fatal. These are slide
-overrides, not an article-entry JSON cascade. The typed style order is
+to suppress inherited chrome; unquoted empty is fatal. The same two names in
+the article's `lwp:meta` block apply to every slide before these slide-local
+fields. Chrome precedence is preset defaults < root `series.json.chrome` <
+article meta < slide. The typed style order is
 base preset theme < `settings.conf` pins < article `style.*` < instance styles,
 then advanced final CSS in `templates/custom.css`.
 

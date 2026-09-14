@@ -4567,16 +4567,32 @@ def _validate_presentation_layout(path, text, label, index=False):
                 path, f'{label} must contain {{' + '{' + slot + '}} exactly once')
 
 
-def _parse_chrome_value(value, origin):
+def _parse_chrome_value(value, origin, null_is_clear=False,
+                        empty_is_clear=True):
     """Normalize one header/footer value without resolving a model yet."""
-    if isinstance(value, str):
-        if value == '':
+    if value is None:
+        if null_is_clear:
             return ''
-        if value.startswith(('{', '[')):
+        raise PropertyError(f'{origin}: must be text, "", or a JSON object')
+    if isinstance(value, str):
+        if value == '""':
+            return ''
+        if value == '':
+            if empty_is_clear:
+                return ''
+            raise PropertyError(
+                f'{origin}: unquoted empty value; use "" to clear the slot')
+        if value.startswith(('{', '[', '"')):
             try:
                 value = json.loads(value)
             except ValueError as exc:
                 raise PropertyError(f'{origin}: invalid JSON ({exc})')
+            if value is None:
+                if null_is_clear:
+                    return ''
+                raise PropertyError(f'{origin}: null is not a chrome value')
+            if isinstance(value, str):
+                return '' if value == '' else {'text': value}
         else:
             return {'text': value}
     if not isinstance(value, dict):
@@ -4584,6 +4600,10 @@ def _parse_chrome_value(value, origin):
     unknown = sorted(set(value) - {'model', 'text', 'assets'})
     if unknown:
         raise PropertyError(f'{origin}: unknown key(s): {", ".join(unknown)}')
+    if 'model' not in value:
+        if set(value) != {'text'} or not isinstance(value.get('text'), str):
+            raise PropertyError(f'{origin}: object values require text or a model name')
+        return '' if value['text'] == '' else {'text': value['text']}
     model = value.get('model')
     if not isinstance(model, str) or not _PRESENTATION_ID_RE.fullmatch(model):
         raise PropertyError(f'{origin}: object values require a model name')
@@ -4607,7 +4627,8 @@ def _parse_chrome_value(value, origin):
     return normalized
 
 
-def _parse_slide_chrome_config(value, origin):
+def _parse_slide_chrome_config(value, origin, null_is_clear=False,
+                               direct_slots=False):
     """Normalize a series/article/identity-kit chrome object by type and slot."""
     if value is None:
         return {}
@@ -4618,6 +4639,12 @@ def _parse_slide_chrome_config(value, origin):
             raise PropertyError(f'{origin}: invalid JSON ({exc})')
     if not isinstance(value, dict):
         raise PropertyError(f'{origin}: must be an object')
+    if direct_slots and set(value) & {'header', 'footer'}:
+        if set(value) - {'header', 'footer'}:
+            raise PropertyError(
+                f'{origin}: direct header/footer keys cannot be mixed with '
+                'per-type chrome keys')
+        value = {'all': value}
     allowed_types = {'all', *_PRESENTATION_SLIDE_TYPES}
     config = {}
     for slide_type, slots in value.items():
@@ -4633,7 +4660,8 @@ def _parse_slide_chrome_config(value, origin):
                 f'{origin}.{slide_type}: unknown slot(s): {", ".join(unknown)}')
         config[slide_type] = {
             slot: _parse_chrome_value(slot_value,
-                                      f'{origin}.{slide_type}.{slot}')
+                                      f'{origin}.{slide_type}.{slot}',
+                                      null_is_clear=null_is_clear)
             for slot, slot_value in slots.items()
         }
     return config
@@ -4707,6 +4735,15 @@ def _validate_presentation_chrome_value(value, slot, identity_kit, origin):
                 f'{item["kind"]} asset, not {asset["kind"]}')
 
 
+def _validate_presentation_chrome_config(config, identity_kit, origin):
+    """Validate every author chrome declaration against one selected kit."""
+    for slide_type, slots in config.items():
+        for slot, value in slots.items():
+            _validate_presentation_chrome_value(
+                value, slot, identity_kit,
+                f'{origin}.{slide_type}.{slot}')
+
+
 def _presentation_layouts(preset):
     """The preset owns the complete per-type layout map."""
     layouts = dict(preset.slide_layouts)
@@ -4720,26 +4757,9 @@ def validate_article_presentation(entry, preset, slides=()):
     """Reject invalid preset-facing metadata during build setup."""
     identity_kit = preset.identity_kit
     layouts = _presentation_layouts(preset)
-    if preset.default:
-        for slide in slides:
-            if slide.slide_type not in _PRESENTATION_SLIDE_TYPES:
-                continue
-            if slide.slide_layout is not None:
-                _presentation_variant(
-                    slide.slide_layout,
-                    f'{entry["page_source"]}: slide {slide.slug or slide.slide_type} slide-layout')
-            requested_layout = (slide.slide_layout
-                                or layouts.get(slide.slide_type, 'default'))
-            identity_fields = (
-                requested_layout != 'default'
-                or bool({'slide-header', 'slide-footer'} & set(slide.raw_meta)))
-            if identity_fields:
-                raise PropertyError(
-                    f'{entry["page_source"]}: slide {slide.slug or slide.slide_type} '
-                    'layout/chrome requires an identity kit')
-        return
-    for slide_type, variant in layouts.items():
-        identity_kit.layout(slide_type, variant)
+    if not preset.default:
+        for slide_type, variant in layouts.items():
+            identity_kit.layout(slide_type, variant)
     for slide in slides:
         if slide.slide_type not in _PRESENTATION_SLIDE_TYPES:
             continue
@@ -4749,13 +4769,20 @@ def validate_article_presentation(entry, preset, slides=()):
                 f'{entry["page_source"]}: slide {slide.slug or slide.slide_type} slide-layout')
         requested_layout = (slide.slide_layout
                             or layouts.get(slide.slide_type, 'default'))
-        identity_kit.layout(slide.slide_type, requested_layout)
+        if preset.default:
+            if requested_layout != 'default':
+                raise PropertyError(
+                    f'{entry["page_source"]}: slide {slide.slug or slide.slide_type} '
+                    'slide-layout requires an identity kit')
+        else:
+            identity_kit.layout(slide.slide_type, requested_layout)
         for field, slot in (('slide-header', 'header'), ('slide-footer', 'footer')):
             if field not in slide.raw_meta:
                 continue
             value = _parse_chrome_value(
                 slide.raw_meta[field],
-                f'{entry["page_source"]}: slide {slide.slug or slide.slide_type} {field}')
+                f'{entry["page_source"]}: slide {slide.slug or slide.slide_type} {field}',
+                empty_is_clear=False)
             _validate_presentation_chrome_value(
                 value, slot, identity_kit,
                 f'{entry["page_source"]}: slide {slide.slug or slide.slide_type} {field}')
@@ -20305,7 +20332,9 @@ def _resolve_presentation_chrome(slide, preset, chrome_layers, typo_engine,
     for field, slot in (('slide-header', 'header'), ('slide-footer', 'footer')):
         if field in slide.raw_meta:
             values[slot] = _parse_chrome_value(
-                slide.raw_meta[field], f'slide {slide.slug or slide.slide_type}: {field}')
+                slide.raw_meta[field],
+                f'slide {slide.slug or slide.slide_type}: {field}',
+                empty_is_clear=False)
     return {
         slot: _presentation_chrome_html(
             value, slot, identity_kit, typo_engine, disabled, inline_images,
@@ -20321,15 +20350,15 @@ def _wrap_presentation_slide(default_html, slide, preset, layout_variants,
     requested_layout = (slide.slide_layout
                         or layout_variants.get(slide.slide_type)
                         or _presentation_layouts(preset).get(slide.slide_type, 'default'))
-    identity_fields = (requested_layout != 'default'
-                      or any(chrome_layers)
-                      or bool({'slide-header', 'slide-footer'} & set(slide.raw_meta)))
+    chrome_fields = (any(chrome_layers)
+                     or bool({'slide-header', 'slide-footer'} & set(slide.raw_meta)))
     if preset.default:
-        if identity_fields:
+        if requested_layout != 'default':
             raise PropertyError(
-                f'slide {slide.slug or slide.slide_type}: slide layout/chrome '
+                f'slide {slide.slug or slide.slide_type}: slide-layout '
                 'requires an identity kit layout')
-        return default_html
+        if not chrome_fields:
+            return default_html
 
     fragment = identity_kit.layout(slide.slide_type, requested_layout)
     opening, separator, remainder = default_html.partition('\n')
@@ -21362,6 +21391,9 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
         parsed_unit = ParsedUnit(read_text_file(source_path))
     meta, slides, has_meta_block, content_before_meta = parsed_unit.unpack()
     validate_slides(slides, source_path.name, has_meta_block, content_before_meta)
+    article_chrome = _article_chrome_layer(meta, source_path.name)
+    if article_chrome:
+        slide_chrome_layers = (*slide_chrome_layers, article_chrome)
     slides = _prepare_unit_slides(
         slides, meta, series_meta_of(series_data), source_path.name, args)
     for number, slide in enumerate(slides, 1):
@@ -22136,6 +22168,7 @@ def series_appearance_of(series_data, tolerate_invalid=False, errors=None):
             'presets_declared': False,
             'themes': None,
             'themes_declared': False,
+            'chrome': {},
             'build': {},
         }
 
@@ -22155,6 +22188,18 @@ def series_appearance_of(series_data, tolerate_invalid=False, errors=None):
             series_data['schema'] not in (None, SERIES_SCHEMA)):
         invalid(f'series.json: unsupported schema {series_data["schema"]!r}; '
                 f'expected {SERIES_SCHEMA!r}.')
+
+    chrome = {}
+    if 'chrome' in series_data:
+        if not isinstance(series_data['chrome'], dict):
+            invalid('series.json: "chrome" must be an object.')
+        else:
+            try:
+                chrome = _parse_slide_chrome_config(
+                    series_data['chrome'], 'series.json: chrome',
+                    null_is_clear=True, direct_slots=True)
+            except PropertyError as exc:
+                invalid(str(exc))
 
     appearance = series_data.get('appearance')
     if appearance is None:
@@ -22212,6 +22257,7 @@ def series_appearance_of(series_data, tolerate_invalid=False, errors=None):
         'presets_declared': _presets_declared,
         'themes': themes if themes_declared else None,
         'themes_declared': themes_declared,
+        'chrome': chrome,
         'build': build,
     }
 
@@ -22373,6 +22419,7 @@ def resolve_series_appearance(series_data, identity_catalog, theme_catalog,
         initial_theme_layer=initial_layer,
         kit_themes=themes['kit_themes'],
         build=config['build'],
+        chrome=config['chrome'],
     )
 
 
@@ -22872,6 +22919,16 @@ def _resolve_article_presentation(entry, meta, series_meta, source_name):
             if field in source:
                 raise PropertyError(
                     f'{origin}: {field} belongs in a kit preset, not an article.')
+
+
+def _article_chrome_layer(meta, origin):
+    """Turn article-level chrome metadata into one all-slides layer."""
+    slots = {}
+    for field, slot in (('slide-header', 'header'), ('slide-footer', 'footer')):
+        if field in meta:
+            slots[slot] = _parse_chrome_value(
+                meta[field], f'{origin}: {field}', empty_is_clear=False)
+    return {'all': slots} if slots else {}
 
 
 class ParsedUnit:
@@ -23571,15 +23628,30 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
                                strict_tags=strict_tags, build_args=args,
                                build_strings=strings, unit_sources=unit_sources)
         membership = PublicationMembership(articles, args)
+        for preset in tuple(presentation_presets):
+            try:
+                _validate_presentation_chrome_config(
+                    appearance.config['chrome'], preset.identity_kit,
+                    'series.json: chrome')
+            except PropertyError as exc:
+                selector = _presentation_selector(preset)
+                raise PropertyError(
+                    f'series.json -> {selector} -> {exc}')
         for entry in membership.rendered:
             source_path = _resolve_contained(sources_dir, entry['page_source'])
             parsed = unit_sources.get(source_path)
-            source_slides = (parsed.unpack()[1] if parsed is not None else ())
+            source_meta, source_slides = (parsed.unpack()[:2]
+                                          if parsed is not None else ({}, ()))
             source_slides = [slide for slide in source_slides
                              if 'excluded' not in _slide_tag_set(slide)
                              and not _is_incomplete_full_article(slide)]
+            article_chrome = _article_chrome_layer(
+                source_meta, entry['page_source'])
             for preset in tuple(presentation_presets):
                 try:
+                    _validate_presentation_chrome_config(
+                        article_chrome, preset.identity_kit,
+                        f'{entry["page_source"]}: lwp:meta')
                     validate_article_presentation(entry, preset, source_slides)
                 except PropertyError as exc:
                     selector = _presentation_selector(preset)
@@ -23689,6 +23761,7 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
              language_runtime=language_runtime, scroll_duration=scroll_duration,
              effective_theme=effective_theme,
              appearance=appearance,
+             series_chrome=appearance.config['chrome'],
              identity_catalog=identity_catalog,
             series_presentation_preset=series_preset,
             presentation_presets=tuple(presentation_presets),
@@ -23807,15 +23880,23 @@ def _render_article(ctx, entry, source_path, build_stamp='', include_nav=True,
             theme_runtime=ctx.theme_runtime,
             language_runtime=ctx.language_runtime,
             scroll_duration=ctx.scroll_duration,
-            presentation_preset=preset,
-            slide_layouts=_presentation_layouts(preset),
-             structure_css=preset.identity_kit.structure_css,
+             presentation_preset=preset,
+             slide_layouts=_presentation_layouts(preset),
+             slide_chrome_layers=((ctx.series_chrome,)
+                                  if ctx.series_chrome else ()),
+              structure_css=preset.identity_kit.structure_css,
             presentation_runtime=runtime,
              presentation_capture=capture, fragment_only=fragment_only,
              parsed_unit=ctx.unit_sources.get(source_path))
 
     if ctx.presentation_runtime is None:
         return render(ctx.series_presentation_preset)
+    if len(ctx.presentation_presets) == 1:
+        # There is no alternate layer to capture. The runtime serializer keeps
+        # the single-preset payload's variants empty, so render the primary
+        # page once instead of producing and discarding an identical capture.
+        return render(ctx.series_presentation_preset,
+                      runtime=ctx.presentation_runtime)
 
     variants = {}
     for preset in ctx.presentation_presets:
@@ -23859,6 +23940,10 @@ def _render_index(ctx, index_extra='', build_stamp='', validate_scripts=False,
 
     if ctx.presentation_runtime is None:
         index_html = render(ctx.series_presentation_preset)
+    elif len(ctx.presentation_presets) == 1:
+        # A single preset has no alternate index fragment to capture.
+        index_html = render(ctx.series_presentation_preset,
+                            runtime=ctx.presentation_runtime)
     else:
         variants = {}
         for preset in ctx.presentation_presets:
@@ -28817,6 +28902,7 @@ def _series_appearance_report(appearance):
     return {
         'presets': list(appearance.preset_selectors),
         'themes': list(appearance.theme_tokens),
+        'chrome': json.loads(json.dumps(appearance.config.get('chrome', {}))),
         'theme_policy': appearance.theme_policy,
         'initial_preset': appearance.primary_preset.selector,
         'initial_theme': (appearance.primary_preset.theme_resource_id

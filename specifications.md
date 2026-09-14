@@ -685,6 +685,8 @@ porte les réglages de série (détail complet en §20) :
    §20.3.1), `status` (§20.6).
 - **D'apparence et de publication — réglage de série, hors des entrées d'article** :
   le bloc racine `appearance` porte les listes `presets` et `themes`.
+  Le bloc racine optionnel `chrome` porte les défauts de chrome de la série,
+  sans changer l'identité ni le preset.
   Le premier preset détermine l'identité et la présentation initiale de toute
   la série ; son absence désigne `builtin/standard`. Le premier thème
   individuel détermine la politique chromatique initiale (§9.9, §20.4).
@@ -1142,12 +1144,13 @@ temps de cuisson varie... ») : c'est le cas normal d'usage, et les deux
 doivent être rendus comme deux `<p>` distincts à l'intérieur du même
 `<div class="fact-content">` (§6.1).
 
-Le bloc `lwp:meta` ne peut pas modifier l'apparence de cette page : les
-sélecteurs de preset et de thème y sont rejetés et se déclarent dans le bloc
-racine `appearance`. Les défauts de layout et de chrome appartiennent au
-manifeste du kit, non au bloc meta ;
-les champs Markdown `slide-layout`, `slide-header` et `slide-footer`
-restent les seuls overrides par fiche (§4.3, §9.9.3).
+The `lwp:meta` block cannot select a preset or theme: those selectors are
+rejected there and belong in the root `appearance` object. It may, however,
+declare article-wide `slide-header` and `slide-footer` values. The optional
+root `series.json.chrome` object supplies series-wide chrome. The manifest
+still owns the preset defaults; the cascade is preset, series chrome, article
+meta chrome, then the slide's `slide-header` and `slide-footer` fields
+(§4.3, §9.9.3).
 
 ### 4.3 Champs d'une fiche standard
 
@@ -1163,8 +1166,8 @@ restent les seuls overrides par fiche (§4.3, §9.9.3).
 | `tags`           | `data-tags` sur la `<section>` (§4.3.1)   | Non         |
 | `fact-variant`   | `fact--VALEUR` sur l'encadré (§9.6.2)     | Non         |
 | `slide-layout`   | Choisit une variante du kit d'identité (§9.9.3) | Non |
-| `slide-header`   | Chrome d'en-tête du kit ; `""` le supprime | Non |
-| `slide-footer`   | Chrome de pied du kit ; `""` le supprime | Non |
+| `slide-header`   | Chrome d'en-tête ; `""` le supprime de la cascade | Non |
+| `slide-footer`   | Chrome de pied ; `""` le supprime de la cascade | Non |
 | `note`           | `<div class="speaker-note" hidden>` : embarqué dans le HTML, affiché par le panneau de la même page, sans confidentialité (§8.4) | Non |
 | `comment`        | Aucun — jamais rendu (§4.6)               | Non         |
 
@@ -1173,9 +1176,11 @@ le dérive. Rien ne verrouille ce tableau-ci contre lui : il se relit à la
 main, et c'est pour l'avoir oublié qu'il a manqué trois champs.
 
 `slide-layout`, `slide-header` and `slide-footer` are shared by all five types.
-A non-`default` variant or any chrome override requires a supporting kit;
-`slide-layout: default` retains the preset default. Empty values are invalid,
-except exactly `""` in a header/footer field to clear inherited chrome (§9.9.3).
+Textual chrome works with `builtin/standard`; a named chrome model or asset
+reference requires the selected Identity Kit to provide it. A non-`default`
+variant also requires a supporting kit. `slide-layout: default` retains the
+preset default. Empty values are invalid, except exactly `""` in a
+header/footer field to clear inherited chrome (§9.9.3).
 
 Le texte libre après les champs est placé dans un `<div class="fact-content">`
 si un `fact-label` est présent, sinon dans un `<div class="slide-body">`.
@@ -4770,6 +4775,17 @@ traits d'union ; `builtin` et `commons` sont réservés et ne peuvent nommer un 
 rejeté. Les seuls overrides de fiche sont les champs Markdown de §9.9.3.
 Les défauts `slide_layouts` et `slide_chrome` appartiennent au manifeste du kit.
 
+The optional root `series.json.chrome` object is a series-wide chrome layer;
+it lives beside `appearance`, `series_meta` and `articles`, not inside any of
+them. Its keys are `all` and the five slide types. Each value is an object with
+`header` and/or `footer` slots. A direct `{ "header": ..., "footer": ... }`
+object is shorthand for `{ "all": { ... } }`. A slot accepts text, a text
+object, a named model object with optional asset bindings, `""`, or JSON
+`null`; the last two explicitly clear inherited chrome. Unknown types, slots,
+models or assets are fatal before output is written. Text does not need an
+Identity Kit; models and their assets are checked against every selected
+preset's kit.
+
 Les kits sont chargés dans l'ordre installé < utilisateur < série. Une racine
 plus proche contenant le même `id@version` remplace le kit entier, jamais ses
 fichiers un à un. Les chemins sont `kits/<id>/<version>/` dans un catalogue et
@@ -4866,8 +4882,8 @@ without its own layout map, the index uses the kit's standard layout and
 retains chrome. With its own map but no preset override, it uses `default`.
 Loading does not rewrite the `lightwebpres.identity-kit/1` manifest.
 `slide_chrome` may specify `all`, then a type with `header` and/or `footer`;
-type slots complete or replace `all`. These keys are manifest-only, never
-`series.json` or unit metadata fields.
+type slots complete or replace `all`. These manifest defaults are distinct from
+the author-facing `series.json.chrome` layer described in §9.9.1.
 
 Sur une fiche, les trois champs Markdown sont les overrides finaux :
 
@@ -4879,11 +4895,18 @@ slide-footer: ""
 
 `slide-layout` selects a variant for this slide. `slide-header` and
 `slide-footer` accept text, `""` to clear the inherited slot, or a JSON model
-object with `model`, `text` and `assets`. All five types accept these fields.
-Non-default variants or chrome overrides require a supporting kit;
+object with `model`, `text` and `assets`. In the article `lwp:meta` block the
+same two field names provide the article-wide layer; an unquoted empty value
+is invalid. All five types accept these fields. The complete order is preset
+defaults < `series.json.chrome` < article meta < slide fields. Non-default
+variants require a supporting kit, while textual chrome does not;
 `slide-layout: default` retains the preset default. A `builtin:standard` layout
 inside a kit passes its content and chrome through. Chrome text, including icon
 labels, is escaped: a model does not carry raw HTML.
+
+The series chrome layer applies to article slides, including generated
+`series-nav`, `full-article` and `unit-index` slides. It does not wrap the
+series `index.html`, whose fragment has no chrome slots.
 
 `chrome.json` peut déclarer des `models`. Un modèle appartient à `header` ou
 `footer` et contient des items `text`, `image` ou `icon`. Un item image nomme un
@@ -6725,7 +6748,7 @@ La sortie texte est le défaut et vise la lecture humaine.
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
 | `series_meta` | objet | les champs de §20.5 — dont `title`, `subtitle`, `version`, `intro`, `author`, `license` et `scroll_duration` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
 | `presentation` | object | The complete resolved preset report, with schema `lightwebpres.presentation-preset/3` (§11.18) |
-| `appearance` | objet | les listes demandées et la résolution initiale : `presets`, `themes`, `theme_policy`, `initial_preset`, `initial_theme` et les thèmes publiés |
+| `appearance` | objet | les listes demandées, la résolution initiale et le chrome de série : `presets`, `themes`, `chrome`, `theme_policy`, `initial_preset`, `initial_theme` et les thèmes publiés |
 | `counts` | objet | un nombre par statut de §20.6 — `active`, `draft`, `ignored` — dont la somme est la liste entière. Un article `ignored` est toujours *dans* le fichier de série : le sortir discrètement de l'arithmétique ferait paraître la série plus petite qu'elle n'est |
 | `tags` | objet | l'inventaire de visibilité défini en §11.11.1, identique à la réponse de `series tags` sans son enveloppe `schema`/`target` |
 | `articles` | liste | un objet par article, **dans l'ordre de `series.json`** (ci-dessous) |
@@ -8745,7 +8768,9 @@ fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
 
 `presentation_preset` n'est pas un champ d'article ; il n'existe aucune
 sélection de preset ni cascade locale dans `articles[]`. Les défauts de layout
-et de chrome appartiennent au manifeste du kit (§20.5.3).
+et de chrome appartiennent au manifeste du kit ; `series.json.chrome` et les
+champs `slide-header`/`slide-footer` du bloc meta fournissent les couches
+d'auteur décrites en §9.9.3 et §20.5.3.
 
 ### 20.3 Règles de validation
 
@@ -8758,6 +8783,13 @@ et de chrome appartiennent au manifeste du kit (§20.5.3).
   Le premier preset est le primaire ; aucun preset supplémentaire n'est ajouté
   implicitement. `--presentation-presets` et `--themes` remplacent leurs listes
   respectives pour l'invocation concernée.
+- Si `chrome` est présent à la racine de la forme objet, il doit être un objet
+  contenant seulement `all` et des noms de types de fiche. Chaque valeur est
+  un objet de slots `header`/`footer`; un objet direct de slots est accepté
+  comme raccourci de `all`. Les slots textuels, `""` et `null` sont valides;
+  les modèles et assets sont validés contre chaque preset sélectionné. Toute
+  clé, valeur, slot, modèle ou asset invalide est une erreur fatale avant
+  l'écriture de la sortie.
 - Les anciens noms `source`/`file`, retirés à la **v0.7.0**, produisent
   une **erreur fatale de migration explicite** (« renamed to
   page_source/page_dest in v0.7.0 — just rename the key, the value is
@@ -8883,18 +8915,19 @@ participe au parcours :
 ### 20.4 Métadonnées de la série (`series_meta`)
 
 Le fichier `series.json` peut contenir un objet `series_meta` (optionnel) qui
-décrit la série elle-même (pour l'index et le README), ainsi qu'un objet racine
-`appearance` qui porte les choix de présentation et de thème (§9.3.7, §9.3.8,
-§9.9). Les valeurs de sortie physique optionnelles vivent dans l'objet racine
-`build`.
+décrit la série elle-même (pour l'index et le README), ainsi que les objets
+racine `appearance` et `chrome` pour les choix de présentation et les défauts
+de chrome (§9.3.7, §9.3.8, §9.9). Les valeurs de sortie physique optionnelles
+vivent dans l'objet racine `build`.
 
 Si la configuration objet est utilisée, `articles` est un tableau, `series_meta`
 est un objet lorsqu'il est présent, `appearance` est un objet lorsqu'il est
-présent et `build` est un objet lorsqu'il est présent. `appearance.presets` et
+présent, `chrome` est un objet lorsqu'il est présent et `build` est un objet
+lorsqu'il est présent. `appearance.presets` et
 `appearance.themes`, lorsqu'ils sont présents, sont des listes non vides de
 chaînes. Si `series_meta`, `appearance` et `build` sont absents, le fichier peut
 rester un tableau direct. Ce tableau direct n'a pas de place pour les réglages
-d'apparence ou de build.
+d'apparence, de chrome ou de build.
 
 `appearance.presets` ordonne les présentations publiées : le premier sélecteur
 est le primaire et les suivants sont des alternatives. L'omission utilise
@@ -8902,7 +8935,8 @@ est le primaire et les suivants sont des alternatives. L'omission utilise
 remplacée par `--presentation-presets` lorsqu'elle est fournie, sans modifier
 le fichier source. `appearance.themes` ordonne les tokens de thème ; son
 omission utilise `preset` puis `essential`, tandis qu'une liste explicite est
-exacte. `--themes` la remplace pour une invocation.
+exacte. `--themes` la remplace pour une invocation. `chrome` est résolu
+indépendamment de ces choix, mais est validé contre chaque preset sélectionné.
 
 ### 20.5 Champs de `series_meta`
 
@@ -8980,15 +9014,20 @@ défauts de sélection ne renomment jamais une identité (§9.9).
 
 Le bloc `lwp:meta` et les entrées `articles[]` ne peuvent ni choisir ni
 modifier ce preset. `presentation_preset` à ces niveaux est rejeté.
-Les défauts de layouts et de chrome appartiennent au preset du
-manifeste, sans fusion JSON auteur.
+Les défauts de layouts et de chrome appartiennent au preset du manifeste.
+L'auteur peut ajouter le bloc racine `series.json.chrome` pour une couche de
+chrome de série, puis `slide-header` et `slide-footer` dans `lwp:meta` pour la
+couche de l'article. Ces valeurs ne changent ni l'identité ni le preset.
 
 The three Markdown fields remain the local overrides on all five types:
 `slide-layout` replaces the preset's variant, while `slide-header` and
-`slide-footer` replace their chrome slots. Chrome accepts text, `""`, or a
-model object with `model`, `text` and `assets`. Chrome and named variants
-require a supporting kit; `slide-layout: default` retains the preset default.
-Malformed selectors, variants, models, slots or assets fail with their origin.
+`slide-footer` replace their chrome slots. Their order after the preset is
+`series.json.chrome`, then article `lwp:meta`, then the slide itself. Chrome
+accepts text, `""`, or a model object with `model`, `text` and `assets`; root
+series JSON also accepts `null` as an explicit clear. Textual chrome works with
+the native preset, while models and named variants require a supporting kit.
+`slide-layout: default` retains the preset default. Malformed selectors,
+variants, models, slots or assets fail with their origin.
 
 ### 20.5.4 Alternatives runtime de présentation
 

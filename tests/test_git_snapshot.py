@@ -115,6 +115,28 @@ class GitSnapshotConsistency(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.files['sources/a.md'], b'New contribution')
         self.assertEqual(self.commits, [])
 
+    async def test_unchanged_push_skips_remote_file_scan(self):
+        await self.pull()
+        self.requests.clear()
+        ok, message = await self.push()
+        self.assertTrue(ok)
+        self.assertIn('Nothing to push', message)
+        self.assertTrue(any('/repository/tree' in path for _, path, _, _ in self.requests))
+        self.assertFalse(any('/files/' in path for _, path, _, _ in self.requests))
+        self.assertEqual(self.commits, [])
+
+    async def test_successful_push_advances_the_local_file_baseline(self):
+        await self.pull()
+        (self.local / 'sources/a.md').write_text('Edited locally')
+        self.assertTrue((await self.push())[0])
+        self.requests.clear()
+        ok, message = await self.push()
+        self.assertTrue(ok)
+        self.assertIn('Nothing to push', message)
+        self.assertTrue(any('/repository/tree' in path for _, path, _, _ in self.requests))
+        self.assertFalse(any('/files/' in path for _, path, _, _ in self.requests))
+        self.assertEqual(len(self.commits), 1)
+
     async def test_race_after_preflight_cannot_overwrite_a_new_contribution(self):
         await self.pull()
         (self.local / 'sources/a.md').write_text('Local edit')
