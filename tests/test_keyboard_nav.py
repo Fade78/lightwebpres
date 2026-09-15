@@ -1,21 +1,15 @@
-"""End-to-end test for arrow-key navigation on an article page: a real
+"""End-to-end test for keyboard navigation on an article page: a real
 browser keyboard-driven walk (not just string assertions against the
-generated HTML), covering the behaviors added on top of the plain
-slide-to-slide arrow navigation:
+generated HTML), covering native reading scroll, direct page navigation and
+the bounded Space journey:
 
-  - A slide taller than the viewport (typically a long full-article) gets
-    scrolled down in increments before an arrow key advances past it.
-  - A final overflowing slide stays at its bottom when ArrowDown has no
-    next slide to enter.
-  - A partially visible adjacent slide is aligned before navigation can
-    advance beyond it; bounded internal movement does not expose its
-    neighbour, in either direction.
-   - On the series-nav slide, arrow keys step through its cards one by
-     one (instead of skipping straight past the whole slide), and Enter
-     on a focused card jumps to that article — like Tab, but confined to
-     the natural slide/card/scroll journey instead of leaving the page.
-   - Cards selected on a series-nav slide remain fully visible when they fit,
-     including while stepping backward through a viewport-shortened fixture.
+  - Arrow keys and the wheel scroll the page without changing slides.
+  - PageUp/PageDown and the buttons change slides directly, including across
+    a long full-article and a partially visible adjacent slide.
+  - A final overflowing slide stays at its bottom when native ArrowDown has
+    no further page to scroll.
+  - Space and Shift+Space step through series-nav cards and bounded long-slide
+    content; Enter on a focused card follows its article.
    - Home returns to the beginning of the current page, Ctrl/Cmd+Home returns
      to the series index, and End/Ctrl/Cmd+End reaches the far edge.
    - Resizing the viewport realigns the active slide after its frame changes.

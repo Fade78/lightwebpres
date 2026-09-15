@@ -188,6 +188,14 @@ class IdentityKits(unittest.TestCase):
         self.assertEqual(json.loads(series_path.read_text(encoding='utf-8'))
                          ['appearance']['presets'], ['studio@1/brief'])
 
+    def test_partial_selector_indexing_uses_numeric_version_components(self):
+        self._kit(version='01.2.3')
+        catalog = self.lwp.load_identity_catalog(
+            self.root / 'templates', selectors='studio@1.2/brief')
+        self.assertEqual(
+            catalog.resolve_preset('studio@1.2/brief', 'test').selector,
+            'studio@01.2.3/brief')
+
     def test_build_ignores_an_unselected_invalid_user_identity_kit(self):
         self._kit()
         invalid = self.root / 'library' / 'kits' / 'private' / 'docs'
@@ -399,6 +407,110 @@ class IdentityKits(unittest.TestCase):
             self.assertNotIn('default', report)
         self.assertNotEqual(reports['commons/night']['id'],
                             reports['commons/night']['identity']['default_preset'])
+
+    def test_kit_list_and_show_report_complete_identity_kits(self):
+        root, _manifest = self._kit()
+        catalogue = root.parent.parent
+        with mock.patch.dict(os.environ, {
+                'LWP_IDENTITY_KITS_DIR': str(catalogue)}):
+            listed = fixtures.run('kit', 'list', '--format', 'json')
+            self.assertEqual(listed.returncode, 0, listed.stderr)
+            listing = json.loads(listed.stdout)
+            self.assertEqual(listing['schema'],
+                             'lightwebpres.identity-kit-list/1')
+            reports = {report['selector']: report for report in listing['kits']}
+            self.assertEqual(set(reports), {'builtin', 'studio@1.0.0'})
+
+            native = reports['builtin']
+            self.assertTrue(native['native'])
+            self.assertIsNone(native['path'])
+            self.assertEqual(native['label'], 'LightWebPres')
+            self.assertEqual(native['default_preset'], 'standard')
+            self.assertEqual(native['themes'][0]['source'], 'builtin')
+            self.assertEqual(native['themes'][0]['origin'], 'builtin')
+            self.assertEqual(native['presets'][0]['selector'], 'builtin/standard')
+
+            studio = reports['studio@1.0.0']
+            self.assertFalse(studio['native'])
+            self.assertEqual(studio['scope'], 'user')
+            self.assertEqual(studio['path'], str(root))
+            self.assertEqual(studio['default_preset'], 'brief')
+            self.assertEqual(studio['themes'][0]['resource'],
+                             'kit:studio@1.0.0/paper')
+            self.assertEqual(studio['layouts']['cover'], ['default'])
+            self.assertEqual(studio['presets'][0]['selector'],
+                             'studio@1.0.0/brief')
+
+            for selector, expected in (('builtin', native),
+                                       ('studio@1', studio),
+                                       ('studio@1.0.0', studio)):
+                shown = fixtures.run('kit', 'show', selector, '--format', 'json')
+                self.assertEqual(shown.returncode, 0, shown.stderr)
+                self.assertEqual(json.loads(shown.stdout), expected)
+
+    def test_kit_show_scopes_loading_but_kit_list_stays_strict(self):
+        root, _manifest = self._kit()
+        catalogue = root.parent.parent
+        invalid = catalogue / 'broken' / '1.0.0'
+        invalid.mkdir(parents=True)
+        (invalid / 'manifest.json').write_text('{}', encoding='utf-8')
+        with mock.patch.dict(os.environ, {
+                'LWP_IDENTITY_KITS_DIR': str(catalogue)}):
+            shown = fixtures.run('kit', 'show', 'studio@1.0.0',
+                                 '--format', 'json')
+            self.assertEqual(shown.returncode, 0, shown.stderr)
+            listed = fixtures.run('kit', 'list', '--format', 'json')
+            self.assertNotEqual(listed.returncode, 0)
+            self.assertIn('broken', listed.stderr)
+
+    def test_kit_list_does_not_depend_on_the_commons_catalogue(self):
+        broken = Path(os.environ['LWP_COMMONS_DIR']) / 'presets' / 'broken.json'
+        broken.parent.mkdir(parents=True)
+        broken.write_text('{}', encoding='utf-8')
+        listed = fixtures.run('kit', 'list', '--format', 'json')
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual(
+            [kit['selector'] for kit in json.loads(listed.stdout)['kits']],
+            ['builtin'])
+
+    def test_kit_show_uses_the_highest_precedence_copy_for_exact_version(self):
+        source, _manifest = self._kit()
+        installed = self.root / 'installed' / 'kits'
+        installed_copy = installed / 'studio' / '1.0.0'
+        installed_copy.mkdir(parents=True)
+        (installed_copy / 'manifest.json').write_text('{}', encoding='utf-8')
+        user = Path(os.environ['LWP_IDENTITY_KITS_DIR'])
+        shutil.copytree(source, user / 'studio' / '1.0.0')
+        with mock.patch.object(self.lwp, '_installed_presentation_roots',
+                               return_value=[installed]):
+            catalog = self.lwp.load_identity_catalog(selectors='studio@1.0.0')
+        identity_kit = catalog.resolve_identity('studio@1.0.0', 'test')
+        self.assertEqual(identity_kit.scope, 'user')
+        self.assertEqual(identity_kit.root, user / 'studio' / '1.0.0')
+
+    def test_kit_show_loads_only_the_highest_matching_version(self):
+        invalid = self.root / 'installed' / 'kits' / 'studio' / '1.0.0'
+        invalid.mkdir(parents=True)
+        (invalid / 'manifest.json').write_text('{}', encoding='utf-8')
+        source, _manifest = self._kit(version='1.2.0')
+        user = Path(os.environ['LWP_IDENTITY_KITS_DIR'])
+        shutil.copytree(source, user / 'studio' / '1.2.0')
+        with mock.patch.object(self.lwp, '_installed_presentation_roots',
+                               return_value=[self.root / 'installed' / 'kits']):
+            catalog = self.lwp.load_identity_catalog(selectors='studio@latest')
+        identity_kit = catalog.resolve_identity('studio@latest', 'test')
+        self.assertEqual(identity_kit.version, '1.2.0')
+
+    def test_kit_show_reports_an_absolute_path_for_a_relative_catalogue(self):
+        source, _manifest = self._kit()
+        catalogue = self.root / 'relative-kits'
+        shutil.copytree(source, catalogue / 'studio' / '1.0.0')
+        result = fixtures.run(
+            'kit', 'show', 'studio@1.0.0', '--format', 'json',
+            cwd=str(self.root), env={'LWP_IDENTITY_KITS_DIR': 'relative-kits'})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)['path'],
+                         str(catalogue / 'studio' / '1.0.0'))
 
     def test_commons_theme_is_not_dropped_by_native_renderer_flag(self):
         self._commons()

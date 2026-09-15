@@ -559,7 +559,8 @@ class KitCompose(unittest.TestCase):
             self.assertIn('"kit compose") opts=', result.stdout)
         script = run('completion', '--shell', 'bash').stdout
         for words, expected in ((['lightwebpres', 'ki'], {'kit'}),
-                                (['lightwebpres', 'kit', ''], {'compose'}),
+                                (['lightwebpres', 'kit', ''],
+                                 {'compose', 'list', 'show'}),
                                 (['lightwebpres', 'kit', 'compose', '--'], {'--output', '--dry-run'})):
             program = (script + '\nCOMP_WORDS=(' + ' '.join(map(shlex.quote, words))
                        + f')\nCOMP_CWORD={len(words) - 1}\n_lightwebpres_completion\n'

@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.60.1"
+VERSION = "0.61.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1367,6 +1367,8 @@ LANG_FR = r'''{
     "help_mode_toggle": "Afficher l'aide tactile",
     "help_next": "Slide suivante",
     "help_prev": "Slide précédente",
+    "help_scroll_keys": "Faire défiler la page",
+    "help_step": "Pas de lecture : slide, carte de navigation ou défilement borné d'une slide longue",
     "help_home": "Début de la page",
     "help_index": "Retour à l'index de la série (sur l'index : début de page)",
     "help_edges": "Dernière slide du deck (sur l'index : dernière carte)",
@@ -1384,8 +1386,6 @@ LANG_FR = r'''{
     "help_mouse_keys": "Souris / Molette",
     "help_jump": "Aller à la slide N (puis Entrée)",
     "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : armer l'entrée (puis clic gauche) ou quitter le plein écran · molette : défiler",
-    "help_touch_next": "Toucher / balayer vers la gauche",
-    "help_touch_prev": "Balayer vers la droite",
     "help_touch_home": "",
     "help_touch_index": "Menu : Retour à l'index",
     "help_touch_edges": "",
@@ -1577,6 +1577,8 @@ LANG_EN = r'''{
     "help_mode_toggle": "Show touch help",
     "help_next": "Next slide",
     "help_prev": "Previous slide",
+    "help_scroll_keys": "Scroll the page",
+    "help_step": "Reading step: slide, navigation card or bounded scrolling within a long slide",
     "help_home": "Beginning of the page",
     "help_index": "Back to the series index (on the index: top of the page)",
     "help_edges": "Last slide of the deck (on the index: last article card)",
@@ -1594,8 +1596,6 @@ LANG_EN = r'''{
     "help_mouse_keys": "Mouse / Wheel",
     "help_jump": "Jump to slide N (then Enter)",
     "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · wheel: scroll",
-    "help_touch_next": "Tap / swipe left",
-    "help_touch_prev": "Swipe right",
     "help_touch_home": "",
     "help_touch_index": "Menu: Back to index",
     "help_touch_edges": "",
@@ -3089,19 +3089,6 @@ THEME_COMPONENTS = [
         # "the right measure at every type size" as a gain when it is what
         # breaks the alignment.
         ThemeProp('page.content-max', PROP_LENGTH, '84vw'),
-        # And the width of things that are NOT running text. A table, a code
-        # block or a figure is sized by what it contains, not by a count of
-        # characters in its own font: B13 pointed all seventeen consumers at
-        # the measure, which put a five-column table in 350px on a 1440px
-        # desktop. Measured in a browser, which is how it was found.
-        # The 1100px is a floor, not a ceiling, for the same reason the
-        # type scales lost theirs: a table whose own text grows to 41px
-        # at 3840 while its box stays 1100px fits about 26 characters a
-        # line. 102vmin is 1100px at 1920x1080, so nothing at or below
-        # that size moves; above it the box keeps the share of the
-        # column it had there.
-        ThemeProp('page.block-max', PROP_LENGTH,
-                  'min(84vw, max(1100px, 102vmin))'),
         # Inherited, so one declaration governs the whole page. Automatic
         # hyphenation also needs the language, which the templates already
         # declare as <html lang="...">; setting `auto` without it is inert.
@@ -5526,6 +5513,37 @@ class IdentityCatalog:
     def add(self, identity_kit):
         self.identity_kits[(identity_kit.id, identity_kit.version)] = identity_kit
 
+    def resolve_identity(self, selector, origin):
+        """Resolve one native or versioned Identity Kit selector."""
+        kit_id, version = parse_identity_kit_selector(selector, origin)
+        if kit_id == 'builtin':
+            return self.identity_kits.get((kit_id, VERSION), BUILTIN_IDENTITY_KIT)
+
+        identity_kit = None
+        if version != 'latest' and version.count('.') == 2:
+            identity_kit = self.identity_kits.get((kit_id, version))
+        else:
+            requested = (None if version == 'latest' else
+                         tuple(int(part) for part in version.split('.')))
+            matches = []
+            for (candidate_id, candidate_version), candidate in self.identity_kits.items():
+                if candidate_id != kit_id:
+                    continue
+                candidate_parts = tuple(int(part)
+                                        for part in candidate_version.split('.'))
+                if requested is None or candidate_parts[:len(requested)] == requested:
+                    matches.append((candidate_parts, candidate_version, candidate))
+            if matches:
+                identity_kit = max(matches, key=lambda item: (item[0], item[1]))[2]
+        if identity_kit is None:
+            available = ', '.join(
+                item.selector
+                for _key, item in sorted(self.identity_kits.items())) or '(none)'
+            raise PropertyError(
+                f'{origin}: identity kit {kit_id}@{version} was not found '
+                f'(available: {available})')
+        return identity_kit
+
     def resolve_preset(self, selector, origin):
         """Resolve an exact, partial or ``latest`` kit version selector."""
         if selector is None:
@@ -5538,33 +5556,8 @@ class IdentityCatalog:
                 raise PropertyError(
                     f'{origin}: Commons preset commons/{preset_id} was not found')
             return preset
-        identity_kit = None
-        if kit_id == 'builtin':
-            # The executable version may be a prerelease, while the external
-            # kit grammar remains a numeric MAJOR.MINOR.PATCH.
-            identity_kit = self.identity_kits.get((kit_id, version))
-        elif version != 'latest' and version.count('.') == 2:
-            identity_kit = self.identity_kits.get((kit_id, version))
-        else:
-            requested = (None if version == 'latest' else
-                         tuple(int(part) for part in version.split('.')))
-            matches = []
-            for (candidate_id, candidate_version), candidate in self.identity_kits.items():
-                if candidate_id != kit_id:
-                    continue
-                candidate_parts = tuple(int(part)
-                                       for part in candidate_version.split('.'))
-                if requested is None or candidate_parts[:len(requested)] == requested:
-                    matches.append((candidate_parts, candidate_version, candidate))
-            if matches:
-                identity_kit = max(matches, key=lambda item: (item[0], item[1]))[2]
-        if identity_kit is None:
-            available = ', '.join(
-                item.selector
-                for _key, item in sorted(self.identity_kits.items())) or '(none)'
-            raise PropertyError(
-                f'{origin}: identity kit {kit_id}@{version} was not found '
-                f'(available: {available})')
+        identity_kit = self.resolve_identity(
+            'builtin' if kit_id == 'builtin' else f'{kit_id}@{version}', origin)
         preset = identity_kit.presets.get(preset_id)
         if preset is None:
             available = ', '.join(sorted(identity_kit.presets)) or '(none)'
@@ -5581,6 +5574,26 @@ class IdentityCatalog:
                 continue
             for _name, preset in sorted(identity_kit.presets.items()):
                 yield preset
+
+
+def parse_identity_kit_selector(value, origin):
+    """Validate the selector used to inspect a complete Identity Kit."""
+    grammar = 'builtin or id@version'
+    if not isinstance(value, str) or not value.strip():
+        raise PropertyError(f'{origin}: identity kit must be {grammar}')
+    value = value.strip()
+    if value == 'builtin':
+        return 'builtin', VERSION
+    if value.count('@') != 1 or value.count('/'):
+        raise PropertyError(f'{origin}: identity kit must be {grammar}')
+    kit_id, version = value.split('@')
+    if not _PRESENTATION_ID_RE.fullmatch(kit_id):
+        raise PropertyError(f'{origin}: invalid identity kit id {kit_id!r}')
+    if kit_id in ('builtin', 'commons'):
+        raise PropertyError(f'{origin}: identity kit id {kit_id!r} is reserved')
+    if not _PRESENTATION_VERSION_SELECTOR_RE.fullmatch(version):
+        raise PropertyError(f'{origin}: invalid identity kit version {version!r}')
+    return kit_id, version
 
 
 def parse_presentation_preset_selector(value, origin):
@@ -5704,26 +5717,34 @@ def _identity_kit_version_requested(version, selectors):
     """Whether one catalogue version can satisfy a requested selector."""
     if not _PRESENTATION_VERSION_RE.fullmatch(version):
         return False
+    version_parts = tuple(int(part) for part in version.split('.'))
     for selector in selectors:
-        if selector == 'latest' or selector.count('.') == 2:
-            if selector == 'latest' or version == selector:
+        if selector == 'latest':
+            return True
+        if selector.count('.') == 2:
+            # Exact pins retain their textual path identity.
+            if version == selector:
                 return True
-        elif (selector.isdigit() or
-              re.fullmatch(r'\d+\.\d+', selector)):
-            if version == selector or version.startswith(selector + '.'):
+        elif selector.isdigit():
+            if version_parts[0] == int(selector):
+                return True
+        elif re.fullmatch(r'\d+\.\d+', selector):
+            requested = tuple(int(part) for part in selector.split('.'))
+            if version_parts[:2] == requested:
                 return True
     return False
 
 
-def _load_presentation_root(catalog, root, scope, label,
-                            requested_kits=None):
+def _presentation_kit_entries(root, label, requested_kits=None):
+    """Index candidate kit paths without parsing their manifests."""
     root = Path(root)
     if requested_kits is not None and not requested_kits:
-        return
+        return []
     if not root.exists():
-        return
+        return []
     if not root.is_dir():
         raise PropertyError(f'{label} {root} is not a real directory')
+    entries = []
     try:
         resolved_root = root.resolve()
         identifiers = sorted((child for child in root.iterdir() if child.is_dir()),
@@ -5759,12 +5780,37 @@ def _load_presentation_root(catalog, root, scope, label,
                 raise PropertyError(
                     f'{version}: escapes its identity kit catalogue '
                     'through a symlink')
-            identity_kit = _load_identity_kit(version, scope)
-            catalog.add(identity_kit)
+            entries.append((identifier.name, version.name, version))
+    return entries
+
+
+def _load_presentation_root(catalog, root, scope, label):
+    """Load every kit in one catalogue root, preserving root precedence."""
+    root = Path(root)
+    entries = _presentation_kit_entries(root, label)
+    for _kit_id, _version, path in entries:
+        catalog.add(_load_identity_kit(path, scope))
     catalog.roots.append(root)
 
 
-def load_identity_catalog(templates_dir=None, selectors=None):
+def _selected_identity_kit_keys(candidates, requested_kits):
+    """Select only effective versions needed by the requested selectors."""
+    selected = set()
+    for kit_id, selectors in requested_kits.items():
+        for selector in selectors:
+            matches = []
+            for candidate_id, candidate_version in candidates:
+                if (candidate_id == kit_id
+                        and _identity_kit_version_requested(
+                            candidate_version, (selector,))):
+                    parts = tuple(int(part) for part in candidate_version.split('.'))
+                    matches.append((parts, candidate_version))
+            if matches:
+                selected.add((kit_id, max(matches)[1]))
+    return selected
+
+
+def load_identity_catalog(templates_dir=None, selectors=None, include_commons=True):
     """Load native, selected kits and Commons in their precedence order.
 
     Without ``selectors`` this retains the complete catalogue behavior used by
@@ -5775,18 +5821,37 @@ def load_identity_catalog(templates_dir=None, selectors=None):
     requested_kits = _identity_kit_requirements(selectors)
     requested_commons = _commons_preset_requirements(selectors)
     installed = {str(Path(root).resolve()) for root in _installed_presentation_roots()}
+    kit_roots = []
     for root in _presentation_library_roots():
         scope = 'installed' if str(Path(root).resolve()) in installed else 'user'
-        _load_presentation_root(
-            catalog, root, scope,
-            'installed identity kit directory' if scope == 'installed'
-            else 'user identity kit directory', requested_kits=requested_kits)
+        kit_roots.append(
+            (root, scope,
+             'installed identity kit directory' if scope == 'installed'
+             else 'user identity kit directory'))
     if templates_dir is not None:
         series_root = _resolve_contained(templates_dir, 'kits')
         if series_root is not None:
-            _load_presentation_root(catalog, series_root, 'series',
-                                    'series identity kit directory',
-                                    requested_kits=requested_kits)
+            kit_roots.append((series_root, 'series',
+                              'series identity kit directory'))
+    if requested_kits is None:
+        for root, scope, label in kit_roots:
+            _load_presentation_root(catalog, root, scope, label)
+    else:
+        effective = {}
+        for root, scope, label in kit_roots:
+            entries = _presentation_kit_entries(root, label, requested_kits)
+            if root.exists():
+                catalog.roots.append(Path(root))
+            for kit_id, version, path in entries:
+                # Roots are visited installed < user < series, so the last
+                # path is the complete effective replacement for this id/version.
+                effective[(kit_id, version)] = (path, scope)
+        selected = _selected_identity_kit_keys(effective, requested_kits)
+        for key in sorted(selected):
+            path, scope = effective[key]
+            catalog.add(_load_identity_kit(path, scope))
+    if not include_commons:
+        return catalog
     theme_catalog = None
     for root, scope in _commons_roots(templates_dir):
         if requested_commons is not None and not requested_commons:
@@ -7440,7 +7505,8 @@ BUILTIN_IDENTITY_KIT = IdentityKit(
              for slide_type in _PRESENTATION_SLIDE_TYPES},
     index_layout='{{content}}',
     themes={'light': {'props': resolve_theme_properties(),
-                      'meta': {'label': 'Light', 'family': 'desk'},
+                      'meta': {'label': 'Light', 'family': 'desk',
+                               'source': 'builtin'},
                        'source_identity': 'builtin', 'scope': 'builtin'}})
 BUILTIN_STANDARD_PRESET = PresentationPreset(
     BUILTIN_IDENTITY_KIT, 'standard', 'Standard',
@@ -8529,7 +8595,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-block-max);
+  max-width: var(--page-content-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -8576,7 +8642,7 @@ html:not([data-lwp-table-mode]) body[data-lwp-table-mode="scroll"] .lwp-table-vi
 
 .comparison-table {
   width: 100%;
-  max-width: var(--page-block-max);
+  max-width: var(--page-content-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -8618,7 +8684,7 @@ html:not([data-lwp-table-mode]) body[data-lwp-table-mode="scroll"] .lwp-table-vi
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-block-max);
+  max-width: var(--page-content-max);
   text-align: center;
   /* `caption.size` is 0.85em — relative to a context that has to exist.
      It did not: the figure inherited the document's unset 16px, so the
@@ -8644,8 +8710,7 @@ html:not([data-lwp-table-mode]) body[data-lwp-table-mode="scroll"] .lwp-table-vi
   text-align: right;
 }
 
-/* --- The full-article slide: a measure of its own, narrower than the
-   deck's, because it is read as prose rather than glanced at. --- */
+ /* --- The full-article slide: a reading surface with its own padding. --- */
 .full-article { padding: 60px 8vw 80px 8vw; }
 /* These scale for the same reason the registry's thirty-five do, and they
    were missed because they are LITERALS: the sweep that gave the design a
@@ -8668,7 +8733,7 @@ html:not([data-lwp-table-mode]) body[data-lwp-table-mode="scroll"] .lwp-table-vi
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-block-max);
+  max-width: var(--page-content-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: max(14px, 1.75vmin);
@@ -9338,19 +9403,16 @@ body.fs-noselect {
 }
 
 /* --- The highlight block ---
-   --page-content-max, not --page-block-max, and NOT a flex column. Two
-   defects lived in the four lines this replaces, and both were measured
+   The shared content measure keeps the centred figure aligned with the
+   surrounding text, and this is NOT a flex column. Two defects lived in
+   the four lines this replaces, and both were measured
    in a browser before and after.
 
-   The width: block-max caps at 1100px, so on a card whose text ran the
-   full column the key figure was centred inside a 1100px box pinned to
-   the column's left edge -- centred on a different thing from everything
-   above and below it. Measured off-centre by 55px at 1440, 256px at
-   1920 and 1063px at 3840. block-max is right for a table or a code
-   block: those are LEFT-aligned, so a narrower box still shares the
-   column's left edge and reads as deliberate. A centred box is the one
-   case where a different width becomes a different centre, which is why
-   this is the only consumer that had to move.
+   The old separate block measure put the key figure in a narrower box
+   pinned to the column's left edge, so it was centred on a different thing
+   from everything above and below it. Measured off-centre by 55px at 1440,
+   256px at 1920 and 1063px at 3840. A shared measure keeps every centred
+   and left-aligned content block on the same column.
 
    The flex: `align-items: center` centred the two children and, in doing
    so, made highlight.align dead. That property emits `text-align` onto
@@ -11163,17 +11225,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Separate from isScrolling (which only guards goTo()'s own scroll
-  // animation, and only against re-targeting the SAME slide): holding
-  // an arrow key down fires native auto-repeat keydown events much
-  // faster than isScrolling's lock ever blocks — every repeat calls
-  // stepForward()/stepBackward() again with `current` already updated
-  // from the previous call, so it just keeps advancing (card to card,
-  // then straight past the whole series-nav slide) far faster than a
-  // human can perceive any of the individual steps. This cooldown
-  // throttles processing to one step per STEP_COOLDOWN_MS regardless of
-  // how fast the events actually arrive — invisible to a single
-  // deliberate press (which never repeats within the window), only
-  // felt as a controlled pace while a key is held.
+  // animation), this cooldown protects the deliberate Space and touch
+  // journeys from native key auto-repeat and repeated touch callbacks.
+  // Arrow keys stay native page scrolling and do not enter this path.
   var stepCooldownActive = false;
   var STEP_COOLDOWN_MS = 150;
   // Index into the keyboard-reachable cards, in document order — -1 means
@@ -12618,8 +12672,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Help overlay (key H): every keyboard shortcut and gesture, built once.
   var helpEntries = [
-    ['&darr; / PageDown / &rarr; / Space', lwpString('help_touch_next'), lwpString('help_next')],
-    ['&uarr; / PageUp / &larr; / Backspace / Shift+Space', lwpString('help_touch_prev'), lwpString('help_prev')],
+    ['&uarr; / &darr; / &larr; / &rarr;', lwpString('help_touch_scroll'), lwpString('help_scroll_keys')],
+    ['PageDown / PageUp', '', lwpString('help_next') + ' / ' + lwpString('help_prev'), ''],
+    ['Space / Shift+Space', '', lwpString('help_step'), ''],
     ['Home', lwpString('help_touch_home'), lwpString('help_home')],
     ['Ctrl+Home', seriesHomeKey
       ? lwpString('menu_series_start') : lwpString('help_touch_index'),
@@ -12792,14 +12847,61 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Help is a modal reading surface. Its own overlay may scroll to reveal the
-  // final stamp, but no pointer gesture may advance, rewind, or fullscreen the
-  // deck behind it.
+  function modalWheelSurface() {
+    // The foremost modal owns the wheel. Without this guard a wheel over a
+    // fixed popover or dialog bubbles to the document and moves the deck
+    // behind the surface.
+    if (qrModal && qrModal.classList.contains('open')) return qrModal;
+    if (aboutIsOpen()) return aboutOverlay;
+    if (helpIsOpen()) return helpOverlay;
+    if (themeMenu && themeMenu.classList.contains('open')) return themeMenu;
+    if (readingMenu && readingMenu.classList.contains('open')) return readingMenu;
+    if (presenterMenu && presenterMenu.classList.contains('open')) return presenterMenu;
+    if (tagMenu && tagMenu.classList.contains('open')) return tagMenu;
+    if (sharePopover && sharePopover.classList.contains('open')) return sharePopover;
+    return null;
+  }
+
+  function modalWheelCanScroll(surface, target, deltaX, deltaY) {
+    // Find the nearest scrollable descendant that can consume this wheel
+    // direction. A fixed dialog with no overflow must still consume the event,
+    // while a nested option list keeps its own native scrolling.
+    for (var node = target; node && surface.contains(node); node = node.parentElement) {
+      var style = window.getComputedStyle(node);
+      var vertical = (style.overflowY === 'auto' || style.overflowY === 'scroll'
+        || style.overflowY === 'overlay') && node.scrollHeight > node.clientHeight;
+      var horizontal = (style.overflowX === 'auto' || style.overflowX === 'scroll'
+        || style.overflowX === 'overlay') && node.scrollWidth > node.clientWidth;
+      if (vertical && ((deltaY < 0 && node.scrollTop > 0)
+          || (deltaY > 0 && node.scrollTop + node.clientHeight < node.scrollHeight))) {
+        return true;
+      }
+      if (horizontal && ((deltaX < 0 && node.scrollLeft > 0)
+          || (deltaX > 0 && node.scrollLeft + node.clientWidth < node.scrollWidth))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // A modal's own overlay may scroll to reveal its content, but no pointer
+  // gesture may move the deck behind it.
   document.addEventListener('wheel', function (e) {
-    var inHelp = helpIsOpen() && helpOverlay.contains(e.target);
-    var inAbout = aboutIsOpen() && aboutOverlay.contains(e.target);
-    if ((helpIsOpen() && !inHelp && !inAbout)
-        || (aboutIsOpen() && !inAbout)) e.preventDefault();
+    // A pause screen has no reading surface of its own. Consume the wheel
+    // instead of revealing a different part of the deck it is hiding.
+    if (pauseOverlay && pauseOverlay.classList.contains('open')) {
+      e.preventDefault();
+      return;
+    }
+    var surface = modalWheelSurface();
+    if (surface) {
+      var deltaX = e.deltaX || (e.shiftKey ? e.deltaY : 0);
+      var deltaY = e.shiftKey ? 0 : e.deltaY;
+      if (!surface.contains(e.target)
+          || !modalWheelCanScroll(surface, e.target, deltaX, deltaY)) {
+        e.preventDefault();
+      }
+    }
   }, {capture: true, passive: false});
 
   function slideTitle(i) {
@@ -12873,6 +12975,18 @@ document.addEventListener('DOMContentLoaded', function() {
       if (rect.top <= 1 && rect.bottom > 1) best = i;
     });
     return best;
+  }
+
+  function syncCurrentToViewport() {
+    if (isIndex || !slides.length || isScrolling) return current;
+    var visible = currentVisible();
+    if (visible !== current) {
+      current = visible;
+      focusedCard = -1;
+      recordSlideInUrl(visible);
+      updateUI();
+    }
+    return current;
   }
 
   // The address bar says which card the reader is on, whether they got
@@ -13249,8 +13363,8 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // One card step on the index: focus moves card by card, and the
-  // disabled state of the nav buttons follows the journey, as it does
-  // for the arrows on an article (§8.4 — "un coup, c'est une carte").
+   // disabled state of the nav buttons follows the journey, as it does
+   // for Space on an article (§8.4 — "un coup, c'est une carte").
   function stepIndexCards(direction) {
     var cards = indexCardList();
     if (!cards.length) return;
@@ -13258,6 +13372,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if (next < 0 || next >= cards.length) return;
     focusIndexCard(next);
     updateUI();
+  }
+
+  function changeSlide(direction) {
+    if (isIndex) {
+      // The index has no slides: its buttons and page keys move through
+      // article cards, while its arrow keys retain native page scrolling.
+      stepIndexCards(direction);
+      return;
+    }
+    var target = syncCurrentToViewport() + direction;
+    if (target < 0 || target >= slides.length) return;
+    goTo(target);
   }
 
   function setNavDisabled(button, disabled) {
@@ -13291,12 +13417,10 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   if (btnPrev) btnPrev.addEventListener('click', function() {
-    // On the index the buttons are the on-screen twins of the arrows:
-    // one click, one card of the same journey.
-    stepBackward(true);
+    changeSlide(-1);
   });
   if (btnNext) btnNext.addEventListener('click', function() {
-    stepForward(true);
+    changeSlide(1);
   });
   // Series home is the contents view, or the first unit when contents are omitted.
   // On the index itself, this action returns to the top of the page.
@@ -13613,15 +13737,18 @@ document.addEventListener('DOMContentLoaded', function() {
           e.preventDefault();
           focusGridEdge(sharePopover, true);
         } else if (e.key === 'Tab') {
-          var shareFocus = focusablesWithin(sharePopover);
-          if (shareFocus.length) {
+           var shareFocus = focusablesWithin(sharePopover);
+           if (shareFocus.length) {
             e.preventDefault();
             var shareAt = shareFocus.indexOf(document.activeElement);
             var shareStep = e.shiftKey ? -1 : 1;
             var shareNext = (shareAt < 0 ? 0 : shareAt + shareStep + shareFocus.length)
               % shareFocus.length;
-            shareFocus[shareNext].focus();
-          }
+             shareFocus[shareNext].focus();
+           }
+        } else if (isForegroundScrollKey(e.key)) {
+          e.preventDefault();
+          scrollForeground(sharePopover, e.key, e.shiftKey);
         } else if (e.target && e.target.closest
                    && e.target.closest('.share-popover')) {
           return;
@@ -13687,15 +13814,14 @@ document.addEventListener('DOMContentLoaded', function() {
       }
      // The presenter panel is not modal: when it has focus, its own scroll
      // keys belong to the notes rather than to the deck behind them.
-     if (presenterPanel && presenterPanel.classList.contains('open')
-         && presenterPanel.contains(document.activeElement)
-         && isForegroundScrollKey(e.key)) {
-       // Space belongs to focused notes even when there is nothing to scroll.
-       if (scrollForeground(presenterPanel, e.key, e.shiftKey) || spaceKey) {
-         e.preventDefault();
-         return;
-       }
-     }
+      if (presenterPanel && presenterPanel.classList.contains('open')
+          && presenterPanel.contains(document.activeElement)
+          && isForegroundScrollKey(e.key)) {
+        // Focused notes own these keys even when there is nothing to scroll.
+        scrollForeground(presenterPanel, e.key, e.shiftKey);
+        e.preventDefault();
+        return;
+      }
      if (tagMenu && tagMenu.classList.contains('open')) {
       if (e.key === 'Escape' || e.key === 'l' || e.key === 'L') {
         e.preventDefault();
@@ -13797,10 +13923,10 @@ document.addEventListener('DOMContentLoaded', function() {
           .indexOf(spaceLink) === -1) return;
       e.preventDefault();
       runStepped(e.shiftKey ? stepBackward : stepForward);
-    } else if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {
-      e.preventDefault(); runStepped(stepForward);
-    } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft' || e.key === 'Backspace') {
-      e.preventDefault(); runStepped(stepBackward);
+    } else if (e.key === 'PageDown') {
+      e.preventDefault(); changeSlide(1);
+    } else if (e.key === 'PageUp' || e.key === 'Backspace') {
+      e.preventDefault(); changeSlide(-1);
     } else if (e.key === 'Home') {
       e.preventDefault();
       // Home is the beginning of the current page: the first slide on an
@@ -14454,7 +14580,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // word under the pointer by the time this event fires, and blocking
     // on it would make the mid-glide jump unreachable with the mouse.
     if (!tableClick && e.detail < 2 && endedADrag(e)) return;
-    // At rest, the click follows the same natural journey as the arrows:
+    // At rest, the click follows the same natural journey as Space:
     // cards first, then bounded scrolling inside a tall slide, then the
     // next slide. A click during a glide is the deliberate two-click
     // shortcut handled by stepForward(true).
@@ -15096,13 +15222,13 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
         </button>
       </div>
       <div class="presenter-menu-row">
-        <button type="button" class="presenter-menu-action" id="menuPrev" data-menu-action="prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace Shift+Space">
+        <button type="button" class="presenter-menu-action" id="menuPrev" data-menu-action="prev" aria-keyshortcuts="PageUp Backspace Shift+Space">
           {{icon_prev}}<span class="presenter-menu-label" data-lwp-i18n="menu_prev">{{str_menu_prev}}</span><kbd>Page Up</kbd>
         </button>
         <button type="button" class="presenter-menu-action nav-btn-home" id="menuHome" data-menu-action="home" aria-keyshortcuts="Control+Home Meta+Home">
           {{icon_home}}<span class="presenter-menu-label" data-lwp-i18n="menu_home">{{str_menu_home}}</span><kbd>Ctrl+Home</kbd>
         </button>
-        <button type="button" class="presenter-menu-action" id="menuNext" data-menu-action="next" aria-keyshortcuts="ArrowDown ArrowRight PageDown Space">
+        <button type="button" class="presenter-menu-action" id="menuNext" data-menu-action="next" aria-keyshortcuts="PageDown Space">
           {{icon_next}}<span class="presenter-menu-label" data-lwp-i18n="menu_next">{{str_menu_next}}</span><kbd>Page Down</kbd>
         </button>
       </div>
@@ -15162,10 +15288,10 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
     <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="{{str_nav_fullscreen}}" data-lwp-i18n-title="nav_fullscreen" aria-label="{{str_nav_fullscreen}}" data-lwp-i18n-aria-label="nav_fullscreen" aria-keyshortcuts="F">{{icon_fullscreen}}</div>
   </div>
   <div class="nav-row nav-row-up">
-    <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="{{str_nav_prev}}" data-lwp-i18n-title="nav_prev" aria-label="{{str_nav_prev}}" data-lwp-i18n-aria-label="nav_prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace Shift+Space">{{icon_prev}}</div>
+    <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="{{str_nav_prev}}" data-lwp-i18n-title="nav_prev" aria-label="{{str_nav_prev}}" data-lwp-i18n-aria-label="nav_prev" aria-keyshortcuts="PageUp Backspace Shift+Space">{{icon_prev}}</div>
   </div>
   <div class="nav-row nav-row-down">
-    <div class="nav-btn" id="navNext" role="button" tabindex="0" title="{{str_nav_next}}" data-lwp-i18n-title="nav_next" aria-label="{{str_nav_next}}" data-lwp-i18n-aria-label="nav_next" aria-keyshortcuts="ArrowDown ArrowRight PageDown Space">{{icon_next}}</div>
+    <div class="nav-btn" id="navNext" role="button" tabindex="0" title="{{str_nav_next}}" data-lwp-i18n-title="nav_next" aria-label="{{str_nav_next}}" data-lwp-i18n-aria-label="nav_next" aria-keyshortcuts="PageDown Space">{{icon_next}}</div>
   </div>
   <div class="nav-row nav-row-menu">
     <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="M" title="{{str_menu_title}}" data-lwp-i18n-title="menu_title" aria-label="{{str_menu_title}}" data-lwp-i18n-aria-label="menu_title">{{icon_menu}}</div>
@@ -25966,8 +26092,7 @@ def estimate_table_widths(rows, resolved, full_article=False):
             return value
 
         content = min(width * 0.84, size('page.content-max'))
-        available = min(width * 0.84 if full_article else content,
-                        size('page.block-max'))
+        available = content
         if full_article:
             # These full-article table declarations are skeleton literals.
             body_font = max(14.0, min(width, height) * 0.0175)
@@ -26489,6 +26614,8 @@ RETIRED_VARIABLES = {
     # ordinary property (B13). Reachable from any author's custom.css, so
     # its absence here meant a width that silently stopped applying.
     '--content-max': '--page-content-max',
+    # The separate block measure was folded into the shared content measure.
+    '--page-block-max': '--page-content-max',
     # v0.12.0 colour-name renames (kept: an old sheet may carry them still)
     '--yellow': '--color-mark', '--dark': '--color-ink',
     '--grey': '--color-ink-quiet', '--light': '--color-page',
@@ -27613,6 +27740,8 @@ def cmd_theme_path(args):
 PRESENTATION_PRESET_SCHEMA = 'lightwebpres.presentation-preset/3'
 PRESET_LIST_SCHEMA = 'lightwebpres.preset-list/3'
 SERIES_PRESET_SCHEMA = 'lightwebpres.series-preset/3'
+IDENTITY_KIT_INFO_SCHEMA = 'lightwebpres.identity-kit-info/1'
+IDENTITY_KIT_LIST_SCHEMA = 'lightwebpres.identity-kit-list/1'
 
 
 def _kit_composition_object(pairs):
@@ -27891,6 +28020,143 @@ def _presentation_preset_report(preset):
             'articles': list(starter.entries),
         }),
     }
+
+
+def _identity_kit_report(identity_kit):
+    """The stable public shape of one complete Identity Kit."""
+    kit_path = None
+    if identity_kit.root is not None:
+        try:
+            kit_path = str(identity_kit.root.resolve())
+        except (OSError, RuntimeError):
+            kit_path = os.path.abspath(os.fspath(identity_kit.root))
+    return {
+        'schema': IDENTITY_KIT_INFO_SCHEMA,
+        'lightwebpres_version': VERSION,
+        'selector': identity_kit.selector,
+        'id': identity_kit.id,
+        'version': identity_kit.version,
+        'label': identity_kit.label,
+        'native': identity_kit.default,
+        'scope': identity_kit.scope,
+        'path': kit_path,
+        'digest': identity_kit.digest,
+        'default_preset': identity_kit.default_preset,
+        'layouts': {
+            slide_type: sorted(variants)
+            for slide_type, variants in sorted(identity_kit.layouts.items())
+        },
+        'index_layout': identity_kit.index_layout is not None,
+        'structure_css': bool(identity_kit.structure_css),
+        'chrome_models': sorted(identity_kit.chrome_models),
+        'assets': [
+            {
+                'id': name,
+                'kind': descriptor['kind'],
+                'path': str(descriptor['relative']),
+            }
+            for name, descriptor in sorted(identity_kit.assets.items())
+        ],
+        'themes': [
+            {
+                'id': name,
+                'resource': identity_kit.theme_resource_id(name),
+                'label': theme.get('meta', {}).get('label'),
+                'family': theme.get('meta', {}).get('family'),
+                'source': theme.get('meta', {}).get('source'),
+                'origin': theme.get('scope'),
+            }
+            for name, theme in sorted(identity_kit.themes.items())
+        ],
+        'starters': [
+            {
+                'id': starter.id,
+                'label': starter.label,
+                'description': starter.description,
+                'sources': [str(relative) for _path, relative in starter.sources],
+                'articles': list(starter.entries),
+            }
+            for _name, starter in sorted(identity_kit.starters.items())
+        ],
+        'presets': [
+            {
+                'id': preset.id,
+                'selector': preset.selector,
+                'label': preset.label,
+                'description': preset.description,
+                'theme': preset.theme_id,
+                'slide_layouts': dict(preset.slide_layouts),
+                'slide_chrome': json.loads(json.dumps(preset.slide_chrome)),
+                'starter': preset.starter.id if preset.starter is not None else None,
+            }
+            for _name, preset in sorted(identity_kit.presets.items())
+        ],
+    }
+
+
+def _print_identity_kit(report):
+    print(f'Identity Kit: {report["selector"]} [{report["scope"]}]')
+    print(f'  {report["label"]}')
+    print(f'  native: {"yes" if report["native"] else "no"}')
+    print(f'  path: {report["path"] or "embedded in the executable"}')
+    print(f'  default preset: {report["default_preset"]}')
+    print('  presets: ' + (', '.join(
+        f'{preset["id"]} ({preset["label"]})'
+        for preset in report['presets']) or 'none'))
+    print('  themes: ' + (', '.join(
+        f'{theme["id"]} ({theme["label"] or "unlabelled"})'
+        for theme in report['themes']) or 'none'))
+    print('  layouts: ' + (', '.join(
+        f'{slide_type}={"/".join(variants)}'
+        for slide_type, variants in report['layouts'].items()) or 'none'))
+
+
+def _identity_kit_reports(catalog):
+    return [
+        _identity_kit_report(identity_kit)
+        for _key, identity_kit in sorted(catalog.identity_kits.items())
+    ]
+
+
+def cmd_kit_list(args):
+    """List complete Identity Kits, including the embedded native kit."""
+    fmt = args.get('--format', 'text')
+    if fmt not in ('text', 'json'):
+        log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
+        sys.exit(1)
+    try:
+        reports = _identity_kit_reports(
+            load_identity_catalog(include_commons=False))
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
+    if fmt == 'json':
+        print(json.dumps({'schema': IDENTITY_KIT_LIST_SCHEMA,
+                          'lightwebpres_version': VERSION,
+                          'kits': reports}, indent=2, ensure_ascii=False))
+        return
+    print('Identity Kits:')
+    for report in reports:
+        print(f'  {report["selector"]}  {report["label"]}  [{report["scope"]}]')
+
+
+def cmd_kit_show(selector, args):
+    """Describe one complete Identity Kit without changing a series."""
+    fmt = args.get('--format', 'text')
+    if fmt not in ('text', 'json'):
+        log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
+        sys.exit(1)
+    try:
+        catalog = load_identity_catalog(selectors=selector)
+        report = _identity_kit_report(
+            catalog.resolve_identity(selector, 'kit show'))
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
+    if fmt == 'json':
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        return
+    _print_identity_kit(report)
 
 
 def _print_presentation_preset(report, fmt):
@@ -30495,6 +30761,10 @@ COMMANDS
     Shows the series-wide presentation preset a build resolves
   lightwebpres series preset set [directory] --preset id@version/preset|commons/id|builtin/standard
     Vendors and selects a preset without applying its starter
+  lightwebpres kit list [--format text|json]
+    Lists complete native and external Identity Kits in the effective catalogue
+  lightwebpres kit show <builtin|id@version> [--format text|json]
+    Describes one complete Identity Kit without changing a series
   lightwebpres kit compose <recipe.json> --output <directory>
     Creates directory/id/version as a complete independent Identity Kit.
     The recipe explicitly names source kits, a full target manifest, and files;
@@ -30607,6 +30877,7 @@ OPTIONS
     source so generated draft slugs avoid its declared slugs
   --format text|json
     theme show/series theme/status/series tags/series slug/resolve/contract:
+    preset list/preset show/kit list/kit show:
     output format (default: text except contract, which defaults to json).
     JSON, not YAML: this tool is standard-library only
   --tag name
@@ -30758,6 +31029,10 @@ IDENTITY KITS
   Each manifest requires a non-empty identity label. Resource collection and
   scope come from the loader, not from theme source metadata. Kits use their
   own resources or native builtin:standard fragments and builtin:light theme.
+  kit list reports every complete kit, including the embedded native kit;
+  kit show <builtin|id@version> reports one kit's resolved metadata and
+  resource summaries. Its JSON contracts are
+  lightwebpres.identity-kit-list/1 and lightwebpres.identity-kit-info/1.
   kit compose reads schema lightwebpres.kit-composition/1 with four keys:
   schema, sources (alias -> recipe-relative kit root), manifest (the complete
   target kit manifest), and files (destination path -> descriptor).
@@ -31023,6 +31298,8 @@ _COMMAND_OPTIONS = {
     'theme-path': set(),
     'preset-list': {'--format'},
     'preset-show': {'--format'},
+    'kit-list': {'--format'},
+    'kit-show': {'--format'},
     'kit-compose': {'--output'},
     'series-preset': {'--format'},
     'set-preset': {'--preset', '--keep-theme', '--use-preset-theme'},
@@ -31144,7 +31421,7 @@ _THEME_VERBS = {
     'vendor': 'theme-vendor', 'path': 'theme-path',
 }
 _PRESET_VERBS = {'list': 'preset-list', 'show': 'preset-show'}
-_KIT_VERBS = {'compose': 'kit-compose'}
+_KIT_VERBS = {'list': 'kit-list', 'show': 'kit-show', 'compose': 'kit-compose'}
 # `template` is the node for the files the EXECUTABLE owns, which is why
 # `show` and `write` live here rather than under `series`: neither needs a
 # series to answer (show needs none at all), and what they hand over comes
@@ -31226,6 +31503,7 @@ _MAX_POSITIONAL = {
     'theme-create': 1, 'theme-migrate': 1, 'theme-vendor': 1,
     'theme-path': 0,
     'preset-list': 0, 'preset-show': 1, 'series-preset': 1,
+    'kit-list': 0, 'kit-show': 1,
     'kit-compose': 1,
     'set-preset': 1,
 }
@@ -31240,6 +31518,7 @@ _POSITIONAL_SHAPE = {
     'template-write': ' <nav.js|fr.json|en.json> [directory]',
     'theme-create': ' <slug>',
     'preset-show': ' <id@version/preset>',
+    'kit-show': ' <builtin|id@version>',
     'kit-compose': ' <recipe.json>',
 }
 
@@ -31403,7 +31682,9 @@ def _resolve_command(args):
             sys.exit(0)
         if len(args) >= 2 and args[1] in _KIT_VERBS:
             return _KIT_VERBS[args[1]], args[2:]
-        log('error', 'Use `lightwebpres kit compose <recipe.json> --output <directory>`.')
+        log('error', 'Use `lightwebpres kit list`, `lightwebpres kit show '
+            '<builtin|id@version>`, or `lightwebpres kit compose '
+            '<recipe.json> --output <directory>`.')
         sys.exit(1)
 
     # `template --help` describes the node, just like `series --help` and
@@ -31779,6 +32060,13 @@ def main():
         cmd_theme_path(opts)
     elif command == 'preset-list':
         cmd_preset_list(opts)
+    elif command == 'kit-list':
+        cmd_kit_list(opts)
+    elif command == 'kit-show':
+        if not positional:
+            log('error', 'kit show: name an identity kit as builtin or id@version.')
+            sys.exit(1)
+        cmd_kit_show(positional[0], opts)
     elif command == 'kit-compose':
         if not positional:
             log('error', 'kit compose: name a recipe.json file.')

@@ -554,6 +554,8 @@ lightwebpres theme list [--polarity light|dark] [--hue teinte] [--family nom]
 lightwebpres theme show [slug… | --all] [--format text|json]   # sans cible : la série courante
 lightwebpres preset list [--format text|json]
 lightwebpres preset show <builtin/standard|commons/id|id@version/preset> [--format text|json]
+lightwebpres kit list [--format text|json]
+lightwebpres kit show <builtin|id@version> [--format text|json]
 lightwebpres kit compose <recipe.json> --output <directory> [--dry-run]
 lightwebpres series theme [répertoire] [--format text|json]
 lightwebpres series theme set [répertoire] --theme nom
@@ -606,7 +608,8 @@ lightwebpres --help
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
 - `--format text|json` : `status`, `series status`, `series tags`, `resolve`,
-  `theme show`, `preset list`, `preset show`, `series theme`, `series preset`, `contract` —
+  `theme show`, `preset list`, `preset show`, `kit list`, `kit show`,
+  `series theme`, `series preset`, `contract` —
   format de sortie ; texte par défaut, sauf `contract` qui produit du JSON par
   défaut
 - `--article` : `resolve` — ajoute la couche propre à un article ; `contract` —
@@ -628,7 +631,7 @@ par les commandes qui opèrent sur une série. `demo`, `series theme`, `series
 preset`, leurs commandes `set`, `series slug`, `resolve` et `watch` lisent donc
 les mêmes emplacements résolus que `build`. Les commandes de catalogue (`theme
 list`, `theme show`, `theme gallery`, `theme create`, `theme path`, `preset
-list`, `preset show`) lisent le catalogue installé/utilisateur ; les commandes
+ list`, `preset show`, `kit list`, `kit show`) lisent le catalogue installé/utilisateur ; les commandes
 qui opèrent sur une série ajoutent `templates/themes/`, `templates/kits/`
 et `templates/commons/`
 au-dessus de ces couches selon leur domaine.
@@ -2290,7 +2293,7 @@ d'index contient :
    est non vide, absent quand les deux le sont
 6. Les boutons de navigation (`<div class="nav-buttons">` : les mêmes
    que sur les articles — prev, home, next, partage, plein écran, tags —
-   et comme les flèches du clavier, un clic y déplace d'une carte, §8.4)
+   et, sur l'index, un clic sur prev/next y déplace d'une carte, §8.4)
 7. Le JavaScript de navigation, le même que partout
 
 Chaque carte d'article :
@@ -2360,20 +2363,21 @@ panel in the same page, visible to an audience on a projected or shared screen.
 There is no private presenter window; anyone holding the HTML can read these
 notes. Do not put confidential content there.
 
-**Le coup, partout, est le même.** Les flèches, les boutons prev/next et
-les clics gauche/droit déplacent d'un « coup » : une fiche complète sur une
-page d'article (avec le voyage par incréments dans une fiche plus haute
-que l'écran et le pas par carte sur la fiche `series-nav`, §9.3.5), et
-une carte sur la page d'index — le focus fait défiler la page avec lui.
-Les boutons sont les jumeaux à l'écran des flèches : un clic, un coup.
-La page d'index a le même pack présentateur que les articles — mêmes
-touches, mêmes gestes souris, même partage (§9.3.4), même aide — la
-seule différence est le contenu : sans fiches, le pas y est une carte
-(le focus fait défiler la page avec lui), le compteur X/N est masqué,
-le saut par numéro (0-9 + Entrée) est inerte, Home et Ctrl/Cmd+Home
-reviennent en haut de page (où commence le parcours) au lieu de quitter
-l'index, et la
-portée « Fiche » du partage est désactivée (§9.3.4).
+**Le parcours éditorial n'est pas chaque geste.** Space et Shift+Space
+déplacent d'un « coup » dans la lecture bornée : une fiche sur une page
+d'article, puis les cartes sur la fiche `series-nav`, puis les incréments
+d'une fiche plus haute que l'écran (§9.3.5). Le clic gauche/droit conserve
+ce parcours naturel, tandis que PageDown/PageUp et les boutons prev/next
+changent directement de fiche ; sur la page d'index, ces touches et boutons
+déplacent d'une carte. Les quatre flèches et la molette restent le
+défilement natif de la page, sauf lorsqu'une surface au premier plan ou un
+tableau local possède le geste.
+
+La page d'index a le même pack présentateur que les articles — mêmes gestes
+souris, même partage (§9.3.4), même aide — mais ses cartes sont le parcours
+et son compteur X/N est masqué. Le saut par numéro (0-9 + Entrée) y est
+inerte, Home et Ctrl/Cmd+Home reviennent en haut de page au lieu de quitter
+l'index, et la portée « Fiche » du partage est désactivée (§9.3.4).
 
 **La cible reste visible.** À la fin de chaque action de navigation, l'objet
 qu'elle sélectionne reste dans la fenêtre. Une carte de l'index ou de
@@ -2400,11 +2404,14 @@ touche pas). Un clic droit sur une sélection ouvre le menu du navigateur
 (copier, chercher) au lieu de reculer d'une fiche : la sélection
 appartient au lecteur.
 
-**Clavier** : ↓/PageDown/→ = slide suivant, ↑/PageUp/←/Backspace =
-slide précédent, Home = début de la page (première slide sur un article ;
-haut de page sur l'index), Ctrl/Cmd+Home = retour à l'index (sur l'index :
-haut de page), End ou Ctrl/Cmd+End = dernière slide (sur l'index : dernière
-carte), F = plein écran, B = écran
+**Clavier** : les quatre flèches défilent la page avec le comportement natif du
+navigateur. PageDown = slide suivante et PageUp/Backspace = slide précédente.
+Sur l'index, PageDown/PageUp parcourent les cartes d'articles. Les boutons
+prev/next changent directement de slide, ou de carte sur l'index. Home = début
+de la page (première slide sur un article ; haut de page sur l'index),
+Ctrl/Cmd+Home = retour à l'index (sur l'index : haut de page), End ou
+Ctrl/Cmd+End = dernière slide (sur l'index : dernière carte), F = plein écran,
+B = écran
 noir, W = écran blanc, T = écran de la couleur de fond du thème. Les
 écrans de pause (B/W/T) cachent la fiche pour ramener l'attention sur
 l'orateur ; appuyer de nouveau sur la même touche ou n'importe quelle
@@ -2441,7 +2448,7 @@ les touches de défilement lui appartiennent avant la navigation de la fiche :
 l'aide ouverte défile avec les flèches, PageUp/PageDown, Home/End et Espace ;
 le panneau présentateur défile avec ces mêmes touches lorsqu'il porte le
 focus. Le panneau reste non modal lorsqu'il n'est pas focalisé : les flèches
-continuent alors de naviguer le deck.
+continuent alors de défiler la page du deck.
 
 Quand le build porte un payload de thèmes (§9.3.7), **C** ouvre son
 sélecteur et **M** ouvre le menu présentateur global.
@@ -3064,16 +3071,16 @@ The override mechanism below applies to multipage output. Combined-HTML mode
 requires any local `templates/nav.js` to match the built-in runtime (§11.3.8).
 
 Le JavaScript de navigation gère :
-- Le scroll entre slides (flèches, PageUp/PageDown)
+- Le défilement natif de la page (flèches et molette) et la navigation
+  explicite entre slides (PageUp/PageDown, boutons)
 - Les boutons prev/next/home
 - Les nav-dots (points de navigation)
 - La détection de la slide courante au scroll
 - Le bouton de partage et sa matrice (§9.3.4)
-- Le parcours clavier complet (flèches Haut/Bas) : fiche par fiche, puis
-   carte par carte sur la fiche series-nav, puis défilement par
-   incréments sur une fiche plus grande que l'écran (§9.3.5) — et, sur
-   l'index, carte par carte à travers toute la liste (même JS, même
-   parcours)
+- Le parcours clavier complet (Space/Shift+Space) : fiche par fiche, puis
+   carte par carte sur la fiche series-nav, puis défilement par incréments
+   sur une fiche plus grande que l'écran (§9.3.5) — et, sur l'index, carte
+   par carte à travers toute la liste (même JS, même parcours)
 - Les raccourcis de bord de document : Home vers le début de la page,
   Ctrl/Cmd+Home vers l'index, et End/Ctrl/Cmd+End vers la dernière slide
 - **Tout le pack présentateur** (§8.4), arrivé après cette liste et qui en
@@ -3147,102 +3154,47 @@ portée « Fiche » est désactivée (pas de fiche courante) :
   Les flèches déplacent le focus dans la matrice, `Tab` le fait circuler et
   `Échap` ferme la surface.
 
-#### 9.3.5 Parcours (flèches et boutons Haut/Bas)
+#### 9.3.5 Parcours (défilement et navigation explicite)
+
+Les quatre flèches et la molette sont des gestes de lecture : hors d'une
+surface au premier plan ou d'une zone locale, ils gardent le défilement natif
+du navigateur et ne changent pas la fiche. Les flèches horizontales gardent
+également leur éventuel défilement horizontal natif. Une surface focalisée
+conserve la priorité décrite ci-dessus ; un tableau en mode `scroll` ne laisse
+pas son défilement se propager à la page. Un écran de pause n'est pas une
+surface de lecture : la molette y est consommée et ne déplace pas la fiche
+qu'il masque.
+
+PageDown et PageUp changent directement de fiche sur un article, sans parcourir
+les cartes ni les incréments internes d'une fiche longue. Avant le changement,
+le runtime synchronise la fiche courante avec celle qui possède le bord haut de
+la fenêtre ; la cible est ensuite positionnée par `goTo(current ± 1)`, avec le
+glissé configuré. Backspace est le raccourci inverse. À la première ou dernière
+fiche, l'action reste sans effet, même si la dernière fiche est encore longue.
+Sur l'index, PageDown/PageUp parcourent les cartes d'articles dans l'ordre du
+document, comme les boutons prev/next. Ces boutons changent directement de
+fiche sur un article et de carte sur l'index ; ils ne déclenchent pas le
+parcours de lecture de Space.
 
 **Space navigation:** unmodified Space (`KeyboardEvent.key` equal to `" "` or
 `"Spacebar"`) follows `stepForward()` through the existing `runStepped()`
-cooldown; Shift+Space follows `stepBackward()`. This is the same bounded journey
-as the arrows, not native page scrolling. Focused article cards, series-nav
-cards and unit-index links remain in that journey; Space steps between them
-without activation, while Enter follows the focused link. Ordinary links retain
-native Space/Shift+Space scrolling. Buttons, form controls, editable text and
-already-consumed events keep their own handling; Ctrl/Cmd/Alt+Space is not a
-deck shortcut. Help, modal surfaces, focused speaker notes (even without
-overflow) and locally scrolling table viewports retain foreground ownership.
-The mouse-only second-click-during-glide shortcut is unchanged. Browser coverage:
-`tests/space_nav_e2e.cjs`, including repeated geometry and key ownership.
+cooldown; Shift+Space follows `stepBackward()`. This is the bounded reading
+journey, not native page scrolling: cards on the series index, series-nav cards
+and unit-index links receive focus in document order, and a long slide is read
+in bounded increments before the next slide. Enter follows a focused link.
+Ordinary links retain native Space/Shift+Space scrolling. Buttons, form
+controls, editable text and already-consumed events keep their own handling;
+Ctrl/Cmd/Alt+Space is not a deck shortcut. Help, modal surfaces, focused
+speaker notes (even without overflow) and locally scrolling table viewports
+retain foreground ownership.
 
-Un appui sur une flèche avance ou recule dans un parcours naturel à
-trois niveaux, chacun ne s'activant qu'une fois le niveau précédent
-épuisé — jamais tous en même temps. Les boutons prev/next de l'écran
-suivent le même parcours (§8.4), et la page d'index a son propre parcours à
-un seul niveau (cartes d'articles, §8.4) :
-
-1. **Fiche par fiche** (comportement de base, déjà existant) —
-   `goTo(current ± 1)`, avec un défilement `smooth`.
-2. **Carte par carte sur la fiche series-nav** — les cartes (`.series-
-   list a.series-link`, y compris le lien « retour à l'index ») reçoivent
-   le focus clavier une par une, dans l'ordre du document ; un appui sur
-   Entrée sur une carte focalisée saute vers l'article correspondant
-   (comportement natif du navigateur sur un `<a>` focalisé, aucun code
-   dédié nécessaire). La carte focalisée est entièrement dans la fenêtre,
-   avec 24 px de marge quand sa hauteur et la place disponible le permettent.
-   Volontairement différent de Tab : Tab fonctionne
-   partout et peut faire sortir la sélection de la page, alors que les
-   flèches restent dans ce parcours à trois niveaux.
-3. **Incremental scrolling within a slide taller than the viewport**:
-   a slide exceeds viewport height through its content, not through scaling
-   its frame. `.slide` retains a viewport-based `min-height`, never a fixed
-   height; presentation zoom does not scale that minimum. A sufficiently long
-   `full-article` is a common case, but detection uses actual measured height,
-   never the slide's type or position.
-
-Ordre exact d'un appui sur Bas : s'il reste une carte non visitée sur la
-fiche courante, focus sur la carte suivante ; sinon, si la fiche dépasse
-l'écran et n'est pas encore défilée jusqu'en bas, défiler d'un incrément
-(90 % de la hauteur de fenêtre) ; sinon, passer à la fiche suivante. Le
-défilement interne est borné par les deux bords de la fiche : le dernier
-incrément vers le bas finit avec le bas de la fiche au bas de la fenêtre, et
-le dernier incrément vers le haut avec son haut au haut de la fenêtre. Aucun
-de ces mouvements ne commence donc à afficher la fiche adjacente ; elle ne
-devient visible qu'au coup suivant, quand elle est positionnée à son tour.
-Bas est le miroir exact de Haut ; s'il n'existe pas de fiche suivante, rester
-à la position courante, notamment au bas d'une fiche longue en fin de
-parcours.
-
-Si un défilement manuel a malgré tout laissé la fiche adjacente partiellement
-visible, le prochain coup dans sa direction l'aligne d'abord sur le haut de
-la page et reste sur elle ; il ne saute jamais directement à la fiche encore
-suivante. Cette règle vaut pour les flèches, PageUp/PageDown, les boutons,
-les clics gauche/droit et les balayages tactiles. Une fiche partiellement
-visible n'est pas considérée comme atteinte par `detectCurrent` : la détection
-de fiche courante (80 ms après le dernier événement de scroll) retient la
-fiche qui possède le bord haut de la fenêtre, pas celle dont le milieu est
-simplement traversé par le viewport. Les nav-dots restent ainsi sur la fiche
-en cours jusqu'à ce que la suivante soit réellement positionnée.
-
-**Cooldown de 150 ms entre deux pas (`STEP_COOLDOWN_MS`)** — bug réel
-trouvé après coup (retour utilisateur : « ça continue d'aller vers le
-bas, mais ça ne passe pas par la sélection des cartes ») : maintenir une
-flèche enfoncée déclenche l'auto-répétition native du clavier, qui tire
-des `keydown` bien plus vite (souvent 20-30 ms d'écart) que ce qu'un
-humain peut percevoir. Sans limite, chaque répétition rappelait
-`stepForward()`/`stepBackward()` immédiatement — `current` étant déjà mis
-à jour de façon synchrone par l'appel précédent, la suite s'enchaînait
-directement à travers toutes les cartes et jusqu'à la fiche suivante en
-une fraction de seconde, avant qu'aucun état intermédiaire (une carte
-focalisée) n'ait pu être vu, encore moins choisi. Corrigé par
-`runStepped()`, une garde à part de `isScrolling` (qui ne protège que
-l'animation de défilement de `goTo()` elle-même) : traite un pas, puis
-ignore tout nouvel appel pendant 150 ms — invisible pour un appui isolé
-(qui ne se répète jamais dans cette fenêtre), perceptible seulement
-maintenue enfoncée, où le rythme redevient un pas à la fois au lieu de la
-vitesse brute de répétition du système. Testé (`tests/keyboard_nav_e2e.cjs`,
-quatrième scénario) : rafale de pressions à ~30 ms d'écart sur une série
-dédiée dont la fiche series-nav n'est *pas* la dernière fiche (nécessaire
-pour que « a foncé jusqu'au bout » et « le cooldown n'a laissé avancer
-que partiellement » produisent des états finaux différents et donc
-observables) — vérifié que le test échoue bien sans le cooldown avant
-d'être validé avec.
-
-Testé Playwright (`tests/keyboard_nav_e2e.cjs` /
-`tests/test_keyboard_nav.py`) : défilement incrémental réel d'une fiche
-`full-article` surchargée avant l'avancée à la fiche suivante, parcours
-avant et arrière carte par carte sur une fiche series-nav (ordre exact
-des cartes, la fiche courante ne change pas pendant le parcours des
-cartes), épuisement des cartes sur la dernière fiche (reste en place,
-focus nettoyé), saut réel vers l'article via Entrée sur une carte
-focalisée, et non-régression du cooldown sous rafale de pressions.
+The mouse-only second-click-during-glide shortcut and horizontal touch-swipe
+journey are unchanged. A manually partially visible adjacent slide is not
+considered current until its top owns the viewport; explicit PageUp/PageDown
+and button actions then align their selected target rather than skipping it.
+Browser coverage is in `tests/keyboard_nav_e2e.cjs` and
+`tests/space_nav_e2e.cjs`, including native scroll, direct navigation, card
+focus and key ownership.
 
 #### 9.3.6 Extension de la page d'index (`index_extra.html`)
 
@@ -4604,27 +4556,19 @@ redéclare une **échelle** : écrite en pixels nus, elle serait la seule
 part de la page à ne pas grandir, ce qui inverse l'intention du thème sur
 l'écran où elle compte.
 
-**Largeur des blocs.** `page.block-max` gouverne ce qui n'est pas du
-texte courant — tableau, bloc de code, figure —, dimensionné par ce qu'il
-contient et non par un compte de caractères. Le `1100px` y est un
-**plancher**, pas un plafond, pour la même raison : mesuré à 3840, un
-tableau dont le texte atteignait 41 px tenait dans une boîte restée à
-1100 px, soit environ 26 caractères par ligne. `102vmin` vaut 1100 px à
-1920×1080, donc rien ne bouge à cette taille ni en dessous ; au-delà, la
-boîte garde la part de colonne qu'elle y avait — 68 %, mesuré à 1920
-comme à 3840.
+**Largeur commune des blocs.** `page.content-max` gouverne le texte courant
+et les blocs qui l'accompagnent — tableau, bloc de code, figure et chiffre
+clé —. Une seule mesure responsive garde leurs bords liés lorsque la fenêtre
+grandit ; elle vaut `84vw` par défaut et ne porte pas de plafond caché. Les
+blocs sont dimensionnés par cette mesure, pas par un compte de caractères ni
+par une seconde largeur qui deviendrait incohérente avec le texte.
 
-Le bloc `highlight` fait exception aux blocs et lit `page.content-max` :
-c'est le seul bloc **centré**, et une boîte centrée plus étroite que la
-colonne n'a pas seulement une autre largeur, elle a un autre centre.
-Mesuré sous `page.block-max`, le chiffre-clé était décentré de 256 px à
-1920 et de 1063 px à 3840 par rapport à tout ce qui l'entourait. Un bloc
-aligné à gauche n'a pas ce problème : plus étroit, il partage quand même
-le bord gauche de la colonne. Le bloc n'est pas non plus une colonne
-flex : `align-items: center` rendait `highlight.align` inerte — mesuré,
-`highlight.align: left` déplaçait le chiffre de zéro pixel — alors que
-des blocs ordinaires héritent de `text-align`, ce qui rend la propriété
-effective.
+Le bloc `highlight` lit la même mesure : c'est le seul bloc **centré**, et
+une boîte centrée plus étroite que la colonne n'a pas seulement une autre
+largeur, elle a un autre centre. Son alignement reste porté par
+`text-align`, et le bloc n'est pas une colonne flex : `align-items: center`
+ne doit pas rendre `highlight.align` inerte. Les autres blocs héritent aussi
+de `text-align`, ce qui rend leur propriété d'alignement effective.
 
 **Les halos suivent le glyphe.** Ce qui est dessiné *contre* le texte est
 dimensionné par lui : la boîte colorée d'un passage marqué et l'arrondi de
@@ -7285,6 +7229,34 @@ celui que le preset déclare (§11.1).
 
 ### 11.19 `kit compose`
 
+The read-only Identity Kit catalogue is separate from the preset catalogue:
+
+```bash
+lightwebpres kit list [--format text|json]
+lightwebpres kit show <builtin|id@version> [--format text|json]
+```
+
+`kit list` reports every complete kit in the global installed/user catalogue,
+including the embedded native `builtin` kit. It validates the complete
+catalogue before reporting it and does not include series-local kits.
+`kit show` accepts `builtin` or a versioned kit selector. Its version may be
+exact, partial (`X` or `X.Y`) or `latest`; partial and floating selectors
+resolve the highest matching version and report that resolved kit selector.
+Loading is selector-scoped, so an unrelated malformed kit does not prevent a
+requested kit from being inspected.
+
+The JSON envelopes are `lightwebpres.identity-kit-list/1` (a `kits` array of
+`lightwebpres.identity-kit-info/1` reports) and
+`lightwebpres.identity-kit-info/1` (one report). A report includes the kit
+selector, id, version, fixed identity label, `native` flag, computed loading
+`scope`, absolute `path` (or `null` for the embedded kit), digest, preferred
+local preset, layout variant names, index/layout/CSS/chrome availability,
+asset and theme summaries, starter summaries and preset summaries. The
+`native` flag identifies the embedded resource owner; it is not an initial
+selection marker. Resource origins and identity ownership remain separate.
+These commands inspect catalogue resources only: they do not modify a series,
+vendor a kit or apply a starter.
+
 ```bash
 lightwebpres kit compose recipe.json --output directory [--dry-run]
 ```
@@ -8108,10 +8080,10 @@ l'exécutable.
     <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" aria-keyshortcuts="F" aria-label="{{str_nav_fullscreen}}" title="{{str_nav_fullscreen}}">{{icon_fullscreen}}</div>
   </div>
   <div class="nav-row nav-row-up">
-    <div class="nav-btn" id="navPrev" role="button" tabindex="0" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace Shift+Space" aria-label="{{str_nav_prev}}" title="{{str_nav_prev}}">{{icon_prev}}</div>
+    <div class="nav-btn" id="navPrev" role="button" tabindex="0" aria-keyshortcuts="PageUp Backspace Shift+Space" aria-label="{{str_nav_prev}}" title="{{str_nav_prev}}">{{icon_prev}}</div>
   </div>
   <div class="nav-row nav-row-down">
-    <div class="nav-btn" id="navNext" role="button" tabindex="0" aria-keyshortcuts="ArrowDown ArrowRight PageDown Space" aria-label="{{str_nav_next}}" title="{{str_nav_next}}">{{icon_next}}</div>
+    <div class="nav-btn" id="navNext" role="button" tabindex="0" aria-keyshortcuts="PageDown Space" aria-label="{{str_nav_next}}" title="{{str_nav_next}}">{{icon_next}}</div>
   </div>
   <div class="nav-row nav-row-menu">
     <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-keyshortcuts="M" aria-haspopup="dialog" aria-expanded="false" aria-label="{{str_menu_title}}" title="{{str_menu_title}}">{{icon_menu}}</div>
@@ -8168,7 +8140,7 @@ mêmes sur toutes les pages : précédent, accueil, suivant, partage, plein
 activation clavier Entrée/Espace équivalente au clic — sans quoi le
 bouton de partage, qui n'a pas d'autre point d'entrée clavier, serait
 inatteignable au clavier. Le parcours de lecture lui-même reste piloté
-par les flèches au niveau document (§9.3.5).
+par Space/Shift+Space au niveau document (§9.3.5).
 
 ### 18.2 Template `index.html`
 
@@ -8212,10 +8184,11 @@ spécifiques à l'index :
 | `{{body_class}}` | `index-page` pour l'index, vide pour les articles | Classe du `<body>` — déjà décrit au §18.1 |
 | `{{index_extra}}` | `templates/index_extra.html` s'il existe | Fragment HTML libre inséré tel quel juste avant `</body>` — l'index seulement (§9.3.6) |
 
-Le `{{js_nav}}` est le même que sur les pages d'article : la
-navigation (boutons, flèches, clics, partage, aide) y est
-identique, le pas y est une carte, la portée « Fiche » du partage y est
-désactivée (§9.3.4).
+Le `{{js_nav}}` est le même que sur les pages d'article : la navigation
+(boutons, touches de page, Space, flèches natives, clics, partage, aide) y
+est présente, mais son domaine diffère. Les boutons et PageUp/PageDown y
+déplacent d'une carte, les flèches y défilent la page et la portée « Fiche »
+du partage y est désactivée (§9.3.4).
 
 ### 18.3 Fragments de la slide series-nav
 

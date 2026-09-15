@@ -2813,7 +2813,7 @@ n'est atteinte qu'au mouvement suivant, alignée au haut de la fenêtre.
 Un défilement manuel peut néanmoins laisser une fiche adjacente partiellement
 visible. Elle n'est alors pas consommée : le prochain mouvement dans sa
 direction l'aligne d'abord et ne saute pas la fiche. Cette règle s'applique
-aux flèches, aux boutons, aux clics et aux balayages tactiles ; les nav-dots
+aux actions PageUp/PageDown et boutons, aux clics et aux balayages tactiles ; les nav-dots
 et la détection de fiche suivent le même état logique.
 
 **Ce qui est vérifié.** Le probe Playwright couvre le saut observé vers le bas,

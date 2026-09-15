@@ -58,10 +58,13 @@ neither a successful render nor a status value proves a claim true.
 
 ## Select Or Compose Appearance
 
-Inspect `preset list`, `preset show`, `series preset`, `theme show` or
-`series theme` before changing a choice. Catalogue reports and series reports
+Inspect `kit list`, `kit show`, `preset list`, `preset show`, `series preset`,
+`theme show` or `series theme` before changing a choice. Catalogue reports and series reports
 answer different questions: the latter include the series' effective resources
 and settings. Use `resolve` for a property whose winning layer is unclear.
+`kit list` is the complete global kit inventory; `kit show` can inspect one
+native or versioned kit without reading a series. Use `series preset` when the
+question is which vendored kit a series actually resolves.
 
 Choose the smallest layer that meets the brief. `series theme set` changes
 `appearance.themes` while preserving settings pins. `init --preset` may apply
@@ -323,7 +326,7 @@ placement. Do not copy a static CLI schema from this skill. A client should
 consume `contract` and its schema/version rather than infer fields from
 rendered HTML. JSON is available on relevant read-only reports: `contract`,
 `status`, `series tags`, `series slug`, `resolve`, `theme show`, `series theme`,
-`preset list`, `preset show` and `series preset`. It is not a universal
+`preset list`, `preset show`, `kit list`, `kit show` and `series preset`. It is not a universal
 `--format json` switch for build, audit, verify or mutations.
 
 Pass explicit paths and capture UTF-8 output, diagnostics and exit codes.

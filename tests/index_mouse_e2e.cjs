@@ -80,7 +80,7 @@ async function main() {
     window.scrollTo({ top: document.scrollingElement.scrollHeight,
       behavior: 'instant' });
   });
-  await visibilityPage.keyboard.press('ArrowDown');
+  await visibilityPage.keyboard.press('PageDown');
   await visibilityPage.waitForTimeout(200);
   let selectedBounds = await visibilityPage.evaluate(() => {
     const card = document.activeElement;
@@ -97,7 +97,7 @@ async function main() {
     fail('the selected first index card is not fully visible with a margin: '
          + JSON.stringify(selectedBounds));
   }
-  await visibilityPage.keyboard.press('ArrowDown');
+  await visibilityPage.keyboard.press('PageDown');
   selectedBounds = await visibilityPage.evaluate(() => {
     const card = document.activeElement;
     const rect = card.getBoundingClientRect();
@@ -132,7 +132,7 @@ async function main() {
   // --- 2. A right click on the ground focuses the previous card ------
   // From the first card there is nowhere to go back to — focus the
   // second card first, then right-click.
-  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('PageDown');
   await page.waitForTimeout(200);
   await page.mouse.click(groundX, groundY, { button: 'right' });
   await page.waitForTimeout(300);
@@ -159,11 +159,11 @@ async function main() {
   await page.waitForTimeout(600);
 
   // --- 4. Enter on a focused card follows it --------------------------
-  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('PageDown');
   await page.waitForTimeout(200);
   const focusedBeforeEnter = await focusedCard();
   if (focusedBeforeEnter !== 0) {
-    fail('the arrow did not focus the first card for the Enter test: '
+    fail('PageDown did not focus the first card for the Enter test: '
          + focusedBeforeEnter);
   }
   await page.keyboard.press('Enter');

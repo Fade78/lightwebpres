@@ -383,19 +383,19 @@ async function main() {
       ? Array.prototype.indexOf.call(document.querySelectorAll('.article-card'), a)
       : -1;
   });
-  // 4a4. An arrow walks the cards: focus moves one card at a time.
-  await indexPage.keyboard.press('ArrowDown');
+  // 4a4. PageDown walks the cards: focus moves one card at a time.
+  await indexPage.keyboard.press('PageDown');
   await indexPage.waitForTimeout(200);
   const firstFocus = await indexFocus();
   if (firstFocus !== 0) {
-    fail('the first arrow on the index did not focus the first card: '
+    fail('the first PageDown on the index did not focus the first card: '
          + firstFocus);
   }
-  await indexPage.keyboard.press('ArrowDown');
+  await indexPage.keyboard.press('PageDown');
   await indexPage.waitForTimeout(200);
   const secondFocus = await indexFocus();
   if (secondFocus !== 1) {
-    fail('the second arrow on the index did not focus the second card: '
+    fail('the second PageDown on the index did not focus the second card: '
          + secondFocus);
   }
   // 5a. Home brings the journey back to the top: focus cleared and the
@@ -417,11 +417,9 @@ async function main() {
   }
   // 5d) A right-click on the ground steps the focus back one card, the
   // mirror of the left button. Focus a card first, then right-click.
-  // (The two presses are spaced past STEP_COOLDOWN_MS, or the deck's
-  // own throttle swallows the second one and the journey never starts.)
-  await indexPage.keyboard.press('ArrowDown');
+  await indexPage.keyboard.press('PageDown');
   await indexPage.waitForTimeout(200);
-  await indexPage.keyboard.press('ArrowDown');
+  await indexPage.keyboard.press('PageDown');
   await indexPage.waitForTimeout(200);
   const beforeBack = await indexFocus();
   await indexPage.mouse.click(640, 400, { button: 'right' });

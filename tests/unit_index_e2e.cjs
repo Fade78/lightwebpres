@@ -167,14 +167,14 @@ const {collectConsoleErrors} = require('./console_errors.cjs');
       }
       await preset('builtin/standard');
       await go('p-overview');
-      await press('ArrowDown');
+      await press('Space');
       assert.equal(await page.evaluate(() => document.activeElement.dataset.lwpIndexTarget), 'p-cover',
         JSON.stringify(await page.evaluate(() => ({focus: document.activeElement.outerHTML.slice(0, 300),
           hash: location.hash, top: document.getElementById('p-overview').getBoundingClientRect().top,
           counter: document.getElementById('slideCounter').textContent}))));
-      await press('ArrowRight');
+      await press('Space');
       assert.equal(await page.evaluate(() => document.activeElement.dataset.lwpIndexTarget), 'p-overview');
-      await press('ArrowLeft');
+      await press('Shift+Space');
       assert.equal(await page.evaluate(() => document.activeElement.dataset.lwpIndexTarget), 'p-cover');
       // A background click moves focus only; a real link retains anchor behavior.
       await page.mouse.click(12, 250);
@@ -186,13 +186,13 @@ const {collectConsoleErrors} = require('./console_errors.cjs');
       assert.equal(new URL(page.url()).hash, route('p-overview'));
       await press('Tab');
       assert.equal(await page.evaluate(() => document.activeElement.dataset.lwpIndexTarget), 'p-overview');
-      await press('ArrowDown');
+      await press('Space');
       assert.equal(await page.evaluate(() => document.activeElement.dataset.lwpIndexTarget), 'p-french',
-        'arrow stepping must resume from a link reached with Tab');
+        'Space stepping must resume from a link reached with Tab');
       // Walk the long index rather than skipping to its tail: every step is
       // focus-only, and each selected entry is revealed with breathing room.
       for (const target of published.slice(3)) {
-        await press('ArrowDown');
+        await press('Space');
         const selected = await page.evaluate(() => {
           const box = document.activeElement.getBoundingClientRect();
           return {target: document.activeElement.dataset.lwpIndexTarget,
@@ -202,9 +202,9 @@ const {collectConsoleErrors} = require('./console_errors.cjs');
         assert.ok(selected.top >= 23 && selected.bottom <= selected.height - 23, JSON.stringify(selected));
         assert.equal(new URL(page.url()).hash, route('p-overview'), 'steps must never follow index entries');
       }
-      await press('ArrowDown');
+      await press('Space');
       // The frame's bottom padding can require one final bounded scroll.
-      if (new URL(page.url()).hash === route('p-overview')) await press('ArrowDown');
+      if (new URL(page.url()).hash === route('p-overview')) await press('Space');
       assert.equal(new URL(page.url()).hash, route('p-french'), 'exhaustion advances to the next slide, not the last linked target');
       await go('p-overview');
       const hiddenLink = page.locator('#p-overview [data-lwp-index-target="p-item-1"]');
@@ -223,7 +223,7 @@ const {collectConsoleErrors} = require('./console_errors.cjs');
         href: document.querySelector('#p-overview [data-lwp-index-target="p-item-0"]').getAttribute('href')}))));
       assert.equal(await page.evaluate(() => localStorage.getItem('lwp-active-tag')), 'expert-fr');
       await go('p-overview');
-      await press('ArrowDown');
+      await press('Space');
       const focusStyle = await page.evaluate(() => {
         const css = getComputedStyle(document.activeElement);
         return {style: css.outlineStyle, width: parseFloat(css.outlineWidth)};

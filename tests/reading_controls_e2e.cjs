@@ -283,6 +283,19 @@ async function run() {
       }));
       assert.equal(themePauseBackground.overlay, themePauseBackground.page,
         'theme pause screen must use the current page background');
+      const pausedPosition = await page.evaluate(() => ({
+        y: window.scrollY,
+        active: Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'))
+          .findIndex(d => d.classList.contains('active')),
+      }));
+      await page.mouse.move(Math.min(550, width - 1), 400);
+      await page.mouse.wheel(0, 400);
+      await settle();
+      assert.deepEqual(await page.evaluate(() => ({
+        y: window.scrollY,
+        active: Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'))
+          .findIndex(d => d.classList.contains('active')),
+      })), pausedPosition, 'pause screen must hold the hidden deck position');
       await page.keyboard.press('t');
       await page.keyboard.press('b');
       assert.equal(await page.evaluate(() =>
@@ -689,6 +702,18 @@ async function run() {
                 'presenter bounds must be measured with actual notes');
             }
             if (action === 'share') {
+              if (!mobile) {
+                const beforeShareInput = await state();
+                await page.locator('#sharePopover').hover();
+                await page.mouse.wheel(0, 400);
+                await page.waitForTimeout(100);
+                assert.deepEqual(await state(), beforeShareInput,
+                  'wheel over the non-scrollable share dialog must not move the deck');
+                await page.keyboard.press('PageDown');
+                await page.waitForTimeout(350);
+                assert.deepEqual(await state(), beforeShareInput,
+                  'PageDown in the share dialog must not move the deck');
+              }
               await activate('#sharePopover [data-action="qr"][data-scope="article"]');
               await checkForeground('#shareQrModal');
               await activate('#shareQrModal .share-qr-close');

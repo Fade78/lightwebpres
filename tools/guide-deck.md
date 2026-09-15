@@ -68,8 +68,9 @@ kicker: Design and compose identities
 fact-label: One autonomous identity to distribute
 source: <a href="#3-design-and-compose-identities">Guide, route 3: Design and compose identities</a>
 
-`kit compose` can bring layouts, visual marks and a typed theme from
-several kits into one final kit. Authors need the result, not its source kits.
+Inspect complete kits with `kit list` or `kit show` before composing.
+`kit compose` can bring layouts, visual marks and a typed theme from several
+kits into one final kit. Authors need the result, not its source kits.
 
 Follow the Field Notes example and its composition diagram in the manual.
 Use a theme alone when colors and typography are all you need to change.

@@ -1833,7 +1833,8 @@ class Axis4CommandGaps(unittest.TestCase):
         # The new canonical names must appear in --help.
         for command in ('init', 'demo', 'build', 'verify', 'audit',
                         'template update', 'theme list', 'theme show',
-                        'theme gallery', 'status', 'series theme set'):
+                        'theme gallery', 'preset list', 'preset show',
+                        'kit list', 'kit show', 'status', 'series theme set'):
             self.assertIn(command, result.stdout,
                            f'--help does not mention {command!r}')
 
@@ -3579,7 +3580,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
                           actions)
         # A NODE is not a command: `theme --help` answered "Unknown theme
         # verb: `theme --help`", which reads as a typo nobody made.
-        for node in ('theme', 'series', 'preset', 'template'):
+        for node in ('theme', 'series', 'preset', 'kit', 'template'):
             result = run(node, '--help')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('VERBS', result.stdout)
@@ -3597,13 +3598,15 @@ class CliVersionAndShortcuts(unittest.TestCase):
         for argv, shape in ((('build',), '[directory]'),
                             (('resolve',), '[directory] <name>'),
                             (('theme', 'show'), '<slug>...'),
-                            (('theme', 'gallery'), '<slug>...')):
+                            (('theme', 'gallery'), '<slug>...'),
+                            (('kit', 'show'), '<builtin|id@version>')):
             first = run(*argv, '--help').stdout.splitlines()[0]
             self.assertIn(shape, first, f'`{" ".join(argv)} --help`: {first}')
         # theme list takes no positional at all, so it promises none.
-        first = run('theme', 'list', '--help').stdout.splitlines()[0]
-        self.assertNotIn('directory', first, first)
-        self.assertNotIn('<slug>', first, first)
+        for argv in (('theme', 'list'), ('kit', 'list')):
+            first = run(*argv, '--help').stdout.splitlines()[0]
+            self.assertNotIn('directory', first, first)
+            self.assertNotIn('<slug>', first, first)
 
     def test_an_error_names_the_command_the_user_typed(self):
         """_COMMAND_OPTIONS is keyed by an internal dispatch token, so a
@@ -5377,6 +5380,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
         lwp = load_lightwebpres_module()
         keys = (set(lwp._SHORTCUTS.values()) | set(lwp._SERIES_VERBS.values())
                 | set(lwp._THEME_VERBS.values())
+                | set(lwp._PRESET_VERBS.values()) | set(lwp._KIT_VERBS.values())
                 | set(lwp._TEMPLATE_VERBS.values()))
         self.assertEqual(sorted(keys - set(lwp._COMMAND_OPTIONS)), [])
         self.assertEqual(sorted(keys - set(lwp._MAX_POSITIONAL)), [])
@@ -5413,7 +5417,9 @@ class CliVersionAndShortcuts(unittest.TestCase):
                            | {'series theme set', 'series theme',
                                'series tags', 'series slug',
                                'template update', 'theme list', 'theme show',
-                               'theme gallery', 'theme create',
+                               'theme gallery', 'theme create', 'preset list',
+                               'preset show', 'kit list', 'kit show',
+                               'kit compose',
                                'theme migrate', 'theme vendor', 'theme path'})
         checked = 0
         lines = block.splitlines()
@@ -17307,16 +17313,17 @@ class ThemeEngineStaged(unittest.TestCase):
         # have produced a silently unset width.
         # Both layout tokens must be registry-backed. Manual zoom is content
         # state only and must not enter the structural geometry rules.
-        allowed = {'--page-content-max', '--page-block-max', '--lwp-index-columns'}
+        allowed = {'--page-content-max', '--lwp-index-columns'}
         for line in self.lwp.TEMPLATE_SKELETON.splitlines():
             for var in re.findall(r'var\((--[a-z-]+)', line):
                 self.assertIn(var, allowed, f'skeleton references {var}')
-        for key in ('page.content-max', 'page.block-max'):
-            self.assertIn(key, self.lwp.PROPERTY_REGISTRY)
-            self.assertIn(self.lwp.PROPERTY_REGISTRY[key].var, allowed)
-            # And declared nowhere in the skeleton: the engine owns them.
-            self.assertNotIn(self.lwp.PROPERTY_REGISTRY[key].var + ':',
-                             self.lwp.TEMPLATE_SKELETON)
+        self.assertIn('page.content-max', self.lwp.PROPERTY_REGISTRY)
+        self.assertIn(self.lwp.PROPERTY_REGISTRY['page.content-max'].var, allowed)
+        # And declared nowhere in the skeleton: the engine owns it.
+        self.assertNotIn(self.lwp.PROPERTY_REGISTRY['page.content-max'].var + ':',
+                         self.lwp.TEMPLATE_SKELETON)
+        self.assertNotIn('page.block-max', self.lwp.PROPERTY_REGISTRY)
+        self.assertNotIn('--page-block-max', self.lwp.TEMPLATE_SKELETON)
 
     def test_the_skeleton_carries_no_content_colour(self):
         # Second half of the old gap check. Layout may paint depth (the
@@ -18378,10 +18385,8 @@ class WordsAreNeverBrokenUnlessAsked(unittest.TestCase):
         self.assertIn('page.hyphens', str(cm.exception))
 
 
-class BlockWidthIsNotAMeasure(unittest.TestCase):
-    """A table, a code block or a figure is sized by what it holds, not by a
-    count of characters in its own font. Pointing all seventeen consumers at
-    the measure put a five-column table in 350px on a 1440px desktop."""
+class ContentWidthIsTheSharedMeasure(unittest.TestCase):
+    """Every content block shares the responsive page measure."""
 
     @classmethod
     def setUpClass(cls):
@@ -18392,38 +18397,30 @@ class BlockWidthIsNotAMeasure(unittest.TestCase):
         i = sk.index(selector + ' {')
         return sk[i:sk.index('}', i)]
 
-    def test_boxes_read_the_block_width_and_prose_reads_the_measure(self):
-        self.assertEqual(
-            self.lwp.PROPERTY_REGISTRY['page.block-max'].default,
-            'min(84vw, max(1100px, 102vmin))')
-        for box in ('pre', '.comparison-table', '.figure',
-                    '.full-article table'):
-            self.assertIn('var(--page-block-max)', self._rule(box), box)
-        for prose in ('.summary', '.full-article p', '.intro'):
-            self.assertIn('var(--page-content-max)', self._rule(prose), prose)
+    def test_all_content_consumers_read_the_shared_measure(self):
+        self.assertNotIn('page.block-max', self.lwp.PROPERTY_REGISTRY)
+        for content in ('pre', '.comparison-table', '.figure',
+                        '.full-article table', '.summary',
+                        '.full-article p', '.intro'):
+            self.assertIn('var(--page-content-max)', self._rule(content), content)
+        self.assertNotIn('--page-block-max', self.lwp.TEMPLATE_SKELETON)
 
-    def test_the_block_width_is_a_floor_and_not_a_ceiling(self):
-        """1100px flat put a table with 41px text in 26 characters a line
-        at 3840, once the type scales lost their own ceilings. The `max`
-        is what keeps the box growing with the text inside it; a bare
-        `min(84vw, 1100px)` is the shape this replaced."""
-        d = self.lwp.PROPERTY_REGISTRY['page.block-max'].default
-        self.assertIn('max(', d, 'the block width has a ceiling again')
-        self.assertIn('vmin', d)
+    def test_the_shared_measure_has_no_hidden_ceiling(self):
+        default = self.lwp.PROPERTY_REGISTRY['page.content-max'].default
+        self.assertEqual(default, '84vw')
+        self.assertNotIn('1100px', default)
 
     def test_the_key_figure_is_centred_on_the_same_thing_as_the_text(self):
-        """.highlight was the ONE centred box reading the block width, so
-        its centre sat 256px left of every other component's at 1920 and
-        1063px left at 3840 -- measured in a browser. A left-aligned box
-        can be narrower and still share the column's left edge; a centred
-        one cannot. It is also not a flex column any more: `align-items:
-        center` made highlight.align inert, and setting it to `left`
-        moved the figure by zero pixels."""
+        """The centred figure must use the same content column as its text."""
         rule = self._rule('.highlight')
         self.assertIn('var(--page-content-max)', rule)
         self.assertNotIn('var(--page-block-max)', rule)
         self.assertNotIn('display: flex', rule)
         self.assertNotIn('align-items', rule)
+
+    def test_prose_keeps_the_shared_measure(self):
+        for prose in ('.summary', '.full-article p', '.intro'):
+            self.assertIn('var(--page-content-max)', self._rule(prose), prose)
 
 
 class EveryTypeSizeScalesWithTheScreen(unittest.TestCase):
@@ -20914,6 +20911,11 @@ class RegressionFixes(unittest.TestCase):
                 'x { --ink: #111; }\n', encoding='utf-8')
             r2 = run('audit', str(root))
             self.assertIn('--ink', r2.stdout + r2.stderr)
+            (root / 'templates' / 'custom.css').write_text(
+                'x { max-width: var(--page-block-max); }\n', encoding='utf-8')
+            r3 = run('audit', str(root))
+            self.assertIn('--page-block-max -> --page-content-max',
+                          r3.stdout + r3.stderr)
 
     # --- B10: a bad property reference surfaces a clean error, no traceback ---
     def test_b10_bad_reference_clean_error(self):

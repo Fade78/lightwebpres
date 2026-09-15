@@ -1,11 +1,7 @@
-// Playwright driver for arrow-key navigation on an article page (nav.js,
-// TEMPLATE_NAV_JS): the natural keyboard journey is slide-to-slide, then
-// — on the series-nav slide — card-to-card with Enter jumping to the
-// linked article, then, for a slide taller than the viewport (typically
-// a long full-article), scrolling it down in bounded increments before
-// moving on, with a final overflowing slide staying at its bottom when
-// there is no next slide. A partially visible adjacent slide is aligned
-// before the next transition, in both directions. Invoked by
+// Playwright driver for keyboard navigation on an article page (nav.js,
+// TEMPLATE_NAV_JS): arrow keys and the wheel retain native reading scroll;
+// PageUp/PageDown and the navigation buttons change slides. Space keeps the
+// natural editorial journey for cards and long slides. Invoked by
 // tests/test_keyboard_nav.py — not a standalone entry point.
 //
 // argv: <tallArticleUrl> <lastArticleUrl> <navArticleUrl> <heldArticleUrl>
@@ -32,13 +28,9 @@ async function activeElementInfo(page) {
   }));
 }
 
-// nav.js throttles ArrowDown/ArrowUp processing to one step per 150ms
-// (STEP_COOLDOWN_MS) — otherwise holding the key down fires native
-// auto-repeat keydown events fast enough to blow straight through every
-// intermediate card-focus state before a human (or a script pressing
-// keys back-to-back with no delay) could ever land on one. 200ms here,
-// comfortably over that threshold, so each press in this script is
-// guaranteed to actually register as its own step.
+// nav.js throttles the deliberate Space journey to one step per 150ms
+// (STEP_COOLDOWN_MS). 200ms here, comfortably over that threshold, so each
+// press in this script is guaranteed to register as its own step.
 async function press(page, key) {
   await page.keyboard.press(key);
   await page.waitForTimeout(200);
@@ -87,12 +79,12 @@ async function main() {
     cardVisibilityPage.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
     await cardVisibilityPage.goto(navArticleUrl);
     await cardVisibilityPage.waitForSelector('.nav-dots a');
-    await press(cardVisibilityPage, 'ArrowDown'); // cover -> standard
-    await press(cardVisibilityPage, 'ArrowDown'); // standard -> series-nav
+    await press(cardVisibilityPage, 'PageDown'); // cover -> standard
+    await press(cardVisibilityPage, 'PageDown'); // standard -> series-nav
     const cardViewportMargin = 24;
     const visibleCardHrefs = ['b.html', 'c.html', 'index.html'];
     for (let i = 0; i < 3; i++) {
-      await cardVisibilityPage.keyboard.press('ArrowDown');
+      await cardVisibilityPage.keyboard.press('Space');
       const cardBounds = await cardVisibilityPage.evaluate(() => {
         const card = document.activeElement;
         const rect = card.getBoundingClientRect();
@@ -107,13 +99,13 @@ async function main() {
       if (!cardBounds.isCard || cardBounds.href !== visibleCardHrefs[i]
           || cardBounds.top < cardViewportMargin - 1
           || cardBounds.bottom > cardBounds.viewport - cardViewportMargin + 1) {
-        fail('series-nav ArrowDown #' + (i + 1) + ' expected ' + visibleCardHrefs[i]
+        fail('series-nav Space #' + (i + 1) + ' expected ' + visibleCardHrefs[i]
              + ' focused and fully visible with a margin: '
              + JSON.stringify(cardBounds));
       }
       await cardVisibilityPage.waitForTimeout(200);
     }
-    await cardVisibilityPage.keyboard.press('ArrowUp');
+    await cardVisibilityPage.keyboard.press('Shift+Space');
     const backwardCardBounds = await cardVisibilityPage.evaluate(() => {
       const card = document.activeElement;
       const rect = card.getBoundingClientRect();
@@ -142,10 +134,10 @@ async function main() {
     await glidePage.goto(navArticleUrl);
     await glidePage.waitForSelector('.nav-dots a');
     await glidePage.clock.pauseAt(new Date('2026-01-01T00:01:00Z'));
-    await glidePage.keyboard.press('ArrowDown');
+    await glidePage.keyboard.press('PageDown');
     await glidePage.clock.runFor(220); // glide finished, 260ms safety timeout still pending
     await glidePage.evaluate(() => { window.requestAnimationFrame = () => 0; });
-    await glidePage.keyboard.press('ArrowDown');
+    await glidePage.keyboard.press('PageDown');
     await glidePage.evaluate(() => window.dispatchEvent(new Event('scroll')));
     await glidePage.clock.runFor(80); // old timeout at 260ms, scroll detection at 300ms
     const glideTarget = await activeDotIndex(glidePage);
@@ -164,8 +156,8 @@ async function main() {
     }
     await glidePage.close();
 
-    // --- 1. A slide taller than the viewport gets scrolled in
-    // increments before the arrow key advances to the next slide ------
+    // --- 1. Arrow keys and the wheel scroll without changing slides; page
+    // keys and buttons change slides directly ----------------------------
     let page = await context.newPage();
     collectConsoleErrors(page, consoleErrors);
     page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
@@ -173,43 +165,51 @@ async function main() {
     await page.goto(tallArticleUrl);
     await page.waitForSelector('.nav-dots a');
 
-    await press(page, 'ArrowDown'); // cover (0) -> full-article (1)
-    await page.waitForTimeout(600);
+    await press(page, 'ArrowDown');
     let idx = await activeDotIndex(page);
-    if (idx !== 1) fail('expected slide 1 (the tall full-article) after one ArrowDown, got ' + idx);
-
-    const scrollYAfterArrival = await page.evaluate(() => window.scrollY);
-    await press(page, 'ArrowDown'); // must scroll WITHIN slide 1, not advance
-    await page.waitForTimeout(600);
-    const scrollYAfterOnePress = await page.evaluate(() => window.scrollY);
-    idx = await activeDotIndex(page);
-    let scrollStepOk = true;
-    if (idx !== 1) { fail('a single ArrowDown on an overflowing slide must not skip past it — advanced to slide ' + idx + ' instead of scrolling within slide 1'); scrollStepOk = false; }
-    if (scrollYAfterOnePress <= scrollYAfterArrival) {
-      fail('ArrowDown on an overflowing slide did not scroll the page (scrollY ' + scrollYAfterArrival + ' -> ' + scrollYAfterOnePress + ')');
-      scrollStepOk = false;
+    const arrowDownY = await page.evaluate(() => window.scrollY);
+    if (idx !== 0 || arrowDownY <= 0) {
+      fail('ArrowDown must scroll the cover without changing slides: ' + JSON.stringify({idx, arrowDownY}));
     }
-    if (scrollStepOk) console.log('tall-slide incremental scroll OK: scrollY ' + scrollYAfterArrival + ' -> ' + scrollYAfterOnePress + ', still on slide 1');
-
-    // Keep pressing until it eventually reaches slide 2 (bounded, so a
-    // regression that never advances fails loudly instead of hanging).
-    let reachedSlide2 = false;
-    for (let i = 0; i < 40 && !reachedSlide2; i++) {
-      await press(page, 'ArrowDown');
-      await page.waitForTimeout(300);
-      idx = await activeDotIndex(page);
-      if (idx === 2) reachedSlide2 = true;
+    await press(page, 'ArrowUp');
+    const arrowUpState = await page.evaluate(() => ({
+      y: window.scrollY,
+      active: Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'))
+        .findIndex((d) => d.classList.contains('active')),
+    }));
+    if (arrowUpState.active !== 0 || arrowUpState.y !== 0) {
+      fail('ArrowUp must return the cover to its start without changing slides: '
+        + JSON.stringify(arrowUpState));
     }
-    if (!reachedSlide2) fail('never advanced to slide 2 after repeatedly pressing ArrowDown through the tall slide');
-    else console.log('tall-slide eventually advances to the next slide OK');
+    await page.mouse.wheel(0, 400);
+    await page.waitForTimeout(700);
+    const wheelState = await page.evaluate(() => ({
+      y: window.scrollY,
+      active: Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'))
+        .findIndex((d) => d.classList.contains('active')),
+    }));
+    if (wheelState.active !== 0 || wheelState.y <= 0) {
+      fail('wheel must scroll the cover without changing slides: ' + JSON.stringify(wheelState));
+    }
 
-    // A following slide can become the midpoint-visible slide before its
-    // top reaches the viewport top. Advancing from that partial view must
-    // first align it, not skip to slide 3. Exercise keyboard, content click,
-    // and the visible next button because all are forward-entry points.
     await page.goto(tallArticleUrl);
     await page.waitForSelector('.nav-dots a');
-    await press(page, 'ArrowDown');
+    await press(page, 'PageDown');
+    idx = await activeDotIndex(page);
+    if (idx !== 1) fail('PageDown did not change to the tall full-article: ' + idx);
+    const tallTop = await page.evaluate(() => window.scrollY);
+    await press(page, 'PageDown');
+    idx = await activeDotIndex(page);
+    if (idx !== 2) fail('PageDown did not leave the long slide directly: ' + idx);
+    if ((await page.evaluate(() => window.scrollY)) <= tallTop) {
+      fail('PageDown did not move to the following slide');
+    }
+
+    // A following slide can be partially visible after native scrolling.
+    // PageDown and the next button select it and align its top.
+    await page.goto(tallArticleUrl);
+    await page.waitForSelector('.nav-dots a');
+    await press(page, 'PageDown');
     await page.waitForTimeout(600);
     let partial = await exposeFollowingSlide(page);
     await page.waitForTimeout(200);
@@ -224,18 +224,18 @@ async function main() {
     if (partialState.top <= 1 || partialState.top >= 800) {
       fail('partial-slide setup did not leave the following slide visible below the top (top ' + partialState.top + ')');
     }
-    await press(page, 'ArrowDown');
+    await press(page, 'PageDown');
     await page.waitForTimeout(600);
     idx = await activeDotIndex(page);
     let alignedY = await page.evaluate(() => window.scrollY);
-    if (idx !== 2) fail('ArrowDown on a partially visible slide skipped to slide ' + idx + ' instead of aligning slide 2');
+    if (idx !== 2) fail('PageDown on a partially visible slide skipped to slide ' + idx + ' instead of aligning slide 2');
     if (Math.abs(alignedY - partial.followingTop) > 2) {
-      fail('ArrowDown on a partially visible slide did not align its top (expected ' + partial.followingTop + ', got ' + alignedY + ')');
+      fail('PageDown on a partially visible slide did not align its top (expected ' + partial.followingTop + ', got ' + alignedY + ')');
     }
 
     await page.goto(tallArticleUrl);
     await page.waitForSelector('.nav-dots a');
-    await press(page, 'ArrowDown');
+    await press(page, 'PageDown');
     await page.waitForTimeout(600);
     partial = await exposeFollowingSlide(page);
     await page.waitForTimeout(200);
@@ -250,7 +250,7 @@ async function main() {
 
     await page.goto(tallArticleUrl);
     await page.waitForSelector('.nav-dots a');
-    await press(page, 'ArrowDown');
+    await press(page, 'PageDown');
     await page.waitForTimeout(600);
     partial = await exposeFollowingSlide(page);
     await page.waitForTimeout(200);
@@ -264,60 +264,15 @@ async function main() {
     }
     console.log('partially visible following slide aligns before advancing OK');
 
-    // The same boundary must hold in the other direction: the last upward
-    // movement inside the tall slide must stop at its top, without exposing
-    // the previous slide. Only the following ArrowUp may leave the slide.
+    // PageUp is the direct reverse of PageDown, including from a long slide.
     await page.goto(tallArticleUrl);
     await page.waitForSelector('.nav-dots a');
-    await press(page, 'ArrowDown');
+    await press(page, 'PageDown');
     await page.waitForTimeout(600);
-    const tallBounds = await page.evaluate(() => {
-      const tall = document.querySelectorAll('.slide')[1];
-      const scrollY = window.scrollY;
-      const rect = tall.getBoundingClientRect();
-      const top = rect.top + scrollY;
-      const bottom = rect.bottom + scrollY;
-      window.scrollTo({ top: bottom - window.innerHeight, behavior: 'instant' });
-      return { top, bottom };
-    });
-    await page.waitForTimeout(200);
-    let reachedTallTop = false;
-    for (let i = 0; i < 10; i++) {
-      await press(page, 'ArrowUp');
-      await page.waitForTimeout(300);
-      const upwardState = await page.evaluate(() => {
-        const slides = document.querySelectorAll('.slide');
-        const previous = slides[0].getBoundingClientRect();
-        const tall = slides[1].getBoundingClientRect();
-        return {
-          active: Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'))
-            .findIndex((d) => d.classList.contains('active')),
-          previousBottom: previous.bottom,
-          tallTop: tall.top,
-        };
-      });
-      if (upwardState.active !== 1) {
-        fail('ArrowUp left the tall slide before its top was aligned (active slide ' + upwardState.active + ')');
-        break;
-      }
-      if (upwardState.previousBottom > 1) {
-        fail('ArrowUp exposed the previous slide before the tall slide reached its top (previous bottom ' + upwardState.previousBottom + ')');
-        break;
-      }
-      if (upwardState.tallTop >= -1) {
-        reachedTallTop = true;
-        break;
-      }
-    }
-    if (!reachedTallTop) {
-      fail('ArrowUp never reached the top of the tall slide without exposing the previous slide');
-    } else {
-      await press(page, 'ArrowUp');
-      await page.waitForTimeout(600);
-      idx = await activeDotIndex(page);
-      if (idx !== 0) fail('ArrowUp after the tall slide reached its top should move to the previous slide, got ' + idx);
-      else console.log('tall-slide upward boundary stays inside before moving back OK');
-    }
+    await press(page, 'PageUp');
+    idx = await activeDotIndex(page);
+    if (idx !== 0) fail('PageUp did not move back from the long slide: ' + idx);
+    console.log('native reading scroll and direct page navigation OK');
 
     await page.keyboard.press('End');
     await page.waitForTimeout(300);
@@ -374,13 +329,13 @@ async function main() {
       fail('presentation zoom must keep a normal slide at viewport height, got '
            + JSON.stringify(zoomedSlide));
     }
-    await press(page, 'ArrowDown');
+    await press(page, 'PageDown');
     await page.waitForTimeout(600);
     idx = await activeDotIndex(page);
     if (idx !== 1) {
-      fail('ArrowDown after presentation zoom should enter slide 1, got ' + idx);
+      fail('PageDown after presentation zoom should enter slide 1, got ' + idx);
     } else {
-      console.log('presentation zoom keeps slide sizing and ArrowDown navigation OK');
+      console.log('presentation zoom keeps slide sizing and PageDown navigation OK');
     }
     await page.keyboard.press('-');
     await page.waitForTimeout(100);
@@ -452,17 +407,17 @@ async function main() {
     await page.close();
 
     // --- 2. A tall full-article that is the LAST slide stays at its
-    // bottom when ArrowDown has no next slide to enter. -----------------
+    // bottom when the native ArrowDown scroll has nowhere to go. --------
     page = await context.newPage();
     collectConsoleErrors(page, consoleErrors);
     page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
     await page.goto(lastArticleUrl);
     await page.waitForSelector('.nav-dots a');
 
-    await press(page, 'ArrowDown'); // cover (0) -> full-article (1)
+    await press(page, 'PageDown'); // cover (0) -> full-article (1)
     await page.waitForTimeout(600);
     idx = await activeDotIndex(page);
-    if (idx !== 1) fail('expected slide 1 (the last full-article) after one ArrowDown, got ' + idx);
+    if (idx !== 1) fail('expected slide 1 (the last full-article) after one PageDown, got ' + idx);
 
     const bottomY = await page.evaluate(() => {
       const maxY = Math.max(0, document.scrollingElement.scrollHeight - window.innerHeight);
@@ -487,9 +442,9 @@ async function main() {
     }
     await page.close();
 
-    // --- 3. Series-nav: forward through the cards one by one, then
+    // --- 3. Series-nav: Space moves through the cards one by one, then
     // exhausting them on the last slide stays put and clears focus,
-    // then one more ArrowUp (no card was ever focused-and-released, so
+    // then one more PageUp (no card was ever focused-and-released, so
     // there's nothing to step back through) leaves the slide backward --
     page = await context.newPage();
     collectConsoleErrors(page, consoleErrors);
@@ -497,21 +452,21 @@ async function main() {
     await page.goto(navArticleUrl);
     await page.waitForSelector('.nav-dots a');
 
-    await press(page, 'ArrowDown'); // cover (0) -> standard (1)
+    await press(page, 'PageDown'); // cover (0) -> standard (1)
     await page.waitForTimeout(600);
-    await press(page, 'ArrowDown'); // standard (1) -> series-nav (2)
+    await press(page, 'PageDown'); // standard (1) -> series-nav (2)
     await page.waitForTimeout(600);
     idx = await activeDotIndex(page);
-    if (idx !== 2) fail('expected the series-nav slide (2) after two ArrowDown presses, got ' + idx);
+    if (idx !== 2) fail('expected the series-nav slide (2) after two PageDown presses, got ' + idx);
 
     let active = await activeElementInfo(page);
-    if (active.tag === 'A') fail('arriving at the series-nav slide must not auto-focus a card — the next ArrowDown press should be the one that does');
+    if (active.tag === 'A') fail('arriving at the series-nav slide must not auto-focus a card — the next Space press should be the one that does');
 
     const forwardHrefs = [];
     for (let i = 0; i < 3; i++) {
-      await press(page, 'ArrowDown');
+      await press(page, 'Space');
       active = await activeElementInfo(page);
-      if (active.tag !== 'A') fail('ArrowDown #' + (i + 1) + ' on the series-nav slide should focus a card link, focused a ' + active.tag + ' instead');
+      if (active.tag !== 'A') fail('Space #' + (i + 1) + ' on the series-nav slide should focus a card link, focused a ' + active.tag + ' instead');
       forwardHrefs.push(active.href);
       idx = await activeDotIndex(page);
       if (idx !== 2) fail('stepping through series-nav cards must not itself change the active slide (moved to ' + idx + ')');
@@ -519,27 +474,27 @@ async function main() {
     if (JSON.stringify(forwardHrefs) !== JSON.stringify(['b.html', 'c.html', 'index.html'])) {
       fail('series-nav card focus order should be [b.html, c.html, index.html] (document order), got ' + JSON.stringify(forwardHrefs));
     }
-    console.log('series-nav card-by-card ArrowDown OK: ' + forwardHrefs.join(' -> '));
+    console.log('series-nav card-by-card Space OK: ' + forwardHrefs.join(' -> '));
 
     // Cards exhausted, and this article's series-nav slide is also the
-    // LAST slide — one more ArrowDown must stay put (nothing to advance
+    // LAST slide — one more Space must stay put (nothing to advance
     // to) and clear focus off the last card, not error out or leave a
     // stale focused link behind.
-    await press(page, 'ArrowDown');
+    await press(page, 'Space');
     idx = await activeDotIndex(page);
-    if (idx !== 2) fail('ArrowDown past the last series-nav card on the last slide should stay on slide 2, moved to ' + idx);
+    if (idx !== 2) fail('Space past the last series-nav card on the last slide should stay on slide 2, moved to ' + idx);
     active = await activeElementInfo(page);
     if (active.tag === 'A') fail('exhausting the series-nav cards on the last slide should clear focus off the last card, still focused ' + active.href);
     console.log('series-nav exhaustion-on-last-slide OK: stays put, focus cleared');
 
     // No card was left "mid-walk" (focusedCard was just reset above) —
-    // ArrowUp from here has nothing to step back through and should
+    // PageUp from here has nothing to step back through and should
     // leave the slide backward directly, same as any ordinary slide.
-    await press(page, 'ArrowUp');
+    await press(page, 'PageUp');
     await page.waitForTimeout(600);
     idx = await activeDotIndex(page);
-    if (idx !== 1) fail('ArrowUp with no card mid-walk should leave the series-nav slide backward to slide 1, got ' + idx);
-    console.log('series-nav ArrowUp-with-nothing-to-step-back-through OK: left the slide backward');
+    if (idx !== 1) fail('PageUp with no card mid-walk should leave the series-nav slide backward to slide 1, got ' + idx);
+    console.log('series-nav PageUp-with-nothing-to-step-back-through OK: left the slide backward');
     await page.close();
 
     // --- 4. Backward through the cards from mid-walk, then Enter jumps
@@ -551,24 +506,24 @@ async function main() {
     await page.goto(navArticleUrl);
     await page.waitForSelector('.nav-dots a');
 
-    await press(page, 'ArrowDown');
+    await press(page, 'PageDown');
     await page.waitForTimeout(600);
-    await press(page, 'ArrowDown');
+    await press(page, 'PageDown');
     await page.waitForTimeout(600);
-    for (let i = 0; i < 3; i++) await press(page, 'ArrowDown'); // walk forward to the last card (index.html)
+    for (let i = 0; i < 3; i++) await press(page, 'Space'); // walk forward to the last card (index.html)
     active = await activeElementInfo(page);
     if (active.href !== 'index.html') fail('setup for the backward-walk test did not land on the last card (index.html), got ' + active.href);
 
-    await press(page, 'ArrowUp');
+    await press(page, 'Shift+Space');
     active = await activeElementInfo(page);
-    if (active.href !== 'c.html') fail('first ArrowUp from the last card should step back to c.html, got ' + active.href);
+    if (active.href !== 'c.html') fail('first Shift+Space from the last card should step back to c.html, got ' + active.href);
     idx = await activeDotIndex(page);
     if (idx !== 2) fail('stepping backward through series-nav cards must not itself change the active slide (moved to ' + idx + ')');
 
-    await press(page, 'ArrowUp');
+    await press(page, 'Shift+Space');
     active = await activeElementInfo(page);
-    if (active.href !== 'b.html') fail('second ArrowUp should step back to b.html, got ' + active.href);
-    console.log('series-nav card-by-card ArrowUp OK: index.html -> c.html -> b.html');
+    if (active.href !== 'b.html') fail('second Shift+Space should step back to b.html, got ' + active.href);
+    console.log('series-nav card-by-card Shift+Space OK: index.html -> c.html -> b.html');
 
     // Enter on the focused card jumps to the article — native browser
     // behavior once the link genuinely has focus, no extra JS required;
@@ -578,7 +533,7 @@ async function main() {
     console.log('Enter-on-focused-card jump OK: navigated to ' + page.url());
     await page.close();
 
-    // --- 5. Regression: holding an arrow key down (native auto-repeat
+    // --- 5. Regression: holding Space (native auto-repeat
     // fires keydown much faster than a human can perceive, ~20-30ms
     // apart) must not race straight through the card-focus states — the
     // exact bug a real user hit before nav.js's step cooldown existed.
@@ -600,13 +555,13 @@ async function main() {
     await page.waitForSelector('.nav-dots a');
 
     for (let i = 0; i < 8; i++) {
-      await page.keyboard.press('ArrowDown');
+      await page.keyboard.press('Space');
       await page.waitForTimeout(30);
     }
     await page.waitForTimeout(400);
     idx = await activeDotIndex(page);
-    if (idx >= 3) fail('holding ArrowDown down raced all the way past the series-nav slide\'s cards to slide ' + idx + ' — the step cooldown is not throttling fast repeated presses');
-    else console.log('held-key-down regression OK: rapid repeated ArrowDown did not skip past the series-nav cards (slide ' + idx + ')');
+    if (idx >= 3) fail('holding Space raced all the way past the series-nav slide\'s cards to slide ' + idx + ' — the step cooldown is not throttling fast repeated presses');
+    else console.log('held-Space regression OK: rapid repeated Space did not skip past the series-nav cards (slide ' + idx + ')');
     await page.close();
 
     if (consoleErrors.length) {
@@ -614,7 +569,7 @@ async function main() {
     }
 
     if (process.exitCode !== 1) {
-      console.log('OK — tall-slide incremental scroll and series-nav card-by-card keyboard navigation both work.');
+      console.log('OK — native reading scroll, direct page navigation and Space card navigation work.');
     }
   } catch (err) {
     fail(String((err && err.stack) || err));

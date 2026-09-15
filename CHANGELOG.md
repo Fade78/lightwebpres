@@ -33,6 +33,25 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.61.0
+
+Read-only `kit list` and `kit show` commands now inspect complete native and
+external Identity Kits without changing a series. Their versioned JSON reports
+expose the kit identity, resolved loading scope, resources and digest through
+the `lightwebpres.identity-kit-list/1` and `lightwebpres.identity-kit-info/1`
+contracts.
+
+Selector-scoped kit inspection now resolves the effective copy before parsing,
+so installed, user and series precedence applies to whole kits. Kit inventory
+is independent of the Commons preset catalogue, and native theme reports carry
+their canonical `builtin` origin.
+
+Arrow keys and the wheel now retain native reading scroll instead of changing
+slides. PageUp/PageDown and the navigation buttons change slides directly;
+Space and Shift+Space remain the bounded reading journey for long slides and
+navigation cards. The separate `page.block-max` property was removed: content
+blocks now share the responsive `page.content-max` measure.
+
 ## v0.60.1
 
 Full-article slides can now replace their localized kicker with an explicit

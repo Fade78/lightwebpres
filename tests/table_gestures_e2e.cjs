@@ -72,7 +72,7 @@ const {chromium} = require('playwright');
           await reset();
           assert(await viewport.evaluate(el => el.clientHeight > innerHeight && el.scrollWidth > el.clientWidth));
           const before = await state();
-          await page.keyboard.press('ArrowDown');
+          await page.keyboard.press('Space');
           await settle();
           const expected = await state();
           await reset();

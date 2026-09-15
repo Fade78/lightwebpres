@@ -957,12 +957,20 @@ metadata; there is no article-level preset selection. The series index has no
 chrome slots and is not wrapped by this cascade.
 
 ```bash
+./lightwebpres kit list
+./lightwebpres kit show builtin
 ./lightwebpres preset list
 ./lightwebpres preset show builtin/standard
 ./lightwebpres series preset my-series
 ./lightwebpres series preset set my-series --preset builtin/standard
 ./lightwebpres init my-series --preset builtin/standard
 ```
+
+`kit list` inventories complete native and external kits. `kit show` describes
+one kit's identity label, computed loading scope, path and resource summaries;
+partial and `latest` version selectors resolve the kit that would be selected.
+Both commands are read-only and do not include series-local kits; use
+`series preset` for the resources a series actually resolves.
 
 `series preset set` vendors and selects without applying a starter. It updates
 `appearance.presets` and preserves property pins and `custom.css`.
@@ -1479,19 +1487,14 @@ error pointing at the file and key. An empty value on a known property,
 such as `page.bg:`, removes that pin and lets the selected theme provide
 the value; an unknown key is still an error.
 
-Three properties people look for by name: **`page.content-max`** is the
-text column width, `84vw` by default — proportional to the window, with
-no ceiling, so a deck shown full screen uses the screen. Every type size
-is proportional too — the kicker, the fact label, the key figure's caption
-and the slide number as much as the title — which is what keeps the line
-length steady and the proportions between them fixed as the screen
-grows. Each size has a floor in pixels, and the floor is what governs a
-phone. **`page.block-max`** is the width of the things that are not
-running text — a table, a code block, a figure — sized by what they hold
-rather than by a count of characters; it carries a floor as well as a
-ceiling — `min(84vw, max(1100px, 102vmin))` — so a table grows with the
-text inside it and still stops before the window edge.
-**`page.hyphens`**
+Two properties people look for by name: **`page.content-max`** is the
+shared width of running text, tables, code blocks and figures, `84vw` by
+default — proportional to the window, with no ceiling, so a deck shown
+full screen uses the screen. Every type size is proportional too — the
+kicker, the fact label, the key figure's caption and the slide number as
+much as the title — which is what keeps the line length steady and the
+proportions between them fixed as the screen grows. Each size has a floor
+in pixels, and the floor is what governs a phone. **`page.hyphens`**
 (`manual | auto`) controls whether words break at end of line; it is
 `manual`, and nothing turns it on for you.
 
@@ -1645,8 +1648,9 @@ Browser emulation is not verification on a physical device.
 
 | Key | Action |
 |---|---|
-| ↓ / PageDown / → / Space | Next step: slide, navigation card or bounded scroll within a long slide |
-| ↑ / PageUp / ← / Backspace / Shift+Space | Previous step in the same journey |
+| ↑ / ↓ / ← / → | Native page scrolling; focused foreground surfaces and local tables keep their own scroll |
+| PageDown / PageUp / Backspace | Next / previous slide; on the index, next / previous article card |
+| Space / Shift+Space | Next / previous reading step: slide, navigation card or bounded scroll within a long slide |
 | Home | Beginning of the page — first slide on an article; top on the index |
 | Ctrl/Cmd+Home | Back to the series index — on the index: top of the page |
 | End or Ctrl/Cmd+End | Last slide. On the index: last article card |
@@ -1676,18 +1680,20 @@ slide taller than the screen is the necessary exception: it enters with its
 top aligned to the top of the viewport, then its bounded reading steps finish
 with its top or bottom aligned to the corresponding viewport edge.
 
-Space and Shift+Space follow that same journey, including focused cards on the
-series index, series-navigation slides and unit indexes. Enter follows the
-focused card's link; Space does not activate it. Ordinary links retain the
-browser's Space/Shift+Space scrolling. Buttons, form fields and editable text
-keep their own Space behaviour, and Ctrl/Cmd/Alt+Space is not a deck shortcut.
-Holding Space uses the same repeat cooldown as the arrow keys. A second mouse
-click during a glide remains a mouse-specific jump, not a keyboard shortcut.
+Space and Shift+Space follow the bounded reading journey, including focused
+cards on the series index, series-navigation slides and unit indexes. Enter
+follows the focused card's link; Space does not activate it. Ordinary links
+retain the browser's Space/Shift+Space scrolling. Buttons, form fields and
+editable text keep their own Space behaviour, and Ctrl/Cmd/Alt+Space is not a
+deck shortcut. Holding Space uses the repeat cooldown. PageUp/PageDown and the
+navigation buttons change slides directly rather than entering that journey.
+A second mouse click during a glide remains a mouse-specific jump, not a
+keyboard shortcut.
 
 When the help overlay is open, its scrollable foreground owns the arrow,
 PageUp/PageDown, Home/End and Space keys. The same is true of the speaker
 panel when it has focus; while that panel is merely open and unfocused, the
-arrows keep navigating the deck. Focused speaker notes retain Space even when
+arrows keep scrolling the page. Focused speaker notes retain Space even when
 they fit without scrolling.
 
 The B/W/T pause screens hide the slide so the audience's eye comes back

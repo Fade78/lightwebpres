@@ -92,10 +92,11 @@ const {spawnSync} = require('node:child_process');
       await settle();
     }
     const forward = {};
-    for (const kind of ['ArrowDown', 'Space', 'click', 'next']) {
+    for (const kind of ['PageDown', 'next']) {
       await open();
       forward[kind] = [];
-      // Covers repeated short-slide transitions and entry/steps within long content.
+      // PageDown and the buttons are direct slide navigation. They must not
+      // inherit the bounded Space journey when the target is a long slide.
       for (let i = 0; i < 7; i++) {
         await action(kind);
         const {focus, ...geometry} = await state();
@@ -103,20 +104,48 @@ const {spawnSync} = require('node:child_process');
       }
     }
     console.log('Forward geometry: ' + JSON.stringify(forward));
-    for (const kind of ['Space', 'click', 'next']) {
-      assert.deepEqual(forward[kind], forward.ArrowDown, kind + ' must share settled ArrowDown geometry');
+    for (const kind of ['next']) {
+      assert.deepEqual(forward[kind], forward.PageDown, kind + ' must share settled PageDown geometry');
     }
-    assert.equal(forward.Space[0].top, 0, 'first step aligns the next heading slide');
-    assert.equal(forward.Space[3].active, 4, 'fourth step enters the long slide');
-    assert.ok(forward.Space[4].y > forward.Space[3].y, 'Space reads within long content');
+    assert.equal(forward.PageDown[0].top, 0, 'first PageDown aligns the next slide');
+    assert.equal(forward.PageDown[3].active, 4, 'fourth PageDown enters the long slide');
+    assert.equal(forward.PageDown[4].active, 5, 'PageDown leaves the long slide directly');
+
+    await open();
+    const arrowStart = await state();
+    await page.keyboard.press('ArrowDown');
+    await settle();
+    const arrowDown = await state();
+    assert.equal(arrowDown.active, arrowStart.active, 'ArrowDown must scroll, not change the slide');
+    assert(arrowDown.y > arrowStart.y, 'ArrowDown must scroll the document');
+    await page.keyboard.press('ArrowUp');
+    await settle();
+    const arrowUp = await state();
+    assert.equal(arrowUp.active, arrowStart.active, 'ArrowUp must scroll, not change the slide');
+    assert.equal(arrowUp.y, arrowStart.y, 'ArrowUp must return to the starting position');
+    await page.mouse.wheel(0, 400);
+    await settle();
+    const wheel = await state();
+    assert.equal(wheel.active, arrowStart.active, 'wheel must scroll, not change the slide');
+    assert(wheel.y > arrowStart.y, 'wheel must scroll the document');
+
+    await open();
+    const space = [];
+    for (let i = 0; i < 7; i++) {
+      await action('Space');
+      space.push(await state());
+    }
+    assert.equal(space[0].active, 1, 'Space keeps its first reading step');
+    assert.equal(space[3].active, 4, 'Space enters the long slide');
+    assert(space[4].y > space[3].y, 'Space keeps bounded reading within long content');
 
     const backward = {};
-    for (const key of ['ArrowUp', 'Shift+Space']) {
+    for (const key of ['PageUp', 'Shift+Space']) {
       await open('a.html', '#trailing');
       backward[key] = [];
       for (let i = 0; i < 3; i++) { await press(key); backward[key].push(await state()); }
     }
-    assert.deepEqual(backward['Shift+Space'], backward.ArrowUp);
+    assert.deepEqual(backward['Shift+Space'], backward.PageUp);
     console.log('Backward geometry: ' + JSON.stringify(backward['Shift+Space']));
 
     // The last internal step must reach each edge before any adjacent slide.
@@ -144,7 +173,7 @@ const {spawnSync} = require('node:child_process');
       ['a.html', '#series', '.series-list a.series-link'],
       ['a.html', '#contents', '.lwp-unit-index-link']]) {
       const walks = {};
-      for (const key of ['ArrowDown', 'Space']) {
+      for (const key of ['Space']) {
         await open(file, hash);
         const hrefs = await page.locator(selector).evaluateAll(cards => cards.map(c => c.getAttribute('href')));
         assert.ok(hrefs.length >= 3);
@@ -154,10 +183,9 @@ const {spawnSync} = require('node:child_process');
           assert.equal((await state()).focus, hrefs[i], key + ' ' + selector + ' step ' + i + ' must focus the next card');
           walks[key].push(await state());
         }
-        await press(key === 'Space' ? 'Shift+Space' : 'ArrowUp');
-        assert.equal((await state()).focus, hrefs[1]);
-      }
-      assert.deepEqual(walks.Space, walks.ArrowDown, selector + ' card journey');
+         await press('Shift+Space');
+         assert.equal((await state()).focus, hrefs[1]);
+       }
       const target = await page.locator(selector).nth(1).evaluate(card => card.href);
       await press('Enter');
       assert.equal(page.url(), target, 'Enter follows the actual focused card target');
@@ -247,7 +275,11 @@ const {spawnSync} = require('node:child_process');
         panel.focus({preventScroll: true});
       }, overflowing);
       const before = await state();
-      await press('Space');
+      const keys = overflowing
+        ? ['Space']
+        : ['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft',
+           'PageDown', 'PageUp', 'Home', 'End', 'Space'];
+      for (const key of keys) await press(key);
       assert.deepEqual(await state(), before, 'focused speaker notes own Space even without overflow');
       const panelY = await page.locator('#presenterPanel').evaluate(p => p.scrollTop);
       assert.equal(panelY > 0, overflowing);

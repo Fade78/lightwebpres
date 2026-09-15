@@ -338,6 +338,12 @@ layout is optional: an existing kit falls back to its standard layout with
 chrome, without a manifest rewrite. A dedicated layout uses `default` unless
 the preset selects a variant.
 
+Use `kit list` to inspect every complete kit in the global catalogue, including
+the embedded native kit. Use `kit show builtin` or `kit show id@version` for
+one kit's computed scope, path, digest and resource summaries. Partial and
+`latest` version selectors resolve to the highest matching version; these
+commands never vendor a kit, alter a series or apply a starter.
+
 Commons themes live under `themes/` and `templates/themes/`, with
 `LWP_THEMES_DIR` for the user catalogue. Commons presets live under
 `commons/presets/<id>.json`: installed, user (`LWP_COMMONS_DIR`) or

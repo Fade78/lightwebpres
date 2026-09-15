@@ -190,11 +190,11 @@ ${name === 'b' ? '<table id="scroll-table" style="min-width: 1600px"><tr><td>Wid
     assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--color-ink').trim()), aInk);
     assert.match(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--page-bg').trim()), /^#ffeedd/i);
     await page.keyboard.press('End');
-    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('PageDown');
     await settle();
     assert.equal(await page.title(), 'Article A', 'end-of-article stepping never activates B');
     await page.keyboard.press('Home');
-    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('PageUp');
     await settle();
     assert.equal(await page.title(), 'Article A');
     assert.equal(new URL(page.url()).hash, route('a.html'));
