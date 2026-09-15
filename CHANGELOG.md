@@ -46,6 +46,11 @@ so installed, user and series precedence applies to whole kits. Kit inventory
 is independent of the Commons preset catalogue, and native theme reports carry
 their canonical `builtin` origin.
 
+The embedded `builtin` identity is now labelled `Built-in`, keeping it distinct
+from the product name and the official `LightWebPres` documentation kit. `kit
+show` validates its kit-only selector before loading catalogue resources, so a
+malformed Commons preset cannot obscure that grammar error.
+
 Arrow keys and the wheel now retain native reading scroll instead of changing
 slides. PageUp/PageDown and the navigation buttons change slides directly;
 Space and Shift+Space remain the bounded reading journey for long slides and

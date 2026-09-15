@@ -424,7 +424,7 @@ class IdentityKits(unittest.TestCase):
             native = reports['builtin']
             self.assertTrue(native['native'])
             self.assertIsNone(native['path'])
-            self.assertEqual(native['label'], 'LightWebPres')
+            self.assertEqual(native['label'], 'Built-in')
             self.assertEqual(native['default_preset'], 'standard')
             self.assertEqual(native['themes'][0]['source'], 'builtin')
             self.assertEqual(native['themes'][0]['origin'], 'builtin')
@@ -462,6 +462,21 @@ class IdentityKits(unittest.TestCase):
             listed = fixtures.run('kit', 'list', '--format', 'json')
             self.assertNotEqual(listed.returncode, 0)
             self.assertIn('broken', listed.stderr)
+
+    def test_kit_show_ignores_commons_and_rejects_its_selector(self):
+        broken = Path(os.environ['LWP_COMMONS_DIR']) / 'presets' / 'broken.json'
+        broken.parent.mkdir(parents=True)
+        broken.write_text('{', encoding='utf-8')
+
+        shown = fixtures.run('kit', 'show', 'builtin', '--format', 'json')
+        self.assertEqual(shown.returncode, 0, shown.stderr)
+        self.assertEqual(json.loads(shown.stdout)['selector'], 'builtin')
+
+        invalid = fixtures.run('kit', 'show', 'commons/broken', '--format', 'json')
+        self.assertNotEqual(invalid.returncode, 0)
+        self.assertIn('kit show: identity kit must be builtin or id@version',
+                      invalid.stderr)
+        self.assertNotIn('Commons preset JSON', invalid.stderr)
 
     def test_kit_list_does_not_depend_on_the_commons_catalogue(self):
         broken = Path(os.environ['LWP_COMMONS_DIR']) / 'presets' / 'broken.json'

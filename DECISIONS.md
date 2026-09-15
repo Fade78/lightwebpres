@@ -3021,7 +3021,7 @@ le thème typé suit le preset, et avec une telle ligne il reste fixe. Un thème
 runtime explicite persiste jusqu'à **Follow preset**. Tous les thèmes de chaque
 kit sélectionné sont publiés avec qualification du kit, sans produit cartésien.
 Applicable / Current identity / All filter published choices, never certify
-brand approval. For native LightWebPres, Current identity includes available
+brand approval. For native Built-in, Current identity includes available
 Commons/global themes and native Light/custom choices; a real kit exposes its
 own qualified themes and custom variants. Without any published real kit, the
 picker omits Identity/Preset axes and uses theme-only labels and selection.
@@ -3463,7 +3463,7 @@ author fields or adding compatibility aliases.
 **État :** terminé · **Depuis :** 2026-09-12
 
 The former internal presentation-package model is replaced by an Identity Kit
-model. `builtin` is the native LightWebPres identity embedded in the executable;
+model. `builtin` is the native Built-in identity embedded in the executable;
 external Identity Kits are versioned, autonomous trees loaded from installed,
 user or series-local catalogues. Both are represented by the same internal
 identity resource so rendering and preset resolution do not need a second

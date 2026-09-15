@@ -197,7 +197,7 @@ async function main() {
     const appearance = `<header><p class="eyebrow">One article / three identities</p>
       <h1>Same words. Different presence.</h1></header>
       <main>${[
-        ['native', '01', 'LightWebPres', 'Light theme', 'Native layouts. Nothing to install.', 'builtin/standard'],
+        ['native', '01', 'Built-in', 'Light theme', 'Native layouts. Nothing to install.', 'builtin/standard'],
         ['official', '02', 'Official Docs', 'Blue documentation kit', 'Branded rail, logo and footer.', 'lightwebpres-docs@0.1.0/docs'],
         ['composed', '03', 'Field Notes', 'Composed paper identity', 'Ruled frame. Compass. Typewriter type.', 'field-notes@1.0.0/brief'],
       ].map(([name, number, title, theme, description, selector]) => `<section>

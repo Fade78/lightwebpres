@@ -412,7 +412,7 @@ approval. Applicable means typed compatibility. For native `builtin`, Current
 identity includes published Commons/global themes, Light and native custom
 variants, excluding foreign kit themes. For a real kit, it includes only its
 own qualified themes and custom variants, excluding unowned global themes and
-other kits. Commons availability to native LightWebPres is not declared kit
+other kits. Commons availability to native Built-in is not declared kit
 membership. All themes of selected kits are published with kit-qualified names;
 no cross-product is generated. Identity labels name ownership, while default
 markers name initial choices.

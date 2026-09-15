@@ -3303,7 +3303,7 @@ Applicable means typed compatibility, not brand approval. For native `builtin`,
 Current identity includes published Commons/global themes, Light and native
 custom variants, and excludes foreign kit themes. For a real kit, it includes
 that kit's qualified themes and custom variants, excluding unowned global
-themes and other kits. Commons availability to native LightWebPres is not
+themes and other kits. Commons availability to native Built-in is not
 declared kit membership and does not make Commons an identity. All includes
 all published choices. Every selected kit's themes are published as
 `kit:<id>@<version>/<theme>`, even when no selected preset uses them. The build
@@ -4663,9 +4663,9 @@ pas compatible.
 ### 9.9 Identités, kits et presets
 
 An **identity** owns presentation resources. The native identity `builtin`,
-labelled **LightWebPres**, provides the `standard` preset and minimal **Light**
+labelled **Built-in**, provides the `standard` preset and minimal **Light**
 theme. **Commons** is a shared collection of global themes and native-layout
-presets, never an identity: its presets use the native LightWebPres identity.
+presets, never an identity: its presets use the native Built-in identity.
 An **Identity Kit** is a self-contained versioned tree that owns its layouts,
 chrome, assets, typed themes and constrained structural CSS. A **preset** binds
 a theme and defaults for the slide types. Identity, Preset and Theme are

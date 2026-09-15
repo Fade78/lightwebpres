@@ -105,7 +105,7 @@ rebuilds saved edits; refresh the browser yourself.
 ## One article, different identities
 
 <p align="center">
-  <img src="generated/appearance-choices.png" alt="The same first article rendered with native LightWebPres, the documentation identity and the composed Field Notes identity" width="100%">
+  <img src="generated/appearance-choices.png" alt="The same first article rendered with the native Built-in identity, the documentation identity and the composed Field Notes identity" width="100%">
 </p>
 
 Three actual Chromium views of the same article with different presentation

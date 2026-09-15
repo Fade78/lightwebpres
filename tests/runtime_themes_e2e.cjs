@@ -1107,7 +1107,7 @@ async function main() {
         await originPage.selectOption('#themeSource', filter);
         for (const [slug, family, owner, collection, identity, origin, label] of [
           ['print-ink', 'print', 'Commons', 'Commons', null, 'builtin', origins[0]],
-          ['builtin:light', 'desk', 'LightWebPres', 'builtin', 'builtin', 'builtin', origins[0]],
+          ['builtin:light', 'desk', 'Built-in', 'builtin', 'builtin', 'builtin', origins[0]],
           ...['installed', 'user', 'series'].map((scope, i) =>
             ['origin-' + scope, 'print', 'Commons', 'Commons', null, scope, origins[i + 1]]),
         ]) {
@@ -1129,7 +1129,7 @@ async function main() {
       const presets = await originPage.locator('#lwp-presentation-data').textContent();
       const native = JSON.parse(presets).presets[0];
       if (native.selector !== 'builtin/standard' || native.identity !== 'builtin'
-          || native.identity_label !== 'LightWebPres' || native.collection !== 'builtin'
+          || native.identity_label !== 'Built-in' || native.collection !== 'builtin'
           || native.origin !== 'builtin') {
         fail('origin labels changed the native preset metadata: ' + presets);
       }

@@ -7134,7 +7134,7 @@ def build_theme_runtime(option, primary, source='--themes', catalog=None,
                               collection=('builtin' if identity_kit.id == 'builtin'
                                           else 'kit'), origin=identity_kit.scope)
         elif metadata_id == _THEME_RUNTIME_DEFAULT:
-            theme_data.update(identity='builtin', identity_label='LightWebPres',
+            theme_data.update(identity='builtin', identity_label=BUILTIN_IDENTITY_KIT.label,
                               collection='builtin', origin='builtin')
         elif metadata_id == NATIVE_THEME_ID:
             theme_data.update(identity=BUILTIN_IDENTITY_KIT.selector,
@@ -7499,7 +7499,7 @@ def resolve_theme_properties(*layers):
 
 
 BUILTIN_IDENTITY_KIT = IdentityKit(
-    'builtin', VERSION, default=True, label='LightWebPres',
+    'builtin', VERSION, default=True, label='Built-in',
     default_preset='standard',
     layouts={slide_type: {'default': '{{slide_header}}\n{{content}}\n{{slide_footer}}'}
              for slide_type in _PRESENTATION_SLIDE_TYPES},
@@ -28147,7 +28147,8 @@ def cmd_kit_show(selector, args):
         log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
         sys.exit(1)
     try:
-        catalog = load_identity_catalog(selectors=selector)
+        parse_identity_kit_selector(selector, 'kit show')
+        catalog = load_identity_catalog(selectors=selector, include_commons=False)
         report = _identity_kit_report(
             catalog.resolve_identity(selector, 'kit show'))
     except PropertyError as exc:
@@ -31046,7 +31047,7 @@ IDENTITY KITS
   source catalogue, lineage or origin metadata is added to the result.
 
 COMMONS PRESETS
-  commons/<id> selects a shared preset under the native LightWebPres identity.
+  commons/<id> selects a shared preset under the native Built-in identity.
   A descriptor uses schema lightwebpres.commons-preset/1 with id, label,
   description and theme (a global Commons theme slug or builtin:light).
   Layouts are native Standard, chrome is empty, and no starter is supported.

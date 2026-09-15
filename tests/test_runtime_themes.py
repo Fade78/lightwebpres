@@ -51,7 +51,7 @@ class RuntimeIdentityMetadata(unittest.TestCase):
             [preset], ([preset.theme_props, {}], ''), None, None)
         self.assertEqual(data['primary'], 'builtin/standard')
         self.assertEqual(data['identities'], [{
-            'selector': 'builtin', 'label': 'LightWebPres', 'origin': 'builtin',
+            'selector': 'builtin', 'label': 'Built-in', 'origin': 'builtin',
             'default_preset': 'standard',
         }])
         self.assertEqual(data['presets'][0]['label'], 'Standard')
@@ -206,7 +206,7 @@ class RuntimeIdentityMetadata(unittest.TestCase):
                       if theme['slug'] == 'builtin:light')
         self.assertEqual(native['slug'], 'builtin:light')
         self.assertEqual(native['identity'], 'builtin')
-        self.assertEqual(native['identity_label'], 'LightWebPres')
+        self.assertEqual(native['identity_label'], 'Built-in')
         self.assertEqual(native['collection'], 'builtin')
         self.assertEqual(native['origin'], 'builtin')
 
@@ -559,7 +559,7 @@ class RuntimeThemesBrowser(unittest.TestCase):
                 self.assertEqual({key: report[key] for key in expected}, expected)
                 if command[0] == 'preset':
                     self.assertEqual(report['identity']['selector'], 'builtin')
-                    self.assertEqual(report['identity']['label'], 'LightWebPres')
+                    self.assertEqual(report['identity']['label'], 'Built-in')
                     self.assertEqual(report['identity']['scope'], 'builtin')
 
 

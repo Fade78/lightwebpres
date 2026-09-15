@@ -774,7 +774,7 @@ among already-published choices without changing sources; an author selects
 the initial preset and available alternatives; a designer creates reusable
 themes or a complete Identity Kit.
 
-![The same first article rendered with native LightWebPres, the documentation identity and the composed Field Notes identity](generated/appearance-choices.png "Three actual Chromium views of the same article with different presentation choices, not photographs of devices.")
+![The same first article rendered with the native Built-in identity, the documentation identity and the composed Field Notes identity](generated/appearance-choices.png "Three actual Chromium views of the same article with different presentation choices, not photographs of devices.")
 
 ### Choose a design task
 
@@ -880,7 +880,7 @@ layout fit, and do not treat a contrast report as a blanket accessibility grade.
 
 ### Identities, presets and themes
 
-**Identity** groups presentation choices. The native identity, **LightWebPres**, provides
+**Identity** groups presentation choices. The native identity, **Built-in**, provides
 `builtin/standard` and the minimal **Light** theme. **Commons** contains the
 global theme catalogue and presets that bind those themes to native layouts.
 An **Identity Kit** is a self-contained versioned collection of layouts,
@@ -1234,7 +1234,7 @@ preset selector `lightwebpres-docs@0.1.0/docs`.
 
 The **Show themes** filter offers **Applicable**, **Current identity** and **All** to narrow
 published choices. Applicable means typed compatibility, not brand matching.
-For native LightWebPres, Current identity includes published Commons/global
+For native Built-in, Current identity includes published Commons/global
 themes, Light and native custom variants, but excludes foreign kit themes.
 For a real kit, it includes that kit's qualified themes and custom variants,
 not unowned global themes or another kit's themes. Commons availability to

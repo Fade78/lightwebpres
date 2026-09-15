@@ -27,8 +27,8 @@
     "examples/kits/lightwebpres-docs/0.1.0/starters/blank/starter.json": "9c9556978e90cd4bd1f3a2dc1dd422a5f172e9c65d4187d84d004df10c5d424a",
     "examples/kits/lightwebpres-docs/0.1.0/structure.css": "4501d6bff633ce1e06facf5fd2c9d0c811236e6cd20447a4e761182e0e8a3b08",
     "examples/kits/lightwebpres-docs/0.1.0/themes/docs.conf": "2cbd0dc8e133e8042e75150392f0ce50be6c42fa46f67fa4a3729beef2ad588b",
-    "lightwebpres": "53d7652db293fa363d1c71643673c25b0024859dad3369e0328fb6cac3d9f096",
-    "tools/screenshot-documentation.cjs": "103a637ed81cb9bf022dc9d0db2c6b9a33f79546a50d38685bd700980743a225"
+    "lightwebpres": "f6d3bc2044c55814eef83746fee720a99b41c79bc2f01f003b9d71b57647f4c8",
+    "tools/screenshot-documentation.cjs": "0d76b86a5e4513e5c86bf40656102a12fae1d00187e63cf3cea785c3018ac623"
   },
   "browser": "145.0.7632.6",
   "source": "examples/first-article/sources/first-page.md",
@@ -100,7 +100,7 @@
       "file": "generated/appearance-choices.png",
       "width": 1600,
       "height": 1440,
-      "sha256": "c7b2b4b054dca0c5397bb92508428c56e56350c1997b87f54412a21ed8fff787"
+      "sha256": "c68a6fdabdb5b1d92e6b71c0e0c448bb0b1cbd9612ba2682fa4031ccef84d02f"
     },
     {
       "file": "generated/identity-composition.png",
