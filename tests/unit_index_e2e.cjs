@@ -176,14 +176,14 @@ const {collectConsoleErrors} = require('./console_errors.cjs');
       assert.equal(await page.evaluate(() => document.activeElement.dataset.lwpIndexTarget), 'p-overview');
       await press('Shift+Space');
       assert.equal(await page.evaluate(() => document.activeElement.dataset.lwpIndexTarget), 'p-cover');
-      // A background click moves focus only; a real link retains anchor behavior.
+      // A background click changes slides directly; a real link retains anchor behavior.
       await page.mouse.click(12, 250);
       await settle();
-      assert.equal(await page.evaluate(() => document.activeElement.dataset.lwpIndexTarget), 'p-overview');
+      assert.equal(new URL(page.url()).hash, route('p-french'));
       await page.mouse.click(12, 250, {button: 'right'});
       await settle();
-      assert.equal(await page.evaluate(() => document.activeElement.dataset.lwpIndexTarget), 'p-cover');
       assert.equal(new URL(page.url()).hash, route('p-overview'));
+      await page.locator('#p-overview [data-lwp-index-target="p-cover"]').focus();
       await press('Tab');
       assert.equal(await page.evaluate(() => document.activeElement.dataset.lwpIndexTarget), 'p-overview');
       await press('Space');

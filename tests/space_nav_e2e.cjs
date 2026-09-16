@@ -192,15 +192,137 @@ const {spawnSync} = require('node:child_process');
       console.log('Card journey OK: ' + selector);
     }
 
-    await open();
-    for (let i = 0; i < 8; i++) {
-      await page.keyboard.down('Space'); // repeated down while held sets KeyboardEvent.repeat
-      await page.waitForTimeout(30);
+    // The wheel has a narrow card-cursor role only while it is over a card
+    // list. It chooses one link at a time without following it, and native
+    // page scrolling resumes at the first and last card.
+    async function wheelOnCard(locator, deltaY, deltaX = 0) {
+      await locator.scrollIntoViewIfNeeded();
+      const box = await locator.boundingBox();
+      assert.ok(box, 'the wheel target must be visible');
+      await page.mouse.move(box.x + Math.min(20, box.width / 2),
+        box.y + Math.min(20, box.height / 2));
+      await page.mouse.wheel(deltaX, deltaY);
+      await settle();
     }
-    await page.keyboard.up('Space');
+    async function selectedCard() {
+      return page.evaluate(() => {
+        const card = document.querySelector('.lwp-card-selected');
+        return {
+          href: card && card.getAttribute('href'),
+          focused: card === document.activeElement,
+          outlined: card && getComputedStyle(card).outlineStyle,
+        };
+      });
+    }
+    async function wheelDefaultPrevented(locator, deltaY, modifier, deltaX = 0) {
+      await page.evaluate(() => {
+        window.__lwpWheelDefaultPrevented = null;
+        document.addEventListener('wheel', event => {
+          window.__lwpWheelDefaultPrevented = event.defaultPrevented;
+        }, {once: true});
+      });
+      if (modifier) await page.keyboard.down(modifier);
+      await wheelOnCard(locator, deltaY, deltaX);
+      if (modifier) await page.keyboard.up(modifier);
+      return page.evaluate(() => window.__lwpWheelDefaultPrevented);
+    }
+    for (const [file, hash, selector] of [['index.html', '', '.article-card'],
+      ['a.html', '#series', '.series-list a.series-link'],
+      ['a.html', '#contents', '.lwp-unit-index-link']]) {
+      await open(file, hash);
+      const cards = page.locator(selector);
+      const hrefs = await cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('href')));
+      assert.ok(hrefs.length >= 3, 'wheel fixture needs three cards: ' + selector);
+      const beforeUrl = page.url();
+      await wheelOnCard(cards.nth(0), 400);
+      assert.deepEqual(await selectedCard(), {href: hrefs[0], focused: true, outlined: 'solid'},
+        'wheel selects, but does not activate, the first ' + selector + ' card');
+      assert.equal(page.url(), beforeUrl, 'wheel must not follow the selected card');
+      await wheelOnCard(cards.nth(0), 400);
+      assert.deepEqual(await selectedCard(), {href: hrefs[1], focused: true, outlined: 'solid'},
+        'wheel moves one ' + selector + ' card forward');
+      await wheelOnCard(cards.nth(1), -400);
+      assert.deepEqual(await selectedCard(), {href: hrefs[0], focused: true, outlined: 'solid'},
+        'reverse wheel moves one ' + selector + ' card backward');
+    }
+    for (const [file, hash, selector] of [['index.html', '', '.article-card'],
+      ['a.html', '#series', '.series-list a.series-link'],
+      ['a.html', '#contents', '.lwp-unit-index-link']]) {
+      await open(file, hash);
+      const cards = page.locator(selector);
+      const count = await cards.count();
+      await cards.nth(0).focus();
+      assert.equal(await wheelDefaultPrevented(cards.nth(0), -400), false,
+        'wheel above a keyboard-focused first ' + selector + ' card must remain native');
+      await cards.nth(count - 1).focus();
+      assert.equal(await wheelDefaultPrevented(cards.nth(count - 1), 400), false,
+        'wheel below a keyboard-focused last ' + selector + ' card must remain native');
+    }
+    for (const [file, hash, selector] of [['index.html', '', '.article-card'],
+      ['a.html', '#series', '.series-list a.series-link'],
+      ['a.html', '#contents', '.lwp-unit-index-link']]) {
+      await open(file, hash);
+      const cards = page.locator(selector);
+      for (const modifier of ['Control', 'Meta', 'Shift', 'Alt']) {
+        assert.equal(await wheelDefaultPrevented(cards.nth(0), 400, modifier), false,
+          modifier + ' wheel over ' + selector + ' must remain native');
+        assert.deepEqual(await selectedCard(), {href: null, focused: false, outlined: null},
+          modifier + ' wheel over ' + selector + ' must not select a card');
+      }
+    }
+    await open('index.html');
+    const diagonalCards = page.locator('.article-card');
+    const diagonalPrevented = await diagonalCards.nth(0).evaluate(card => {
+      const event = new WheelEvent('wheel', {
+        bubbles: true, cancelable: true, deltaX: 400, deltaY: 100,
+      });
+      card.dispatchEvent(event);
+      return event.defaultPrevented;
+    });
+    assert.equal(diagonalPrevented, false,
+      'a horizontally dominant wheel over a card must remain native');
+    assert.deepEqual(await selectedCard(), {href: null, focused: false, outlined: null},
+      'a horizontally dominant wheel must not select a card');
+
+    async function spaceStartsCurrentCardJourney(changeSlide) {
+      await open('a.html', '#contents');
+      const contentsCards = page.locator('.lwp-unit-index-link');
+      await wheelOnCard(contentsCards.nth(0), 400);
+      if (changeSlide) await press('PageDown');
+      else await page.evaluate(() => {
+        const slide = document.getElementById('series');
+        scrollTo({top: scrollY + slide.getBoundingClientRect().top, behavior: 'instant'});
+      });
+      await settle();
+      const seriesCards = page.locator('.series-list a.series-link');
+      const firstHref = await seriesCards.nth(0).getAttribute('href');
+      await press('Space');
+      assert.deepEqual(await selectedCard(), {href: firstHref, focused: true, outlined: 'solid'},
+        'Space must start the card journey after its former card loses focus');
+    }
+    await spaceStartsCurrentCardJourney(true);
+    await spaceStartsCurrentCardJourney(false);
+    await open('index.html');
+    let indexCards = page.locator('.article-card');
+    await indexCards.nth(1).focus();
+    assert.equal(await page.locator('#navPrev').getAttribute('aria-disabled'), 'false',
+      'native focus on an interior index card enables Previous');
+    assert.equal(await page.locator('#navNext').getAttribute('aria-disabled'), 'false',
+      'native focus on an interior index card keeps Next enabled');
+    await indexCards.nth((await indexCards.count()) - 1).focus();
+    assert.equal(await page.locator('#navNext').getAttribute('aria-disabled'), 'true',
+      'native focus on the final index card disables Next');
+    console.log('Wheel card cursor and native boundaries OK');
+
+    await open();
+    await page.evaluate(() => {
+      for (let i = 0; i < 8; i++) document.body.dispatchEvent(new KeyboardEvent('keydown', {
+        key: ' ', code: 'Space', repeat: i > 0, bubbles: true, cancelable: true,
+      }));
+    });
     await settle();
     const held = await state();
-    assert.ok(held.active >= 1 && held.active <= 2, 'held Space must use the 150ms cooldown: ' + JSON.stringify(held));
+    assert.equal(held.active, 1, 'a held Space burst must use the 150ms cooldown: ' + JSON.stringify(held));
     console.log('Held Space: ' + JSON.stringify(held));
 
     await open();

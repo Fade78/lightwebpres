@@ -2366,12 +2366,15 @@ notes. Do not put confidential content there.
 **Le parcours éditorial n'est pas chaque geste.** Space et Shift+Space
 déplacent d'un « coup » dans la lecture bornée : une fiche sur une page
 d'article, puis les cartes sur la fiche `series-nav`, puis les incréments
-d'une fiche plus haute que l'écran (§9.3.5). Le clic gauche/droit conserve
-ce parcours naturel, tandis que PageDown/PageUp et les boutons prev/next
-changent directement de fiche ; sur la page d'index, ces touches et boutons
-déplacent d'une carte. Les quatre flèches et la molette restent le
-défilement natif de la page, sauf lorsqu'une surface au premier plan ou un
-tableau local possède le geste.
+d'une fiche plus haute que l'écran (§9.3.5). Sur une page d'article, un clic
+de fond gauche/droit change directement de fiche ; sur l'index, il déplace une
+carte. PageDown/PageUp et les boutons prev/next changent aussi directement de
+fiche, ou de carte sur l'index. Les quatre flèches restent le défilement natif
+de la page. La molette le reste hors des listes de cartes de l'index,
+`series-nav` et `unit-index` : au-dessus d'une telle liste, son axe vertical
+sélectionne une carte voisine sans la suivre, puis retrouve le défilement natif
+à la première ou dernière carte. Une surface au premier plan ou un tableau
+local possède toujours son geste.
 
 La page d'index a le même pack présentateur que les articles — mêmes gestes
 souris, même partage (§9.3.4), même aide — mais ses cartes sont le parcours
@@ -2380,8 +2383,8 @@ inerte, Home et Ctrl/Cmd+Home reviennent en haut de page au lieu de quitter
 l'index, et la portée « Fiche » du partage est désactivée (§9.3.4).
 
 **La cible reste visible.** À la fin de chaque action de navigation, l'objet
-qu'elle sélectionne reste dans la fenêtre. Une carte de l'index ou de
-`series-nav` qui tient dans la fenêtre est entièrement visible, avec une
+qu'elle sélectionne reste dans la fenêtre. Une carte de l'index, de
+`series-nav` ou de `unit-index` qui tient dans la fenêtre est entièrement visible, avec une
 marge de 24 px quand la place le permet ; le focus ne doit pas confier ce
 placement au `scroll-behavior` du navigateur, qui peut laisser la carte coupée
 pendant son animation. Une fiche plus haute que la fenêtre est l'exception
@@ -2464,9 +2467,10 @@ affiche la durée active en millisecondes et l'action alterne entre la valeur
 configurée et `0`; elle ne modifie pas les sources. La touche reste active
 quand le menu est ouvert, comme les autres actions qu'il affiche.
 
-**Souris** : clic gauche sur le contenu = slide suivant, clic droit =
-slide précédent (deux boutons distincts, sans visée) — sur l'index, un
-pas de plus ou de moins dans le parcours des cartes. Le clic gauche
+**Souris** : clic gauche sur le fond d'une page d'article = slide suivante,
+clic droit = slide précédente (deux boutons distincts, sans visée) — sur
+l'index, un pas de plus ou de moins dans le parcours des cartes. Un clic gauche
+direct sur une carte suit son lien. Le clic gauche
 est **instantané** — il n'a jamais de latence artificielle. Le pas
 d'une fiche à l'autre est un **glissé de la durée configurée** (200 ms par
 défaut ; animation propre au deck, jamais le `scroll-behavior` du navigateur,
@@ -2485,7 +2489,9 @@ porte le geste que les navigateurs exigent pour `requestFullscreen`,
 refusé depuis tout évènement souris non-gauche — B37). Le même
 deux-temps avec un **clic droit** va à l'**index**. En plein
 écran, le bouton du milieu sort sans armer de geste : le clic qui
-suit a son sens ordinaire. La molette, elle, ne fait que défiler ;
+suit a son sens ordinaire. La molette défile hors des listes de cartes ; sur
+une liste d'index, `series-nav` ou `unit-index`, elle sélectionne la carte
+voisine sans l'ouvrir et reprend le défilement à chaque borne ;
 le bouton ⛶ et F restent des entrées directes.
 
 En plein écran, les clics gauche et droit obéissent au même modèle
@@ -3071,8 +3077,8 @@ The override mechanism below applies to multipage output. Combined-HTML mode
 requires any local `templates/nav.js` to match the built-in runtime (§11.3.8).
 
 Le JavaScript de navigation gère :
-- Le défilement natif de la page (flèches et molette) et la navigation
-  explicite entre slides (PageUp/PageDown, boutons)
+- Le défilement natif de la page (flèches et molette hors listes de cartes) et
+  la navigation explicite entre slides (PageUp/PageDown, boutons et clics de fond)
 - Les boutons prev/next/home
 - Les nav-dots (points de navigation)
 - La détection de la slide courante au scroll
@@ -3081,6 +3087,8 @@ Le JavaScript de navigation gère :
    carte par carte sur la fiche series-nav, puis défilement par incréments
    sur une fiche plus grande que l'écran (§9.3.5) — et, sur l'index, carte
    par carte à travers toute la liste (même JS, même parcours)
+- Le curseur de carte à la molette sur les listes d'index, `series-nav` et
+  `unit-index`, sans activation et avec retour au défilement natif aux bornes
 - Les raccourcis de bord de document : Home vers le début de la page,
   Ctrl/Cmd+Home vers l'index, et End/Ctrl/Cmd+End vers la dernière slide
 - **Tout le pack présentateur** (§8.4), arrivé après cette liste et qui en
@@ -3157,13 +3165,16 @@ portée « Fiche » est désactivée (pas de fiche courante) :
 #### 9.3.5 Parcours (défilement et navigation explicite)
 
 Les quatre flèches et la molette sont des gestes de lecture : hors d'une
-surface au premier plan ou d'une zone locale, ils gardent le défilement natif
-du navigateur et ne changent pas la fiche. Les flèches horizontales gardent
-également leur éventuel défilement horizontal natif. Une surface focalisée
-conserve la priorité décrite ci-dessus ; un tableau en mode `scroll` ne laisse
-pas son défilement se propager à la page. Un écran de pause n'est pas une
-surface de lecture : la molette y est consommée et ne déplace pas la fiche
-qu'il masque.
+surface au premier plan, d'une zone locale ou d'une liste de cartes, ils
+gardent le défilement natif du navigateur et ne changent pas la fiche. Sur une
+liste de l'index, `series-nav` ou `unit-index`, la molette verticale non
+modifiée avance ou recule d'une carte, garde une sélection visuelle et ne suit
+pas le lien. À la première ou dernière carte, elle ne consomme plus le geste et
+le navigateur défile normalement. Les flèches horizontales gardent également
+leur éventuel défilement horizontal natif. Une surface focalisée conserve la
+priorité décrite ci-dessus ; un tableau en mode `scroll` ne laisse pas son
+défilement se propager à la page. Un écran de pause n'est pas une surface de
+lecture : la molette y est consommée et ne déplace pas la fiche qu'il masque.
 
 PageDown et PageUp changent directement de fiche sur un article, sans parcourir
 les cartes ni les incréments internes d'une fiche longue. Avant le changement,

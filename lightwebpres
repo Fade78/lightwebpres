@@ -1385,7 +1385,7 @@ LANG_FR = r'''{
     "help_jump_keys": "0&ndash;9 + Entr&eacute;e",
     "help_mouse_keys": "Souris / Molette",
     "help_jump": "Aller à la slide N (puis Entrée)",
-    "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : armer l'entrée (puis clic gauche) ou quitter le plein écran · molette : défiler",
+    "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : armer l'entrée (puis clic gauche) ou quitter le plein écran · molette verticale sans modificateur sur une carte disponible : sélectionner · ailleurs et aux bornes : défiler",
     "help_touch_home": "",
     "help_touch_index": "Menu : Retour à l'index",
     "help_touch_edges": "",
@@ -1595,7 +1595,7 @@ LANG_EN = r'''{
     "help_jump_keys": "0&ndash;9 + Enter",
     "help_mouse_keys": "Mouse / Wheel",
     "help_jump": "Jump to slide N (then Enter)",
-    "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · wheel: scroll",
+    "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · unmodified vertical wheel on an available card: select · elsewhere and at boundaries: scroll",
     "help_touch_home": "",
     "help_touch_index": "Menu: Back to index",
     "help_touch_edges": "",
@@ -3528,9 +3528,9 @@ THEME_COMPONENTS = [
         ThemeProp('series-nav.link.rule-fg',    PROP_COLOR,  'nav',      css='border-color'),
         ThemeProp('series-nav.link.rule-width', PROP_LENGTH, '2px',       css='border-width'),
         ThemeProp('series-nav.link.ring',       PROP_COLOR,  'nav',      css='outline-color',
-                  selector='.series-link:focus-visible'),
+                  selector='.series-link:focus-visible, .series-link.lwp-card-selected'),
         ThemeProp('series-nav.link.ring-width', PROP_LENGTH, '3px',       css='outline-width',
-                  selector='.series-link:focus-visible'),
+                  selector='.series-link:focus-visible, .series-link.lwp-card-selected'),
     ]),
     ThemeComponent('series-nav.label', '.series-label', [
         ThemeProp('series-nav.label.fg',        PROP_COLOR,  'ink-quiet', css='color'),
@@ -3640,9 +3640,9 @@ THEME_COMPONENTS = [
         ThemeProp('card.rule-fg-hover', PROP_COLOR,  'mark',      css='border-color',
                   selector='.article-card:hover'),
         ThemeProp('card.ring',          PROP_COLOR,  'nav',       css='outline-color',
-                  selector='.article-card:focus-visible'),
+                  selector='.article-card:focus-visible, .article-card.lwp-card-selected'),
         ThemeProp('card.ring-width',    PROP_LENGTH, '3px',       css='outline-width',
-                  selector='.article-card:focus-visible'),
+                  selector='.article-card:focus-visible, .article-card.lwp-card-selected'),
     ]),
     ThemeComponent('card.label', '.article-number', [
         ThemeProp('card.label.fg',        PROP_COLOR,  'ink-quiet', css='color'),
@@ -8774,10 +8774,13 @@ html:not([data-lwp-table-mode]) body[data-lwp-table-mode="scroll"] .lwp-table-vi
   border-style: solid;
   transition: transform 0.15s, box-shadow 0.15s;
 }
-.series-link:hover, .series-link:focus-visible {
+.series-link:hover, .series-link:focus-visible, .series-link.lwp-card-selected {
   transform: translateY(-2px);
 }
-.series-link:focus-visible { outline-style: solid; outline-offset: 2px; }
+.series-link:focus-visible, .series-link.lwp-card-selected {
+  outline-style: solid;
+  outline-offset: 2px;
+}
 /* The explicit card reveal uses scrollIntoView; keep its target clear of
    the viewport edge so the lower navigation selector cannot cover it. */
 .series-link, .article-card { scroll-margin-block: 24px; }
@@ -8829,7 +8832,10 @@ html:not([data-lwp-table-mode]) body[data-lwp-table-mode="scroll"] .lwp-table-vi
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
-.lwp-unit-index-link:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.lwp-unit-index-link:focus-visible, .lwp-unit-index-link.lwp-card-selected {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
 .lwp-unit-index-empty { padding-block: 0.65em; }
 
 /* --- Navigation chrome. The opacities below fade a control's glyph, not
@@ -9579,7 +9585,10 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
 .article-card:hover {
   transform: translateY(-2px);
 }
-.article-card:focus-visible { outline-style: solid; outline-offset: 2px; }
+.article-card:focus-visible, .article-card.lwp-card-selected {
+  outline-style: solid;
+  outline-offset: 2px;
+}
 .article-number { margin-bottom: 6px; }
 .article-title { margin-bottom: 6px; }
 .article-desc { margin-bottom: 8px; }
@@ -11232,9 +11241,8 @@ document.addEventListener('DOMContentLoaded', function() {
   var STEP_COOLDOWN_MS = 150;
   // Index into the keyboard-reachable cards, in document order — -1 means
   // none focused yet. On an article it indexes into the CURRENT slide's
-  // links (series-nav cards + the "back to index" link); it is reset on
-  // every slide change (goTo) and only ever non-empty on the
-  // series-nav slide. On the index there are no slides, and the page's
+  // links (series-nav cards or unit-index links); it is reset on every
+  // slide change (goTo). On the index there are no slides, and the page's
   // own article cards ARE the journey: the same variable, the same
   // focus, the list below.
   //
@@ -11853,6 +11861,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isIndex) {
       var previousCard = focusedCard >= 0 ? indexCards[focusedCard] : null;
       if (previousCard) previousCard.blur();
+      clearNavigableCardSelection();
       indexCards = allIndexCards.filter(function (card) {
         return articleMatchesTag(card, selectedTag);
       });
@@ -12982,7 +12991,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var visible = currentVisible();
     if (visible !== current) {
       current = visible;
-      focusedCard = -1;
+      clearNavigableCardFocus();
       recordSlideInUrl(visible);
       updateUI();
     }
@@ -13101,7 +13110,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (visible < 0) return;
     if (visible !== current) {
       current = visible;
-      focusedCard = -1;
+      clearNavigableCardFocus();
       recordSlideInUrl(current);
       updateUI();
     }
@@ -13151,7 +13160,7 @@ document.addEventListener('DOMContentLoaded', function() {
     idx = Math.max(0, Math.min(slides.length - 1, idx));
     if (idx === current && isScrolling) return;
     current = idx;
-    focusedCard = -1;
+    clearNavigableCardFocus();
     if (readingRuntime) readingRuntime.navigate(slides[idx]);
     recordSlideInUrl(idx);
     var targetY = slides[idx].getBoundingClientRect().top
@@ -13180,17 +13189,46 @@ document.addEventListener('DOMContentLoaded', function() {
     return Array.prototype.slice.call(slides[idx].querySelectorAll(
       '.series-list a.series-link, .lwp-unit-index a.lwp-unit-index-link'));
   }
+  function clearNavigableCardSelection() {
+    Array.prototype.forEach.call(
+      contentRoot().querySelectorAll('.lwp-card-selected'), function (card) {
+        card.classList.remove('lwp-card-selected');
+      });
+  }
+  function clearNavigableCardFocus() {
+    var active = document.activeElement;
+    if (active && active.matches && active.matches(
+        '.article-card, .series-link, .lwp-unit-index-link')) active.blur();
+    clearNavigableCardSelection();
+    focusedCard = -1;
+  }
+  function selectNavigableCard(card) {
+    clearNavigableCardSelection();
+    card.classList.add('lwp-card-selected');
+  }
   document.addEventListener('focusin', function (event) {
-    if (!event.target.matches('.lwp-unit-index-link')) return;
-    var idx = slides.indexOf(event.target.closest('.slide'));
+    var card = event.target;
+    if (isIndex) {
+      if (!card.matches('.article-card')) return;
+      var indexCard = indexCardList().indexOf(card);
+      if (indexCard < 0) return;
+      focusedCard = indexCard;
+      updateUI();
+      return;
+    }
+    if (!card.matches('.series-link, .lwp-unit-index-link')) return;
+    var idx = slides.indexOf(card.closest('.slide'));
     if (idx < 0) return;
+    var cards = slideCards(idx);
+    var cardIndex = cards.indexOf(card);
+    if (cardIndex < 0) return;
     // Tab and pointer focus join the same cursor as remote card stepping.
     if (idx !== current) {
       current = idx;
       recordSlideInUrl(idx);
       updateUI();
     }
-    focusedCard = slideCards(idx).indexOf(event.target);
+    focusedCard = cardIndex;
   });
 
   // The index page's own cards — the whole journey, where on an article
@@ -13203,6 +13241,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   var navigableCardViewportMargin = 24;
   function focusNavigableCard(card) {
+    selectNavigableCard(card);
     card.focus({ preventScroll: true });
     card.scrollIntoView({ block: 'nearest', inline: 'nearest',
       behavior: 'instant' });
@@ -13223,6 +13262,47 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   function clearIndexFocus() {
     if (focusedCard >= 0) { indexCards[focusedCard].blur(); focusedCard = -1; }
+    clearNavigableCardSelection();
+  }
+
+  function wheelCardList(target) {
+    if (!target || !target.closest) return null;
+    var cards;
+    if (isIndex) {
+      if (!target.closest('.article-card')) return null;
+      cards = indexCardList();
+      return cards.length ? {cards: cards, slide: -1} : null;
+    }
+    var list = target.closest('.series-list, .lwp-unit-index');
+    if (!list) return null;
+    var slide = list.closest('.slide');
+    var slideIndex = slides.indexOf(slide);
+    if (slideIndex < 0 || slide.hidden) return null;
+    cards = slideCards(slideIndex);
+    return cards.length ? {cards: cards, slide: slideIndex} : null;
+  }
+  function stepWheelCard(target, direction) {
+    var list = wheelCardList(target);
+    if (!list) return false;
+    var sameSlide = isIndex || list.slide === current;
+    var cursor = sameSlide ? focusedCard : -1;
+    var next = cursor + direction;
+    if (next < 0 || next >= list.cards.length) return false;
+    // A high-resolution wheel sends several events for one intent. It owns
+    // those events while a card remains available, but advances only once.
+    if (stepCooldownActive) return true;
+    if (!sameSlide) {
+      clearNavigableCardSelection();
+      current = list.slide;
+      focusedCard = -1;
+      recordSlideInUrl(current);
+    }
+    runStepped(function () {
+      focusedCard = next;
+      focusNavigableCard(list.cards[focusedCard]);
+      updateUI();
+    });
+    return true;
   }
 
   // .slide keeps a viewport min-height independent of manual content zoom
@@ -13276,9 +13356,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // The natural keyboard journey (in this order, each one only kicking in
-  // once the previous is exhausted): slide to slide, then — on the
-  // series-nav slide specifically — card to card (the explicit reveal in
-  // focusNavigableCard doubles as "scroll a series-nav slide taller than
+  // once the previous is exhausted): slide to slide, then cards on a
+  // series-nav or unit-index slide (the explicit reveal in
+  // focusNavigableCard doubles as "scroll a navigation slide taller than
   // the viewport"), then, for any other
   // slide taller than the viewport (typically the closing full-article),
   // scroll it down in increments before moving on. Enter needs no extra
@@ -13289,20 +13369,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // through the whole list, and the end of the list is the end of the
   // journey. The same focus ring, the same Enter-to-follow, and the
   // nav buttons are disabled at the ends just as on an article.
-  function stepForward(fromClick) {
+  function stepForward(fromTableClick) {
     if (isIndex) { stepIndexCards(1); return; }
     if (!slides.length) return;
-    if (fromClick && !isScrolling) {
-      var visible = currentVisible();
-      if (visible !== current) {
-        current = visible;
-        focusedCard = -1;
-      }
-    }
-    // A second click during a glide keeps the established two-click
-    // behaviour: jump to the slide beyond the glide target. At rest, all
-    // other forward paths use the same natural journey below.
-    if (fromClick && isScrolling) {
+    if (fromTableClick && !isScrolling) syncCurrentToViewport();
+    if (fromTableClick && isScrolling) {
       goTo(current + 1, true);
       return;
     }
@@ -13313,7 +13384,10 @@ document.addEventListener('DOMContentLoaded', function() {
       focusNavigableCard(cards[focusedCard]);
       return;
     }
-    if (focusedCard >= 0 && cards.length) { cards[focusedCard].blur(); }
+    if (focusedCard >= 0 && cards.length) {
+      cards[focusedCard].blur();
+      clearNavigableCardSelection();
+    }
     var slide = slides[current];
     if (overflowsViewport(slide) && !atSlideBottom(slide)) {
       scrollWithinSlide(1, slide);
@@ -13323,26 +13397,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // with the clamped current index: on an overflowing last slide that
     // would animate back to the slide's top instead of staying at its end.
     if (current >= slides.length - 1) {
+      clearNavigableCardSelection();
       focusedCard = -1;
       return;
     }
     goTo(current + 1);
   }
 
-  function stepBackward(fromClick) {
+  function stepBackward() {
     if (isIndex) { stepIndexCards(-1); return; }
     if (!slides.length) return;
-    if (fromClick && !isScrolling) {
-      var visible = currentVisible();
-      if (visible !== current) {
-        current = visible;
-        focusedCard = -1;
-      }
-    }
-    if (fromClick && isScrolling) {
-      goTo(current - 1, true);
-      return;
-    }
     if (alignPartiallyVisibleSlide(current, -1)) return;
     var cards = slideCards(current);
     if (focusedCard > 0) {
@@ -13353,6 +13417,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (focusedCard === 0) {
       focusedCard = -1;
       cards[0].blur();
+      clearNavigableCardSelection();
     }
     var slide = slides[current];
     if (overflowsViewport(slide) && !atSlideTop(slide)) {
@@ -13374,7 +13439,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateUI();
   }
 
-  function changeSlide(direction) {
+  function changeSlide(direction, instant) {
     if (isIndex) {
       // The index has no slides: its buttons and page keys move through
       // article cards, while its arrow keys retain native page scrolling.
@@ -13383,7 +13448,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     var target = syncCurrentToViewport() + direction;
     if (target < 0 || target >= slides.length) return;
-    goTo(target);
+    goTo(target, instant);
   }
 
   function setNavDisabled(button, disabled) {
@@ -13978,7 +14043,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var best = currentVisible();
     if (best !== current) {
       current = best;
-      focusedCard = -1;
+      clearNavigableCardFocus();
       // The other half of recordSlideInUrl's job, and the half that was
       // missing. This runs 80ms after the last scroll event, so it fires
       // on a settled position rather than on every frame of a scroll.
@@ -14465,6 +14530,15 @@ document.addEventListener('DOMContentLoaded', function() {
     viewport.scrollLeft += (e.deltaX || (e.shiftKey ? e.deltaY : 0)) * unit;
     if (!e.shiftKey) viewport.scrollTop += e.deltaY * unit;
   }, {passive: false});
+  document.addEventListener('wheel', function (e) {
+    // Modal and table listeners run first. Only vertical, unmodified wheel
+    // input over a navigation list gets the card cursor; all other reading
+    // gestures remain native page scrolling.
+    if (e.defaultPrevented || !e.deltaY || Math.abs(e.deltaY) <= Math.abs(e.deltaX)
+        || e.ctrlKey || e.metaKey
+        || e.shiftKey || e.altKey) return;
+    if (stepWheelCard(e.target, e.deltaY > 0 ? 1 : -1)) e.preventDefault();
+  }, {passive: false});
   // An outside click closes an open dialog instead of activating whatever is
   // underneath it. A click on another overlay opener is a deliberate
   // transition, though: dismiss the old overlay and let the target's own
@@ -14580,11 +14654,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // word under the pointer by the time this event fires, and blocking
     // on it would make the mid-glide jump unreachable with the mouse.
     if (!tableClick && e.detail < 2 && endedADrag(e)) return;
-    // At rest, the click follows the same natural journey as Space:
-    // cards first, then bounded scrolling inside a tall slide, then the
-    // next slide. A click during a glide is the deliberate two-click
-    // shortcut handled by stepForward(true).
-    stepForward(true);
+    // Table cells retain their bounded reading journey; only the surrounding
+    // article background changes slides directly.
+    if (tableClick) stepForward(true);
+    else changeSlide(1, isScrolling);
     // The second click of a quick pair is also the platform's own
     // double-click, which selects the word under the pointer — on the
     // card the deck has just left. That selection is a ghost: the
@@ -14634,10 +14707,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // appear.
     if (Date.now() < fsIntentUntil) return;
     e.preventDefault();
-    // The mirror of the left button: at rest it follows the same bounded
-    // journey, while a right-click during a glide returns to the slide the
-    // reader left.
-    stepBackward(true);
+    // The mirror of the left button: article background goes straight to the
+    // preceding slide; the index still moves one card backward.
+    changeSlide(-1, isScrolling);
   });
   // The middle button is the fullscreen gatekeeper. Browsers refuse
   // requestFullscreen() from a non-left event (B37), so entry is a

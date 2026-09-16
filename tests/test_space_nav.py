@@ -1,4 +1,4 @@
-"""Space follows the existing deck journey without stealing control activation."""
+"""Space and the card-list wheel select links without activating them."""
 
 import os
 from pathlib import Path

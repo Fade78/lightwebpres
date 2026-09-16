@@ -51,8 +51,11 @@ from the product name and the official `LightWebPres` documentation kit. `kit
 show` validates its kit-only selector before loading catalogue resources, so a
 malformed Commons preset cannot obscure that grammar error.
 
-Arrow keys and the wheel now retain native reading scroll instead of changing
-slides. PageUp/PageDown and the navigation buttons change slides directly;
+Arrow keys and the wheel retain native reading scroll instead of changing
+slides. Over a series index, `series-nav` or `unit-index` list, vertical wheel
+input selects one adjacent card without opening it and returns to native scroll
+at either edge. PageUp/PageDown, navigation buttons and article-background
+clicks change slides directly; index-background clicks retain the card journey.
 Space and Shift+Space remain the bounded reading journey for long slides and
 navigation cards. The separate `page.block-max` property was removed: content
 blocks now share the responsive `page.content-max` measure.

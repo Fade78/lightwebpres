@@ -3,13 +3,14 @@ browser keyboard-driven walk (not just string assertions against the
 generated HTML), covering native reading scroll, direct page navigation and
 the bounded Space journey:
 
-  - Arrow keys and the wheel scroll the page without changing slides.
+   - Arrow keys and the wheel outside card lists scroll the page without changing slides.
   - PageUp/PageDown and the buttons change slides directly, including across
     a long full-article and a partially visible adjacent slide.
   - A final overflowing slide stays at its bottom when native ArrowDown has
     no further page to scroll.
-  - Space and Shift+Space step through series-nav cards and bounded long-slide
-    content; Enter on a focused card follows its article.
+   - Space and Shift+Space step through series-nav cards and bounded long-slide
+     content; background clicks change article slides directly; Enter on a
+     focused card follows its article.
    - Home returns to the beginning of the current page, Ctrl/Cmd+Home returns
      to the series index, and End/Ctrl/Cmd+End reaches the far edge.
    - Resizing the viewport realigns the active slide after its frame changes.

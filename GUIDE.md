@@ -1687,6 +1687,10 @@ retain the browser's Space/Shift+Space scrolling. Buttons, form fields and
 editable text keep their own Space behaviour, and Ctrl/Cmd/Alt+Space is not a
 deck shortcut. Holding Space uses the repeat cooldown. PageUp/PageDown and the
 navigation buttons change slides directly rather than entering that journey.
+Over one of those card lists, the vertical wheel selects one adjacent card,
+keeps its outline visible, and never opens it; Enter or a direct left click
+follows the link. At the first and last card, the wheel returns to native page
+scrolling. Elsewhere, the wheel always keeps its native reading role.
 A second mouse click during a glide remains a mouse-specific jump, not a
 keyboard shortcut.
 
@@ -1771,19 +1775,22 @@ assume a long-form article fits on one physical sheet.
 
 | Gesture | Action |
 |---|---|
-| Single click on content | Next slide (configured glide, 200ms default) |
-| Right-click on content | Previous slide (configured glide, 200ms default) |
+| Single left click on article background | Next slide (configured glide, 200ms default) |
+| Right-click on article background | Previous slide (configured glide, 200ms default) |
+| Vertical wheel over an index, series-navigation or unit-index list | Select the adjacent card without opening it; native scrolling resumes at either edge |
 | Click during the glide | Jump straight to that click's target |
 | Middle button anywhere | Exit fullscreen on its own; to enter, press the middle button, then click left inside the window |
 | Click in the bottom-right corner | Toggle the navigation buttons (hide/show) |
 
 Clicks on links, images, buttons, and the share popover are not
-intercepted — they keep working. The right-click to go back is the
+intercepted — they keep working. A direct left click on a card follows its
+link; an index-background click still moves through the card journey. The
+right-click to go back is the
 remote-mouse use case: the speaker with a wireless mouse in hand
 left-clicks to advance, right-clicks to go back — two distinct buttons,
 no aiming. The native context menu is suppressed on slide content so
 right-click is a clean back gesture. A click lands instantly on the
-next card and glides to it over the configured duration (200 ms by default);
+next slide and glides to it over the configured duration (200 ms by default);
 a click that arrives while the
 deck is still gliding does not wait — it jumps straight to its target,
 so two clicks in quick succession land two pages on, and a right-click
@@ -1791,8 +1798,8 @@ during the glide returns you to the card you left. The middle button
 only leaves fullscreen by itself: browsers refuse `requestFullscreen()`
 from any non-left event, so entering is a two-step gesture — middle
 button to arm the intent, then a left click inside the window (a right
-click in the same window goes to the index instead). The wheel itself
-keeps scrolling; the ⛶ button and F stay direct entries. Esc exits
+click in the same window goes to the index instead). Outside navigation lists,
+the wheel keeps scrolling; the ⛶ button and F stay direct entries. Esc exits
 fullscreen. The cursor hides after 1 second of idleness in fullscreen.
 A left click on an existing selection just dismisses the highlight —
 no step — and a right-click on a selection opens the browser's own

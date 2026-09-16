@@ -1,7 +1,8 @@
 // Playwright driver for keyboard navigation on an article page (nav.js,
-// TEMPLATE_NAV_JS): arrow keys and the wheel retain native reading scroll;
-// PageUp/PageDown and the navigation buttons change slides. Space keeps the
-// natural editorial journey for cards and long slides. Invoked by
+// TEMPLATE_NAV_JS): arrow keys and the wheel outside card lists retain native
+// reading scroll; PageUp/PageDown, navigation buttons and article background
+// clicks change slides. Space keeps the natural editorial journey for cards
+// and long slides. Invoked by
 // tests/test_keyboard_nav.py — not a standalone entry point.
 //
 // argv: <tallArticleUrl> <lastArticleUrl> <navArticleUrl> <heldArticleUrl>
@@ -533,7 +534,43 @@ async function main() {
     console.log('Enter-on-focused-card jump OK: navigated to ' + page.url());
     await page.close();
 
-    // --- 5. Regression: holding Space (native auto-repeat
+    // --- 5. A background mouse click on an article changes slides directly,
+    // rather than walking the selected series-nav card cursor. The index
+    // retains its separate card journey (covered by index_mouse_e2e). -----
+    page = await context.newPage();
+    collectConsoleErrors(page, consoleErrors);
+    page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
+    await page.goto(heldArticleUrl);
+    await page.waitForSelector('.nav-dots a');
+    await press(page, 'PageDown');
+    await press(page, 'PageDown');
+    await press(page, 'Space'); // select the first series-nav card
+    await page.mouse.click(20, 400);
+    await page.waitForTimeout(600);
+    idx = await activeDotIndex(page);
+    if (idx !== 3) {
+      fail('left background click on a selected series-nav card should move directly to slide 3, got ' + idx);
+    }
+    await page.close();
+
+    page = await context.newPage();
+    collectConsoleErrors(page, consoleErrors);
+    page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
+    await page.goto(heldArticleUrl);
+    await page.waitForSelector('.nav-dots a');
+    await press(page, 'PageDown');
+    await press(page, 'PageDown');
+    await press(page, 'Space'); // select the first series-nav card
+    await page.mouse.click(20, 400, { button: 'right' });
+    await page.waitForTimeout(600);
+    idx = await activeDotIndex(page);
+    if (idx !== 1) {
+      fail('right background click on a selected series-nav card should move directly to slide 1, got ' + idx);
+    }
+    console.log('background mouse clicks change article slides directly OK');
+    await page.close();
+
+    // --- 6. Regression: holding Space (native auto-repeat
     // fires keydown much faster than a human can perceive, ~20-30ms
     // apart) must not race straight through the card-focus states — the
     // exact bug a real user hit before nav.js's step cooldown existed.
