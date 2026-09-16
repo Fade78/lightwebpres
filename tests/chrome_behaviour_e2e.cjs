@@ -840,6 +840,26 @@ async function main() {
          + ' -> ' + deskAfter);
   }
 
+  // A hybrid device can expose a fine pointer while this particular gesture
+  // still comes from touch. The context menu must follow the pointer that
+  // produced it, not the page-wide media query.
+  const hybridTouchPrevented = await page.evaluate(() => {
+    const target = document.querySelectorAll('section.slide')[1]
+      .querySelector('h2, p');
+    const rect = target.getBoundingClientRect();
+    const init = {bubbles: true, cancelable: true, isPrimary: true,
+      pointerId: 73, pointerType: 'touch', button: 0,
+      clientX: rect.left + 10, clientY: rect.top + 10};
+    target.dispatchEvent(new PointerEvent('pointerdown', init));
+    const evt = new MouseEvent('contextmenu', {bubbles: true, cancelable: true});
+    target.dispatchEvent(evt);
+    target.dispatchEvent(new PointerEvent('pointerup', {...init, buttons: 0}));
+    return evt.defaultPrevented;
+  });
+  if (hybridTouchPrevented) {
+    fail('a touch context menu on a hybrid pointer was swallowed by the mouse binding');
+  }
+
   // 5f2. Right-click on a SELECTION belongs to the reader. A highlighted
   // passage is the reader's own text, and the right button on it asks
   // for the browser's menu — copy, copy link, search. Reported from the

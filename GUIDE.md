@@ -1690,7 +1690,11 @@ navigation buttons change slides directly rather than entering that journey.
 Over one of those card lists, the vertical wheel selects one adjacent card,
 keeps its outline visible, and never opens it; Enter or a direct left click
 follows the link. At the first and last card, the wheel returns to native page
-scrolling. Elsewhere, the wheel always keeps its native reading role.
+scrolling. A mouse-only reader can hold the left button for 500 ms on that list
+to follow the selected card, even if the pointer is still over another card;
+radial movement beyond 4 CSS px, text selection, modifiers, tables, competing
+help/fullscreen gestures, touch and pointer cancellation cancel the hold.
+Elsewhere, the wheel always keeps its native reading role.
 A second mouse click during a glide remains a mouse-specific jump, not a
 keyboard shortcut.
 
@@ -1778,6 +1782,7 @@ assume a long-form article fits on one physical sheet.
 | Single left click on article background | Next slide (configured glide, 200ms default) |
 | Right-click on article background | Previous slide (configured glide, 200ms default) |
 | Vertical wheel over an index, series-navigation or unit-index list | Select the adjacent card without opening it; native scrolling resumes at either edge |
+| 500 ms left press on a card list after wheel selection | Follow the selected card; movement, text selection, modifiers, tables, competing help/fullscreen gestures, touch and pointer cancellation cancel it |
 | Click during the glide | Jump straight to that click's target |
 | Middle button anywhere | Exit fullscreen on its own; to enter, press the middle button, then click left inside the window |
 | Click in the bottom-right corner | Toggle the navigation buttons (hide/show) |
@@ -1858,7 +1863,8 @@ that bar rather than the middle button: the middle button alone only exits
 fullscreen — entering is the two-step, middle button then a left click. With
 a mouse, clicking the corner (not a button) toggles their current visibility.
 
-Text selection, long press and the copy menu remain the browser's. The
+Touch long press, text selection and the copy menu remain the browser's everywhere;
+only the fine-pointer mouse gesture on a wheel-selected card list is intercepted. The
 navigation double tap is recognized from touch events themselves, not from
 the delayed clicks a browser synthesizes, so those clicks cannot advance the
 deck after the first tap has been restored.

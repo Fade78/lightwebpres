@@ -102,6 +102,15 @@ ${name === 'b' ? '<table id="scroll-table" style="min-width: 1600px"><tr><td>Wid
       await page.waitForFunction(title => document.title === title, key ? `Article ${key[0].toUpperCase()}` : 'Single document probe');
       await settle();
     }
+    async function wheelOnCard(locator, deltaY) {
+      await locator.scrollIntoViewIfNeeded();
+      const box = await locator.boundingBox();
+      assert.ok(box, 'the combined-output wheel target must be visible');
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, {steps: 3});
+      await page.mouse.wheel(0, deltaY);
+      await settle();
+      await page.waitForTimeout(700);
+    }
     await page.goto(base);
     await settle();
     await page.evaluate(() => {
@@ -109,6 +118,83 @@ ${name === 'b' ? '<table id="scroll-table" style="min-width: 1600px"><tr><td>Wid
       window.originalRoot = document.documentElement;
       window.originalMenu = document.getElementById('navMenu');
     });
+    // Combined output replaces the mounted document while routing. A long
+    // press must follow the wheel-selected card and suppress the trailing
+    // native click across that replacement, just as it does between pages.
+    // Select the technical tag so both fixture cards are visible; the normal
+    // default view intentionally hides the tagged second article.
+    await page.keyboard.press('l');
+    await page.locator('.tag-option[data-tag="technical"]').click();
+    await settle();
+    const combinedCards = page.locator('#lwp-series-view a.article-card:not([hidden])');
+    const combinedHrefs = await combinedCards.evaluateAll(nodes => nodes.map(node => node.getAttribute('href')));
+    assert.ok(combinedHrefs.length >= 2, 'the combined-output fixture needs two cards');
+    await wheelOnCard(combinedCards.nth(0), 400);
+    await wheelOnCard(combinedCards.nth(0), 400);
+    const combinedTarget = combinedHrefs[1];
+    const combinedNavigation = page.waitForFunction(hash => location.hash === hash, combinedTarget);
+    await page.mouse.down();
+    await page.waitForTimeout(550);
+    await page.mouse.up();
+    await combinedNavigation;
+    await settle();
+    assert.equal(await page.title(), 'Article B');
+    assert.equal(new URL(page.url()).hash, combinedTarget,
+      'combined long press follows the wheel-selected route');
+    await navigate();
+    // A route replacement resets the wheel debounce as well as the outgoing
+    // cursor. The first wheel in the returned index must not be swallowed.
+    await page.evaluate(() => {
+      window.__routeWheelResult = null;
+      const first = document.querySelector('#lwp-series-view a.article-card:not([hidden])');
+      first.dispatchEvent(new WheelEvent('wheel', {
+        bubbles: true, cancelable: true, deltaX: 0, deltaY: 400,
+      }));
+      let changes = 0;
+      const onHash = () => {
+        changes += 1;
+        if (changes === 1) {
+          location.hash = '#lwp/index';
+          return;
+        }
+        const returned = document.querySelector('#lwp-series-view a.article-card:not([hidden])');
+        returned.dispatchEvent(new WheelEvent('wheel', {
+          bubbles: true, cancelable: true, deltaX: 0, deltaY: 400,
+        }));
+        window.__routeWheelResult = {
+          href: returned.getAttribute('href'),
+          selected: returned.classList.contains('lwp-card-selected'),
+        };
+        window.removeEventListener('hashchange', onHash);
+      };
+      window.addEventListener('hashchange', onHash);
+      location.hash = '#lwp/a/a.html';
+    });
+    await page.waitForFunction(() => window.__routeWheelResult !== null);
+    await settle();
+    const routeWheelResult = await page.evaluate(() => window.__routeWheelResult);
+    assert.equal(routeWheelResult.selected, true,
+      'the first wheel after a combined route is accepted');
+    // A route change while the button is held invalidates the outgoing
+    // gesture. The next trusted click must not be quarantined as if a stale
+    // detached card had activated.
+    const pendingCards = page.locator('#lwp-series-view a.article-card:not([hidden])');
+    await wheelOnCard(pendingCards.nth(0), 400);
+    await wheelOnCard(pendingCards.nth(0), 400);
+    await page.mouse.down();
+    await page.waitForTimeout(100);
+    await navigate('a.html');
+    await page.mouse.move(5, 5, {steps: 3});
+    await page.waitForTimeout(550);
+    await page.mouse.up();
+    await settle();
+    assert.equal(new URL(page.url()).hash, route('a.html'),
+      'a route replacement cancels the outgoing hold');
+    await page.locator('#other').click();
+    await settle();
+    assert.equal(await page.title(), 'Article B',
+      'a post-replacement trusted click is not quarantined');
+    await navigate();
     await page.locator('#lwp-series-view a.article-card').first().click();
     await settle();
     assert.equal(await page.title(), 'Article A');

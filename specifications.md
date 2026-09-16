@@ -2491,7 +2491,12 @@ deux-temps avec un **clic droit** va à l'**index**. En plein
 écran, le bouton du milieu sort sans armer de geste : le clic qui
 suit a son sens ordinaire. La molette défile hors des listes de cartes ; sur
 une liste d'index, `series-nav` ou `unit-index`, elle sélectionne la carte
-voisine sans l'ouvrir et reprend le défilement à chaque borne ;
+voisine sans l'ouvrir et reprend le défilement à chaque borne ; après une telle
+sélection, un appui gauche maintenu 500 ms sur la liste suit la carte
+sélectionnée, même si le pointeur est resté sur une autre carte. Tout
+déplacement de plus de 4 px, une sélection de texte, un modificateur, un
+tableau, un pointeur tactile, l'aide, une intention de plein écran ou une
+annulation de pointeur annule cet appui ; le clic court garde son sens ordinaire.
 le bouton ⛶ et F restent des entrées directes.
 
 En plein écran, les clics gauche et droit obéissent au même modèle
@@ -3169,8 +3174,13 @@ surface au premier plan, d'une zone locale ou d'une liste de cartes, ils
 gardent le défilement natif du navigateur et ne changent pas la fiche. Sur une
 liste de l'index, `series-nav` ou `unit-index`, la molette verticale non
 modifiée avance ou recule d'une carte, garde une sélection visuelle et ne suit
-pas le lien. À la première ou dernière carte, elle ne consomme plus le geste et
-le navigateur défile normalement. Les flèches horizontales gardent également
+pas le lien. Un appui gauche maintenu 500 ms sur cette liste suit ensuite la
+carte sélectionnée ; il est réservé à une souris sur un pointeur fin et
+s'annule dès qu'un déplacement radial dépasse 4 px, sur sélection de texte, avec
+un modificateur, sur un tableau, au tactile, lors de l'aide, d'une intention de
+plein écran ou d'une annulation de pointeur. À la première ou
+dernière carte, la molette ne consomme plus le geste et le navigateur défile
+normalement. Les flèches horizontales gardent également
 leur éventuel défilement horizontal natif. Une surface focalisée conserve la
 priorité décrite ci-dessus ; un tableau en mode `scroll` ne laisse pas son
 défilement se propager à la page. Un écran de pause n'est pas une surface de

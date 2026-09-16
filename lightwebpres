@@ -1385,7 +1385,7 @@ LANG_FR = r'''{
     "help_jump_keys": "0&ndash;9 + Entr&eacute;e",
     "help_mouse_keys": "Souris / Molette",
     "help_jump": "Aller à la slide N (puis Entrée)",
-    "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : armer l'entrée (puis clic gauche) ou quitter le plein écran · molette verticale sans modificateur sur une carte disponible : sélectionner · ailleurs et aux bornes : défiler",
+    "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : armer l'entrée (puis clic gauche) ou quitter le plein écran · molette verticale sans modificateur sur une carte disponible : sélectionner · appui gauche de 500 ms sur sa liste : ouvrir la carte sélectionnée · ailleurs et aux bornes : défiler",
     "help_touch_home": "",
     "help_touch_index": "Menu : Retour à l'index",
     "help_touch_edges": "",
@@ -1595,7 +1595,7 @@ LANG_EN = r'''{
     "help_jump_keys": "0&ndash;9 + Enter",
     "help_mouse_keys": "Mouse / Wheel",
     "help_jump": "Jump to slide N (then Enter)",
-    "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · unmodified vertical wheel on an available card: select · elsewhere and at boundaries: scroll",
+    "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · unmodified vertical wheel on an available card: select · 500 ms left press on its list: open the selected card · elsewhere and at boundaries: scroll",
     "help_touch_home": "",
     "help_touch_index": "Menu: Back to index",
     "help_touch_edges": "",
@@ -11254,6 +11254,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // a card already inside the viewport "nearest", even when its lower edge
   // is underneath the breathing room wanted by the navigation selector.
   var focusedCard = -1;
+  var wheelCooldownActive = false;
+  var wheelCooldownTimer = null;
+  var WHEEL_COOLDOWN_MS = 150;
   var allIndexCards = isIndex
     ? Array.prototype.slice.call(contentRoot().querySelectorAll('.article-card')) : [];
   var indexCards = allIndexCards.slice();
@@ -11906,11 +11909,17 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function filterArticleCards() {
+    var hadWheelSelection = !!wheelSelectedCard;
+    if (hadWheelSelection) {
+      clearCardLongPress();
+      if (!isIndex) focusedCard = -1;
+    }
     articleCards.forEach(function (card) {
       var visible = articleMatchesTag(card, selectedTag);
       card.hidden = !visible;
       card.setAttribute('aria-hidden', visible ? 'false' : 'true');
     });
+    if (hadWheelSelection) clearNavigableCardSelection();
   }
 
   function refreshPresentationCards(focusedHref, focusedWasActive) {
@@ -13096,7 +13105,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (seriesViews && (seriesActivating || seriesPrinting)) return;
     if (isIndex) {
       if (focusedCard >= 0 && indexCards[focusedCard]) {
-        focusNavigableCard(indexCards[focusedCard]);
+        focusNavigableCard(indexCards[focusedCard],
+          wheelSelectedCard === indexCards[focusedCard]);
       }
       return;
     }
@@ -13187,13 +13197,24 @@ document.addEventListener('DOMContentLoaded', function() {
   // selection, including targets outside the active reading tag.
   function slideCards(idx) {
     return Array.prototype.slice.call(slides[idx].querySelectorAll(
-      '.series-list a.series-link, .lwp-unit-index a.lwp-unit-index-link'));
+      '.series-list a.series-link, .lwp-unit-index a.lwp-unit-index-link')).filter(
+        function (card) {
+          return !card.hidden && card.getAttribute('aria-hidden') !== 'true';
+        });
+  }
+  var wheelSelectedCard = null;
+  function clearWheelCooldown() {
+    if (wheelCooldownTimer) clearTimeout(wheelCooldownTimer);
+    wheelCooldownTimer = null;
+    wheelCooldownActive = false;
   }
   function clearNavigableCardSelection() {
+    clearWheelCooldown();
     Array.prototype.forEach.call(
       contentRoot().querySelectorAll('.lwp-card-selected'), function (card) {
         card.classList.remove('lwp-card-selected');
       });
+    wheelSelectedCard = null;
   }
   function clearNavigableCardFocus() {
     var active = document.activeElement;
@@ -13212,11 +13233,17 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!card.matches('.article-card')) return;
       var indexCard = indexCardList().indexOf(card);
       if (indexCard < 0) return;
+      if (wheelSelectedCard && wheelSelectedCard !== card && !cardLongPress) {
+        clearNavigableCardSelection();
+      }
       focusedCard = indexCard;
       updateUI();
       return;
     }
     if (!card.matches('.series-link, .lwp-unit-index-link')) return;
+    if (wheelSelectedCard && wheelSelectedCard !== card && !cardLongPress) {
+      clearNavigableCardSelection();
+    }
     var idx = slides.indexOf(card.closest('.slide'));
     if (idx < 0) return;
     var cards = slideCards(idx);
@@ -13240,8 +13267,9 @@ document.addEventListener('DOMContentLoaded', function() {
     return focusedCard;
   }
   var navigableCardViewportMargin = 24;
-  function focusNavigableCard(card) {
+  function focusNavigableCard(card, fromWheel) {
     selectNavigableCard(card);
+    wheelSelectedCard = fromWheel ? card : null;
     card.focus({ preventScroll: true });
     card.scrollIntoView({ block: 'nearest', inline: 'nearest',
       behavior: 'instant' });
@@ -13290,18 +13318,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (next < 0 || next >= list.cards.length) return false;
     // A high-resolution wheel sends several events for one intent. It owns
     // those events while a card remains available, but advances only once.
-    if (stepCooldownActive) return true;
+    // This cooldown is separate from Space/touch so a wheel immediately after
+    // another gesture is still allowed to choose a card.
+    if (wheelCooldownActive) return true;
     if (!sameSlide) {
       clearNavigableCardSelection();
       current = list.slide;
       focusedCard = -1;
       recordSlideInUrl(current);
     }
-    runStepped(function () {
-      focusedCard = next;
-      focusNavigableCard(list.cards[focusedCard]);
-      updateUI();
-    });
+    focusedCard = next;
+    focusNavigableCard(list.cards[focusedCard], true);
+    updateUI();
+    wheelCooldownActive = true;
+    wheelCooldownTimer = setTimeout(clearWheelCooldown, WHEEL_COOLDOWN_MS);
     return true;
   }
 
@@ -14434,7 +14464,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // --- Click to advance, right-click to go back, middle-button fullscreen gesture ---
+  // --- Click to advance, long-press wheel selection, right-click back, middle-button fullscreen gesture ---
   // The remote-mouse use case. Left-click advances (200ms glide; a
   // click while gliding jumps straight to its target, §8.4), right-click
   // goes back the same way, the middle button arms fullscreen entry when the
@@ -14510,6 +14540,116 @@ document.addEventListener('DOMContentLoaded', function() {
       && gesture.left === gesture.viewport.scrollLeft && gesture.top === gesture.viewport.scrollTop
       && gesture.pageX === window.scrollX && gesture.pageY === window.scrollY;
   }
+  var CARD_LONG_PRESS_MS = 500;
+  var CARD_LONG_PRESS_SLOP_PX = 4;
+  var cardLongPressTimer = null;
+  var cardLongPress = null;
+  var cardLongPressClickTimer = null;
+  var cardLongPressClick = null;
+  function clearCardLongPress() {
+    if (cardLongPressTimer) clearTimeout(cardLongPressTimer);
+    cardLongPressTimer = null;
+    cardLongPress = null;
+  }
+  function clearCardLongPressClick() {
+    if (cardLongPressClickTimer) clearTimeout(cardLongPressClickTimer);
+    cardLongPressClickTimer = null;
+    cardLongPressClick = null;
+  }
+  function selectedCardInList(list) {
+    if (!list || !wheelSelectedCard
+        || list.cards.indexOf(wheelSelectedCard) < 0
+        || !wheelSelectedCard.classList.contains('lwp-card-selected')) return null;
+    return wheelSelectedCard;
+  }
+  function longPressCardTarget(target) {
+    var list = wheelCardList(target);
+    var card = selectedCardInList(list);
+    return card ? {card: card} : null;
+  }
+  function cardLongPressCanStart(e) {
+    return hasFinePointer && e.isPrimary && e.pointerType === 'mouse'
+      && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey
+      && !helpIsOpen() && !tableScrollViewport(e.target)
+      && !(e.target.closest && e.target.closest(
+        'button, input, select, textarea, [contenteditable], img, audio, video, summary, label, '
+        + '[role~="button"], [role~="checkbox"], [role~="switch"], [role~="slider"], '
+        + '[role~="textbox"]'))
+      && !(Date.now() < fsIntentUntil) && !String(window.getSelection());
+  }
+  document.addEventListener('pointerdown', function (e) {
+    clearCardLongPress();
+    clearCardLongPressClick();
+    if (!cardLongPressCanStart(e)) return;
+    var target = longPressCardTarget(e.target);
+    if (!target) return;
+    cardLongPress = {
+      id: e.pointerId, x: e.clientX, y: e.clientY,
+      card: target.card, ready: false
+    };
+    cardLongPressTimer = setTimeout(function () {
+      if (!cardLongPress || !cardLongPress.card.classList.contains('lwp-card-selected')
+          || String(window.getSelection()) || helpIsOpen()
+          || Date.now() < fsIntentUntil) {
+        clearCardLongPress();
+        return;
+      }
+      cardLongPress.ready = true;
+    }, CARD_LONG_PRESS_MS);
+  }, {passive: true});
+  ['pointermove', 'pointerup', 'pointercancel'].forEach(function (type) {
+    document.addEventListener(type, function (e) {
+      var gesture = cardLongPress;
+      if (!gesture || gesture.id !== e.pointerId) return;
+      if (e.type === 'pointermove') {
+        var moveX = e.clientX - gesture.x;
+        var moveY = e.clientY - gesture.y;
+        if (moveX * moveX + moveY * moveY
+            > CARD_LONG_PRESS_SLOP_PX * CARD_LONG_PRESS_SLOP_PX
+            || String(window.getSelection())) clearCardLongPress();
+        return;
+      }
+      var endX = e.clientX - gesture.x;
+      var endY = e.clientY - gesture.y;
+      var activate = e.type === 'pointerup' && gesture.ready
+        && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey
+        && !String(window.getSelection()) && !helpIsOpen()
+        && !(Date.now() < fsIntentUntil)
+        && endX * endX + endY * endY
+          <= CARD_LONG_PRESS_SLOP_PX * CARD_LONG_PRESS_SLOP_PX
+        && gesture.card.classList.contains('lwp-card-selected');
+      clearCardLongPress();
+      if (!activate) return;
+      cardLongPressClick = {card: gesture.card, expires: Date.now() + 1000};
+      cardLongPressClickTimer = setTimeout(clearCardLongPressClick, 1000);
+      // Follow the card selected by the wheel, not necessarily the link under
+      // the pointer after the list moved it into view.
+      gesture.card.click();
+    }, {passive: true});
+  });
+  document.addEventListener('selectionchange', function () {
+    if (cardLongPress && String(window.getSelection())) clearCardLongPress();
+  }, {passive: true});
+  document.addEventListener('keydown', function (e) {
+    if (!cardLongPress) return;
+    if (e.key === 'Control' || e.key === 'Meta' || e.key === 'Shift' || e.key === 'Alt'
+        || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey
+        || e.key === 'f' || e.key === 'F' || e.key === 'h' || e.key === 'H') {
+      clearCardLongPress();
+    }
+  }, {passive: true});
+  document.addEventListener('mousedown', function (e) {
+    if (cardLongPress && e.button !== 0) clearCardLongPress();
+  }, true);
+  document.addEventListener('fullscreenchange', clearCardLongPress);
+  document.addEventListener('webkitfullscreenchange', clearCardLongPress);
+  var lastContextPointerType = null;
+  var lastContextPointerAt = 0;
+  document.addEventListener('pointerdown', function (e) {
+    if (!e.isPrimary) return;
+    lastContextPointerType = e.pointerType || null;
+    lastContextPointerAt = Date.now();
+  }, true);
   // Consume compatibility clicks in capture phase, including clicks on links
   // and controls. Touch events themselves remain passive: native pinch wins.
   ['click', 'dblclick', 'contextmenu'].forEach(function (type) {
@@ -14676,6 +14816,12 @@ document.addEventListener('DOMContentLoaded', function() {
     window.getSelection().removeAllRanges();
   });
   document.addEventListener('contextmenu', function (e) {
+    var contextPointerType = e.pointerType || null;
+    if (!contextPointerType && lastContextPointerType
+        && Date.now() - lastContextPointerAt <= 2000) {
+      contextPointerType = lastContextPointerType;
+    }
+    lastContextPointerType = null;
     if (tableScrollViewport(e.target)) return;
     if (helpIsOpen()) {
       e.preventDefault();
@@ -14693,7 +14839,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Guarded on the pointer rather than on the event, because the event
     // is the same one: a mouse has a second button and a finger does not,
     // and that is the whole of the distinction.
-    if (!hasFinePointer) return;
+    if ((contextPointerType && contextPointerType !== 'mouse')
+        || (!contextPointerType && !hasFinePointer)) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) return;
     // A selection is the reader's own text, and right-clicking it asks
     // for the browser's own menu — copy, copy link, search. Reported
@@ -14767,6 +14914,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // The second half of the two-step consumed this click: cancel the
     // link navigation that would otherwise follow (the click default),
     // so the entry does not also open the card under the pointer.
+    if (cardLongPressClick) {
+      if (Date.now() >= cardLongPressClick.expires) clearCardLongPressClick();
+      else if (e.target !== cardLongPressClick.card || e.isTrusted) {
+        clearCardLongPressClick();
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+    }
     if (fsEntryPending) {
       fsEntryPending = false;
       e.preventDefault();
@@ -15004,6 +15160,11 @@ document.addEventListener('DOMContentLoaded', function() {
       seriesPendingRoute = {route: route, push: push};
       return false;
     }
+    // A route replacement invalidates both the outgoing card cursor and any
+    // hold whose target belongs to the outgoing DOM. Keep the separate click
+    // quarantine intact: a successful long press may be replacing the view.
+    clearCardLongPress();
+    clearNavigableCardSelection();
     var view = seriesViews.get(route.key);
     var changing = view !== seriesActiveView;
     var marker = document.getElementById('lwp-series-css-marker');

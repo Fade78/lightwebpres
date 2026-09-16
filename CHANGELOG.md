@@ -54,7 +54,10 @@ malformed Commons preset cannot obscure that grammar error.
 Arrow keys and the wheel retain native reading scroll instead of changing
 slides. Over a series index, `series-nav` or `unit-index` list, vertical wheel
 input selects one adjacent card without opening it and returns to native scroll
-at either edge. PageUp/PageDown, navigation buttons and article-background
+at either edge. A 500 ms left press on that list follows the wheel-selected card
+for mouse-only readers, while movement, text selection, modifiers, tables,
+competing help/fullscreen gestures, pointer cancellation and touch cancel the
+hold. PageUp/PageDown, navigation buttons and article-background
 clicks change slides directly; index-background clicks retain the card journey.
 Space and Shift+Space remain the bounded reading journey for long slides and
 navigation cards. The separate `page.block-max` property was removed: content
