@@ -885,8 +885,8 @@ layout fit, and do not treat a contrast report as a blanket accessibility grade.
 global theme catalogue and presets that bind those themes to native layouts.
 An **Identity Kit** is a self-contained versioned collection of layouts,
 headers, footers, assets, typed themes and constrained structural CSS.
-**Preset** selects a layout/chrome configuration and a base **Theme**; it does
-not generate every possible combination of those resources.
+**Preset** selects a layout/chrome configuration, chrome placement and a base
+**Theme**; it does not generate every possible combination of those resources.
 
 LWP owns the page shell, navigation and JavaScript. Kit fragments have
 `{{content}}`, `{{slide_header}}` and `{{slide_footer}}` slots; the index
@@ -918,8 +918,8 @@ choice vendors resources.
 
 The kit manifest's `label` names the identity, not whichever preset happens
 to be initial. Its optional `default_preset` names a local preset, otherwise
-the first preset in manifest order is used. `slide_layouts` and `slide_chrome`
-declare preset defaults in that manifest only.
+the first preset in manifest order is used. `slide_layouts`, `slide_chrome` and
+`slide_chrome_placement` declare preset defaults in that manifest only.
 
 For example, the tracked guide kit is labelled `LightWebPres`, while its
 `docs` preset is labelled `LightWebPres documentation`. The two labels name
@@ -938,6 +938,11 @@ preset's theme supplies the typed base unless
 `templates/custom.css` remains the final advanced CSS layer. Assets are
 published under `public/assets/presentations/<id>/<version>/...`, or embedded
 by `--inline-images`.
+
+`slide_chrome_placement` is optional and defaults to `edge`. Use `edge` when
+the preset's header and footer should use the available slide height as space
+around the content; use `content` when those slots belong in the normal flow of
+the selected layout. It is a preset structural choice, not a Theme property.
 
 For a kit offering the `hero` variant, place overrides before the slide body:
 
@@ -2318,7 +2323,7 @@ schema rather than guessing its meaning.
 | `contract --format json` | `lightwebpres.slide-draft/2` | Use the engine's field rules and skeletons for all five types. |
 | `status --format json` | `lightwebpres.series-info/5` | Preserve article order and inspect `source_read`, not only the exit code. |
 | `series tags --format json` | `lightwebpres.series-tags/1` | Check `default_output` and active-only per-tag `output`, not just tag names. |
-| `series preset --format json` | `lightwebpres.series-preset/3`, containing a `lightwebpres.presentation-preset/3` object | Read the nested `preset` selector and resources; `native_renderer` describes rendering, not the initial selection. The identity resource is under `identity`. |
+| `series preset --format json` | `lightwebpres.series-preset/3`, containing a `lightwebpres.presentation-preset/4` object | Read the nested `preset` selector and resources; `native_renderer` describes rendering, not the initial selection. The identity resource is under `identity`; `slide_chrome_placement` is the preset-owned structural placement. |
 | `build` | Non-zero on fatal structural/render errors | Read warnings too; exit 0 is not editorial approval. |
 | `audit` | Reports warnings and render failures; normally exits 0 | Read the report, or use `--strict` for a failing gate. |
 | `verify` | Non-zero on drift or failure | Match rendering flags, including `--single-html [FILE]` and `--inline-images` when used. |

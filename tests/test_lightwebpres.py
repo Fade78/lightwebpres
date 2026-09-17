@@ -8955,6 +8955,7 @@ class ChromeCascade(unittest.TestCase):
             self.assertIn('Article footer', html)
             self.assertIn('Page header', html)
             self.assertIn('Page footer', html)
+            self.assertIn('data-lwp-chrome-placement="edge"', html)
             self.assertNotIn('Series header', html)
             self.assertNotIn('Series footer', html)
             self.assertNotIn('Series header',
@@ -8981,6 +8982,27 @@ class ChromeCascade(unittest.TestCase):
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertEqual(html.count('Series header'), 2)
             self.assertEqual(html.count('Series footer'), 2)
+
+    def test_builtin_slides_expose_the_default_chrome_placement_without_chrome(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(
+                tmp, {}, slides=(
+                    '<!-- lwp:slide:cover -->\n'
+                    'slug: cover\n'
+                    '# Cover\n'
+                    'summary: Summary.\n',
+                    '<!-- lwp:slide -->\n'
+                    'slug: standard\n'
+                    '## Standard\n'
+                    'summary: Summary.\n',
+                ))
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertEqual(
+                len(re.findall(
+                    r'<section [^>]*data-lwp-chrome-placement="edge"', html)),
+                2)
 
     def test_native_model_is_rejected_but_text_is_not(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -9071,7 +9093,8 @@ class IdentityKitFixtures(unittest.TestCase):
         )
 
     def _write_identity_kit(self, catalogue_root, with_starter=False,
-                            kit_id=None, version=None, preset_id=None):
+                            kit_id=None, version=None, preset_id=None,
+                            chrome_placement='edge'):
         kit_id = kit_id or self.KIT_ID
         version = version or self.KIT_VERSION
         preset_id = preset_id or self.PRESET_ID
@@ -9148,6 +9171,7 @@ class IdentityKitFixtures(unittest.TestCase):
                     'cover': {'header': {
                     'model': 'brand-header', 'text': 'Kit header'}},
             },
+            'slide_chrome_placement': chrome_placement,
         }
         if with_starter:
             starter = identity_kit / 'starters' / 'seed'
@@ -9269,6 +9293,30 @@ class IdentityKitFixtures(unittest.TestCase):
             self.assertEqual(report['preset']['slide_layouts']['cover'], 'hero')
             self.assertEqual(report['preset']['slide_chrome']['all']['footer'],
                              {'text': 'Kit footer'})
+            self.assertEqual(report['preset']['slide_chrome_placement'], 'edge')
+
+    def test_preset_chrome_placement_is_rendered_without_author_cascade(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._article())
+            self._write_identity_kit(
+                root / 'templates' / 'kits', chrome_placement='content')
+            series_path = root / 'series.json'
+            series = json.loads(series_path.read_text(encoding='utf-8'))
+            series['appearance'] = {'presets': [self.SELECTOR]}
+            series['chrome'] = {'all': {'footer': 'Series footer'}}
+            series_path.write_text(json.dumps(series), encoding='utf-8')
+
+            built = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(built.returncode, 0, built.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('data-lwp-chrome-placement="content"', html)
+            self.assertIn('Series footer', html)
+
+            shown = run('series', 'preset', str(root), '--format', 'json')
+            self.assertEqual(shown.returncode, 0, shown.stderr)
+            self.assertEqual(
+                json.loads(shown.stdout)['preset']['slide_chrome_placement'],
+                'content')
 
     def test_series_empty_chrome_slot_clears_a_kit_default(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -9529,7 +9577,7 @@ class IdentityKitFixtures(unittest.TestCase):
             self.assertTrue(native['native_renderer'])
             self.assertFalse(custom['native_renderer'])
             for report in reports:
-                self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/3')
+                self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/4')
                 self.assertNotIn('default', report)
             self.assertEqual(custom['identity']['scope'], 'user')
 
@@ -10364,6 +10412,8 @@ class Themes(unittest.TestCase):
 
 
 _SIZE_RE = re.compile(r'^max\(\s*([0-9.]+)(px|rem)\s*,\s*([0-9.]+)vmin\s*\)$')
+_BODY_SCALE_RE = re.compile(
+    r'^calc\(\s*var\(--slide-body-size\)\s*\*\s*([0-9.]+)\s*\)$')
 
 
 def _floor_px(value):
@@ -10375,6 +10425,9 @@ def _floor_px(value):
     if m:
         n, unit = float(m.group(1)), m.group(2)
         return n * 16 if unit == 'rem' else n
+    scaled = _BODY_SCALE_RE.match(value.strip())
+    if scaled:
+        return 16.0 * float(scaled.group(1))
     if value.endswith('rem'):
         return float(value[:-3]) * 16
     if value.endswith('px'):
@@ -10387,7 +10440,10 @@ def _coefficient(value):
     Zero for a size with no scale at all, which is what makes a missing
     one sort below every real one instead of raising."""
     m = _SIZE_RE.match(value.strip())
-    return float(m.group(3)) if m else 0.0
+    if m:
+        return float(m.group(3))
+    scaled = _BODY_SCALE_RE.match(value.strip())
+    return 2.0 * float(scaled.group(1)) if scaled else 0.0
 
 
 def load_lightwebpres_module():
@@ -12826,6 +12882,18 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         self.assertIn('verdict.yes.fg', text.stdout)
         self.assertRegex(text.stdout, r'Body text\s+fail')
 
+    def test_a_cyclic_css_length_reference_is_unmeasured_not_recursive(self):
+        """A CSS variable expression may be syntactically valid while its
+        registry variable points back to itself. Measurement must treat that
+        size as unknown, not let a report recurse until the process crashes."""
+        resolved = self.lwp.resolve_theme_properties({
+            'slide-body.size': 'calc(var(--slide-body-size) * 1)',
+        })
+        self.assertIsNone(self.lwp.length_px(
+            resolved['slide-body.size'], 16.0, resolved))
+        measured = self.lwp.measure_contrast(resolved)
+        self.assertIn('body_text', measured)
+
     # --- the two targets ---
 
     def test_a_series_that_pins_a_colour_gets_a_different_answer(self):
@@ -12896,7 +12964,8 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
     # --- the JSON contract with lightwebpres-gui (§1.2, §11.9.1) ---
 
     ROOT_KEYS = {'schema', 'lightwebpres_version', 'target', 'label', 'note',
-                 'source', 'origin', 'facets', 'palette', 'fonts', 'accessibility'}
+                 'source', 'origin', 'facets', 'palette', 'fonts', 'properties',
+                 'accessibility'}
     TARGET_KEYS = {'kind', 'theme', 'presentation_preset', 'directory',
                    'pinned', 'custom_css'}
     CATEGORY_KEYS = {'level', 'threshold_aa', 'threshold_aaa',
@@ -12923,6 +12992,9 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
                           'nav'})
         self.assertEqual(set(report['fonts']),
                          {'text', 'display', 'ui', 'mono'})
+        resolved = self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer('nord'))
+        self.assertEqual(report['properties'], resolved)
         self.assertEqual(set(report['accessibility']),
                          {'body_text', 'large_text', 'non_text'})
         for name, category in report['accessibility'].items():
@@ -12954,6 +13026,43 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
             self.lwp.theme_property_layer('nord'))
         for role, value in report['palette'].items():
             self.assertEqual(value, resolved[f'color.{role}'])
+
+    def test_an_old_snapshot_keeps_legacy_body_heading_values_on_free_body(self):
+        """Snapshots written before the native slide-body axes existed may
+        omit those keys, but their old inherited body treatment must not
+        silently change when the loader supplies the new registry values."""
+        props = {key: prop.default
+                 for key, prop in self.lwp.PROPERTY_REGISTRY.items()}
+        props.update({
+            'page.fg': '#123456',
+            'page.font': 'Custom, sans-serif',
+            'page.leading': '1.8',
+            'body-heading.fg': '#FF0000',
+            'body-heading.weight': 'normal',
+            'body-heading.leading': '2',
+        })
+        resolved = self.lwp.resolve_theme_properties(props)
+        snapshot = self.lwp.theme_file_text(
+            'old', {'label': 'Old', 'family': 'desk', 'source': 'test'}, resolved)
+        omitted = self.lwp.THEME_OPTIONAL_PROPERTIES
+        snapshot = '\n'.join(
+            line for line in snapshot.splitlines()
+            if not any(line.startswith(f'{key}: ') for key in omitted)
+        ) + '\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'old.conf'
+            path.write_text(snapshot, encoding='utf-8')
+            _text, _meta, _props, loaded = self.lwp.parse_theme_file(path)
+
+        self.assertEqual(loaded['slide-body.fg'], '#123456FF')
+        self.assertEqual(loaded['slide-body.font'], 'Custom, sans-serif')
+        self.assertEqual(loaded['slide-body.leading'], '1.8')
+        for heading in ('heading1', 'heading2', 'heading3'):
+            self.assertEqual(loaded[f'slide-body.{heading}.fg'], '#FF0000FF')
+            self.assertEqual(loaded[f'slide-body.{heading}.font'],
+                             'Custom, sans-serif')
+            self.assertEqual(loaded[f'slide-body.{heading}.weight'], 'normal')
+        self.assertEqual(loaded['slide-body.heading.leading'], '2')
 
     def test_a_slugs_facets_are_the_same_ones_themes_prints(self):
         """§9.5.2: one function feeds every surface, so a terminal
@@ -15890,7 +15999,9 @@ class FactLabelOptional(unittest.TestCase):
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('<div class="slide-body">', html)
             self.assertIn('<h1>Body heading</h1>', html)
-            self.assertIn('.slide-body h1 { font-size: 1.3em; }', html)
+            self.assertIn('--slide-body-heading1-size: calc(var(--slide-body-size) * 1.3);', html)
+            self.assertIn('font-size: var(--slide-body-heading1-size);', html)
+            self.assertNotIn('.slide-body h1 { font-size: 1.3em; }', html)
 
 
 class FactBoxBlockquoteAndCode(unittest.TestCase):
@@ -18440,7 +18551,7 @@ class EveryTypeSizeScalesWithTheScreen(unittest.TestCase):
 
     def test_no_size_is_pinned_to_pixels(self):
         stuck = {n: d for n, d in self.sizes.items()
-                 if 'vmin' not in d and not d.endswith('em')}
+                 if _coefficient(d) == 0.0 and not d.endswith('em')}
         self.assertEqual(stuck, {},
                          'these sizes stay put while the screen grows')
         self.assertGreater(len(self.sizes), 30, 'the size list moved')
@@ -19918,8 +20029,9 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
         self.assertEqual(set(report['presentation']),
                          {'schema', 'selector', 'id', 'label', 'description',
                            'native_renderer', 'identity', 'theme', 'slide_layouts',
-                          'slide_chrome', 'starter', 'resource_collection', 'scope'})
-        self.assertEqual(report['presentation']['schema'], 'lightwebpres.presentation-preset/3')
+                          'slide_chrome', 'slide_chrome_placement', 'starter',
+                           'resource_collection', 'scope'})
+        self.assertEqual(report['presentation']['schema'], 'lightwebpres.presentation-preset/4')
         self.assertTrue(report['presentation']['native_renderer'])
         self.assertEqual(report['presentation']['selector'], 'builtin/standard')
         self.assertEqual(report['series_meta']['title'], 'A series')

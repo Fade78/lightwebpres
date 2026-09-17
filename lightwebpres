@@ -3158,6 +3158,60 @@ THEME_COMPONENTS = [
         ThemeProp('summary.align', PROP_ALIGN, 'left', css='text-align'),
     ]),
 
+    # Free-form standard-slide prose is its own reading surface. It cannot
+    # inherit the document default: the card's title grows with the viewport,
+    # so the body has to answer to the same scale while keeping its floor.
+    ThemeComponent('slide-body', '.slide-body', [
+        ThemeProp('slide-body.fg',      PROP_COLOR,  'ink',
+                  css='color'),
+        ThemeProp('slide-body.font',    PROP_FONT,   'text',
+                  css='font-family'),
+        ThemeProp('slide-body.size',    PROP_LENGTH, 'max(16px, 2vmin)',
+                  css='font-size'),
+        ThemeProp('slide-body.leading', PROP_RATIO,  '1.55',
+                  css='line-height'),
+        ThemeProp('slide-body.align',   PROP_ALIGN,  'left',
+                  css='text-align'),
+    ]),
+    # Heading sizes consume the body variable instead of copying its current
+    # pixel expression. A large-reading theme can therefore change the body
+    # once and keep the hierarchy attached to it.
+    ThemeComponent('slide-body.heading1', '.slide-body h1', [
+        ThemeProp('slide-body.heading1.fg',     PROP_COLOR, 'slide-body.fg',
+                  css='color'),
+        ThemeProp('slide-body.heading1.font',   PROP_FONT,  'slide-body.font',
+                  css='font-family'),
+        ThemeProp('slide-body.heading1.size',   PROP_LENGTH,
+                  'calc(var(--slide-body-size) * 1.3)', css='font-size'),
+        ThemeProp('slide-body.heading1.weight', PROP_WEIGHT, 'bold',
+                  css='font-weight'),
+    ]),
+    ThemeComponent('slide-body.heading2', '.slide-body h2', [
+        ThemeProp('slide-body.heading2.fg',     PROP_COLOR, 'slide-body.fg',
+                  css='color'),
+        ThemeProp('slide-body.heading2.font',   PROP_FONT,  'slide-body.font',
+                  css='font-family'),
+        ThemeProp('slide-body.heading2.size',   PROP_LENGTH,
+                  'calc(var(--slide-body-size) * 1.15)', css='font-size'),
+        ThemeProp('slide-body.heading2.weight', PROP_WEIGHT, 'bold',
+                  css='font-weight'),
+    ]),
+    ThemeComponent('slide-body.heading3', '.slide-body h3', [
+        ThemeProp('slide-body.heading3.fg',     PROP_COLOR, 'slide-body.fg',
+                  css='color'),
+        ThemeProp('slide-body.heading3.font',   PROP_FONT,  'slide-body.font',
+                  css='font-family'),
+        ThemeProp('slide-body.heading3.size',   PROP_LENGTH,
+                  'calc(var(--slide-body-size) * 1.05)', css='font-size'),
+        ThemeProp('slide-body.heading3.weight', PROP_WEIGHT, 'bold',
+                  css='font-weight'),
+    ]),
+    ThemeComponent('slide-body.heading',
+                   '.slide-body h1, .slide-body h2, .slide-body h3', [
+        ThemeProp('slide-body.heading.leading', PROP_RATIO, '1.3',
+                  css='line-height'),
+    ]),
+
     ThemeComponent('fact', '.fact-box', [
         ThemeProp('fact.bg',         PROP_COLOR,  '#FFFFFFB8', css='background'),
         ThemeProp('fact.rule-fg',    PROP_COLOR,  'mark',      css='border-left-color'),
@@ -3207,8 +3261,7 @@ THEME_COMPONENTS = [
     ], composite=[('padding', 'max(1px, 0.125vmin) var(--fact-strong-pad)')]),
 
     ThemeComponent('body-heading',
-                   '.fact-content h1, .fact-content h2, .fact-content h3, '
-                   '.slide-body h1, .slide-body h2, .slide-body h3', [
+                   '.fact-content h1, .fact-content h2, .fact-content h3', [
         ThemeProp('body-heading.fg',      PROP_COLOR,  'ink',  css='color'),
         ThemeProp('body-heading.weight',  PROP_WEIGHT, 'bold', css='font-weight'),
         ThemeProp('body-heading.leading', PROP_RATIO,  '1.3',  css='line-height'),
@@ -3225,6 +3278,48 @@ THEME_COMPONENTS = [
         ThemeProp('footer.size',       PROP_LENGTH, 'max(12px, 1.5vmin)',      css='font-size'),
         ThemeProp('footer.rule-fg',    PROP_COLOR,  '#0000001A', css='border-top-color'),
         ThemeProp('footer.rule-width', PROP_LENGTH, '1px',       css='border-top-width'),
+    ]),
+
+    # Chrome models own meaning and assets; these components own the way the
+    # resolved slots are read. Asset axes are restricted to images produced
+    # by the chrome renderer, never arbitrary article images.
+    ThemeComponent('slide-header', '.slide-chrome-header', [
+        ThemeProp('slide-header.fg',       PROP_COLOR,  'ink', css='color'),
+        ThemeProp('slide-header.font',     PROP_FONT,   'ui', css='font-family'),
+        ThemeProp('slide-header.size',     PROP_LENGTH, 'max(12px, 1.5vmin)',
+                  css='font-size'),
+        ThemeProp('slide-header.leading',  PROP_RATIO,  '1.3', css='line-height'),
+        ThemeProp('slide-header.weight',   PROP_WEIGHT, 'bold', css='font-weight'),
+        ThemeProp('slide-header.tracking', PROP_LENGTH, '0.08em',
+                  css='letter-spacing'),
+        ThemeProp('slide-header.gap',      PROP_LENGTH, '12px', css='gap'),
+        ThemeProp('slide-header.logo-size', PROP_LENGTH, '28px', css='width',
+                  selector='.slide-chrome-header img'),
+        ThemeProp('slide-header.logo-max-size', PROP_LENGTH, '64px',
+                  css='max-width', selector='.slide-chrome-header img'),
+        ThemeProp('slide-header.asset-gap', PROP_LENGTH, '8px', css='gap',
+                  selector='.slide-chrome-header .slide-chrome-icon'),
+    ]),
+    ThemeComponent('slide-footer', '.slide-chrome-footer', [
+        ThemeProp('slide-footer.fg',       PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('slide-footer.font',     PROP_FONT,   'ui', css='font-family'),
+        ThemeProp('slide-footer.size',     PROP_LENGTH, 'max(12px, 1.5vmin)',
+                  css='font-size'),
+        ThemeProp('slide-footer.leading',  PROP_RATIO,  '1.3', css='line-height'),
+        ThemeProp('slide-footer.weight',   PROP_WEIGHT, 'normal', css='font-weight'),
+        ThemeProp('slide-footer.tracking', PROP_LENGTH, '0.08em',
+                  css='letter-spacing'),
+        ThemeProp('slide-footer.gap',      PROP_LENGTH, '12px', css='gap'),
+        ThemeProp('slide-footer.rule-fg',  PROP_COLOR,  '#0000001A',
+                  css='border-top-color'),
+        ThemeProp('slide-footer.rule-width', PROP_LENGTH, '1px',
+                  css='border-top-width'),
+        ThemeProp('slide-footer.logo-size', PROP_LENGTH, '28px', css='width',
+                  selector='.slide-chrome-footer img'),
+        ThemeProp('slide-footer.logo-max-size', PROP_LENGTH, '64px',
+                  css='max-width', selector='.slide-chrome-footer img'),
+        ThemeProp('slide-footer.asset-gap', PROP_LENGTH, '8px', css='gap',
+                  selector='.slide-chrome-footer .slide-chrome-icon'),
     ]),
 
     ThemeComponent('cover', '.slide-cover', [
@@ -3755,7 +3850,8 @@ THEME_COMPONENTS = [
 HALO_COMPONENTS = (
     # A slide, and what it carries
     'slide.num', 'kicker', 'title2', 'summary', 'fact-label', 'source',
-    'body-heading', 'fact.strong',
+    'body-heading', 'fact.strong', 'slide-body',
+    'slide-body.heading1', 'slide-body.heading2', 'slide-body.heading3',
     # The cover's own contexts
     'cover.kicker', 'cover.summary', 'cover.num',
     # Comparison tables and their verdicts
@@ -3769,7 +3865,7 @@ HALO_COMPONENTS = (
     'card.label', 'card.title', 'card.desc', 'card.cta',
     'header.title', 'header.subtitle', 'version-tag',
     # Chrome that carries a glyph
-    'nav-btn',
+    'nav-btn', 'slide-header', 'slide-footer',
 )
 
 for _c in THEME_COMPONENTS:
@@ -3928,6 +4024,74 @@ if len(VAR_TO_KEY) != len(PROPERTY_REGISTRY):  # pragma: no cover
     raise PropertyError(
         f'two properties claim the same variable: '
         f'{sorted({v for v in _vars if _vars.count(v) > 1})}')
+
+# External snapshots are complete for the vocabulary they were written with,
+# but a newly added typed surface must not make an older snapshot unusable.
+# Keep this allowlist explicit: a missing historical property is still a
+# malformed snapshot, while these keys resolve through registry defaults or
+# the legacy inheritance adapter immediately below.
+THEME_OPTIONAL_PROPERTIES = frozenset({
+    'slide-body.fg', 'slide-body.font', 'slide-body.size',
+    'slide-body.leading', 'slide-body.align',
+    'slide-body.heading1.fg', 'slide-body.heading1.font',
+    'slide-body.heading1.size', 'slide-body.heading1.weight',
+    'slide-body.heading2.fg', 'slide-body.heading2.font',
+    'slide-body.heading2.size', 'slide-body.heading2.weight',
+    'slide-body.heading3.fg', 'slide-body.heading3.font',
+    'slide-body.heading3.size', 'slide-body.heading3.weight',
+    'slide-body.heading.leading',
+    'slide-body.shadow.fg', 'slide-body.shadow.blur',
+    'slide-body.shadow.dx', 'slide-body.shadow.dy',
+    'slide-body.heading1.shadow.fg', 'slide-body.heading1.shadow.blur',
+    'slide-body.heading1.shadow.dx', 'slide-body.heading1.shadow.dy',
+    'slide-body.heading2.shadow.fg', 'slide-body.heading2.shadow.blur',
+    'slide-body.heading2.shadow.dx', 'slide-body.heading2.shadow.dy',
+    'slide-body.heading3.shadow.fg', 'slide-body.heading3.shadow.blur',
+    'slide-body.heading3.shadow.dx', 'slide-body.heading3.shadow.dy',
+    'slide-header.fg', 'slide-header.font', 'slide-header.size',
+    'slide-header.leading', 'slide-header.weight', 'slide-header.tracking',
+    'slide-header.gap', 'slide-header.logo-size',
+    'slide-header.logo-max-size', 'slide-header.asset-gap',
+    'slide-header.shadow.fg', 'slide-header.shadow.blur',
+    'slide-header.shadow.dx', 'slide-header.shadow.dy',
+    'slide-footer.fg', 'slide-footer.font', 'slide-footer.size',
+    'slide-footer.leading', 'slide-footer.weight', 'slide-footer.tracking',
+    'slide-footer.gap', 'slide-footer.rule-fg', 'slide-footer.rule-width',
+    'slide-footer.logo-size', 'slide-footer.logo-max-size',
+    'slide-footer.asset-gap',
+    'slide-footer.shadow.fg', 'slide-footer.shadow.blur',
+    'slide-footer.shadow.dx', 'slide-footer.shadow.dy',
+})
+
+# A pre-native-surface snapshot had no `slide-body.*`/chrome namespace. Its
+# free-form prose inherited the page treatment, while its headings inherited
+# `body-heading.*`; carry those concrete values forward only when the entire
+# new namespace is absent. A newer partial snapshot must still get the new
+# registry defaults and references rather than being mistaken for a legacy one.
+_THEME_LEGACY_PROPERTY_FALLBACKS = (
+    ('slide-body.fg', 'page.fg'),
+    ('slide-body.font', 'page.font'),
+    ('slide-body.leading', 'page.leading'),
+    ('slide-body.heading1.fg', 'body-heading.fg'),
+    ('slide-body.heading2.fg', 'body-heading.fg'),
+    ('slide-body.heading3.fg', 'body-heading.fg'),
+    ('slide-body.heading1.font', 'slide-body.font'),
+    ('slide-body.heading2.font', 'slide-body.font'),
+    ('slide-body.heading3.font', 'slide-body.font'),
+    ('slide-body.heading1.weight', 'body-heading.weight'),
+    ('slide-body.heading2.weight', 'body-heading.weight'),
+    ('slide-body.heading3.weight', 'body-heading.weight'),
+    ('slide-body.heading.leading', 'body-heading.leading'),
+)
+
+
+def _apply_legacy_theme_compatibility(props):
+    """Preserve the inherited prose treatment of pre-native-surface snapshots."""
+    if any(key.startswith(('slide-body.', 'slide-header.', 'slide-footer.'))
+           for key in props):
+        return
+    for key, fallback in _THEME_LEGACY_PROPERTY_FALLBACKS:
+        props.setdefault(key, props[fallback])
 
 
 # ----------------------------------------------------------------------------
@@ -4154,13 +4318,15 @@ def parse_theme_file(path):
     family = meta.get('family', '').strip()
     if not family:
         _theme_file_error(path, None, 'theme metadata requires a family')
-    missing = [key for key in PROPERTY_REGISTRY if key not in props]
+    missing = [key for key in PROPERTY_REGISTRY
+               if key not in props and key not in THEME_OPTIONAL_PROPERTIES]
     if missing:
         shown = ', '.join(missing[:8])
         suffix = '...' if len(missing) > 8 else ''
         _theme_file_error(path, None,
                           f'incomplete theme; missing {len(missing)} '
                           f'property/properties: {shown}{suffix}')
+    _apply_legacy_theme_compatibility(props)
     try:
         resolved = resolve_theme_properties(props)
     except PropertyError as exc:
@@ -4294,6 +4460,7 @@ _PRESENTATION_VERSION_SELECTOR_RE = re.compile(
 _PRESENTATION_SLIDE_TYPES = (
     'cover', 'standard', 'series-nav', 'full-article', 'unit-index',
 )
+_PRESENTATION_CHROME_PLACEMENTS = ('edge', 'content')
 _PRESENTATION_LAYOUT_SLOTS = frozenset({
     'content', 'slide_header', 'slide_footer',
 })
@@ -4379,9 +4546,10 @@ class PresentationPreset:
 
     def __init__(self, identity_kit, preset_id, label, description, theme_id=None,
                  theme_props=None, theme_meta=None, slide_layouts=None,
-                 slide_chrome=None, starter=None, default=False,
-                  resource_collection=None, scope=None,
-                  dependency_paths=None, digest=None, theme_origin=None):
+                 slide_chrome=None, slide_chrome_placement='edge', starter=None,
+                 default=False,
+                 resource_collection=None, scope=None,
+                 dependency_paths=None, digest=None, theme_origin=None):
         self.identity_kit = identity_kit
         self.id = preset_id
         self.label = label
@@ -4391,6 +4559,12 @@ class PresentationPreset:
         self.theme_meta = dict(theme_meta or {})
         self.slide_layouts = dict(slide_layouts or {})
         self.slide_chrome = dict(slide_chrome or {})
+        if (not isinstance(slide_chrome_placement, str)
+                or slide_chrome_placement not in _PRESENTATION_CHROME_PLACEMENTS):
+            raise PropertyError(
+                f'slide_chrome_placement must be one of '
+                f'{" | ".join(_PRESENTATION_CHROME_PLACEMENTS)}')
+        self.slide_chrome_placement = slide_chrome_placement
         self.starter = starter
         # This selects the native renderer, not the selected/default preset.
         self.default = default
@@ -4434,6 +4608,14 @@ def _wrap_presentation_content(content, preset):
         return content
     scope = _presentation_scope(preset.identity_kit.id)[1:]
     return f'<div class="{scope}">\n{content}\n</div>'
+
+
+def _presentation_slide_opening(opening, placement):
+    """Annotate one generated article slide with its preset placement."""
+    if not opening.startswith('<section ') or not opening.endswith('>'):
+        raise PropertyError('internal slide shell has an unexpected opening')
+    return (opening[:-1]
+            + f' data-lwp-chrome-placement="{html_escape(placement, quote=True)}">')
 
 
 def _presentation_error(path, message):
@@ -4652,6 +4834,17 @@ def _parse_slide_chrome_config(value, origin, null_is_clear=False,
             for slot, slot_value in slots.items()
         }
     return config
+
+
+def _parse_slide_chrome_placement(value, origin):
+    """Validate the structural chrome placement owned by one preset."""
+    if value is None:
+        return 'edge'
+    if not isinstance(value, str) or value not in _PRESENTATION_CHROME_PLACEMENTS:
+        raise PropertyError(
+            f'{origin}: must be one of '
+            f'{" | ".join(_PRESENTATION_CHROME_PLACEMENTS)}')
+    return value
 
 
 def _parse_slide_layout_config(value, origin):
@@ -4956,6 +5149,23 @@ def _presentation_css_unescape(text):
     return _PRESENTATION_CSS_ESCAPE_RE.sub(replace, text)
 
 
+_THEME_CONTROLLED_STRUCTURE_TOKENS = frozenset({
+    '.slide-body', '.slide-chrome-header', '.slide-chrome-footer',
+    '.slide-chrome-icon', '.figure', '.figure-caption', '.full-article',
+    '.lwp-unit-index', '.presenter-panel', '.share-popover',
+    '.share-qr-modal',
+})
+
+
+def _warn_theme_controlled_structure(selector, path):
+    tokens = {token for token in re.findall(r'(?<![-\w])\.[A-Za-z_][\w-]*', selector)
+              if token in _THEME_CONTROLLED_STRUCTURE_TOKENS}
+    for token in sorted(tokens):
+        log('warn', f'{path}: structure_css selector {selector!r} targets the '
+            f'Theme-controlled native surface {token}; keep visual values in '
+            f'the typed Theme registry and use kit CSS for structure only.')
+
+
 def _validate_presentation_structure_selector(selector, scope, path):
     for raw in _presentation_css_split(selector, ','):
         item = _presentation_css_unescape(raw).strip()
@@ -4975,6 +5185,7 @@ def _validate_presentation_structure_selector(selector, scope, path):
         if re.match(r'\s*[+~]', item[len(scope):]):
             _presentation_error(
                 path, 'structure_css cannot select siblings of its kit scope')
+        _warn_theme_controlled_structure(item, path)
 
 
 def _validate_presentation_structure_declarations(body, path):
@@ -5360,7 +5571,7 @@ def _load_identity_kit(root, scope):
                                 f'presets.{preset_id} must be an object')
         allowed_preset = {
             'label', 'description', 'theme', 'slide_layouts',
-            'slide_chrome', 'starter',
+            'slide_chrome', 'slide_chrome_placement', 'starter',
         }
         unknown = sorted(set(descriptor) - allowed_preset)
         if unknown:
@@ -5400,6 +5611,9 @@ def _load_identity_kit(root, scope):
         chrome_defaults = _parse_slide_chrome_config(
             descriptor['slide_chrome'],
             f'{manifest_path}: presets.{preset_id}.slide_chrome')
+        chrome_placement = _parse_slide_chrome_placement(
+            descriptor.get('slide_chrome_placement'),
+            f'{manifest_path}: presets.{preset_id}.slide_chrome_placement')
         for slide_type, slots in chrome_defaults.items():
             for slot, value in slots.items():
                 _validate_presentation_chrome_value(
@@ -5421,7 +5635,8 @@ def _load_identity_kit(root, scope):
             identity_kit, preset_id, descriptor['label'], descriptor['description'],
             theme_id=theme_id, theme_props=theme['props'],
             theme_meta=theme['meta'], slide_layouts=layout_defaults,
-            slide_chrome=chrome_defaults, starter=starter)
+            slide_chrome=chrome_defaults,
+            slide_chrome_placement=chrome_placement, starter=starter)
 
     identity_kit.presets = presets
     default_preset = manifest.get('default_preset', next(iter(presets)))
@@ -6039,7 +6254,8 @@ def install_presentation_starter(plan):
 # (alphas kept: .14->24, .24->3D, .055->0E, .30->4D, .13->21, .09->17).
 # Light themes need no counterpart: the registry defaults ARE the light set.
 DARK_FURNITURE_PROPS = {
-    'slide.rule-fg': '#FFFFFF24', 'footer.rule-fg': '#FFFFFF24',
+    'slide.rule-fg': '#FFFFFF24', 'slide-footer.rule-fg': '#FFFFFF24',
+    'footer.rule-fg': '#FFFFFF24',
     'table.rule-fg': '#FFFFFF24', 'code.rule-fg': '#FFFFFF24',
     'quote.rule-fg': '#FFFFFF3D',
     'series-nav.current.rule-fg': '#FFFFFF3D',
@@ -7288,6 +7504,7 @@ def _presentation_runtime_context(presets, style_context, catalog,
             'identity_label': preset.identity_kit.label,
             'collection': preset.resource_collection,
             'origin': preset.scope,
+            'chrome_placement': preset.slide_chrome_placement,
             'structure_css': structure_css,
             'theme_values': values,
             'preview': _theme_picker_preview(resolved),
@@ -7965,17 +8182,35 @@ def ground_colour(resolved, stack):
     return ground
 
 
-def length_px(value, base):
+def length_px(value, base, resolved=None, _seen=None):
     """A resolved length in CSS pixels, or None when it cannot be one.
 
     `clamp(a, b, c)` takes `a`: the smallest size the rule can render is
     the one the category has to be decided on. `em` resolves against
     `base`, which a site states because the inherited size is a fact about
-    the templates rather than about the registry."""
+    the templates rather than about the registry. The optional resolved set
+    lets the report inspect a typed size derived from another typed size, such
+    as `calc(var(--slide-body-size) * 1.3)`, without treating it as a fixed
+    pixel literal. A cyclic variable path is simply not measurable."""
     value = value.strip()
+    seen = frozenset() if _seen is None else _seen
+    if resolved is not None:
+        variable = re.fullmatch(r'var\(\s*(--[\w-]+)\s*\)', value)
+        if variable:
+            key = VAR_TO_KEY.get(variable.group(1))
+            if key in resolved:
+                if key in seen:
+                    return None
+                return length_px(resolved[key], base, resolved, seen | {key})
+        scaled = re.fullmatch(
+            r'calc\(\s*(var\(\s*--[\w-]+\s*\)|[-\d.]+[a-z%]*)\s*\*\s*([\d.]+)\s*\)',
+            value)
+        if scaled:
+            operand = length_px(scaled.group(1), base, resolved, seen)
+            return operand * float(scaled.group(2)) if operand is not None else None
     inner = re.match(r'^(?:clamp|min|max)\(\s*([^,()]+)\s*,', value)
     if inner:
-        return length_px(inner.group(1), base)
+        return length_px(inner.group(1), base, resolved, seen)
     m = re.match(r'^(-?[\d.]+)(px|rem|em|pt)?$', value)
     if not m:
         return None
@@ -8018,7 +8253,7 @@ class ContrastSite:
             return 'non_text'
         px = self.base
         if self.size:
-            measured = length_px(resolved[self.size], self.base)
+            measured = length_px(resolved[self.size], self.base, resolved)
             if measured is not None:
                 px = measured
         bold = (self.weight == 'bold'
@@ -8067,7 +8302,17 @@ _G_COVERS = (_G_COVER, _G_COVER_TO)
 
 CONTRAST_SITES = [
     # --- the slide, straight on the page ---
-    ContrastSite('slide body text', 'page.fg', [_G_PAGE, _G_CODE_PAGE]),
+    ContrastSite('slide body text', 'slide-body.fg',
+                 [_G_PAGE, _G_CODE_PAGE], size='slide-body.size'),
+    ContrastSite('slide body h1', 'slide-body.heading1.fg', [_G_PAGE],
+                 size='slide-body.heading1.size',
+                 weight='slide-body.heading1.weight'),
+    ContrastSite('slide body h2', 'slide-body.heading2.fg', [_G_PAGE],
+                 size='slide-body.heading2.size',
+                 weight='slide-body.heading2.weight'),
+    ContrastSite('slide body h3', 'slide-body.heading3.fg', [_G_PAGE],
+                 size='slide-body.heading3.size',
+                 weight='slide-body.heading3.weight'),
     ContrastSite('slide title', 'page.fg', [_G_PAGE],
                  size='title2.size', weight='title2.weight'),
     ContrastSite('slide number', 'slide.num.fg', [_G_PAGE], size='slide.num.size'),
@@ -8106,8 +8351,12 @@ CONTRAST_SITES = [
     # --- what any prose container can hold ---
     # 15.75px: `.fact-content h3` at 1.05em of a 15px fact box, the
     # smallest of the six headings this component paints.
-    ContrastSite('heading inside body text', 'body-heading.fg',
-                 [_G_PAGE, _G_CARD], base=15.75, weight='body-heading.weight'),
+    ContrastSite('heading inside fact text', 'body-heading.fg',
+                 [_G_CARD], base=15.75, weight='body-heading.weight'),
+    ContrastSite('slide header text', 'slide-header.fg', [_G_PAGE],
+                 size='slide-header.size', weight='slide-header.weight'),
+    ContrastSite('slide footer text', 'slide-footer.fg', [_G_PAGE],
+                 size='slide-footer.size', weight='slide-footer.weight'),
     ContrastSite('block quote', 'quote.fg', _G_PROSE, base=15.0),
     ContrastSite('figure caption', 'caption.fg', _G_PROSE,
                  size='caption.size', base=15.0),
@@ -8297,6 +8546,7 @@ CONTRAST_UNMEASURED = {
     # carry something. Each of these delimits a block that its own ground,
     # its label or its position already identifies.
     'slide.rule-fg': 'decorative: the hairline between slides',
+    'slide-footer.rule-fg': 'decorative: the line above slide footer text',
     'fact.rule-fg': 'decorative: the fact box already has a ground and a label',
     'footer.rule-fg': 'decorative: the line above the page footer',
     'quote.rule-fg': 'decorative: a quote is also set in italic',
@@ -8540,18 +8790,8 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
 .fact-content li { margin-bottom: 4px; }
 
 /* Free-form standard-slide body (no fact-label). A heading here is body
-   content (§22.2), never the slide's own title, so it must render
-   smaller than that title. These em sizes resolve against the inherited
-   base, i.e. well under it.
-
-   That base is what this rule sets, and it did not exist: .slide-body
-   carried no size at all, so it and its em-relative headings inherited
-   the document's unset 16px and stayed there while the card around them
-   tripled. Measured at 3840: 16px of body under a 101.5px title, and the
-   SAME prose rendering at 47.5px if a `fact-label:` happened to precede
-   it -- a three-fold difference decided by a field, not by the writing.
-   16/8 keeps the phone byte-identical and closes the gap above it. */
-.slide-body { font-size: max(16px, 2vmin); }
+   content (§22.2), never the slide's own title, so the typed body hierarchy
+   keeps it smaller than that title while scaling with the same base. */
 .slide-body h1, .slide-body h2, .slide-body h3 {
   margin: 14px 0 6px;
   max-width: var(--page-content-max);
@@ -8561,9 +8801,6 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
 .slide-body h3:first-child {
   margin-top: 0;
 }
-.slide-body h1 { font-size: 1.3em; }
-.slide-body h2 { font-size: 1.15em; }
-.slide-body h3 { font-size: 1.05em; }
 /* #### heading: rendered as a bold-font paragraph (body-heading styling,
    not <strong> markdown emphasis). #####/###### render as plain text. */
 .fact-content .h4, .slide-body .h4 {
@@ -8578,6 +8815,63 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
 .page-footer { padding: 20px 8vw 28px; border-top-style: solid; }
 .page-footer .footer-byline { margin-bottom: 4px; }
 .page-footer .footer-license a { color: inherit; }
+
+/* Chrome models are semantic slots; the registry supplies their visual
+   treatment and asset geometry. The wrapper rules here only establish the
+   layout relationship needed for those variables to have one stable target. */
+.slide-chrome-header, .slide-chrome-footer {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.slide-cover .slide-chrome-header, .slide-cover .slide-chrome-footer {
+  color: inherit;
+}
+.slide-chrome-footer { border-top-style: solid; }
+.slide-chrome img { display: block; height: auto; }
+.slide-chrome-icon { display: inline-flex; align-items: center; min-width: 0; }
+.slide-chrome-text, .slide-chrome-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Placement is owned by the selected preset, not by the visual Theme. The
+   edge mode lets the layout's chrome parent consume the slide's free height;
+   the content mode leaves the header/content/footer group in normal flow.
+   `:has` identifies the kit's slot parent without allowing a kit stylesheet to
+   select the LWP slide shell itself. */
+.slide[data-lwp-chrome-placement="edge"] > .slide-chrome-header {
+  margin-bottom: auto;
+}
+.slide[data-lwp-chrome-placement="edge"] > .slide-chrome-footer {
+  margin-top: auto;
+}
+.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"]:not(:has(> .slide-chrome-header)):not(:has(> .slide-chrome-footer)) > :only-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> .slide-chrome-header),
+.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> .slide-chrome-footer) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> .slide-chrome-header) > .slide-chrome-header {
+  margin-bottom: auto;
+}
+.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> .slide-chrome-footer) > .slide-chrome-footer {
+  margin-top: auto;
+}
+.slide[data-lwp-chrome-placement="content"] > [class^="lwp-presentation--"] :has(> .slide-chrome-header) > .slide-chrome-header + *,
+.slide[data-lwp-chrome-placement="content"] > [class^="lwp-presentation--"] :has(> .slide-chrome-footer) > * + .slide-chrome-footer {
+  flex: 0 0 auto;
+}
 
 /* --- Markdown constructs the converter has always emitted. Their ground,
    ink and rule colours are registry properties; the geometry is here. --- */
@@ -10850,6 +11144,7 @@ document.addEventListener('DOMContentLoaded', function() {
       snapshot.body.innerHTML = view.content;
       snapshot.head.innerHTML = view.pageCss;
       var variant = view.variants && view.variants[presentationCurrent];
+      var preset = presentationBySelector(presentationCurrent);
       // Preserve hidden siblings for selector fidelity. Widget-bearing eligible
       // articles are conservatively refused even when a widget is hidden.
       Array.prototype.forEach.call(snapshot.querySelectorAll('section.slide'), function (slide) {
@@ -10857,6 +11152,11 @@ document.addEventListener('DOMContentLoaded', function() {
         slide.setAttribute('aria-hidden', slide.hidden ? 'true' : 'false');
         if (presentationAlternatives() && variant && variant.sections
             && typeof variant.sections[slide.id] === 'string') slide.innerHTML = variant.sections[slide.id];
+        if (preset && preset.chrome_placement) {
+          slide.setAttribute('data-lwp-chrome-placement', preset.chrome_placement);
+        } else {
+          slide.removeAttribute('data-lwp-chrome-placement');
+        }
       });
       Array.prototype.forEach.call(snapshot.querySelectorAll('[data-lwp-article-card]'), function (card) {
         card.hidden = !articleMatchesTag(card, selectedTag);
@@ -11532,6 +11832,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     clearRuntimeVariables();
     presentationCurrent = preset.selector;
+    if (!isIndex && preset.chrome_placement) {
+      allSlides.forEach(function (slide) {
+        slide.setAttribute('data-lwp-chrome-placement', preset.chrome_placement);
+      });
+    }
     if (themeExplicit) {
       var selectedTheme = themeBySlug(themeCurrent);
       if (selectedTheme) applyVariableValues(
@@ -19361,6 +19666,43 @@ def _slide_draft_source(slide_type, slug):
     return '\n'.join(lines) + '\n'
 
 
+def _theme_property_contract(prop, component=None):
+    """The stable, discoverable description of one typed theme property."""
+    return {
+        'name': prop.key,
+        'key': prop.key,
+        'variable': prop.var,
+        'type': prop.type.name,
+        'default': prop.default,
+        'css': prop.css,
+        'selector': prop.selector,
+        'component': component,
+    }
+
+
+def theme_registry_contract():
+    """Expose the live Theme registry to authoring clients and agents."""
+    shared = [_theme_property_contract(prop) for prop in THEME_SHARED_PROPS]
+    components = []
+    properties = list(shared)
+    for component in THEME_COMPONENTS:
+        entries = [_theme_property_contract(prop, component.key)
+                   for prop in component.props]
+        components.append({
+            'name': component.key,
+            'key': component.key,
+            'selector': component.selector,
+            'properties': entries,
+        })
+        properties.extend(entries)
+    return {
+        'schema': THEME_FILE_SCHEMA,
+        'shared': shared,
+        'components': components,
+        'properties': properties,
+    }
+
+
 def slide_draft_contract(existing_slugs=()):
     """Return the versioned draft contract for every slide type.
 
@@ -19402,6 +19744,7 @@ def slide_draft_contract(existing_slugs=()):
             'reserved': sorted(RESERVED_SLIDE_IDS),
         },
         'types': types,
+        'theme': theme_registry_contract(),
     }
 
 
@@ -20717,7 +21060,14 @@ def _wrap_presentation_slide(default_html, slide, preset, layout_variants,
                 f'slide {slide.slug or slide.slide_type}: slide-layout '
                 'requires an identity kit layout')
         if not chrome_fields:
-            return default_html
+            opening, separator, remainder = default_html.partition('\n')
+            if not separator:
+                raise PropertyError(
+                    f'slide {slide.slug or slide.slide_type}: internal slide shell '
+                    'cannot be annotated')
+            return (_presentation_slide_opening(
+                        opening, preset.slide_chrome_placement)
+                    + separator + remainder)
 
     fragment = identity_kit.layout(slide.slide_type, requested_layout)
     opening, separator, remainder = default_html.partition('\n')
@@ -20734,6 +21084,8 @@ def _wrap_presentation_slide(default_html, slide, preset, layout_variants,
         'slide_header': chrome.get('header', ''),
         'slide_footer': chrome.get('footer', ''),
     })
+    opening = _presentation_slide_opening(
+        opening, preset.slide_chrome_placement)
     inner = _wrap_presentation_content(inner, preset)
     return opening + '\n' + inner + '\n</section>'
 
@@ -26218,7 +26570,7 @@ def _top_level_args(text):
     return [a.strip() for a in args if a.strip()]
 
 
-def _absolute_size_px(value):
+def _absolute_size_px(value, resolved=None):
     """A resolved font size in px, or None when it is relative to inherited.
 
     `em` is skipped rather than guessed at, and that is a correctness
@@ -26256,15 +26608,15 @@ def _absolute_size_px(value):
         if not args:
             return None
         if fn == 'clamp':
-            return _absolute_size_px(args[0])
-        floors = [_absolute_size_px(a) for a in args]
+            return _absolute_size_px(args[0], resolved)
+        floors = [_absolute_size_px(a, resolved) for a in args]
         if fn == 'max':
             known = [f for f in floors if f is not None]
             return max(known) if known else None
         return None if any(f is None for f in floors) else min(floors)
     if re.search(r'[\d.]\s*(?:em|ex|ch|%)', v):
         return None
-    return length_px(v, 16.0)
+    return length_px(v, 16.0, resolved)
 
 
 READING_REFERENCE_VIEWPORTS = (
@@ -26459,7 +26811,7 @@ def judge_resolved_theme(resolved):
     for name, prop in PROPERTY_REGISTRY.items():
         if prop.css != 'font-size':
             continue
-        px = _absolute_size_px(resolved[name])
+        px = _absolute_size_px(resolved[name], resolved)
         if px is None or px >= READABLE_TEXT_PX:
             continue
         keep(('size', name), px,
@@ -27970,7 +28322,7 @@ def cmd_theme_path(args):
             print(f'{scope}: {Path(root).expanduser()}')
 
 
-PRESENTATION_PRESET_SCHEMA = 'lightwebpres.presentation-preset/3'
+PRESENTATION_PRESET_SCHEMA = 'lightwebpres.presentation-preset/4'
 PRESET_LIST_SCHEMA = 'lightwebpres.preset-list/3'
 SERIES_PRESET_SCHEMA = 'lightwebpres.series-preset/3'
 IDENTITY_KIT_INFO_SCHEMA = 'lightwebpres.identity-kit-info/1'
@@ -28245,6 +28597,7 @@ def _presentation_preset_report(preset):
         },
         'slide_layouts': dict(preset.slide_layouts),
         'slide_chrome': dict(preset.slide_chrome),
+        'slide_chrome_placement': preset.slide_chrome_placement,
         'starter': (None if starter is None else {
             'id': starter.id,
             'label': starter.label,
@@ -28320,6 +28673,7 @@ def _identity_kit_report(identity_kit):
                 'theme': preset.theme_id,
                 'slide_layouts': dict(preset.slide_layouts),
                 'slide_chrome': json.loads(json.dumps(preset.slide_chrome)),
+                'slide_chrome_placement': preset.slide_chrome_placement,
                 'starter': preset.starter.id if preset.starter is not None else None,
             }
             for _name, preset in sorted(identity_kit.presets.items())
@@ -28812,6 +29166,9 @@ def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False
                     for p in THEME_SHARED_PROPS if p.key.startswith('color.')},
         'fonts': {p.key[len('font.'):]: resolved[p.key]
                   for p in THEME_SHARED_PROPS if p.key.startswith('font.')},
+        # Keep the complete resolved surface available to authoring clients;
+        # palette and fonts remain the compact human-facing facets above.
+        'properties': dict(resolved),
         'accessibility': measure_contrast(resolved),
     }
 
@@ -28868,6 +29225,25 @@ def print_theme_info_text(report):
     print('Fonts')
     for role, value in report['fonts'].items():
         print(f'  {role:<10s} {value}')
+
+    visual_keys = (
+        'slide-body.fg', 'slide-body.font', 'slide-body.size',
+        'slide-body.leading', 'slide-body.align',
+        'slide-body.heading1.size', 'slide-body.heading2.size',
+        'slide-body.heading3.size', 'slide-body.heading.leading',
+        'slide-header.fg', 'slide-header.font', 'slide-header.size',
+        'slide-header.weight', 'slide-header.tracking', 'slide-header.gap',
+        'slide-header.logo-size', 'slide-header.logo-max-size',
+        'slide-footer.fg', 'slide-footer.font', 'slide-footer.size',
+        'slide-footer.weight', 'slide-footer.tracking', 'slide-footer.gap',
+        'slide-footer.rule-fg', 'slide-footer.rule-width',
+        'slide-footer.logo-size', 'slide-footer.logo-max-size',
+    )
+    print()
+    print('Native visual properties')
+    for key in visual_keys:
+        if key in report['properties']:
+            print(f'  {key:<30s} {report["properties"][key]}')
 
     print()
     print('Contrast, measured through the property registry (WCAG 2.x)')
@@ -30823,6 +31199,13 @@ def cmd_slide_contract(series_dir, args):
     print(f"{contract['schema']} (lightwebpres v{contract['lightwebpres_version']})")
     print('Canonical order: ' + ', '.join(contract['canonical_order']))
     print('Slug pattern: ' + contract['slug']['pattern'])
+    theme = contract['theme']
+    print(f"Theme registry: {theme['schema']} ({len(theme['properties'])} properties)")
+    for component in theme['components']:
+        defaults = ', '.join(
+            f"{prop['name']}={prop['default']}"
+            for prop in component['properties'])
+        print(f"  {component['name']}: {defaults}")
     for slide_type in contract['types']:
         maximum = slide_type['cardinality']['max']
         count = 'any' if maximum is None else f'0 to {maximum}'

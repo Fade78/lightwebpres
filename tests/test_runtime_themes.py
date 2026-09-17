@@ -351,7 +351,11 @@ class RuntimeThemesBrowser(unittest.TestCase):
                 'cover': 'hero', 'standard': 'default',
                 'series-nav': 'default', 'full-article': 'default',
             },
-            'slide_chrome': {'all': {'footer': ''}},
+            'slide_chrome_placement': 'content',
+            'slide_chrome': {
+                'all': {'header': 'COMPACT HEADER',
+                        'footer': 'COMPACT FOOTER'},
+            },
         }
         presentation_manifest['default_preset'] = 'compact'
         presentation_manifest_path.write_text(
@@ -497,6 +501,9 @@ class RuntimeThemesBrowser(unittest.TestCase):
         }), encoding='utf-8')
         series_path = pinned_root / 'series.json'
         series = json.loads(series_path.read_text(encoding='utf-8'))
+        series['chrome'] = {
+            'all': {'header': 'NATIVE HEADER', 'footer': 'NATIVE FOOTER'},
+        }
         appearance = series.setdefault('appearance', {})
         for name, selector in [('native', 'builtin/standard'), ('commons', 'commons/night')]:
             appearance['presets'] = ([selector, 'commons/day']
@@ -536,7 +543,7 @@ class RuntimeThemesBrowser(unittest.TestCase):
     def test_origin_display_does_not_rename_public_report_values(self):
         for command, expected in [
                 (['preset', 'show', 'builtin/standard'], {
-                     'schema': 'lightwebpres.presentation-preset/3',
+                     'schema': 'lightwebpres.presentation-preset/4',
                     'selector': 'builtin/standard', 'resource_collection': 'builtin',
                     'scope': 'builtin'}),
                 (['theme', 'show', 'print-ink'], {

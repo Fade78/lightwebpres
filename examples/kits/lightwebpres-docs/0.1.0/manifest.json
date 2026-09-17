@@ -45,6 +45,7 @@
         "series-nav": "default",
         "full-article": "default"
       },
+      "slide_chrome_placement": "edge",
       "slide_chrome": {
         "all": {
           "header": {

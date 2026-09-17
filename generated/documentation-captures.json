@@ -6,18 +6,18 @@
     "examples/kit-composition/LICENSE-SVG.txt": "c1cbe8129ce2675413c2e59513a15c788a7652292609f1e5d860d3a39b19a462",
     "examples/kit-composition/recipe.json": "8944b24c69e25ced59f364bcd106bf5ef7fcf679e373c5f66a2ffa2098880791",
     "examples/kit-composition/sources/field-frames/1.0.0/layouts/sheet.html": "aaaa9cb3cdba2bc27badc254cc9330eb79a696fe0c5ad0442c4b7a64fa1d469d",
-    "examples/kit-composition/sources/field-frames/1.0.0/manifest.json": "35688dea8f8254ff58234c55489e9535e92694c3d32ae4164fc3059883e3b7c6",
+    "examples/kit-composition/sources/field-frames/1.0.0/manifest.json": "ef192b515a5b3bf0dc0354ef87343907e7a057844ffb9c922fa355ab050c20fd",
     "examples/kit-composition/sources/field-frames/1.0.0/structure.css": "18fbecfd951260a4aa76765dbaad4a12beecbb05224e6b83008ce9bb92e92d0a",
-    "examples/kit-composition/sources/field-ink/1.0.0/manifest.json": "58783a433e4847601005abb2ee23775a35fabb9c7478c30461d9f734933390f3",
-    "examples/kit-composition/sources/field-ink/1.0.0/themes/paper.conf": "3f374677c3a77f5fefabe2e2bc4739a84efe9d4ed9d4d73f749c0a90e7d4928a",
+    "examples/kit-composition/sources/field-ink/1.0.0/manifest.json": "715156449f43e664efcecc2a90fd7da44cc574e2683c82fc021885839d5e1a97",
+    "examples/kit-composition/sources/field-ink/1.0.0/themes/paper.conf": "1b899b91e210951fea614bf068363d7b6f49cb596bd2975250295720bc3e72f6",
     "examples/kit-composition/sources/field-marks/1.0.0/assets/compass.svg": "db159cd4ebcc1b139099d71fda4560779e961f29187e6f130c62783bf12c5059",
     "examples/kit-composition/sources/field-marks/1.0.0/assets/trail.svg": "96d4d4d64f30d0f15de8da6d226a0036564e7159b2fc1f4c82240c136e8bf48d",
     "examples/kit-composition/sources/field-marks/1.0.0/chrome.json": "89ab8d8f9d2d177f6413689548a2e23a8d33493aca9a36bf85aa284b2819323f",
-    "examples/kit-composition/sources/field-marks/1.0.0/manifest.json": "282594937746c63aea0a6f09d98ede7d60551edd6b00950c6511e9ed7f8f6374",
+    "examples/kit-composition/sources/field-marks/1.0.0/manifest.json": "b2997b13756fff4797237ae9973d04624fd1eea41ad1e64af878d727ce1ed34c",
     "examples/kits/lightwebpres-docs/0.1.0/assets/lightwebpres-mark.svg": "169a4e1da38ede3198bfa39d78349ba4c0e8e833e5d929de0640e458a80963a5",
     "examples/kits/lightwebpres-docs/0.1.0/chrome.json": "7dbf8889fe5f04c8f430183a41168433a6ac9a14a187780424a3e5b7fa179527",
     "examples/kits/lightwebpres-docs/0.1.0/index.html": "d095805bd00e23b766b3500c310b6421a8a957c5b61b50769c76ddc2d58b9c9b",
-    "examples/kits/lightwebpres-docs/0.1.0/manifest.json": "cfb03a421c2c8633ffd2d65cf26adbd9644806ccf681cd61b2fee97ffd203070",
+    "examples/kits/lightwebpres-docs/0.1.0/manifest.json": "5e76a034c266416d5177f659cb1430e939ebf0c8775cdbadefadd6be8afba116",
     "examples/kits/lightwebpres-docs/0.1.0/slides/cover-hero.html": "e0f2fab70e56028587455454e3f9c075d8cfe7f07c058b38699281d7740e3d4e",
     "examples/kits/lightwebpres-docs/0.1.0/slides/cover.html": "db11f6f1f094e8115a958b6acc0f20dd1736298a4cf9eda539e5d2d1b282f585",
     "examples/kits/lightwebpres-docs/0.1.0/slides/full-article.html": "4574ccbf75f70bbcdfbf12fc70ca8984fa4e6a703fe3f1e529c587d428483fab",
@@ -27,7 +27,7 @@
     "examples/kits/lightwebpres-docs/0.1.0/starters/blank/starter.json": "9c9556978e90cd4bd1f3a2dc1dd422a5f172e9c65d4187d84d004df10c5d424a",
     "examples/kits/lightwebpres-docs/0.1.0/structure.css": "4501d6bff633ce1e06facf5fd2c9d0c811236e6cd20447a4e761182e0e8a3b08",
     "examples/kits/lightwebpres-docs/0.1.0/themes/docs.conf": "2cbd0dc8e133e8042e75150392f0ce50be6c42fa46f67fa4a3729beef2ad588b",
-    "lightwebpres": "e2142594d20d07bcd32f844b9136b731314474750ca907955b0fb1efbb4080bf",
+    "lightwebpres": "0381bdd08eef132335c36c46e6ab6070e2a270bc135f976592c0c1e65da9bd3d",
     "tools/screenshot-documentation.cjs": "0d76b86a5e4513e5c86bf40656102a12fae1d00187e63cf3cea785c3018ac623"
   },
   "browser": "145.0.7632.6",
@@ -100,13 +100,13 @@
       "file": "generated/appearance-choices.png",
       "width": 1600,
       "height": 1440,
-      "sha256": "c68a6fdabdb5b1d92e6b71c0e0c448bb0b1cbd9612ba2682fa4031ccef84d02f"
+      "sha256": "9ce3f1b0804a656bbb243adda1059161518f4329e3cc93a3d4c83190841aa34e"
     },
     {
       "file": "generated/identity-composition.png",
       "width": 1600,
       "height": 1080,
-      "sha256": "dda90dc72d46520f391734590af3778e294c37399b83656948aac04fbc18ef2b"
+      "sha256": "cb1b973e7332f30bf011f316eaecd4fea8a8fb34370be9d022b000cca3bbdd37"
     }
   ],
   "assetPreviews": [

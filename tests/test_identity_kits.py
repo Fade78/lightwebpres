@@ -283,7 +283,7 @@ class IdentityKits(unittest.TestCase):
                                   'LWP_IDENTITY_KITS_DIR': str(root.parent.parent)})
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
-        self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/3')
+        self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/4')
         self.assertFalse(report['native_renderer'])
         self.assertNotIn('default', report)
         self.assertEqual(report['selector'], 'studio@1.0.0/brief')
@@ -402,7 +402,7 @@ class IdentityKits(unittest.TestCase):
             self.assertEqual(shown.returncode, 0, shown.stderr)
             report = json.loads(shown.stdout)
             self.assertEqual(report, reports[selector])
-            self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/3')
+            self.assertEqual(report['schema'], 'lightwebpres.presentation-preset/4')
             self.assertIs(report['native_renderer'], True)
             self.assertNotIn('default', report)
         self.assertNotEqual(reports['commons/night']['id'],

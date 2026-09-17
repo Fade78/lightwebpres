@@ -70,6 +70,10 @@ accepted and required fields, cardinalities, empty-value rules, reserved IDs
 and a complete source skeleton for each type. JSON is the default output;
 `--format text` is the human view. `--article file.md` makes generated slugs
 avoid the slugs already declared in that source. The command is read-only.
+The contract also carries a generated `theme` registry: shared values,
+components and every typed property with its type, default, CSS variable and
+native selector. Authoring tools should discover theme keys from this object
+instead of maintaining a second list.
 
 ## Public report contracts
 
@@ -81,9 +85,13 @@ must tolerate unknown keys (§13.9). Final 1.0.0 starts the stability promise.
 Beta and release candidates invite feedback and may change before final;
 neither pre-beta nor inter-prerelease compatibility is promised.
 
-The native-identity report baseline is `lightwebpres.presentation-preset/3`,
+The native-identity report baseline is `lightwebpres.presentation-preset/4`,
 wrapped by `lightwebpres.preset-list/3`, `lightwebpres.series-preset/3` and
 `lightwebpres.series-info/5`; theme reports use `lightwebpres.theme-info/6`.
+Theme reports retain their compact `palette` and `fonts` facets and also expose
+`properties`, the complete resolved `component.axis` map used for CSS emission
+and contrast measurement. This optional addition keeps the report schema while
+making native visual values discoverable to authoring clients.
 Preset reports export `native_renderer`: `true` for native Standard and
 Commons, `false` for kits, even kits using native layout fragments. This is
 the renderer flag, not an inferred initial selection. There is no public
@@ -122,8 +130,15 @@ Once per series, in `series.json`'s `series_meta` object.
 | `lang_tags` | `{}` — no tag selects a typography pack | Object mapping a slide tag to a typography pack name, e.g. `{"fr": "fr", "en": "en"}`; the first mapped tag on a slide selects its engine (§20.5) |
 | `selectors` | `{}` | Named expression strings used by `selector:name`; validates mapping shape, then only reachable expression syntax/cycles/budgets. Compact and bounded JSONPath filter profiles, not full RFC 9535 (§3.4) |
 
-`slide_layouts` and `slide_chrome` belong to Identity Kit manifests, where
-they declare preset defaults; they are not author metadata fields.
+`slide_layouts`, `slide_chrome` and `slide_chrome_placement` belong to Identity
+Kit manifests, where they declare preset defaults; they are not author metadata
+fields.
+
+`slide_chrome_placement` accepts `edge` or `content` and defaults to `edge`.
+It is structural preset state: `edge` separates declared header/footer slots
+with the available slide height, while `content` leaves them in normal layout
+flow. Rendered article slides expose the resolved value through
+`data-lwp-chrome-placement`; runtime preset switching updates the attribute.
 
 ### Reading fields
 
@@ -392,7 +407,7 @@ description; the terms are fixed here, in English.
 | **runtime custom variant** | The dynamic `custom(<theme>)` entry made from a base theme and the property pins in `settings.conf`; it is the primary runtime choice when those pins exist. The raw base theme remains separately selectable. |
 | **theme facet** | One catalogue axis used to find themes: `family` is declared, `polarity` is derived from the background, and `hue` is computed from it. |
 | **theme selector** | A runtime selection token from the effective catalogue: a bare slug (including `light`), a forced built-in reference `builtin:<slug>`, `all`, `essential`, or `X:Y` such as `bg:light`, `fam:terrain` or `bgh:red`; several tokens add their matches. Bare slugs follow provenance precedence; forced built-in references bypass it. |
-| **external theme snapshot** | A UTF-8 `.conf` file containing metadata and every property in the registry exactly once. It is complete by design: no CSS and no `extends`/include mechanism. |
+| **external theme snapshot** | A current UTF-8 `.conf` file contains metadata and every property in the registry exactly once. The loader also accepts older snapshots missing only allowlisted post-schema properties, preserving their former inherited values; there is no CSS and no `extends`/include mechanism. |
 | **effective catalogue** | One bare-slug index for every theme, including `light`, resolved in builtin < installed < user < series precedence. A higher origin replaces the whole entry of the same slug. Global operations omit the series layer; series operations include `templates/themes/`. Built-in resources remain explicitly addressable as `builtin:<slug>` when shadowed. |
 | **catalogue root** | A directory searched for direct `.conf` snapshots: installed resources, the user root (`LWP_THEMES_DIR` or the platform default), or a series' `templates/themes/`. |
 | **settings** | The author's own property layer (`templates/settings.conf`), applied over the theme for the static sheet and the runtime `custom(<theme>)` variant. It contains property pins only; `series theme set` changes `appearance.themes`, and `theme migrate` reduces an old scaffold while preserving pins. |
@@ -415,7 +430,7 @@ description; the terms are fixed here, in English.
 | **native resource** | Built-in reusable layout `builtin:standard` or minimal theme `builtin:light`. The native preset selector is `builtin/standard`. The catalogue lists bare `light` with its effective origin; `builtin:light` forces the native resource and remains its runtime identity. Native composition retains symbolic references. Using a native layout inside a kit preserves that kit's chrome. |
 | **Commons** | Shared resource collection, not an identity: the global theme catalogue under `themes/` (`LWP_THEMES_DIR`) plus native-layout preset descriptors under `commons/presets/<id>.json` (`LWP_COMMONS_DIR`), with series overrides in `templates/themes/` and `templates/commons/presets/`. |
 | **Commons preset** | Five-field `lightwebpres.commons-preset/1` descriptor: `schema`, `id`, `label`, `description`, `theme`. Binds a global theme slug or `builtin:<slug>` to native layouts, without a starter; selected as `commons/<id>`. The theme's origin is independent of the descriptor's loading scope. |
-| **presentation preset** | Named binding of a theme and layout/chrome defaults; selected as `builtin/standard`, `commons/<id>` or `id@<version>/preset`, where `<version>` is `X`, `X.Y`, `X.Y.Z` or `latest`. Partial/latest selectors resolve the highest available matching kit version; `X.Y.Z` pins one version. The first `appearance.presets` entry persists the initial selection, with identity inferred from that reference. |
+| **presentation preset** | Named binding of a theme, layout/chrome defaults and chrome placement; selected as `builtin/standard`, `commons/<id>` or `id@<version>/preset`, where `<version>` is `X`, `X.Y`, `X.Y.Z` or `latest`. Partial/latest selectors resolve the highest available matching kit version; `X.Y.Z` pins one version. The first `appearance.presets` entry persists the initial selection, with identity inferred from that reference. |
 | **resource collection** | Which resource catalogue a preset belongs to: `builtin`, `commons` or `kit`. This is separate from identity ownership and from the location where the loader found it. |
 | **resource origin** | Loading provenance computed by loaders: `builtin`, `installed`, `user` or `series`. All shipped themes use `builtin`, displayed as **Built-in** / **Intégré**. Origin is separate from resource ownership, collection and palette `source` credits; it cannot be declared by a theme or kit. `theme list --origin` filters effective catalogue entries after precedence. Kits carry no extension, inter-kit dependency, lineage or authenticity record. |
 | **kit composition** | `kit compose recipe.json --output directory` validates and publishes an autonomous `directory/id/version/` tree. The strict `lightwebpres.kit-composition/1` recipe has `schema`, `sources`, `manifest`, `files`; the final manifest explicitly names every final reference. No guessed remapping or dependency closure. |

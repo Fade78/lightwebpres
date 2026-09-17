@@ -8,6 +8,26 @@ function fail(message) {
   process.exitCode = 1;
 }
 
+async function visibleChromeGeometry(page) {
+  return page.evaluate(() => {
+    const slides = Array.from(document.querySelectorAll('section.slide'));
+    const slide = slides.find((candidate) => !candidate.hidden) || slides[0];
+    if (!slide) return null;
+    const rect = (node) => {
+      if (!node) return null;
+      const box = node.getBoundingClientRect();
+      return { top: box.top, bottom: box.bottom, height: box.height };
+    };
+    return {
+      placements: slides.map((candidate) =>
+        candidate.getAttribute('data-lwp-chrome-placement')),
+      slide: rect(slide),
+      header: rect(slide.querySelector('.slide-chrome-header')),
+      footer: rect(slide.querySelector('.slide-chrome-footer')),
+    };
+  });
+}
+
 async function main() {
   const [base, staticBase, zeroDurationBase, presentationBase] = process.argv.slice(2);
   const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
@@ -763,6 +783,7 @@ async function main() {
       return {
         primary: data.primary,
         selectors: data.presets.map((preset) => preset.selector),
+        placements: data.presets.map((preset) => preset.chrome_placement),
         indexShell: !!document.querySelector('#lwp-presentation-index .lwp-doc-index-frame'),
         appearance: document.querySelector('[data-menu-action="theme"] .presenter-menu-label').textContent,
         buttonPreviews: Array.from(
@@ -789,6 +810,7 @@ async function main() {
     if (presentationInitial.primary !== 'lightwebpres-docs@0.1.0/docs'
         || presentationInitial.selectors.join('|')
           !== 'lightwebpres-docs@0.1.0/docs|lightwebpres-docs@0.1.0/compact'
+        || presentationInitial.placements.join('|') !== 'edge|content'
         || !presentationInitial.indexShell
         || presentationInitial.appearance !== 'Changer d’apparence'
         || presentationInitial.buttonPreviews.length !== 2
@@ -910,14 +932,23 @@ async function main() {
     const compactArticle = await presentationPage.evaluate(() => ({
       hero: !!document.querySelector('.lwp-doc-cover-hero'),
       footer: document.querySelector('section.slide').textContent
-        .includes('LIGHTWEBPRES / OFFICIAL DOCUMENTATION'),
+        .includes('COMPACT FOOTER'),
+      header: document.querySelector('section.slide').textContent
+        .includes('COMPACT HEADER'),
       ink: getComputedStyle(document.documentElement)
         .getPropertyValue('--color-ink').trim(),
       slideCount: document.querySelectorAll('section.slide').length,
     }));
-    if (!compactArticle.hero || compactArticle.footer || compactArticle.slideCount < 2) {
+    const compactChrome = await visibleChromeGeometry(presentationPage);
+    if (!compactArticle.hero || !compactArticle.footer || !compactArticle.header
+        || compactArticle.slideCount < 2
+        || !compactChrome
+        || compactChrome.placements.some((placement) => placement !== 'content')
+        || !compactChrome.header || !compactChrome.footer
+        || compactChrome.header.top <= compactChrome.slide.top + 100
+        || compactChrome.footer.bottom >= compactChrome.slide.bottom - 100) {
       fail('the selected presentation did not replace the article layer: '
-        + JSON.stringify(compactArticle));
+        + JSON.stringify({ compactArticle, compactChrome }));
     }
 
     await presentationPage.locator('#navNext').click();
@@ -943,13 +974,20 @@ async function main() {
         .includes('LIGHTWEBPRES / OFFICIAL DOCUMENTATION'),
       ink: getComputedStyle(document.documentElement)
         .getPropertyValue('--color-ink').trim(),
+      placements: Array.from(document.querySelectorAll('section.slide'), (slide) =>
+        slide.getAttribute('data-lwp-chrome-placement')),
     }));
+    const primaryChrome = await visibleChromeGeometry(presentationPage);
     if (afterSwitch.hash !== beforeSwitch.hash
         || afterSwitch.activeDot !== beforeSwitch.activeDot
         || afterSwitch.hero || !afterSwitch.footer
-        || afterSwitch.ink !== explicitTheme.ink) {
+        || afterSwitch.ink !== explicitTheme.ink
+        || afterSwitch.placements.some((placement) => placement !== 'edge')
+        || !primaryChrome || !primaryChrome.header || !primaryChrome.footer
+        || primaryChrome.header.top > primaryChrome.slide.top + 150
+        || primaryChrome.footer.bottom < primaryChrome.slide.bottom - 150) {
       fail('switching presentation did not preserve the slide or restore the primary layer: '
-        + JSON.stringify({ beforeSwitch, afterSwitch, explicitTheme }));
+        + JSON.stringify({ beforeSwitch, afterSwitch, explicitTheme, primaryChrome }));
     }
 
     await presentationPage.keyboard.press('c');
@@ -1325,6 +1363,17 @@ async function main() {
         await regressionPage.locator('#themeOptions [data-theme="print-ink"]').click();
         const explicitPalette = await palette();
         await regressionPage.goto(staticBase + '/' + name + '-pinned/first.html');
+        if (name === 'native') {
+          const nativeChrome = await visibleChromeGeometry(regressionPage);
+          if (!nativeChrome
+              || nativeChrome.placements.some((placement) => placement !== 'edge')
+              || !nativeChrome.header || !nativeChrome.footer
+              || nativeChrome.header.top > nativeChrome.slide.top + 150
+              || nativeChrome.footer.bottom < nativeChrome.slide.bottom - 150) {
+            fail('native preset did not place chrome at the slide edges: '
+              + JSON.stringify({ mobile, locale, nativeChrome }));
+          }
+        }
         if (JSON.stringify(await palette()) !== JSON.stringify(explicitPalette)) {
           fail('theme-only explicit selection did not persist to the article');
         }

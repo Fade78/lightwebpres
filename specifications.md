@@ -3818,13 +3818,17 @@ Precedence is enforced by the catalogue; equal-origin ties keep deterministic
 loader order. Global operations omit the series layer.
 
 Les thèmes externes suivent le même vocabulaire mais sont des snapshots
-complets dans des fichiers `.conf` UTF-8. Le fichier commence par les
+complets dans des fichiers `.conf` UTF-8. Le fichier courant commence par les
 métadonnées `schema: lightwebpres.theme/1`, `label:`, `family:`, `source:` et
 `note:`, puis contient chaque clé de `PROPERTY_REGISTRY` exactement une fois.
-Les métadonnées `label` et `family` sont obligatoires (`family` appartient à
-`THEME_FAMILIES`), les clés inconnues, doublons, propriétés manquantes et
-valeurs mal typées sont des erreurs nommées. `source` et `note` sont du texte
-nu ; le HTML de galerie les échappe au moment où il en a besoin.
+Le chargeur accepte aussi un snapshot plus ancien qui omet seulement les
+propriétés ajoutées après son écriture : les défauts du registre le complètent
+et les anciennes valeurs héritées de `page.*` et `body-heading.*` sont portées
+vers le nouveau `slide-body.*`. Toute autre propriété manquante reste une
+erreur. Les métadonnées `label` et `family` sont obligatoires (`family`
+appartient à `THEME_FAMILIES`), les clés inconnues, doublons et valeurs mal
+typées sont des erreurs nommées. `source` et `note` sont du texte nu ; le HTML
+de galerie les échappe au moment où il en a besoin.
 
 Le catalogue global est la fusion **intégré < installé < utilisateur** ; une
 série ajoute ensuite sa couche **série** au-dessus, comme décrit en §2.3. Un
@@ -4689,8 +4693,12 @@ theme. **Commons** is a shared collection of global themes and native-layout
 presets, never an identity: its presets use the native Built-in identity.
 An **Identity Kit** is a self-contained versioned tree that owns its layouts,
 chrome, assets, typed themes and constrained structural CSS. A **preset** binds
-a theme and defaults for the slide types. Identity, Preset and Theme are
-distinct controls in the appearance picker. Resource collection (`builtin`,
+a theme, defaults for the slide types and the structural placement of its
+chrome. `slide_chrome_placement` accepts `edge` or `content`; `edge` uses the
+available slide height to separate chrome from the content, while `content`
+keeps the slots in normal content flow. This is preset-owned structure, not a
+Theme property. Identity, Preset and Theme are distinct controls in the
+appearance picker. Resource collection (`builtin`,
 `commons` or `kit`) is separate from loading origin (built-in, installed, user
 or series-local); neither renames the owning identity.
 
@@ -4804,6 +4812,7 @@ est le défaut du kit. Ce défaut ne renomme pas l'identité :
         "series-nav": "default",
         "full-article": "default"
       },
+      "slide_chrome_placement": "edge",
       "slide_chrome": {"all": {"footer": "Exemple"}},
       "starter": "brief"
     }
@@ -4818,8 +4827,10 @@ optional string, not a variant map. All layout references may be local files
 or `builtin:standard`, including the series index. `themes` is a nonempty map
 of local typed files under `themes/` or `builtin:light` references; `presets`
 is nonempty. Each preset has a `label`, `description`, kit theme, `slide_layouts`
-defaults, `slide_chrome` defaults and optionally a declared starter.
-`slide_layouts` and `slide_chrome` belong only to the manifest, not author JSON.
+defaults, `slide_chrome` defaults and optionally a declared
+`slide_chrome_placement` and starter. The placement defaults to `edge` when
+omitted and accepts only `edge` or `content`. `slide_layouts`, `slide_chrome`
+and `slide_chrome_placement` belong only to the manifest, not author JSON.
 
 `chrome` référence un objet JSON de modèles de chrome ; `structure_css`
 référence la feuille structurelle contrainte ; `starters` mappe un nom à son
@@ -4849,6 +4860,14 @@ Loading does not rewrite the `lightwebpres.identity-kit/1` manifest.
 `slide_chrome` may specify `all`, then a type with `header` and/or `footer`;
 type slots complete or replace `all`. These manifest defaults are distinct from
 the author-facing `series.json.chrome` layer described in §9.9.1.
+
+The optional `slide_chrome_placement` belongs to the selected preset and
+defaults to `edge`. In `edge` mode, declared header and footer slots use the
+available slide height as their separation from the content; in `content` mode,
+the same slots remain in the layout's normal content flow. LWP emits the
+resolved value as `data-lwp-chrome-placement` on article slides, and updates
+that attribute when a reader switches a runtime presentation preset. The
+series index has no slide chrome and does not receive the attribute.
 
 Sur une fiche, les trois champs Markdown sont les overrides finaux :
 
@@ -4899,6 +4918,25 @@ qu'une variable typée unique. `url()`, `@import`, les fontes, `!important` et
 la fermeture de la balise `style` sont refusés. Cette contrainte donne au
 kit une structure de contenu sans lui donner la palette, le shell ou le
 chargement de ressources.
+
+The typed Theme registry owns the parameterised visual treatment of native
+content as well as the kit's semantic chrome. The current native additions are
+`slide-body` (foreground, font, size, leading and alignment),
+`slide-body.heading1`, `slide-body.heading2`, `slide-body.heading3` (foreground,
+font, size and weight) plus `slide-body.heading.leading`, and
+`slide-header`/`slide-footer` (foreground, font, size, leading, weight,
+tracking and gap). Header and footer also expose their declared-asset geometry;
+the footer exposes its rule colour and width. Body-heading sizes reference
+`--slide-body-size`, so a reading-size theme changes the hierarchy together.
+The live `theme` object in `lightwebpres contract --format json` is the exact
+machine-readable inventory; no hand-maintained property count or duplicate
+list is part of this contract.
+
+Selectors in kit `structure_css` that target native Theme-controlled surfaces
+remain valid when they provide identity-specific layout, but the validator
+warns that visual values belong in the typed registry. This warning does not
+turn a kit build into an accessibility verdict or reject existing structural
+CSS by itself.
 
 Les assets déclarés sont publiés sous
 `public/assets/presentations/<id>/<version>/…`; leur URL dans la page est
@@ -6437,6 +6475,7 @@ slugs ou `--all`, c'est une **liste** de ces objets, dans l'ordre demandé.
 | `facets` | objet | `polarity`, `hue`, `family` (§9.5.2), calculées depuis le thème explicite ou celui du preset sur une série |
 | `palette` | objet | les sept valeurs partagées **résolues**, clés sans le préfixe `color.` : `page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`, `nav`. Valeurs en `#RRGGBBAA` |
 | `fonts` | objet | les quatre piles résolues : `text`, `display`, `ui`, `mono` |
+| `properties` | objet | la feuille complète des propriétés `component.axis` résolues, utilisée pour l'émission CSS et la mesure de contraste ; les clés et les défauts sont découvrables via `contract` |
 | `accessibility` | objet | les trois catégories (ci-dessous) |
 
 `target` :
@@ -6712,7 +6751,7 @@ La sortie texte est le défaut et vise la lecture humaine.
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
 | `series_meta` | objet | les champs de §20.5 — dont `title`, `subtitle`, `version`, `intro`, `author`, `license` et `scroll_duration` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
-| `presentation` | object | The complete resolved preset report, with schema `lightwebpres.presentation-preset/3` (§11.18) |
+| `presentation` | object | The complete resolved preset report, with schema `lightwebpres.presentation-preset/4` (§11.18) |
 | `appearance` | objet | les listes demandées, la résolution initiale et le chrome de série : `presets`, `themes`, `chrome`, `theme_policy`, `initial_preset`, `initial_theme` et les thèmes publiés |
 | `counts` | objet | un nombre par statut de §20.6 — `active`, `draft`, `ignored` — dont la somme est la liste entière. Un article `ignored` est toujours *dans* le fichier de série : le sortir discrètement de l'arithmétique ferait paraître la série plus petite qu'elle n'est |
 | `tags` | objet | l'inventaire de visibilité défini en §11.11.1, identique à la réponse de `series tags` sans son enveloppe `schema`/`target` |
@@ -7210,9 +7249,10 @@ lightwebpres series preset set [répertoire] --preset <builtin/standard|commons/
 `preset list` exposes complete choices from the global catalogue:
 `builtin/standard`, Commons presets and kit presets, never isolated fragments.
 `preset show` describes one choice without writing a series: identity and
-calculated scope, theme, layout and chrome defaults, and optional starter.
-The JSON contracts are `lightwebpres.preset-list/3` (a `presets` array of
-reports) and `lightwebpres.presentation-preset/3` (one report). The nested
+calculated scope, theme, layout and chrome defaults, chrome placement, and
+optional starter. The JSON contracts are `lightwebpres.preset-list/3` (a
+`presets` array of reports) and `lightwebpres.presentation-preset/4` (one
+report). The nested
 identity resource is reported under `identity`; the former package key is not
 part of this schema.
 

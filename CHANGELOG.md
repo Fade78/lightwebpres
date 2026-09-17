@@ -33,7 +33,31 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.61.0
+## v0.61.0
+
+Presentation presets now own `slide_chrome_placement`: `edge` uses the
+available slide height to separate declared header and footer chrome from the
+content, while `content` keeps those slots in normal layout flow. Identity Kit
+manifests validate the two values, the `/4` preset report exposes the resolved
+choice, generated article slides carry it, and runtime preset switching updates
+the live placement without changing the Theme contract.
+
+The typed Theme registry now owns free-form slide-body typography, the three
+body-heading scales, and native header/footer typography, spacing, rule and
+declared-asset geometry. Body headings remain proportional to
+`slide-body.size`, while cover chrome inherits the cover foreground so the
+existing readable result is preserved.
+
+`theme show` reports the complete resolved property map, and `contract` exposes
+the live Theme registry for authoring tools. Contrast and audit measurements
+include the new text surfaces. Older external Theme snapshots may omit only
+these newly introduced properties; loading supplies the registry defaults and
+preserves their former page/body-heading inheritance.
+
+Identity Kit structural CSS remains scoped and functional, but selectors aimed
+at native Theme-controlled surfaces now produce an actionable warning. The
+gallery, guide, examples, golden demo and responsive documentation captures
+were regenerated from the updated executable.
 
 Read-only `kit list` and `kit show` commands now inspect complete native and
 external Identity Kits without changing a series. Their versioned JSON reports
