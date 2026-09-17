@@ -14227,6 +14227,17 @@ class DefaultStylesheetCoverage(unittest.TestCase):
                 f'{selector} is emitted by the converter but has no rule',
             )
 
+    def test_chrome_block_padding_is_a_typed_visual_axis(self):
+        resolved = self.resolve({
+            'slide-header.padding-block': '2vmin',
+            'slide-footer.padding-block': '3vmin',
+        })
+        css = self.lwp.emit_theme_css(resolved)
+        self.assertIn('--slide-header-padding-block: 2vmin;', css)
+        self.assertIn('--slide-footer-padding-block: 3vmin;', css)
+        self.assertIn('padding-block: var(--slide-header-padding-block);', css)
+        self.assertIn('padding-block: var(--slide-footer-padding-block);', css)
+
 
 class FactStrongEmphasis(unittest.TestCase):
     """§9.1 -> §9 rewrite: fact.strong.weight/style/bg/fg independently

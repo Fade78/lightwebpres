@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.61.0"
+VERSION = "0.62.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -3293,6 +3293,8 @@ THEME_COMPONENTS = [
         ThemeProp('slide-header.tracking', PROP_LENGTH, '0.08em',
                   css='letter-spacing'),
         ThemeProp('slide-header.gap',      PROP_LENGTH, '12px', css='gap'),
+        ThemeProp('slide-header.padding-block', PROP_LENGTH, '0',
+                  css='padding-block'),
         ThemeProp('slide-header.logo-size', PROP_LENGTH, '28px', css='width',
                   selector='.slide-chrome-header img'),
         ThemeProp('slide-header.logo-max-size', PROP_LENGTH, '64px',
@@ -3310,6 +3312,8 @@ THEME_COMPONENTS = [
         ThemeProp('slide-footer.tracking', PROP_LENGTH, '0.08em',
                   css='letter-spacing'),
         ThemeProp('slide-footer.gap',      PROP_LENGTH, '12px', css='gap'),
+        ThemeProp('slide-footer.padding-block', PROP_LENGTH, '0',
+                  css='padding-block'),
         ThemeProp('slide-footer.rule-fg',  PROP_COLOR,  '#0000001A',
                   css='border-top-color'),
         ThemeProp('slide-footer.rule-width', PROP_LENGTH, '1px',
@@ -4050,13 +4054,15 @@ THEME_OPTIONAL_PROPERTIES = frozenset({
     'slide-body.heading3.shadow.dx', 'slide-body.heading3.shadow.dy',
     'slide-header.fg', 'slide-header.font', 'slide-header.size',
     'slide-header.leading', 'slide-header.weight', 'slide-header.tracking',
-    'slide-header.gap', 'slide-header.logo-size',
+    'slide-header.gap', 'slide-header.padding-block',
+    'slide-header.logo-size',
     'slide-header.logo-max-size', 'slide-header.asset-gap',
     'slide-header.shadow.fg', 'slide-header.shadow.blur',
     'slide-header.shadow.dx', 'slide-header.shadow.dy',
     'slide-footer.fg', 'slide-footer.font', 'slide-footer.size',
     'slide-footer.leading', 'slide-footer.weight', 'slide-footer.tracking',
-    'slide-footer.gap', 'slide-footer.rule-fg', 'slide-footer.rule-width',
+    'slide-footer.gap', 'slide-footer.padding-block',
+    'slide-footer.rule-fg', 'slide-footer.rule-width',
     'slide-footer.logo-size', 'slide-footer.logo-max-size',
     'slide-footer.asset-gap',
     'slide-footer.shadow.fg', 'slide-footer.shadow.blur',
@@ -29233,9 +29239,11 @@ def print_theme_info_text(report):
         'slide-body.heading3.size', 'slide-body.heading.leading',
         'slide-header.fg', 'slide-header.font', 'slide-header.size',
         'slide-header.weight', 'slide-header.tracking', 'slide-header.gap',
+        'slide-header.padding-block',
         'slide-header.logo-size', 'slide-header.logo-max-size',
         'slide-footer.fg', 'slide-footer.font', 'slide-footer.size',
         'slide-footer.weight', 'slide-footer.tracking', 'slide-footer.gap',
+        'slide-footer.padding-block',
         'slide-footer.rule-fg', 'slide-footer.rule-width',
         'slide-footer.logo-size', 'slide-footer.logo-max-size',
     )

@@ -33,6 +33,13 @@ link to the originals. They are at
 
 ---
 
+## v0.62.0
+
+Themes can now give slide chrome more vertical room through the typed
+`slide-header.padding-block` and `slide-footer.padding-block` properties.
+The default remains `0`, so existing themes keep their rendered geometry while
+large-reading and identity themes can enlarge the header and footer footprint.
+
 ## v0.61.0
 
 Presentation presets now own `slide_chrome_placement`: `edge` uses the
