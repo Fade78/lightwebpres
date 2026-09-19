@@ -2125,7 +2125,7 @@ widget script lifecycles are unsupported. Use default multipage output for
 those extensions rather than expecting their scripts to restart on each switch.
 `--drafts-only` remains refused in combined-HTML mode.
 `--include-drafts`, `--no-nav` and `--no-readme` remain supported.
-`build --only ARTICLE` validates the target but rebuilds the complete combined
+`build --incremental ARTICLE` validates the target but rebuilds the complete combined
 file, not an incremental fragment.
 
 Do not change source `page_dest` values. Generated series README links point
@@ -2486,13 +2486,13 @@ and `--no-essential-theme`, plus `--single-html [FILE]`, `--inline-images`,
 ### Target builds and record build stamps
 
 ```bash
-./lightwebpres build my-series --lang en --only first-page.md
+./lightwebpres build my-series --lang en --incremental first-page.md
 ```
 
 For the author's rebuild-and-preview loop, use [watch](#preview-while-writing)
 in route 1; it does not reload the browser.
 
-`--only` targets one article only when the navigation cache is safe. It still
+`--incremental` targets one article only when the navigation cache is safe. It still
 refreshes derived outputs (index, README and assets according to options,
 manifest and cache); changes affecting index/navigation trigger a full build.
 With `--single-html [FILE]`, it validates the target and always rebuilds the
@@ -2502,6 +2502,11 @@ losing retained pages or declared assets, also triggers a full build rather
 than producing a partial site under a successful exit code.
 `--nav-cache path` relocates the fingerprint, normally `.lwp-cache/nav.json`.
 That cache is derived state and can be deleted, not hand-edited.
+For a build system, use this public executable command as the integration
+boundary: pass the changed article's `page_source` or `page_dest` to
+`--incremental`. The caller does not need to reproduce the cache or safety
+checks, and a normal full `build` remains the correct fallback when no single
+target is known.
 `--build-stamp` records version and time on the pages; `--build-stamp-minimal`
 keeps a marker without either and takes precedence. `status: draft` and
 `ignored` control which articles enter normal output (route 2).

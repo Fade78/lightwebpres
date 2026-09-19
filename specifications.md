@@ -43,7 +43,7 @@
 
 **§11. Commandes de l'exécutable**
 
-11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --only` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.3.8 `--single-html [FILE]`: one document per series · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.9.2 Le catalogue externe · 11.10 `series theme set` · 11.11 `status` et `series status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy · 11.17 `contract` · 11.18 `preset` et `series preset` · 11.19 `kit compose`
+11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --incremental` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.3.8 `--single-html [FILE]`: one document per series · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.9.2 Le catalogue externe · 11.10 `series theme set` · 11.11 `status` et `series status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy · 11.17 `contract` · 11.18 `preset` et `series preset` · 11.19 `kit compose`
 
 **§12. Algorithme du build**
 
@@ -426,7 +426,7 @@ ma-serie/                          # Le répertoire de la série (l'unité de tr
 ├── COPYING                        # GPLv3, posée par init avec l'exécutable (§1.2)
 ├── COPYING.EXCEPTION              # LightWebPres Output Exception, idem
 ├── .gitlab-ci.yml                 # Pipeline CI (optionnel — init --gitlab-ci, §11.1)
-└── .lwp-cache/nav.json            # Empreinte de navigation pour build --only (§11.3.1)
+└── .lwp-cache/nav.json            # Empreinte de navigation pour build --incremental (§11.3.1)
 ```
 
 ### 2.3 Variables d'environnement
@@ -543,7 +543,7 @@ d'une commande vont sur **stdout**. C'est ce qui permet à
 ```bash
 lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--preset builtin/standard|commons/id|id@version/preset] [--no-starter] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
-lightwebpres build [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--language-file path.json] [--no-typography] [--include-drafts] [--only article] [--nav-cache path] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres build [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--language-file path.json] [--no-typography] [--include-drafts] [--incremental article] [--nav-cache path] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 lightwebpres watch [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--include-drafts] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 lightwebpres verify [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--language-file path.json] [--no-typography] [--include-drafts] [--no-nav] [--no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
@@ -604,7 +604,7 @@ lightwebpres --help
 - `--themes` : `build`/`verify`/`watch`/`theme vendor` — embarque ou vend des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules ; l'option remplace `appearance.themes` pour cette invocation (§9.3.7)
 - `--presentation-presets` : `build`/`verify`/`watch` — remplace `appearance.presets` pour cette invocation par des sélecteurs séparés par des virgules ; le premier sélecteur devient le primaire (§9.3.8)
 - `--no-essential-theme` : `build`/`verify`/`watch` seulement — ne pas ajouter le lot `essential` lorsque `appearance.themes` est absent (§9.3.7); une liste explicite reste exacte
-- `--only`: `build` rebuilds one article (§11.3.1); with `--single-html`, it validates the target then rebuilds the complete combined file (§11.3.8).
+- `--incremental`: `build` requests a targeted incremental rebuild of one article (§11.3.1). It falls back to a full build when shared inputs or retained outputs are not safe; with `--single-html`, it validates the target then rebuilds the complete combined file (§11.3.8).
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
 - `--format text|json` : `status`, `series status`, `series tags`, `resolve`,
@@ -5293,14 +5293,14 @@ reste l'HTML statique ; la présence d'au moins une alternative entraîne la
 génération des fragments et de l'index de chaque preset, ainsi que du payload
 décrit en §9.3.8.
 
-### 11.3.1 `build --only` : reconstruction d'un seul article
+### 11.3.1 `build --incremental` : reconstruction d'un seul article
 
 The incremental behavior below applies to multipage output. With
-`--single-html [FILE]`, `--only` validates its target but rebuilds the complete
+`--single-html [FILE]`, `--incremental` validates its target but rebuilds the complete
 combined document (§11.3.8).
 
 ```bash
-lightwebpres build [répertoire] --only fichier.html [--nav-cache chemin]
+lightwebpres build [répertoire] --incremental fichier.html [--nav-cache chemin]
 ```
 
 Reconstruit un seul article au lieu de toute la série — pensé pour un
@@ -5309,13 +5309,13 @@ travaille un seul article, voir la spec `lightwebpres-gui` §8.2), là où
 reconstruire toute la série à chaque pause de frappe serait disproportionné
 sur une série à beaucoup d'articles.
 
-**Désignation de l'article** : la valeur de `--only` est comparée au
-`page_dest` **ou** au `page_source` de chaque article — `--only a.html`
-et `--only a.md` désignent le même article. Aucune correspondance →
+**Désignation de l'article** : la valeur de `--incremental` est comparée au
+`page_dest` **ou** au `page_source` de chaque article — `--incremental a.html`
+et `--incremental a.md` désignent le même article. Aucune correspondance →
 erreur fatale (« matches no article »), de même qu'un `page_source`
 correspondant mais dont le fichier n'existe pas. Les deux filtres de
 §20.6 s'appliquant avant celui-ci, un article `status: draft` n'est
-désignable par `--only` qu'avec `--include-drafts` ou `--drafts-only`, et un
+désignable par `--incremental` qu'avec `--include-drafts` ou `--drafts-only`, et un
 article `status: ignored` ne l'est jamais.
 
 **Le piège que ça doit éviter** : `build_index()` et `build_series_nav()`
@@ -5328,7 +5328,7 @@ les pages déjà construites de B, C, D..., pas seulement l'index.
 Reconstruire uniquement le fichier demandé sans vérifier ça produirait un
 site avec une navigation périmée.
 
-**Le mécanisme de sécurité** : à chaque `build` (complet ou avec `--only`),
+**Le mécanisme de sécurité** : à chaque `build` (complet ou avec `--incremental`),
 une empreinte est calculée pour chaque article — un hash SHA-256 de sa
 position dans `articles`, des 6 champs ci-dessus et des métadonnées de
 filtrage runtime (tags d'article, tags/slides et `default_tag`), jamais leur
@@ -5348,21 +5348,39 @@ l'ensemble des clés et force un build complet.
 Changer l'ordre des articles change aussi leur position dans l'empreinte et
 force un build complet : l'ordre de `series.json` est une donnée publiée.
 
-Au lancement de `build --only fichier`, l'empreinte est recalculée pour
+Au lancement de `build --incremental fichier`, l'empreinte est recalculée pour
 **tous** les articles (rien de coûteux : ne fait que reparser les blocs
 meta, jamais convertir un corps entier) et comparée à celle du cache :
 
 - **Identique pour tous les articles** (y compris ceux autres que
   `fichier` — un article ajouté/retiré, ou les champs d'un autre article
   changés entre-temps, sont détectés de la même façon) → reconstruction
-  du seul fichier demandé, plus `index.html`/`README.md`/l'inventaire et la
-  copie des images (bon marché, refaits systématiquement) — l'étape évitée
-  est la seule vraiment coûteuse : reconvertir le corps Markdown de chaque
-  *autre*
+  du seul fichier demandé, plus l'`index.html` généré quand il y en a un,
+  le `README.md` sauf `--no-readme`, l'inventaire et la copie des images
+  (bon marché, refaits systématiquement) — l'étape évitée est la seule
+  vraiment coûteuse : reconvertir le corps Markdown de chaque *autre*
   article.
-- **Cache absent, illisible, ou différent** → bascule silencieuse sur un
+- **Cache absent, illisible, ou différent** → bascule automatique sur un
   `build` complet, jamais une erreur ni une page obsolète silencieuse ;
   un message `[INFO]` explique pourquoi.
+
+The per-article values are combined with a shared fingerprint of the resolved
+output directory and rendering inputs, including series metadata,
+appearance/theme and CSS choices, navigation/runtime strings, language and
+typography, presentation presets and relevant build options. A change in any
+of those inputs makes the cached map different.
+
+Before taking the fast path, the build also validates the existing output
+manifest and confirms that every retained page or asset has a safe path and
+still exists. A missing or unusable retained output falls back to a full
+build; an invalid manifest is then rejected by the normal manifest
+validation. The selected page, generated index when applicable, README,
+assets, manifest and cache are staged through the same publication plan.
+
+For a build system, `--incremental` is the public CLI integration boundary:
+pass an article's `page_source` or `page_dest` and let the executable perform
+these checks. Do not import the internal fast-path helpers; invoking a normal
+`build` remains the correct behavior when no target is known.
 
 ### 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur
 
@@ -5689,7 +5707,7 @@ navigation. Nonempty `templates/index_extra.html` is rejected when contents are
 included; with `--no-index` it is unused, neither loaded nor rendered.
 Arbitrary widget script lifecycles are unsupported; use default multipage
 output for those extensions. `--drafts-only` remains refused.
-`--include-drafts`, `--no-nav` and `--no-readme` remain supported. `build --only`
+`--include-drafts`, `--no-nav` and `--no-readme` remain supported. `build --incremental`
 validates its article target, then rebuilds the complete combined file rather
 than an incremental fragment. `--open` opens the combined file, including
 through the local server when used with `watch --serve`.
@@ -7354,7 +7372,7 @@ prepare_outputs(context, plan, options):
   if --single-html:
     plan.stage(render_combined_html(context))  # one shell, inert inactive units (§11.3.8)
   else:
-    for unit in selected_render_targets(context, --only, --drafts-only):
+    for unit in selected_render_targets(context, --incremental, --drafts-only):
       # cover, standard, series-nav, full-article and unit-index use their
       # registered renderers, typography, kit envelopes and chrome (§9.9.3).
       # Page CSS composes registry/base/settings/style.*, then custom CSS (§9.9.4).
@@ -7372,7 +7390,7 @@ build(directory, options):
   context = prepare_context(directory, options)
   with temporary_publication_plan() as plan:
     prepare_outputs(context, plan, options)
-    plan.stage(navigation_fingerprint(context))       # --only cache (§11.3.1)
+    plan.stage(navigation_fingerprint(context))       # --incremental cache (§11.3.1)
     plan.stage(validated_manifest_with_history(context, plan))  # clean (§11.13)
     plan.validate_destination_graph()
     plan.publish_files_atomically_one_at_a_time()    # bookkeeping last; no directory swap

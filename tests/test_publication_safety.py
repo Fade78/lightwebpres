@@ -254,7 +254,7 @@ class PublicationSafety(unittest.TestCase):
         public = self.root / 'public'
         before = self.snapshot(public)
         preview = self.root / 'preview'
-        result = self.cli('build', self.root, '--only', 'a.md', '--output', preview)
+        result = self.cli('build', self.root, '--incremental', 'a.md', '--output', preview)
         self.assert_full_build(result, preview)
         self.assertEqual(self.snapshot(public), before)
 
@@ -268,7 +268,7 @@ class PublicationSafety(unittest.TestCase):
         preview = self.root / 'preview'
         self.cli('build', self.root, '--output', preview)
         before = self.snapshot(preview)
-        result = self.cli('build', self.root, '--only', 'a.md')
+        result = self.cli('build', self.root, '--incremental', 'a.md')
         self.assert_full_build(result, public)
         self.assertNotEqual((public / 'b.html').read_bytes(), old_b)
         self.assertIn(b'Renamed navigation A', (public / 'b.html').read_bytes())
@@ -281,9 +281,9 @@ class PublicationSafety(unittest.TestCase):
         sidecar.write_bytes(b'Never generated')
         (public / 'b.html').unlink()
         before = self.snapshot()
-        self.cli('--dry-run', 'build', self.root, '--only', 'a.md')
+        self.cli('--dry-run', 'build', self.root, '--incremental', 'a.md')
         self.assertEqual(self.snapshot(), before)
-        result = self.cli('build', self.root, '--only', 'a.md')
+        result = self.cli('build', self.root, '--incremental', 'a.md')
         self.assert_full_build(result, public)
         self.assertIn('retained pages/assets', result.stderr)
         self.assertEqual(sidecar.read_bytes(), b'Never generated')
@@ -301,7 +301,7 @@ class PublicationSafety(unittest.TestCase):
         published = public / 'img' / 'nested' / 'photo.svg'
         self.assertEqual(published.read_bytes(), image.read_bytes())
         published.unlink()
-        result = self.cli('build', self.root, '--only', 'a.md')
+        result = self.cli('build', self.root, '--incremental', 'a.md')
         self.assert_full_build(result, public)
         self.assertEqual(published.read_bytes(), image.read_bytes())
 
@@ -309,7 +309,7 @@ class PublicationSafety(unittest.TestCase):
         self.cli('build', self.root)
         public = self.root / 'public'
         (public / '.lwp-manifest.json').unlink()
-        result = self.cli('build', self.root, '--only', 'a.md')
+        result = self.cli('build', self.root, '--incremental', 'a.md')
         self.assert_full_build(result, public)
 
     def test_same_absolute_output_retains_fast_path_and_recreates_selected_page(self):
@@ -317,7 +317,7 @@ class PublicationSafety(unittest.TestCase):
         public = self.root / 'public'
         before = self.snapshot(public)['b.html']
         (public / 'a.html').unlink()
-        result = self.cli('build', self.root, '--only', 'a.md', '--output', public)
+        result = self.cli('build', self.root, '--incremental', 'a.md', '--output', public)
         self.assertIn('Incremental build', result.stdout)
         self.assertEqual(self.snapshot(public)['b.html'], before)
         self.cli('verify', self.root)

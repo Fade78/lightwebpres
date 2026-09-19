@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.62.0"
+VERSION = "0.63.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -23936,14 +23936,14 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
 
 
 # ============================================================================
-# NAV/INDEX FINGERPRINT CACHE (for `build --only`, see specifications.md §11.3.1)
+# NAV/INDEX FINGERPRINT CACHE (for `build --incremental`, see specifications.md §11.3.1)
 # ============================================================================
 #
 # build_index() and build_series_nav() both render _DISPLAY_OVERRIDE_FIELDS
 # for every article, not just the one being built — build_series_nav's
 # output is inlined into every OTHER article's own page too, so changing
 # one article's title can make every already-built page stale, not just
-# index.html. `--only <file>` skips the expensive step (re-converting
+# index.html. `--incremental <file>` skips the expensive step (re-converting
 # every other article's full Markdown body) but only when none of that
 # shared, cross-page data has actually changed since the last build.
 
@@ -23973,7 +23973,7 @@ def compute_nav_fingerprint(articles, shared=None):
     dict (not just the entry for the one being built) also catches an
     article added/removed, or a DIFFERENT article's meta/series.json entry
     having changed since the last build, not only the one named by
-    --only. The position is part of each value so reordering the same
+    --incremental. The position is part of each value so reordering the same
     articles cannot take the incremental path."""
     shared_text = json.dumps(shared, ensure_ascii=False, sort_keys=True,
                              separators=(',', ':')) if shared is not None else ''
@@ -24560,8 +24560,8 @@ def _no_index_notice(claimant):
             f'else, so none is generated.')
 
 
-def _resolve_only_entry(ctx, only_file):
-    """Resolves `--only` after the same status filters as the build loop.
+def _resolve_incremental_entry(ctx, incremental_file):
+    """Resolves `--incremental` after the same status filters as the build loop.
 
     `load_build_context` removes ordinary drafts unless they were explicitly
     included, while `--drafts-only` is applied by the full-build loop. Keeping
@@ -24573,9 +24573,9 @@ def _resolve_only_entry(ctx, only_file):
     else:
         eligible = ctx.articles
     entry = next((e for e in eligible
-                  if only_file in (e['page_dest'], e['page_source'])), None)
+                  if incremental_file in (e['page_dest'], e['page_source'])), None)
     if entry is None:
-        log('error', f'--only {only_file!r} matches no article (by file or source).')
+        log('error', f'--incremental {incremental_file!r} matches no article (by file or source).')
         sys.exit(1)
     return entry
 
@@ -24962,13 +24962,13 @@ def _identity_kits_for_output(ctx):
     return tuple(identity_kits)
 
 
-def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_stamp=''):
-    """The fast path for `build --only`: the caller has already confirmed
+def _cmd_build_incremental(ctx, incremental_file, nav_cache_path, fresh_fingerprint, build_stamp=''):
+    """The fast path for `build --incremental`: the caller has already confirmed
     nav/index-affecting metadata is unchanged since the last build, so
     only the named article's own page needs re-converting — index.html,
     README.md, and images are cheap regardless of series size, so they're
     always redone rather than also trying to skip them."""
-    entry = _resolve_only_entry(ctx, only_file)
+    entry = _resolve_incremental_entry(ctx, incremental_file)
 
     source_path = _resolve_contained(ctx.sources_dir, entry['page_source'])
     if source_path is None:
@@ -25578,16 +25578,16 @@ def cmd_build(series_dir, args):
         build_stamp = ''
 
     if args.get('--single-html'):
-        if args.get('--only'):
-            _resolve_only_entry(ctx, args['--only'])
-        # Do not let a later multipage --only reuse a fingerprint from before
+        if args.get('--incremental'):
+            _resolve_incremental_entry(ctx, args['--incremental'])
+        # Do not let a later multipage --incremental reuse a fingerprint from before
         # this topology switch. The ordinary missing-cache path rebuilds it.
         _execute_publication(ctx, ctx.membership.rendered, None,
                              args.get('--nav-cache') or default_nav_cache_path(ctx.sd),
                              {}, build_stamp=build_stamp)
         return args['--single-html']
 
-    # §11.3.3, decided before anything is written and before the --only
+    # §11.3.3, decided before anything is written and before the --incremental
     # fast path (which writes the index too): when an index is requested, more
     # than one article claiming index.html is fatal in there, exactly one gets
     # the name and no series index is produced. --no-index removes the
@@ -25650,13 +25650,13 @@ def cmd_build(series_dir, args):
     fresh_fingerprint = compute_nav_fingerprint(
         ctx.articles, shared=shared_fingerprint)
 
-    only_file = args.get('--only')
-    if only_file:
+    incremental_file = args.get('--incremental')
+    if incremental_file:
         # Validate the designation before consulting the cache. A cache miss
-        # may trigger a full build, but it must not turn an invalid --only
+        # may trigger a full build, but it must not turn an invalid --incremental
         # request into an unrelated successful build.
-        only_entry = _resolve_only_entry(ctx, only_file)
-    if only_file:
+        incremental_entry = _resolve_incremental_entry(ctx, incremental_file)
+    if incremental_file:
         cached_fingerprint = load_nav_cache(nav_cache_path)
         reason = 'no usable cache found' if cached_fingerprint is None else 'nav/index-affecting metadata changed since the last build, or output directory changed'
         if cached_fingerprint == fresh_fingerprint:
@@ -25664,7 +25664,7 @@ def cmd_build(series_dir, args):
             # The index and selected page are rebuilt; drafts-only deliberately
             # permits absent published pages, but not absent draft pages.
             retained = {entry['page_dest'] for entry in ctx.articles
-                        if entry != only_entry and (not args.get('--drafts-only')
+                        if entry != incremental_entry and (not args.get('--drafts-only')
                                                    or entry.get('status') == 'draft')}
             pages = {entry['page_dest'] for entry in ctx.articles} | {'index.html'}
             try:
@@ -25680,10 +25680,10 @@ def cmd_build(series_dir, args):
             except (OSError, ValueError, RecursionError):
                 usable = False
             if usable:
-                _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_stamp)
+                _cmd_build_incremental(ctx, incremental_file, nav_cache_path, fresh_fingerprint, build_stamp)
                 return
             reason = 'retained pages/assets are missing or the output manifest is unusable'
-        log('info', f'--only requested but not safe ({reason}) — doing a full build instead.')
+        log('info', f'--incremental requested but not safe ({reason}) — doing a full build instead.')
 
     progress(f'Build: {ctx.sd}')
     progress(f'  Articles: {ctx.sources_dir}')
@@ -31524,11 +31524,12 @@ OPTIONS
     files (highest priority, spec §19.5)
   --no-typography
     build/verify/watch: disables ALL typography rules for this run
-  --only file
-    build: rebuild just this one article, IF nothing that affects
-    index.html/series-nav changed since the last build (spec §11.3.1)
+  --incremental file
+    build: request an incremental rebuild centered on this article. If
+    shared inputs changed, the command safely falls back to a full build
+    (spec §11.3.1)
   --nav-cache path
-    build --only: where the nav/index fingerprint is read from and
+    build --incremental: where the nav/index fingerprint is read from and
     written to (default: .lwp-cache/nav.json)
   --build-stamp
     build: stamps every page with "Compiled at <date/time> with
@@ -31758,7 +31759,7 @@ SERIES DIRECTORY
 
   Written by `build`:
   README.md             Generated from series.json (article list)
-  .lwp-cache/nav.json   Read by build --only (spec §11.3.1) — derived state,
+  .lwp-cache/nav.json   Read by build --incremental (spec §11.3.1) — derived state,
                         safe to delete, never edited by hand
 
   Not written by anything, and read if present:
@@ -31875,7 +31876,7 @@ _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
                               '--unit-index', '--unit-index-max-columns', '--unit-index-selector',
                               '--single-html',
                              '--theme', '--themes', '--presentation-presets',
-                             '--only', '--nav-cache',
+                             '--incremental', '--nav-cache',
                              '--polarity', '--hue', '--family', '--origin',
                              '--from', '--label', '--source', '--note',
                               '--format',
@@ -31890,7 +31891,7 @@ _COMMAND_OPTIONS = {
               '--unit-index', '--unit-index-max-columns', '--unit-index-selector',
               '--single-html',
               '--themes', '--presentation-presets', '--no-essential-theme',
-              '--include-drafts', '--only', '--nav-cache',
+              '--include-drafts', '--incremental', '--nav-cache',
               '--build-stamp', '--build-stamp-minimal',
               '--no-nav', '--no-index', '--no-readme', '--drafts-only',
               '--open', '--inline-images', '--slides-page-numbers',

@@ -33,6 +33,16 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.63.0
+
+The build target option is now `--incremental` instead of `--only`. It accepts
+an article's `page_source` or `page_dest` and safely requests a targeted
+multipage rebuild: shared-input, cache, manifest and retained-output checks
+fall back to a full build when needed. Combined HTML validates the target but
+still rebuilds the complete document. The removed option spelling is rejected,
+and the build-system documentation identifies the public CLI as the
+integration boundary.
+
 ## v0.62.0
 
 Themes can now give slide chrome more vertical room through the typed

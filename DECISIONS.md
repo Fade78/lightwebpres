@@ -2614,7 +2614,7 @@ the opposite domain so a partial override cannot silently alter typography or
 interface behavior.
 
 The guards cover split precedence and validation, FHS discovery and its
-standalone boundary, runtime payloads, watch paths and `build --only`
+standalone boundary, runtime payloads, watch paths and `build --incremental`
 invalidations. The full suite passes with 1105 tests in 197 classes.
 
 ## B49 — La locale du navigateur choisit seulement l’interface
@@ -2670,7 +2670,7 @@ Après avoir composé les pages qu’il écrit ou qu’il conserve dans une
 reconstruction incrémentale, il relève leurs `src` locaux et ne copie que les
 fichiers référencés qui existent réellement. Cette même représentation rendue
 couvre les images Markdown, les figures, le contenu `full-article`, le HTML
-brut et les pages qui restent en place pour `--only` ou `--drafts-only`.
+brut et les pages qui restent en place pour `--incremental` ou `--drafts-only`.
 
 La copie reste additive : elle fusionne dans `public/img/` et ne supprime pas
 un fichier déjà présent. Le manifeste, lui, ne déclare que les fichiers que
@@ -2687,7 +2687,7 @@ inventaire.
 
 **Ce qui est vérifié.** Les tests couvrent les images inline, figures et
 inclusions, les fichiers inutilisés, les sorties additives, les builds
-`--only` et `--drafts-only`, le manifeste et les symlinks d’images. L’audit
+`--incremental` et `--drafts-only`, le manifeste et les symlinks d’images. L’audit
 conserve son comportement non bloquant, tandis que `--strict` compte ses
 nouveaux avertissements.
 

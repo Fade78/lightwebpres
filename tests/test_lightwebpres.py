@@ -1344,16 +1344,16 @@ class SlideCounter(unittest.TestCase):
             self.assertIn('slide_page_numbers', result.stderr)
 
 
-class OnlyAcceptsPageSourceForm(unittest.TestCase):
-    """§11.3.1: --only matches by page_dest OR page_source — the .md form
+class IncrementalAcceptsPageSourceForm(unittest.TestCase):
+    """§11.3.1: --incremental matches by page_dest OR page_source — the .md form
     was documented but never exercised."""
 
-    def test_only_with_md_name_takes_incremental_path(self):
+    def test_incremental_with_md_name_takes_incremental_path(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, _MINIMAL_MD)
             run('build', str(root), '--output', str(root / 'public'))
             result = run('build', str(root), '--output', str(root / 'public'),
-                         '--only', 'a.md')
+                         '--incremental', 'a.md')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Incremental build', result.stdout)
             self.assertTrue((root / 'public' / 'a.html').exists())
@@ -1894,7 +1894,7 @@ class Axis4CommandGaps(unittest.TestCase):
             run('build', str(root), '--output', str(root / 'public'))
             (root / '.lwp-cache' / 'nav.json').write_text('{garbage', encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'),
-                         '--only', 'a.html')
+                          '--incremental', 'a.html')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('[INFO]', result.stderr)
 
@@ -2825,6 +2825,13 @@ class CliStrictParsing(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('Unknown option', result.stderr)
 
+    def test_removed_only_option_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            result = run('build', str(root), '--only', 'a.html')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('Unknown option: --only', result.stderr)
+
     def test_equals_form_is_accepted(self):
         # --lang=en used to be silently ignored (site built in French).
         with tempfile.TemporaryDirectory() as tmp:
@@ -3397,7 +3404,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
 
     def test_quiet_suppresses_info_messages(self):
         # --quiet suppresses [INFO] progress messages (DECISION §4).
-        # The --only fallback emits an [INFO] line; with --quiet it is gone.
+        # The --incremental fallback emits an [INFO] line; with --quiet it is gone.
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, _MINIMAL_MD)
             # Build once so the cache exists, then corrupt it to force the
@@ -3406,9 +3413,9 @@ class CliVersionAndShortcuts(unittest.TestCase):
             (root / '.lwp-cache' / 'nav.json').write_text('{garbage',
                                                            encoding='utf-8')
             loud = run('build', str(root), '--output', str(root / 'public'),
-                       '--only', 'a.html')
+                       '--incremental', 'a.html')
             quiet = run('--quiet', 'build', str(root), '--output',
-                         str(root / 'public'), '--only', 'a.html')
+                          str(root / 'public'), '--incremental', 'a.html')
             self.assertEqual(loud.returncode, 0, loud.stderr)
             self.assertEqual(quiet.returncode, 0, quiet.stderr)
             self.assertIn('[INFO]', loud.stderr)
@@ -3422,7 +3429,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
             (root / '.lwp-cache' / 'nav.json').write_text('{garbage',
                                                            encoding='utf-8')
             result = run('--timestamp', 'build', str(root), '--output',
-                         str(root / 'public'), '--only', 'a.html')
+                          str(root / 'public'), '--incremental', 'a.html')
             self.assertEqual(result.returncode, 0, result.stderr)
             # The [INFO] line now starts with a timestamp like
             # 2026-08-09T18:50:00+02:00 [INFO] ...
@@ -5433,7 +5440,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
             if not intro:
                 continue  # "Global:", "Print the version" -- not a command list
             for name in intro.group(1).split('/'):
-                # `build --only:` qualifies a command by the flag it is
+                # `build --incremental:` qualifies a command by the flag it is
                 # used with; the command is the part before the flag.
                 name = name.split(' --')[0].strip()
                 if name in ('Global', 'For theme gallery'):
@@ -6317,7 +6324,7 @@ class AnArticleThatClaimsTheIndexName(unittest.TestCase):
                         '--no-index')
             self.assertEqual(first.returncode, 0, first.stderr)
             result = run('build', str(root), '--output', str(root / 'public'),
-                         '--no-index', '--only', 'index.html')
+                         '--no-index', '--incremental', 'index.html')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Incremental build', result.stdout)
             self.assertIn(
@@ -6399,13 +6406,13 @@ class AnArticleThatClaimsTheIndexName(unittest.TestCase):
             self.assertIn('collides with the series index', result.stderr)
 
     def test_the_incremental_path_does_not_bury_the_article_either(self):
-        """`build --only` writes index.html too (it is cheap, so it is
+        """`build --incremental` writes index.html too (it is cheap, so it is
         always redone) — the branch has to exist on that path as well."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self.series(tmp, [('a.md', 'index.html')])
             run('build', str(root), '--output', str(root / 'public'))
             result = run('build', str(root), '--output', str(root / 'public'),
-                         '--only', 'index.html')
+                         '--incremental', 'index.html')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('[no index]', result.stdout)
             written = (root / 'public' / 'index.html').read_text(encoding='utf-8')
@@ -6508,8 +6515,8 @@ class SeriesNavTypography(unittest.TestCase):
             self.assertIn('Numéro\xa0:', html_a)
 
 
-class IncrementalBuildOnly(unittest.TestCase):
-    """§11.3.1: `build --only <file>` rebuilds a single article instead of
+class IncrementalBuild(unittest.TestCase):
+    """§11.3.1: `build --incremental <file>` rebuilds a single article instead of
     the whole series, but only when nothing that affects index.html/
     series-nav changed since the last build — checked via a fingerprint
     cache (--nav-cache, default .lwp-cache/nav.json)."""
@@ -6541,17 +6548,17 @@ class IncrementalBuildOnly(unittest.TestCase):
         (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
         return root
 
-    def test_only_without_prior_cache_falls_back_to_full_build(self):
+    def test_incremental_without_prior_cache_falls_back_to_full_build(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_series(tmp)
-            result = run('build', str(root), '--output', str(root / 'public'), '--only', 'a.html')
+            result = run('build', str(root), '--output', str(root / 'public'), '--incremental', 'a.html')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('no usable cache found', result.stderr)
             self.assertIn('Build complete:', result.stdout)
             self.assertTrue((root / 'public' / 'b.html').exists())
             self.assertTrue((root / '.lwp-cache' / 'nav.json').exists())
 
-    def test_only_with_changed_slide_titles_rebuilds_tag_previews_everywhere(self):
+    def test_incremental_with_changed_slide_titles_rebuilds_tag_previews_everywhere(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_series(tmp)
             run('build', str(root), '--output', str(root / 'public'))
@@ -6570,7 +6577,7 @@ class IncrementalBuildOnly(unittest.TestCase):
             )
             (root / 'sources' / 'a.md').write_text(md_a2, encoding='utf-8')
 
-            result = run('build', str(root), '--output', str(root / 'public'), '--only', 'a.html')
+            result = run('build', str(root), '--output', str(root / 'public'), '--incremental', 'a.html')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertNotIn('Incremental build', result.stdout)
             self.assertIn('Build complete:', result.stdout)
@@ -6580,7 +6587,7 @@ class IncrementalBuildOnly(unittest.TestCase):
             self.assertNotEqual(b_before, b_after)
             self.assertIn('A brand-new slide', b_after)
 
-    def test_only_with_reordered_articles_rebuilds_tag_previews_everywhere(self):
+    def test_incremental_with_reordered_articles_rebuilds_tag_previews_everywhere(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_series(tmp)
             run('build', str(root), '--output', str(root / 'public'))
@@ -6591,7 +6598,7 @@ class IncrementalBuildOnly(unittest.TestCase):
             series_path.write_text(json.dumps(series), encoding='utf-8')
 
             result = run('build', str(root), '--output', str(root / 'public'),
-                         '--only', 'b.html')
+                         '--incremental', 'b.html')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('nav/index-affecting metadata changed', result.stderr)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -6601,7 +6608,7 @@ class IncrementalBuildOnly(unittest.TestCase):
         self.assertEqual([article['title'] for article in preview['articles']],
                          ['Article B', 'Article A'])
 
-    def test_only_with_changed_nav_field_falls_back_and_fixes_other_pages(self):
+    def test_incremental_with_changed_nav_field_falls_back_and_fixes_other_pages(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_series(tmp)
             run('build', str(root), '--output', str(root / 'public'))
@@ -6620,14 +6627,14 @@ class IncrementalBuildOnly(unittest.TestCase):
             series['articles'][0]['nav_title'] = 'Article A Renamed'
             (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
 
-            result = run('build', str(root), '--output', str(root / 'public'), '--only', 'a.html')
+            result = run('build', str(root), '--output', str(root / 'public'), '--incremental', 'a.html')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('nav/index-affecting metadata changed', result.stderr)
             self.assertIn('Build complete:', result.stdout)
             html_b = (root / 'public' / 'b.html').read_text(encoding='utf-8')
             self.assertIn('Article A Renamed', html_b)
 
-    def test_only_with_changed_shared_render_metadata_rebuilds_every_page(self):
+    def test_incremental_with_changed_shared_render_metadata_rebuilds_every_page(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_series(tmp)
             self.assertEqual(
@@ -6641,7 +6648,7 @@ class IncrementalBuildOnly(unittest.TestCase):
             series_path.write_text(json.dumps(series), encoding='utf-8')
 
             result = run('build', str(root), '--output', str(root / 'public'),
-                         '--only', 'a.html')
+                         '--incremental', 'a.html')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertNotIn('Incremental build', result.stdout)
             self.assertIn('nav/index-affecting metadata changed', result.stderr)
@@ -6650,7 +6657,7 @@ class IncrementalBuildOnly(unittest.TestCase):
             self.assertIn('data-lwp-scroll-duration="450"', b_after)
             self.assertIn('id="deck-k112"', b_after)
 
-    def test_only_with_changed_split_typography_rules_falls_back_to_full_build(self):
+    def test_incremental_with_changed_split_typography_rules_falls_back_to_full_build(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_series(tmp)
             first = run('build', str(root), '--output', str(root / 'public'))
@@ -6661,14 +6668,14 @@ class IncrementalBuildOnly(unittest.TestCase):
                 'rules': [],
             }), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'),
-                         '--only', 'a.html')
+                         '--incremental', 'a.html')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('nav/index-affecting metadata changed', result.stderr)
             self.assertNotIn('Incremental build', result.stdout)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('Summary A.', html)
 
-    def test_only_detects_a_newly_added_article_even_if_unrelated(self):
+    def test_incremental_detects_a_newly_added_article_even_if_unrelated(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_series(tmp)
             run('build', str(root), '--output', str(root / 'public'))
@@ -6684,18 +6691,18 @@ class IncrementalBuildOnly(unittest.TestCase):
                                         'nav_title': 'Article C', 'nav_desc': 'Desc C'})
             (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
 
-            # Ask to rebuild only b.html, unrelated to the new article C —
+            # Ask to incrementally rebuild b.html, unrelated to the new article C —
             # the fingerprint mismatch (new key) must still be caught.
-            result = run('build', str(root), '--output', str(root / 'public'), '--only', 'b.html')
+            result = run('build', str(root), '--output', str(root / 'public'), '--incremental', 'b.html')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('nav/index-affecting metadata changed', result.stderr)
             self.assertTrue((root / 'public' / 'c.html').exists())
 
-    def test_only_unknown_file_is_a_fatal_error(self):
+    def test_incremental_unknown_file_is_a_fatal_error(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_series(tmp)
             run('build', str(root), '--output', str(root / 'public'))
-            result = run('build', str(root), '--output', str(root / 'public'), '--only', 'nope.html')
+            result = run('build', str(root), '--output', str(root / 'public'), '--incremental', 'nope.html')
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('matches no article', result.stderr)
 
@@ -6708,7 +6715,7 @@ class IncrementalBuildOnly(unittest.TestCase):
             self.assertFalse((root / '.lwp-cache' / 'nav.json').exists())
 
             result = run('build', str(root), '--output', str(root / 'public'),
-                         '--only', 'a.html', '--nav-cache', str(custom_cache))
+                         '--incremental', 'a.html', '--nav-cache', str(custom_cache))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Incremental build', result.stdout)
 
@@ -6729,7 +6736,7 @@ class IncrementalBuildOnly(unittest.TestCase):
         self.assertEqual(lwp._entry_fingerprint(upper),
                          lwp._entry_fingerprint(lower))
 
-    def test_only_honors_the_drafts_only_filter(self):
+    def test_incremental_honors_the_drafts_only_filter(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_series(tmp)
             series_path = root / 'series.json'
@@ -6744,16 +6751,16 @@ class IncrementalBuildOnly(unittest.TestCase):
             self.assertFalse((root / 'public' / 'a.html').exists())
 
             published = run('build', str(root), '--output', str(root / 'public'),
-                             '--drafts-only', '--only', 'a.html')
+                             '--drafts-only', '--incremental', 'a.html')
             self.assertNotEqual(published.returncode, 0)
             self.assertIn('matches no article', published.stderr)
 
             draft = run('build', str(root), '--output', str(root / 'public'),
-                        '--drafts-only', '--only', 'b.html')
+                         '--drafts-only', '--incremental', 'b.html')
             self.assertEqual(draft.returncode, 0, draft.stderr)
             self.assertIn('Incremental build', draft.stdout)
 
-    def test_only_honors_index_readme_and_open_options(self):
+    def test_incremental_honors_index_readme_and_open_options(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_series(tmp)
             output = root / 'public'
@@ -6769,7 +6776,7 @@ class IncrementalBuildOnly(unittest.TestCase):
                 encoding='utf-8')
             fake.chmod(0o755)
             result = run('build', str(root), '--output', str(output),
-                         '--only', 'a.html', '--no-index', '--no-readme',
+                         '--incremental', 'a.html', '--no-index', '--no-readme',
                          '--open', env={'BROWSER': str(fake)})
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse((output / 'index.html').exists())
@@ -9551,12 +9558,12 @@ class IdentityKitFixtures(unittest.TestCase):
             self.assertNotEqual(verified.returncode, 0)
             self.assertIn('[DRIFT] a.html', verified.stdout)
 
-            only = run('build', str(root), '--output', str(output),
+            incremental = run('build', str(root), '--output', str(output),
                        '--no-essential-theme', '--nav-cache', str(cache),
-                       '--only', 'a.html')
-            self.assertEqual(only.returncode, 0, only.stderr)
-            self.assertIn('--only requested but not safe',
-                          only.stdout + only.stderr)
+                       '--incremental', 'a.html')
+            self.assertEqual(incremental.returncode, 0, incremental.stderr)
+            self.assertIn('--incremental requested but not safe',
+                          incremental.stdout + incremental.stderr)
 
     def test_external_catalogue_preset_commands_and_virtual_default(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -10191,8 +10198,8 @@ class BuildStamp(unittest.TestCase):
             self.assertIn('[OK] a.html', check_result.stdout)
             self.assertNotIn('[DRIFT]', check_result.stdout)
 
-    def test_build_only_also_stamps(self):
-        """The --only fast path (§11.3.1) writes real output too — it
+    def test_incremental_also_stamps(self):
+        """The --incremental fast path (§11.3.1) writes real output too — it
         must not silently skip the stamp just because it takes a
         different code path than a full build."""
         md_a = self._md()
@@ -10210,12 +10217,12 @@ class BuildStamp(unittest.TestCase):
             first = run('build', str(root), '--output', str(root / 'public'), '--nav-cache', str(root / 'nav.json'))
             self.assertEqual(first.returncode, 0, first.stderr)
 
-            only = run(
+            incremental = run(
                 'build', str(root), '--output', str(root / 'public'),
-                '--nav-cache', str(root / 'nav.json'), '--only', 'a.html', '--build-stamp',
+                '--nav-cache', str(root / 'nav.json'), '--incremental', 'a.html', '--build-stamp',
             )
-            self.assertEqual(only.returncode, 0, only.stderr)
-            self.assertIn('Incremental build', only.stdout)
+            self.assertEqual(incremental.returncode, 0, incremental.stderr)
+            self.assertIn('Incremental build', incremental.stdout)
 
             article_html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
@@ -14869,7 +14876,7 @@ class ImageCopySafety(unittest.TestCase):
             self.assertIn('img/published.png', manifest['files'])
             self.assertIn('img/draft.png', manifest['files'])
 
-    def test_only_rebuild_keeps_images_used_by_the_other_current_page(self):
+    def test_incremental_rebuild_keeps_images_used_by_the_other_current_page(self):
         first = (
             '<!-- lwp:meta -->\npage_dest: first.html\npage_title: First\n'
             'nav_title: First\nnav_desc: First\n---\n\n'
@@ -14899,7 +14906,7 @@ class ImageCopySafety(unittest.TestCase):
             self.assertEqual(initial.returncode, 0, initial.stderr)
 
             result = run('build', str(root), '--output', str(public),
-                         '--only', 'first.html')
+                          '--incremental', 'first.html')
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Incremental build', result.stdout)
@@ -15019,6 +15026,8 @@ class HelpListsEveryAcceptedOption(unittest.TestCase):
         build_help = run('build', '--help')
         self.assertEqual(build_help.returncode, 0, build_help.stderr)
         self.assertIn('--single-html [FILE]', build_help.stdout)
+        self.assertIn('--incremental <value>', build_help.stdout)
+        self.assertNotIn('--only', result.stdout)
         self.assertNotIn('--keep-theme', contextual.stdout)
         self.assertNotIn('--use-preset-theme', contextual.stdout)
 

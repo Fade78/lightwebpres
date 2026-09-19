@@ -624,7 +624,7 @@ class IdentityKits(unittest.TestCase):
         self.assertEqual(report['scope'], 'user')
         self.assertEqual(report['identity']['id'], 'builtin')
 
-    def test_commons_build_verify_and_only_cache_track_descriptor_changes(self):
+    def test_commons_build_verify_and_incremental_cache_track_descriptor_changes(self):
         descriptor = self._commons()
         series = fixtures.scaffold(self.root, fixtures.IdentityKitFixtures._article())
         data_path = series / 'series.json'
@@ -646,9 +646,10 @@ class IdentityKits(unittest.TestCase):
         verified = fixtures.run('verify', str(series), '--no-essential-theme')
         self.assertNotEqual(verified.returncode, 0)
         self.assertIn('[DRIFT] a.html', verified.stdout)
-        only = fixtures.run('build', str(series), *args, '--only', 'a.html')
-        self.assertEqual(only.returncode, 0, only.stderr)
-        self.assertIn('--only requested but not safe', only.stdout + only.stderr)
+        incremental = fixtures.run('build', str(series), *args, '--incremental', 'a.html')
+        self.assertEqual(incremental.returncode, 0, incremental.stderr)
+        self.assertIn('--incremental requested but not safe',
+                      incremental.stdout + incremental.stderr)
 
     def test_commons_descriptors_cannot_escape_their_root(self):
         outside = self.root / 'outside'

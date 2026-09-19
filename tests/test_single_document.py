@@ -260,12 +260,12 @@ class SingleDocument(unittest.TestCase):
         self.cli('verify', '--single-html', 'collection.htm', '--include-drafts',
                  '--no-nav', '--no-readme')
 
-    def test_only_validates_selection_but_rebuilds_the_entire_bundle(self):
+    def test_incremental_validates_selection_but_rebuilds_the_entire_bundle(self):
         self.bundle()
         source = self.root / 'sources' / 'b.md'
         source.write_text(source.read_text(encoding='utf-8').replace(
             'Unique body b.', 'Changed unselected article.'), encoding='utf-8')
-        _, payload = self.bundle('--only', 'a.md')
+        _, payload = self.bundle('--incremental', 'a.md')
         self.assertEqual(payload['order'], ['a.html', 'b.html'])
         self.assertIn('Changed unselected article.',
                       next(v['content'] for v in payload['views'] if v['key'] == 'b.html'))
@@ -273,7 +273,7 @@ class SingleDocument(unittest.TestCase):
         before = self.snapshot()
         for selected in ('missing.html', 'draft.html'):
             with self.subTest(selected=selected):
-                self.cli('build', '--single-html', 'series.html', '--only', selected, success=False)
+                self.cli('build', '--single-html', 'series.html', '--incremental', selected, success=False)
                 self.assertEqual(self.snapshot(), before)
 
     def test_manifest_owns_physical_bundle_and_images_and_clean_removes_old_pages(self):
@@ -462,7 +462,7 @@ class SingleDocument(unittest.TestCase):
     def test_no_index_only_stamps_and_automatic_filename_keep_verify_parity(self):
         self.data['articles'][0]['status'] = 'draft'
         self.save_series()
-        self.cli('build', '--single-html', '--no-index', '--build-stamp', '--only', 'b.md')
+        self.cli('build', '--single-html', '--no-index', '--build-stamp', '--incremental', 'b.md')
         path = self.output / 'bundled-series.html'
         html = path.read_text(encoding='utf-8')
         self.assertEqual(json.loads(PAYLOAD.search(html)[1])['home'], 'b.html')
@@ -471,7 +471,7 @@ class SingleDocument(unittest.TestCase):
         self.cli('verify', '--single-html', '--no-index')
         self.data['articles'][0].pop('status')
         self.save_series()
-        _, payload = self.bundle('--no-index', '--only', 'b.md')
+        _, payload = self.bundle('--no-index', '--incremental', 'b.md')
         self.assertEqual(payload['home'], 'a.html')
         self.assertEqual(payload['order'], ['a.html', 'b.html'])
 

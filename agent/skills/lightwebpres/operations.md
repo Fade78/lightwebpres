@@ -143,6 +143,22 @@ publication has drifted; rebuilding first destroys that comparison. After
 an intended source change, build then verify to check the regenerated output.
 If no engine or browser is available, report the missing check explicitly.
 
+### Use Targeted Builds In Automation
+
+When a build system knows that one article changed, it may invoke the public
+CLI with either its source or destination name:
+
+```bash
+lightwebpres build my-series --lang en --incremental article.md
+```
+
+`--incremental` is a safe optimization, not a second publication contract.
+The executable checks the navigation cache, shared rendering inputs, output
+manifest and retained files before rendering only the selected article and
+the cheap derived outputs. Any unsafe condition falls back to a full build.
+Callers should use the executable boundary rather than importing internal
+rendering helpers; a normal `build` remains correct when no target is known.
+
 ## Read, Present And Share
 
 Inspect a local build before any authorized distribution. `watch --serve`
@@ -280,7 +296,7 @@ runtime and rejects nonempty `templates/index_extra.html` only when contents
 are included. With `--no-index` this unused extension is ignored. Arbitrary widget
 script lifecycles are unsupported; keep multipage output for those extensions.
 `--drafts-only` remains refused; `--include-drafts`, `--no-nav`
-and `--no-readme` are supported. `build --only` validates its article target
+and `--no-readme` are supported. `build --incremental` validates its article target
 but rebuilds the entire combined file.
 
 Source `page_dest` values do not change. Generated README links use

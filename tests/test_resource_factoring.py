@@ -153,7 +153,7 @@ class ResourceFactoring(unittest.TestCase):
                             self.assertEqual((output / 'img/same.png').read_bytes(), self.png)
                         else:
                             self.assertFalse((output / 'img').exists())
-                    self.cli('build', output, *options, '--only', 'a.md')
+                    self.cli('build', output, *options, '--incremental', 'a.md')
                     self.cli('verify', output, *options)
 
     def test_single_image_per_unit_pool_and_independent_builds(self):
