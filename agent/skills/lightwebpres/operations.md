@@ -24,7 +24,7 @@ The author owns `sources/`, `series.json`, pinned values in
 `templates/settings.conf`, `templates/custom.css` and deliberate overrides.
 The engine normally supplies navigation and built-in language packs from
 its executable. Generated `public/`, the series README, `.lwp-*` manifests
-and `.lwp-cache/nav.json` are derived output/state, not hand-editing targets.
+and `.lwp-cache/` state are derived output, not hand-editing targets.
 Review existing output ownership before building: regenerating a directory
 can overwrite files, and ownership of a source does not establish ownership
 of every destination. Use an agreed scratch series for a contained preview.

@@ -2497,6 +2497,11 @@ refreshes derived outputs (index, README and assets according to options,
 manifest and cache); changes affecting index/navigation trigger a full build.
 With `--single-html [FILE]`, it validates the target and always rebuilds the
 complete combined document.
+The build also keeps a disposable per-page image inventory beside the
+navigation fingerprint. When a retained page's output hash matches, its local
+image references are reused instead of reparsing the HTML. A missing, corrupt
+or stale entry falls back to parsing that page; cache state is never author
+input and must not be edited.
 The cache is bound to its output directory. Switching output directories, or
 losing retained pages or declared assets, also triggers a full build rather
 than producing a partial site under a successful exit code.

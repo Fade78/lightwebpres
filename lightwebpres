@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.63.0"
+VERSION = "0.63.1"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -23995,6 +23995,62 @@ def load_nav_cache(path):
         return None
 
 
+_IMAGE_CACHE_SCHEMA = 'lightwebpres.image-cache/1'
+
+
+def image_cache_path_for_nav_cache(nav_cache_path):
+    """Places the per-page image cache beside the navigation cache."""
+    path = Path(nav_cache_path)
+    if path.name == 'nav.json':
+        return path.with_name('images.json')
+    return path.with_name(path.name + '.images.json')
+
+
+def _image_cache_entry(html, image_paths):
+    return {
+        'sha256': hashlib.sha256(html.encode('utf-8')).hexdigest(),
+        'images': sorted(image_paths),
+    }
+
+
+def _image_cache_text(output_dir, pages):
+    return json.dumps({
+        'schema': _IMAGE_CACHE_SCHEMA,
+        'output_dir': os.path.abspath(str(output_dir)),
+        'pages': pages,
+    }, indent=2, sort_keys=True)
+
+
+def load_image_cache(path, output_dir):
+    """Returns trusted per-page image references, or ``None`` to rescan."""
+    try:
+        cache = json.loads(Path(path).read_text(encoding='utf-8'))
+    except (OSError, ValueError, RecursionError):
+        return None
+    if (not isinstance(cache, dict)
+            or cache.get('schema') != _IMAGE_CACHE_SCHEMA
+            or cache.get('output_dir') != os.path.abspath(str(output_dir))
+            or not isinstance(cache.get('pages'), dict)):
+        return None
+
+    pages = {}
+    for name, entry in cache['pages'].items():
+        if (_safe_manifest_path(output_dir, name) is None
+                or not isinstance(entry, dict)
+                or not re.fullmatch(r'[0-9a-f]{64}', str(entry.get('sha256', '')))
+                or not isinstance(entry.get('images'), list)):
+            return None
+        images = entry['images']
+        if any(not isinstance(image, str)
+               or _local_image_path(image) != image for image in images):
+            return None
+        pages[name] = {
+            'sha256': entry['sha256'],
+            'images': list(images),
+        }
+    return pages
+
+
 def _default_series_directory(sd, name, label):
     """Resolves a default input directory while keeping its name in the tree.
 
@@ -24859,14 +24915,24 @@ class PublicationPlan:
 
 
 def _plan_publication(ctx, plan, articles_to_build, claimant=None, build_stamp='',
-                      incremental=False, announce=False):
+                      incremental=False, announce=False,
+                      previous_image_cache=None):
     """Resolve both output topologies into the same text/asset inventory."""
     inventory = set()
+    page_image_cache = {}
+
+    def record_page(name, html, image_paths=None):
+        if image_paths is None:
+            image_paths = image_inventory_from_html([html])
+        image_paths = set(image_paths)
+        inventory.update(image_paths)
+        page_image_cache[name] = _image_cache_entry(html, image_paths)
+
     single_html = ctx.args.get('--single-html')
     if single_html:
         html, images = _render_single_html(ctx, build_stamp)
         plan.add(single_html, ctx.output_dir / single_html, text=html)
-        inventory.update(images)
+        record_page(single_html, html, images)
     else:
         rendered_names = set()
         for entry in articles_to_build:
@@ -24877,22 +24943,31 @@ def _plan_publication(ctx, plan, articles_to_build, claimant=None, build_stamp='
                 ctx, entry, _resolve_contained(ctx.sources_dir, entry['page_source']),
                 build_stamp, include_nav=not ctx.args.get('--no-nav'))
             plan.add(name, ctx.output_dir / name, text=html)
-            inventory.update(image_inventory_from_html([html]))
+            record_page(name, html)
             rendered_names.add(name)
         if claimant is None and not ctx.args.get('--no-index'):
             html = _render_index(ctx, _index_extra(ctx), build_stamp, validate_scripts=True)
             plan.add('index.html', ctx.output_dir / 'index.html', text=html)
-            inventory.update(image_inventory_from_html([html]))
+            record_page('index.html', html)
             rendered_names.add('index.html')
         elif claimant is not None and announce:
             progress(_no_index_notice(claimant))
         if incremental or ctx.args.get('--drafts-only'):
             for entry in ctx.articles:
-                if entry['page_dest'] in rendered_names:
+                name = entry['page_dest']
+                if name in rendered_names:
                     continue
-                existing = _resolve_contained(ctx.output_dir, entry['page_dest'])
-                if existing is not None and existing.is_file():
-                    inventory.update(image_inventory_from_html([read_text_file(existing)]))
+                existing = _resolve_contained(ctx.output_dir, name)
+                if existing is None or not existing.is_file():
+                    continue
+                html = read_text_file(existing)
+                cached = (previous_image_cache or {}).get(name)
+                if (cached is None
+                        or cached['sha256']
+                        != hashlib.sha256(html.encode('utf-8')).hexdigest()):
+                    record_page(name, html)
+                else:
+                    record_page(name, html, cached['images'])
     if not ctx.args.get('--no-readme'):
         plan.add('README.md', ctx.sd / 'README.md', text=build_readme(
             ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings, single_html))
@@ -24916,17 +24991,22 @@ def _plan_publication(ctx, plan, articles_to_build, claimant=None, build_stamp='
                 if relative not in images:
                     plan.add(relative, ctx.output_dir / relative, source=asset['path'])
                     images.append(relative)
-    return images
+    return images, page_image_cache
 
 
 def _execute_publication(ctx, articles_to_build, claimant, nav_cache_path,
-                         fingerprint, build_stamp='', incremental=False):
+                         fingerprint, build_stamp='', incremental=False,
+                         previous_image_cache=None):
     """Prepare the complete requested publication, then promote its owned files."""
     with PublicationPlan() as plan:
-        images = _plan_publication(ctx, plan, articles_to_build, claimant,
-                                   build_stamp, incremental, announce=True)
+        images, page_image_cache = _plan_publication(
+            ctx, plan, articles_to_build, claimant, build_stamp, incremental,
+            announce=True, previous_image_cache=previous_image_cache)
         plan.add('.lwp-cache/nav.json', Path(nav_cache_path),
                  text=json.dumps(fingerprint, indent=2, sort_keys=True))
+        image_cache_path = image_cache_path_for_nav_cache(nav_cache_path)
+        plan.add(str(image_cache_path), image_cache_path,
+                 text=_image_cache_text(ctx.output_dir, page_image_cache))
         plan.add(_MANIFEST_NAME, ctx.output_dir / _MANIFEST_NAME,
                  text=_manifest_text(ctx.output_dir, ctx.articles,
                      include_index=not ctx.args.get('--single-html') and claimant is None
@@ -24962,7 +25042,8 @@ def _identity_kits_for_output(ctx):
     return tuple(identity_kits)
 
 
-def _cmd_build_incremental(ctx, incremental_file, nav_cache_path, fresh_fingerprint, build_stamp=''):
+def _cmd_build_incremental(ctx, incremental_file, nav_cache_path, fresh_fingerprint,
+                           build_stamp='', previous_image_cache=None):
     """The fast path for `build --incremental`: the caller has already confirmed
     nav/index-affecting metadata is unchanged since the last build, so
     only the named article's own page needs re-converting — index.html,
@@ -24989,7 +25070,8 @@ def _cmd_build_incremental(ctx, incremental_file, nav_cache_path, fresh_fingerpr
         index_enabled=not ctx.args.get('--no-index'))
     _execute_publication(
         ctx, [entry], claimant, nav_cache_path, fresh_fingerprint,
-        build_stamp=build_stamp, incremental=True)
+        build_stamp=build_stamp, incremental=True,
+        previous_image_cache=previous_image_cache)
 
 
 def cmd_completion(args):
@@ -25680,7 +25762,12 @@ def cmd_build(series_dir, args):
             except (OSError, ValueError, RecursionError):
                 usable = False
             if usable:
-                _cmd_build_incremental(ctx, incremental_file, nav_cache_path, fresh_fingerprint, build_stamp)
+                previous_image_cache = load_image_cache(
+                    image_cache_path_for_nav_cache(nav_cache_path),
+                    ctx.output_dir)
+                _cmd_build_incremental(
+                    ctx, incremental_file, nav_cache_path, fresh_fingerprint,
+                    build_stamp, previous_image_cache=previous_image_cache)
                 return
             reason = 'retained pages/assets are missing or the output manifest is unusable'
         log('info', f'--incremental requested but not safe ({reason}) — doing a full build instead.')

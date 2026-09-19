@@ -426,7 +426,9 @@ ma-serie/                          # Le répertoire de la série (l'unité de tr
 ├── COPYING                        # GPLv3, posée par init avec l'exécutable (§1.2)
 ├── COPYING.EXCEPTION              # LightWebPres Output Exception, idem
 ├── .gitlab-ci.yml                 # Pipeline CI (optionnel — init --gitlab-ci, §11.1)
-└── .lwp-cache/nav.json            # Empreinte de navigation pour build --incremental (§11.3.1)
+└── .lwp-cache/                    # État dérivé du build, jamais une source
+    ├── nav.json                   # Empreinte de navigation (§11.3.1)
+    └── images.json                # Inventaire d'images par page (§11.3.1)
 ```
 
 ### 2.3 Variables d'environnement
@@ -5253,11 +5255,14 @@ Builds the site. The file layout below is the default multipage mode;
    Stage the resulting HTML, optional series index and README (§8.3) in temporary
    storage, or stage one combined HTML (§11.3.8).
 4. Inventory referenced local images across those outputs and retained pages of
-   incremental/draft-only builds. Stage existing referenced `sources/img/` files
-   and the published kits' assets under `assets/presentations/<id>/<version>/`.
-   Unreferenced sources are not copied. Missing authored image sources retain
-   their audit warning policy; unreadable existing assets fail preparation.
-5. Prepare navigation-cache and manifest bytes. An existing malformed manifest
+   incremental/draft-only builds. A hash-validated per-page image cache may
+   supply the inventory for an unchanged retained page; a missing, malformed or
+   stale entry is reparsed rather than trusted. Stage existing referenced
+   `sources/img/` files and the published kits' assets under
+   `assets/presentations/<id>/<version>/`. Unreferenced sources are not copied.
+   Missing authored image sources retain their audit warning policy; unreadable
+   existing assets fail preparation.
+5. Prepare navigation-cache, per-page image-cache and manifest bytes. An existing malformed manifest
    is an error, not permission to discard ownership history. Validate the entire
    destination graph, including parent symlink aliases: two outputs cannot claim
    the same physical destination, and a planned file cannot also be a required
@@ -5267,8 +5272,10 @@ Builds the site. The file layout below is the default multipage mode;
    atomic; an I/O failure or process crash during promotion is not a transaction
    over the whole directory. Publication is additive: manual sidecars and old
    output files are not deleted. `clean` can remove an orphan only if a previous
-   manifest declared it (§11.13). The cache remains `.lwp-cache/nav.json`, or
-   the explicitly requested `--nav-cache` (§11.3.1).
+   manifest declared it (§11.13). The fingerprint cache remains
+   `.lwp-cache/nav.json`, or the explicitly requested `--nav-cache` (§11.3.1),
+   and the disposable per-page image cache is kept beside it (by default
+   `.lwp-cache/images.json`).
 
 `--scroll-duration` fixe la durée, en millisecondes, du glissé propre au deck
 entre deux fiches. Il accepte un entier non négatif ; `0` rend les coups
@@ -5376,6 +5383,12 @@ still exists. A missing or unusable retained output falls back to a full
 build; an invalid manifest is then rejected by the normal manifest
 validation. The selected page, generated index when applicable, README,
 assets, manifest and cache are staged through the same publication plan.
+
+The per-page image cache records the SHA-256 of each retained output page and
+the local `img/` references found in that page. Incremental publication reuses
+that record only when the bytes on disk still have the recorded hash. A cache
+miss, invalid record or changed page causes that page to be parsed normally;
+it never makes an incomplete inventory authoritative.
 
 For a build system, `--incremental` is the public CLI integration boundary:
 pass an article's `page_source` or `page_dest` and let the executable perform

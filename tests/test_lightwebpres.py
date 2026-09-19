@@ -6729,6 +6729,131 @@ class IncrementalBuild(unittest.TestCase):
                 self.assertRegex(fingerprint, r'^[0-9a-f]{64}$')
                 self.assertNotIn('Article', fingerprint)
 
+    def test_incremental_manifest_keeps_retained_images_and_drops_replaced_images(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            image_dir = root / 'sources' / 'img'
+            image_dir.mkdir()
+            (image_dir / 'old.svg').write_text('<svg/>', encoding='utf-8')
+            (image_dir / 'keep.svg').write_text('<svg/>', encoding='utf-8')
+            (image_dir / 'shared.svg').write_text('<svg/>', encoding='utf-8')
+            for name, image in (('a', 'old.svg'), ('b', 'keep.svg')):
+                source = root / 'sources' / f'{name}.md'
+                source.write_text(
+                    source.read_text(encoding='utf-8')
+                    + f'\n---\n\n<!-- lwp:slide -->\nslug: image-{name}\n'
+                    f'## Image {name}\n![Image {name}](img/{image})\n'
+                    '![Shared](img/shared.svg)\n',
+                    encoding='utf-8')
+
+            output = root / 'public'
+            first = run('build', str(root), '--output', str(output))
+            self.assertEqual(first.returncode, 0, first.stderr)
+            b_before = (output / 'b.html').read_bytes()
+
+            source = root / 'sources' / 'a.md'
+            source.write_text(
+                source.read_text(encoding='utf-8').replace(
+                    'img/old.svg', 'img/new.svg'), encoding='utf-8')
+            (image_dir / 'new.svg').write_text('<svg/>', encoding='utf-8')
+            result = run('build', str(root), '--output', str(output),
+                         '--incremental', 'a.md')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Incremental build', result.stdout)
+            self.assertEqual((output / 'b.html').read_bytes(), b_before)
+
+            manifest = json.loads(
+                (output / '.lwp-manifest.json').read_text(encoding='utf-8'))
+            self.assertIn('img/keep.svg', manifest['files'])
+            self.assertIn('img/new.svg', manifest['files'])
+            self.assertIn('img/shared.svg', manifest['files'])
+            self.assertNotIn('img/old.svg', manifest['files'])
+            image_cache = json.loads(
+                (root / '.lwp-cache' / 'images.json').read_text(encoding='utf-8'))
+            self.assertEqual(image_cache['schema'], 'lightwebpres.image-cache/1')
+            self.assertEqual(image_cache['output_dir'], str(output.resolve()))
+            self.assertIn('b.html', image_cache['pages'])
+
+    def test_incremental_reuses_a_valid_page_image_cache_entry(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            output = root / 'public'
+            first = run('build', str(root), '--output', str(output))
+            self.assertEqual(first.returncode, 0, first.stderr)
+            lwp = load_lightwebpres_module()
+            with mock.patch.object(
+                    lwp, 'image_inventory_from_html',
+                    wraps=lwp.image_inventory_from_html) as inventory:
+                lwp.cmd_build(str(root), {
+                    '--output': str(output), '--incremental': 'a.md'})
+            # The selected page and index are new; retained b.html comes from
+            # its hash-validated cache entry rather than another HTML parse.
+            self.assertEqual(inventory.call_count, 2)
+
+    def test_deeply_nested_image_cache_falls_back_to_rescanning(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            output = root / 'public'
+            run('build', str(root), '--output', str(output))
+            cache = root / '.lwp-cache' / 'images.json'
+            cache.write_text('[' * 2000 + '0' + ']' * 2000, encoding='utf-8')
+            lwp = load_lightwebpres_module()
+            self.assertIsNone(lwp.load_image_cache(cache, output))
+
+    def test_incremental_recovers_a_newly_available_retained_image(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            missing = 'img/appeared.svg'
+            source_b = root / 'sources' / 'b.md'
+            source_b.write_text(
+                source_b.read_text(encoding='utf-8')
+                + '\n---\n\n<!-- lwp:slide -->\nslug: image-b\n'
+                f'## Image B\n![Image B]({missing})\n', encoding='utf-8')
+            source_a = root / 'sources' / 'a.md'
+            source_a.write_text(
+                source_a.read_text(encoding='utf-8')
+                + '\n---\n\n<!-- lwp:slide -->\nslug: prose-a\n'
+                '## Prose\nOriginal A.\n', encoding='utf-8')
+
+            output = root / 'public'
+            first = run('build', str(root), '--output', str(output))
+            self.assertEqual(first.returncode, 0, first.stderr)
+            (root / 'sources' / missing).parent.mkdir(exist_ok=True)
+            (root / 'sources' / missing).write_text('<svg/>', encoding='utf-8')
+            source_a.write_text(
+                source_a.read_text(encoding='utf-8').replace(
+                    'Original A.', 'Changed A.'), encoding='utf-8')
+
+            result = run('build', str(root), '--output', str(output),
+                         '--incremental', 'a.md')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Incremental build', result.stdout)
+            self.assertTrue((output / missing).exists())
+            manifest = json.loads(
+                (output / '.lwp-manifest.json').read_text(encoding='utf-8'))
+            self.assertIn(missing, manifest['files'])
+
+    def test_incremental_drops_images_used_only_by_an_old_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            (root / 'templates').mkdir()
+            (root / 'templates' / 'index_extra.html').write_text(
+                '<img src="img/index-only.svg">', encoding='utf-8')
+            image = root / 'sources' / 'img' / 'index-only.svg'
+            image.parent.mkdir()
+            image.write_text('<svg/>', encoding='utf-8')
+            output = root / 'public'
+            first = run('build', str(root), '--output', str(output))
+            self.assertEqual(first.returncode, 0, first.stderr)
+
+            result = run('build', str(root), '--output', str(output),
+                         '--no-index', '--incremental', 'a.md')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Incremental build', result.stdout)
+            manifest = json.loads(
+                (output / '.lwp-manifest.json').read_text(encoding='utf-8'))
+            self.assertNotIn('img/index-only.svg', manifest['files'])
+
     def test_nav_fingerprint_uses_canonical_default_tag_case(self):
         lwp = load_lightwebpres_module()
         upper = {'page_dest': 'a.html', '_lwp_default_tag': 'FR'}

@@ -33,7 +33,16 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.63.0
+## Unreleased — 0.63.1
+
+Incremental multipage builds now keep a disposable, per-page image inventory
+cache beside the navigation fingerprint. A matching output hash reuses the
+retained page's image references instead of reparsing its HTML; missing,
+corrupt or stale entries fall back safely. Shared images, newly available
+sources and `--no-index` output remain correct. The guide and specification
+document the cache and its failure-safe behavior.
+
+## v0.63.0
 
 The build target option is now `--incremental` instead of `--only`. It accepts
 an article's `page_source` or `page_dest` and safely requests a targeted
