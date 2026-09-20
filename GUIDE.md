@@ -801,7 +801,8 @@ defaults; merge it into the existing object rather than replacing other metadata
     "table_mode": "clip",
     "text_fit": "fixed",
     "table_shrink": false,
-    "object_shrink": false,
+    "object_shrink_horizontal": true,
+    "object_shrink_vertical": true,
     "min_text_scale": 0.75,
     "min_table_scale": 0.85,
     "min_object_scale": 0.85
@@ -827,9 +828,12 @@ Fitting measures actual browser layout at the current viewport and repeats
 after resize, theme/preset or tag changes, font loading and image loading.
 It never enlarges content above its chosen baseline.
 
-The two booleans independently enable shrinking tables and supported
-images/figures. They do not turn fitting into a general resizer for iframes,
-media players or buttons. Each minimum scale must be a finite JSON number from
+The two image booleans independently enable bounded horizontal and vertical
+shrinking of supported images/figures; both start enabled. Horizontal fitting
+uses the available content width, while vertical fitting uses one viewport
+height. Their smaller factor wins without changing the image ratio. Surrounding
+prose may still span several screens. They do not turn fitting into a general
+resizer for iframes, media players or buttons. Each minimum scale must be a finite JSON number from
 `0.5` to `1`, inclusive; text reduction also stops at 12 CSS pixels for text
 originally at least that large. Smaller authored text is not enlarged.
 Unknown keys, wrong types and invalid values are errors. A floor can leave a
@@ -1583,7 +1587,8 @@ and themed.
 | Text size | **Keep the chosen size** (`fixed`, default), **Reduce all slides together** (`uniform`), or **Reduce each slide as needed** (`per-slide`). **A** cycles in that order. |
 | Uniform fit scope | Combined-HTML output only, while text size is `uniform`: **Current article** (default) or **Entire series**. |
 | Reduce tables as needed | Independently allow bounded table shrinking; off by default. |
-| Reduce images as needed | Independently allow bounded shrinking of supported images/figures; off by default, not a control for arbitrary embedded widgets. |
+| Reduce images to fit width | Independently allow bounded shrinking of supported images/figures to their available content width; on by default, not a control for arbitrary embedded widgets. |
+| Reduce images to fit height | Independently allow bounded shrinking of supported images/figures to one viewport height; on by default, without counting surrounding prose. |
 
 The author can choose different starting settings and reduction limits.
 Your table mode, text fitting, table/image shrink switches and presentation

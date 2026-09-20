@@ -81,8 +81,11 @@ separate saved reader preference, defaulting to the current article, not a
 source style or reading field; multipage output is unaffected. See
 [Series and Appearance](series-and-appearance.md) for its storage contract.
 Optional shrinking applies separately to tables and supported images/figures,
-not arbitrary iframes or
-buttons. Runtime scales are cleared for print. Exact author defaults and
+not arbitrary iframes or buttons. Image reduction has independent horizontal
+and vertical switches, both enabled by default; the smaller applicable factor
+wins and preserves the image ratio. Vertical fitting uses one viewport height,
+not the total height of a slide whose prose continues below the screen. Runtime
+scales are cleared for print. Exact author defaults and
 limits belong to `series_meta.reading` in
 [Series and Appearance](series-and-appearance.md); do not shorten source data
 merely to imitate visual clipping.

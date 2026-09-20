@@ -151,9 +151,10 @@ Its Back button or Escape returns focus to that item in the main menu;
 clicking outside closes the submenu. The complete behavior is in §9.3.9.
 
 Reading preferences use browser `localStorage`, scoped to the output directory
-path on the same origin, across articles, the index and reloads. The version-1
-record contains `v: 1`, `table_mode`, `text_fit`, `table_shrink`, `object_shrink`
-and `presentationZoom`, never the author's minimum scales. Invalid data or
+path on the same origin, across articles, the index and reloads. The version-2
+record contains `v: 2`, `table_mode`, `text_fit`, `table_shrink`,
+`object_shrink_horizontal`, `object_shrink_vertical` and `presentationZoom`,
+never the author's minimum scales. Invalid data or
 unavailable storage leaves author defaults and 100% zoom in effect; blocked
 saving does not disable controls. Storage availability and `file:` behavior
 vary by browser. No reader choice writes `series.json`; theme/preset choices
@@ -164,7 +165,8 @@ retain their separate browser-session contract.
 | `table_mode` | `clip` | `clip` visually clips wide tables without deleting cells; `overflow` allows content beyond the local viewport; `scroll` keeps scrolling inside the table. Menu or **O** changes the mode |
 | `text_fit` | `fixed` | `fixed` keeps native responsive sizes without content fitting; `uniform` uses one browser-measured factor for all currently visible slides, including a visible long-form article; `per-slide` measures each separately. Menu or **A** changes the mode |
 | `table_shrink` | `false` | Boolean enabling independent bounded table reduction; reader-toggleable in Menu |
-| `object_shrink` | `false` | Boolean enabling bounded reduction of supported images/figures, not arbitrary iframes, media players or buttons; reader-toggleable in Menu |
+| `object_shrink_horizontal` | `true` | Boolean enabling bounded reduction of supported images/figures to their available width; reader-toggleable in Menu |
+| `object_shrink_vertical` | `true` | Boolean enabling bounded reduction of supported images/figures to one viewport height; reader-toggleable in Menu |
 | `min_text_scale` | `0.75` | Minimum text-fitting factor, a finite number from `0.5` to `1`; text originally at least 12 CSS pixels also keeps that floor, while smaller authored text is not enlarged |
 | `min_table_scale` | `0.85` | Minimum independent table-reduction factor, a finite number from `0.5` to `1` |
 | `min_object_scale` | `0.85` | Minimum supported image/figure reduction factor, a finite number from `0.5` to `1` |

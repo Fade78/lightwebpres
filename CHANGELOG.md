@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.63.1
+## Unreleased — 0.64.0
 
 Incremental multipage builds now keep a disposable, per-page image inventory
 cache beside the navigation fingerprint. A matching output hash reuses the
@@ -41,6 +41,13 @@ retained page's image references instead of reparsing its HTML; missing,
 corrupt or stale entries fall back safely. Shared images, newly available
 sources and `--no-index` output remain correct. The guide and specification
 document the cache and its failure-safe behavior.
+
+Display settings now expose independent horizontal and vertical reduction for
+images and figures, enabled by default. Vertical fitting measures the object
+against one viewport height without shrinking it because surrounding prose
+spans several screens. Author settings use `object_shrink_horizontal` and
+`object_shrink_vertical`, and the saved reader record is now version 2; the
+former `object_shrink` format is removed for explicit agent migration.
 
 ## v0.63.0
 

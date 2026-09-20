@@ -225,7 +225,8 @@ omitted keys. Unknown keys and invalid values are fatal.
 | `table_mode` | `clip`, `overflow`, `scroll` | `clip` |
 | `text_fit` | `fixed`, `uniform`, `per-slide` | `fixed` |
 | `table_shrink` | JSON boolean | `false` |
-| `object_shrink` | JSON boolean | `false` |
+| `object_shrink_horizontal` | JSON boolean | `true` |
+| `object_shrink_vertical` | JSON boolean | `true` |
 | `min_text_scale` | Finite JSON number from `0.5` to `1`, inclusive | `0.75` |
 | `min_table_scale` | Finite JSON number from `0.5` to `1`, inclusive | `0.85` |
 | `min_object_scale` | Finite JSON number from `0.5` to `1`, inclusive | `0.85` |
@@ -256,8 +257,12 @@ text originally at least 12 CSS pixels also keeps a 12-pixel floor. Smaller
 authored text is not enlarged. An unfit slide remains available to scroll at
 the floor, not hidden.
 
-`object_shrink` supports images/figures, not arbitrary iframes, players or
-buttons. Presentation zoom scales content fonts, line heights and images,
+`object_shrink_horizontal` and `object_shrink_vertical` support images/figures,
+not arbitrary iframes, players or buttons. The horizontal switch bounds an
+object by its available content width; the vertical switch bounds the image or
+figure by the viewport height. The two factors combine by taking the smaller
+scale and preserve the object's aspect ratio. Surrounding prose may still span
+several screens. Presentation zoom scales content fonts, line heights and images,
 not the page root or frame widths, padding, borders, minimum heights or UI.
 At 100%, native responsive sizing remains in effect. Fitting is solved at
 100% before the manual factor, so it cannot cancel magnification; long content
@@ -266,8 +271,11 @@ gesture. Browser emulation is not a physical-device guarantee.
 
 Reading preferences use `localStorage` under `lwp-reading:<output-directory-path>`
 on the same origin, shared across articles, the index and reloads. The strict
-version-1 record contains `v: 1`, `table_mode`, `text_fit`, `table_shrink`,
-`object_shrink` and `presentationZoom` (a finite number from `0.5` to `2`).
+version-2 record contains `v: 2`, `table_mode`, `text_fit`, `table_shrink`,
+`object_shrink_horizontal`, `object_shrink_vertical` and `presentationZoom`
+(a finite number from `0.5` to `2`). Version-1 records and the removed
+`object_shrink` field are invalid; migration is performed by the authoring
+agents rather than by the executable.
 It never stores authored minimum limits or writes `series.json`. Invalid or
 inaccessible stored data leaves author defaults and 100% zoom in effect;
 controls still work if saving is blocked. Browser storage availability and
@@ -279,7 +287,7 @@ Combined-HTML uniform scope stores `article` or `series` separately at
 `readingPreferenceKey + ':fit-scope'`, that is,
 `lwp-reading:<output-directory-path>:fit-scope`. Missing/invalid values or
 blocked reads fall back to `article`; failed writes leave the control usable.
-This is not a new field in the version-1 reading record or `series_meta.reading`.
+This is not a new field in the version-2 reading record or `series_meta.reading`.
 See specifications.md §9.3.9 for the complete contract.
 
 ## Identities, Presets And Themes

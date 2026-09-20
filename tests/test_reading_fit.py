@@ -130,7 +130,8 @@ article: long.md
             config = json.loads((root / 'series.json').read_text(encoding='utf-8'))
             config['series_meta']['reading'] = {
                 'text_fit': 'uniform', 'table_mode': 'scroll',
-                'table_shrink': True, 'object_shrink': True,
+                'table_shrink': True, 'object_shrink_horizontal': True,
+                'object_shrink_vertical': True,
                 'min_text_scale': .9, 'min_table_scale': .93, 'min_object_scale': .94,
             }
             (root / 'series.json').write_text(json.dumps(config), encoding='utf-8')

@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.63.1"
+VERSION = "0.64.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1330,11 +1330,12 @@ LANG_FR = r'''{
     "menu_fit_series": "Série entière",
     "menu_text_per_slide": "Réduire chaque slide si nécessaire",
     "menu_table_shrink": "Réduire les tableaux si nécessaire",
-    "menu_object_shrink": "Réduire les images si nécessaire",
+    "menu_object_shrink_horizontal": "Réduire les images en largeur",
+    "menu_object_shrink_vertical": "Réduire les images en hauteur",
     "menu_reading_status_one": "{count} slide nécessite encore de faire défiler.",
     "menu_reading_status_many": "{count} slides nécessitent encore de faire défiler.",
     "help_tables": "Tableaux trop larges : masquer, laisser dépasser ou faire défiler localement (O). Les flèches dans un tableau défilant restent dans ce tableau, même au bord.",
-    "help_text_fit": "Texte : taille choisie, réduction commune ou réduction par slide (A). Le menu permet aussi de réduire les tableaux et les images séparément, dans les limites prévues par l'auteur.",
+    "help_text_fit": "Texte : taille choisie, réduction commune ou réduction par slide (A). Le menu permet aussi de réduire les tableaux et les images séparément en largeur et en hauteur, dans les limites prévues par l'auteur.",
     "menu_pause_black": "Écran noir",
     "menu_pause_white": "Écran blanc",
     "menu_pause_theme": "Écran du thème",
@@ -1540,11 +1541,12 @@ LANG_EN = r'''{
     "menu_fit_series": "Entire series",
     "menu_text_per_slide": "Reduce each slide as needed",
     "menu_table_shrink": "Reduce tables as needed",
-    "menu_object_shrink": "Reduce images as needed",
+    "menu_object_shrink_horizontal": "Reduce images to fit width",
+    "menu_object_shrink_vertical": "Reduce images to fit height",
     "menu_reading_status_one": "{count} slide still needs scrolling.",
     "menu_reading_status_many": "{count} slides still need scrolling.",
     "help_tables": "Wide tables: hide overflow, allow overflow or scroll locally (O). Arrow keys in a focused scrolling table stay inside it, even at its edges.",
-    "help_text_fit": "Text: chosen size, shared reduction or per-slide reduction (A). The menu also reduces tables and images independently, within the author's limits.",
+    "help_text_fit": "Text: chosen size, shared reduction or per-slide reduction (A). The menu also reduces tables and images independently by width and height, within the author's limits.",
     "menu_pause_black": "Black screen",
     "menu_pause_white": "White screen",
     "menu_pause_theme": "Theme screen",
@@ -10898,7 +10900,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Private reading layout: settings are shared only with this navigation IIFE.
   var readingSettings = {
     table_mode: 'clip', text_fit: 'fixed', table_shrink: false,
-    object_shrink: false, min_text_scale: 0.75,
+    object_shrink_horizontal: true, object_shrink_vertical: true,
+    min_text_scale: 0.75,
     min_table_scale: 0.85, min_object_scale: 0.85
   };
   var readingDataNode = document.getElementById('lwp-reading-data');
@@ -10930,17 +10933,19 @@ document.addEventListener('DOMContentLoaded', function() {
     var savedReading = JSON.parse(window.localStorage.getItem(readingPreferenceKey));
     if (savedReading && typeof savedReading === 'object' && !Array.isArray(savedReading)
         && Object.keys(savedReading).sort().join(',')
-          === 'object_shrink,presentationZoom,table_mode,table_shrink,text_fit,v'
-        && savedReading.v === 1
+          === 'object_shrink_horizontal,object_shrink_vertical,presentationZoom,table_mode,table_shrink,text_fit,v'
+        && savedReading.v === 2
         && ['clip', 'overflow', 'scroll'].indexOf(savedReading.table_mode) !== -1
         && ['fixed', 'uniform', 'per-slide'].indexOf(savedReading.text_fit) !== -1
         && typeof savedReading.table_shrink === 'boolean'
-        && typeof savedReading.object_shrink === 'boolean'
+        && typeof savedReading.object_shrink_horizontal === 'boolean'
+        && typeof savedReading.object_shrink_vertical === 'boolean'
         && typeof savedReading.presentationZoom === 'number'
         && isFinite(savedReading.presentationZoom)
         && savedReading.presentationZoom >= PRESENTATION_ZOOM_MIN
         && savedReading.presentationZoom <= PRESENTATION_ZOOM_MAX) {
-      ['table_mode', 'text_fit', 'table_shrink', 'object_shrink'].forEach(function (name) {
+      ['table_mode', 'text_fit', 'table_shrink', 'object_shrink_horizontal',
+        'object_shrink_vertical'].forEach(function (name) {
         readingSettings[name] = savedReading[name];
       });
       presentationZoom = savedReading.presentationZoom;
@@ -10951,8 +10956,10 @@ document.addEventListener('DOMContentLoaded', function() {
   function saveReadingPreferences() {
     try {
       window.localStorage.setItem(readingPreferenceKey, JSON.stringify({
-        v: 1, table_mode: readingSettings.table_mode, text_fit: readingSettings.text_fit,
-        table_shrink: readingSettings.table_shrink, object_shrink: readingSettings.object_shrink,
+        v: 2, table_mode: readingSettings.table_mode, text_fit: readingSettings.text_fit,
+        table_shrink: readingSettings.table_shrink,
+        object_shrink_horizontal: readingSettings.object_shrink_horizontal,
+        object_shrink_vertical: readingSettings.object_shrink_vertical,
         presentationZoom: presentationZoom
       }));
     } catch (e) {}
@@ -10970,7 +10977,8 @@ document.addEventListener('DOMContentLoaded', function() {
       if (['clip', 'overflow', 'scroll'].indexOf(value) < 0) return false;
     } else if (name === 'text_fit') {
       if (['fixed', 'uniform', 'per-slide'].indexOf(value) < 0) return false;
-    } else if (name === 'table_shrink' || name === 'object_shrink') {
+    } else if (name === 'table_shrink' || name === 'object_shrink_horizontal'
+               || name === 'object_shrink_vertical') {
       if (typeof value !== 'boolean') return false;
     } else return false;
     readingSettings[name] = value;
@@ -11049,6 +11057,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var getComputedStyle = function (node, pseudo) {
         return node.ownerDocument.defaultView.getComputedStyle(node, pseudo);
       };
+      var viewportHeight = document.documentElement.clientHeight;
       var visible = roots.filter(function (slide) {
         return !slide.hidden && getComputedStyle(slide).display !== 'none';
       });
@@ -11106,34 +11115,45 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         // Tables have a separate scale; never shrink embedded controls.
         var objects = [];
+        function addObject(node, minimum, kind) {
+          objects.push({node: node, minimum: minimum, kind: kind});
+        }
         if (!isIndex && readingSettings.table_shrink) {
           Array.prototype.forEach.call(slide.querySelectorAll('table'), function (node) {
             // Nested tables follow the outer table, not a second multiplier.
-            if (!node.parentElement.closest('table')) objects.push([node, readingSettings.min_table_scale]);
+            if (!node.parentElement.closest('table')) {
+              addObject(node, readingSettings.min_table_scale, 'table');
+            }
           });
         }
-        if (!isIndex && readingSettings.object_shrink) {
+        if (!isIndex && (readingSettings.object_shrink_horizontal
+                         || readingSettings.object_shrink_vertical)) {
           Array.prototype.forEach.call(slide.querySelectorAll('figure, .figure, img'), function (node) {
             if (node.parentElement.closest('figure, .figure, table')
                 || node.querySelector('iframe, video, audio, object, embed')) return;
-            objects.push([node, readingSettings.min_object_scale]);
+            addObject(node, readingSettings.min_object_scale, 'image');
           });
         }
-        var objectFloor = 1;
         objects = objects.map(function (entry) {
-          var node = entry[0];
+          var node = entry.node;
           var rect = node.getBoundingClientRect();
           var parent = node.parentElement;
           var parentStyle = getComputedStyle(parent);
           var width = parent.clientWidth - parseFloat(parentStyle.paddingLeft)
             - parseFloat(parentStyle.paddingRight);
-          objectFloor = Math.min(objectFloor, entry[1]);
-          return {node: node, minimum: entry[1],
-            maximum: Math.max(entry[1], Math.min(1, width / Math.max(1, rect.width))),
+          var maximum = 1;
+          if (entry.kind === 'table' || readingSettings.object_shrink_horizontal) {
+            maximum = Math.min(maximum, width / Math.max(1, rect.width));
+          }
+          if (entry.kind === 'image' && readingSettings.object_shrink_vertical) {
+            maximum = Math.min(maximum, viewportHeight / Math.max(1, rect.height));
+          }
+          return {node: node, kind: entry.kind, minimum: entry.minimum,
+            maximum: Math.max(entry.minimum, Math.min(1, maximum)),
             zoom: parseFloat(getComputedStyle(node).zoom) || 1,
             original: remember(node, 'zoom')};
         });
-        return {slide: slide, text: text, objects: objects, objectFloor: objectFloor,
+        return {slide: slide, text: text, objects: objects,
           left: parseFloat(cs.paddingLeft), right: parseFloat(cs.paddingRight)};
       });
     }
@@ -11228,8 +11248,9 @@ document.addEventListener('DOMContentLoaded', function() {
             'line-height', (item.line * size / item.size) + 'px', 'important');
         });
       }
-      function applyObjects(candidate, scale) {
+      function applyObjects(candidate, scale, kind) {
         candidate.objects.forEach(function (item) {
+          if (kind && item.kind !== kind) return;
           var factor = Math.max(item.minimum, Math.min(item.maximum, scale));
           if (factor === 1) restore([item.original]);
           else item.node.style.setProperty('zoom', String(item.zoom * factor), 'important');
@@ -11254,6 +11275,9 @@ document.addEventListener('DOMContentLoaded', function() {
       function solve(group, low, applyScale) {
         function test(scale) {
           group.forEach(function (candidate) { applyScale(candidate, scale); });
+          // Relative image dimensions can change with the text factor; fit
+          // objects before measuring the candidate rather than after solving.
+          fitObjects(group);
           return group.every(fits);
         }
         if (test(1)) return 1;
@@ -11269,9 +11293,35 @@ document.addEventListener('DOMContentLoaded', function() {
         test(low);
         return low;
       }
+      function refreshObjectBounds(candidate) {
+        candidate.objects.forEach(function (item) {
+          var node = item.node;
+          var rect = node.getBoundingClientRect();
+          var parent = node.parentElement;
+          var parentStyle = parent.ownerDocument.defaultView.getComputedStyle(parent);
+          var width = parent.clientWidth - parseFloat(parentStyle.paddingLeft)
+            - parseFloat(parentStyle.paddingRight);
+          var currentZoom = parseFloat(node.ownerDocument.defaultView.getComputedStyle(node).zoom) || 1;
+          var objectScale = currentZoom / Math.max(0.001, item.zoom);
+          var maximum = 1;
+          if (item.kind === 'table' || readingSettings.object_shrink_horizontal) {
+            maximum = Math.min(maximum, width / Math.max(1, rect.width / objectScale));
+          }
+          if (item.kind === 'image' && readingSettings.object_shrink_vertical) {
+            maximum = Math.min(maximum, height / Math.max(1, rect.height / objectScale));
+          }
+          item.maximum = Math.max(item.minimum, Math.min(1, maximum));
+        });
+      }
       function fitObjects(group) {
         group.forEach(function (candidate) {
-          if (candidate.objects.length) solve([candidate], candidate.objectFloor, applyObjects);
+          refreshObjectBounds(candidate);
+          // Image bounds are independent of the slide's total height: a long
+          // text slide may scroll while its image still fits one viewport.
+          applyObjects(candidate, 1, 'image');
+          // Tables use their own width bound; other slide content must not
+          // force a small table to its minimum scale.
+          applyObjects(candidate, 1, 'table');
         });
       }
       function measureSeriesView(view) {
@@ -11356,8 +11406,8 @@ document.addEventListener('DOMContentLoaded', function() {
           restore(changed.splice(start));
         }
       }
-      // Object bounds are individual; the shared factor is searched against
-      // the entire slide, so several individually small images can fit too.
+      // Image bounds are individual in both dimensions; surrounding prose does
+      // not force an image to fit the slide's total height.
       // Spend the permitted object reduction before reducing any text.
       var seriesFactor = 1;
       if (!isIndex && seriesViews && fitScope === 'series' && readingSettings.text_fit === 'uniform') {
@@ -11393,12 +11443,8 @@ document.addEventListener('DOMContentLoaded', function() {
       } else if (!isIndex && readingSettings.text_fit === 'per-slide') {
         candidates.forEach(function (candidate) { solve([candidate], readingSettings.min_text_scale, apply); });
       }
+      if (!isIndex && readingSettings.text_fit !== 'fixed') fitObjects(candidates);
       candidates.forEach(function (candidate) {
-        // A uniform text factor may be constrained by another slide. Give
-        // objects their space back wherever that factor makes it available.
-        if (readingSettings.text_fit !== 'fixed' && candidate.objects.length) {
-          solve([candidate], candidate.objectFloor, applyObjects);
-        }
         if (!isIndex && !fits(candidate)) candidate.slide.setAttribute('data-lwp-fit-overflow', 'true');
       });
       if (presentationZoom !== 1) {
@@ -12935,7 +12981,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var status = document.getElementById('menuReadingStatus');
     if (status) {
       var automatic = readingSettings.text_fit !== 'fixed'
-        || readingSettings.table_shrink || readingSettings.object_shrink;
+        || readingSettings.table_shrink
+        || readingSettings.object_shrink_horizontal
+        || readingSettings.object_shrink_vertical;
       var count = automatic ? slides.filter(function (slide) {
         return !slide.hidden && slide.getAttribute('data-lwp-fit-overflow') === 'true'
           && getComputedStyle(slide).display !== 'none';
@@ -15743,7 +15791,8 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
         </select>
       </label>
       <label><input type="checkbox" data-reading-option="table_shrink"> <span data-lwp-i18n="menu_table_shrink">{{str_menu_table_shrink}}</span></label>
-      <label><input type="checkbox" data-reading-option="object_shrink"> <span data-lwp-i18n="menu_object_shrink">{{str_menu_object_shrink}}</span></label>
+      <label><input type="checkbox" data-reading-option="object_shrink_horizontal"> <span data-lwp-i18n="menu_object_shrink_horizontal">{{str_menu_object_shrink_horizontal}}</span></label>
+      <label><input type="checkbox" data-reading-option="object_shrink_vertical"> <span data-lwp-i18n="menu_object_shrink_vertical">{{str_menu_object_shrink_vertical}}</span></label>
       <p id="menuReadingStatus" aria-live="polite" aria-atomic="true" hidden></p>
     </div>
   </div>
@@ -23179,7 +23228,8 @@ DEFAULT_READING_SETTINGS = {
     'table_mode': 'clip',
     'text_fit': 'fixed',
     'table_shrink': False,
-    'object_shrink': False,
+    'object_shrink_horizontal': True,
+    'object_shrink_vertical': True,
     'min_text_scale': 0.75,
     'min_table_scale': 0.85,
     'min_object_scale': 0.85,
@@ -23202,7 +23252,8 @@ def resolve_reading_settings(series_meta):
             if not isinstance(value, str) or value not in allowed:
                 raise PropertyError(
                     f'{origin}.{key}: must be one of {" | ".join(allowed)}')
-        elif key in ('table_shrink', 'object_shrink'):
+        elif key in ('table_shrink', 'object_shrink_horizontal',
+                     'object_shrink_vertical'):
             if not isinstance(value, bool):
                 raise PropertyError(f'{origin}.{key}: must be a boolean')
         elif (isinstance(value, bool) or not isinstance(value, (int, float))

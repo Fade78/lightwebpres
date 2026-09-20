@@ -3394,8 +3394,9 @@ ink on each.
 The presenter menu (**M**, or the Menu button) has one **Display settings**
 item (**Affichage** in French), which opens the dedicated `readingMenu`
 submenu. It contains presentation zoom **-**, **+**, **Reset** and the current
-percentage, **Wide tables**, **Text size**, **Reduce tables as needed** and
-**Reduce images as needed**. Back or Escape returns to the main menu with
+percentage, **Wide tables**, **Text size**, **Reduce tables as needed**,
+**Reduce images to fit width** and **Reduce images to fit height**. Back or
+Escape returns to the main menu with
 focus on its Display settings item; clicking outside closes the submenu.
 Keyboard **-**, **+**, **=** reduce, enlarge and reset presentation zoom;
 **D** opens or closes this submenu directly.
@@ -3414,10 +3415,13 @@ the key `lwp-reading:<output-directory-path>`, where the path is
 `location.pathname` through its final slash. Storage is scoped by origin;
 the directory key shares preferences across articles, the index and reloads
 within that output directory while separating other series paths on the same
-origin. The strict version-1 record contains exactly `v: 1`, `table_mode`,
-`text_fit`, `table_shrink`, `object_shrink` and `presentationZoom`. The modes
+origin. The strict version-2 record contains exactly `v: 2`, `table_mode`,
+`text_fit`, `table_shrink`, `object_shrink_horizontal`,
+`object_shrink_vertical` and `presentationZoom`. The modes
 and switches use the values/types below; zoom is a finite number from `0.5`
-to `2`, inclusive. Authored minimum limits are never stored as reader choices.
+to `2`, inclusive. Version-1 records and the removed `object_shrink` field are
+invalid; migration is performed by authoring agents rather than the executable.
+Authored minimum limits are never stored as reader choices.
 A valid record overrides initial modes, switches and 100% zoom, not those
 limits. Missing, malformed, unsupported or invalid records, or blocked reads,
 leave author defaults and 100% zoom in effect. Failed writes do not disable
@@ -3427,7 +3431,7 @@ source files. This does not change theme/preset session persistence.
 Combined-HTML uniform scope is a separate preference at
 `readingPreferenceKey + ':fit-scope'`, that is,
 `lwp-reading:<output-directory-path>:fit-scope`, storing `article` or `series`.
-It does not extend the version-1 reading record or `series_meta.reading`.
+It does not extend the version-2 reading record or `series_meta.reading`.
 Missing or invalid values and blocked storage reads fall back to `article`;
 failed writes leave the current control usable. Multipage output does not use
 this preference.
@@ -3448,7 +3452,8 @@ property or preset selector. Omission or `{}` resolves to these defaults:
       "table_mode": "clip",
       "text_fit": "fixed",
       "table_shrink": false,
-      "object_shrink": false,
+      "object_shrink_horizontal": true,
+      "object_shrink_vertical": true,
       "min_text_scale": 0.75,
       "min_table_scale": 0.85,
       "min_object_scale": 0.85
@@ -3458,7 +3463,7 @@ property or preset selector. Omission or `{}` resolves to these defaults:
 ```
 
 Partial objects fill omitted keys from those defaults. The two modes accept
-only the exact strings listed above; the two shrink switches require JSON
+only the exact strings listed above; the three shrink switches require JSON
 booleans. Each minimum scale requires a finite JSON number in the inclusive
 range `0.5` to `1`, not a boolean or numeric string. Unknown keys, wrong types
 and out-of-range values are fatal errors naming `series_meta.reading` and the
@@ -3514,9 +3519,14 @@ Fitting factors range from the configured minimum to `1`, never enlarging
 content above its baseline. Text originally at least 12 CSS pixels is not
 reduced below 12 CSS pixels; a smaller authored size is not enlarged to that
 floor. Text fitting excludes table text, which follows the independent table
-scale. Optional `table_shrink` and `object_shrink` reductions have their own
-floors; supported objects are images/figures, not a general fitting contract
-for iframes, media players or buttons. An unfit slide can remain at its floor,
+scale. Optional `table_shrink`, `object_shrink_horizontal` and
+`object_shrink_vertical` reductions have their own floor. The horizontal image
+bound uses the available content width; the vertical image bound uses one
+viewport height. When both are active, the smaller factor wins and the image
+ratio is preserved. These bounds apply to the image/figure itself, not to the
+total height of surrounding prose, so a long slide may scroll while its image
+remains visible on one screen. Supported objects are images/figures, not a
+general fitting contract for iframes, media players or buttons. An unfit slide can remain at its floor,
 including a long-form article that drives a uniform group to the minimum.
 The runtime marks remaining slide overflow with `data-lwp-fit-overflow="true"`;
 it does not hide or delete the slide's content. When fitting or shrinking is

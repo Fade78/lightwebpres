@@ -109,7 +109,8 @@ class _ReadingControlsFixture(unittest.TestCase):
             shutil.copytree(root / 'sources', other / 'sources')
             author_defaults = {
                 'table_mode': 'overflow', 'text_fit': 'uniform',
-                'table_shrink': False, 'object_shrink': True,
+                'table_shrink': False, 'object_shrink_horizontal': True,
+                'object_shrink_vertical': True,
                 'min_text_scale': 0.93, 'min_table_scale': 0.94, 'min_object_scale': 0.95,
             }
             (other / 'series.json').write_text(json.dumps({

@@ -16,7 +16,8 @@ else:
 
 DEFAULTS = {
     'table_mode': 'clip', 'text_fit': 'fixed',
-    'table_shrink': False, 'object_shrink': False,
+    'table_shrink': False, 'object_shrink_horizontal': True,
+    'object_shrink_vertical': True,
     'min_text_scale': 0.75, 'min_table_scale': 0.85,
     'min_object_scale': 0.85,
 }
@@ -53,7 +54,8 @@ class ReadingSettings(unittest.TestCase):
             for fit in ('fixed', 'uniform', 'per-slide'):
                 reading = {
                     'table_mode': mode, 'text_fit': fit,
-                    'table_shrink': True, 'object_shrink': True,
+                    'table_shrink': True, 'object_shrink_horizontal': False,
+                    'object_shrink_vertical': True,
                     'min_text_scale': 0.5, 'min_table_scale': 1,
                     'min_object_scale': 1.0,
                 }
@@ -65,7 +67,8 @@ class ReadingSettings(unittest.TestCase):
         for key in ('table_mode', 'text_fit'):
             invalid.extend({key: value} for value in
                            (None, True, 1, [], {}, 'auto', ' FIXED '))
-        for key in ('table_shrink', 'object_shrink'):
+        for key in ('table_shrink', 'object_shrink_horizontal',
+                    'object_shrink_vertical'):
             invalid.extend({key: value} for value in
                            (None, 0, 1, 'true', 'false', [], {}))
         for key in ('min_text_scale', 'min_table_scale', 'min_object_scale'):
@@ -109,7 +112,8 @@ class ReadingCLI(unittest.TestCase):
     def test_article_and_index_receive_defaults_and_all_configured_modes(self):
         for reading in (None, {}, {'table_mode': 'overflow'}, {
                 'table_mode': 'scroll', 'text_fit': 'per-slide',
-                'table_shrink': True, 'object_shrink': True,
+                'table_shrink': True, 'object_shrink_horizontal': False,
+                'object_shrink_vertical': True,
                 'min_text_scale': 0.6, 'min_table_scale': 0.7,
                 'min_object_scale': 0.8}):
             with self.subTest(reading=reading), tempfile.TemporaryDirectory() as tmp:
@@ -135,6 +139,7 @@ class ReadingCLI(unittest.TestCase):
                                ({'table_shrink': 'yes'}, 'table_shrink'),
                                ({'table_mode': 'wide'}, 'table_mode'),
                                ({'text_fit': 'auto'}, 'text_fit'),
+                               ({'object_shrink': True}, 'object_shrink'),
                                ({'oops': 1}, 'oops')):
             with self.subTest(reading=reading), tempfile.TemporaryDirectory() as tmp:
                 root = self.make_series(tmp, reading)

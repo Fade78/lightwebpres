@@ -40,16 +40,20 @@ async function run() {
           table_mode: document.getElementById('menuTableMode').value,
           text_fit: document.getElementById('menuTextFit').value,
           table_shrink: document.querySelector('[data-reading-option="table_shrink"]').checked,
-          object_shrink: document.querySelector('[data-reading-option="object_shrink"]').checked,
+          object_shrink_horizontal: document.querySelector('[data-reading-option="object_shrink_horizontal"]').checked,
+          object_shrink_vertical: document.querySelector('[data-reading-option="object_shrink_vertical"]').checked,
           presentationZoom: Number(document.getElementById('menuZoomValue').textContent.replace('%', '')) / 100,
         }));
       };
       const expected = {table_mode: 'scroll', text_fit: 'per-slide',
-        table_shrink: true, object_shrink: false, presentationZoom: 1.3};
+        table_shrink: true, object_shrink_horizontal: true,
+        object_shrink_vertical: true, presentationZoom: 1.3};
       const defaults = {table_mode: 'clip', text_fit: 'fixed',
-        table_shrink: false, object_shrink: false, presentationZoom: 1};
+        table_shrink: false, object_shrink_horizontal: true,
+        object_shrink_vertical: true, presentationZoom: 1};
       const author = {table_mode: 'overflow', text_fit: 'uniform',
-        table_shrink: false, object_shrink: true, presentationZoom: 1};
+        table_shrink: false, object_shrink_horizontal: true,
+        object_shrink_vertical: true, presentationZoom: 1};
       await page.goto(articleURL);
       await page.keyboard.press('D');
       await page.waitForSelector('#readingMenu.open');
@@ -66,7 +70,7 @@ async function run() {
       await page.locator('[data-reading-option="table_shrink"]').check();
       for (let i = 0; i < 3; i++) await page.locator('[data-menu-action="zoom-in"]').click();
       assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), key),
-        {v: 1, ...expected}, 'save exactly the four reader options and zoom, never author floors');
+        {v: 2, ...expected}, 'save exactly the five reader options and zoom, never author floors');
       for (const destination of [null, new URL('next.html', articleURL).href,
         new URL('index.html', articleURL).href]) {
         if (destination) await page.goto(destination);
@@ -84,11 +88,14 @@ async function run() {
 
       // The whole versioned record is validated before applying any field.
       await page.goto(otherURL);
-      const valid = {v: 1, ...expected};
+      const valid = {v: 2, ...expected};
       const invalid = ['{', 'null', '[]', 'true', '1', '{}',
-        ...[{...valid, v: 2}, {...valid, v: '1'}, {...valid, table_mode: 'auto'},
-          {...valid, text_fit: 'grow'}, {...valid, table_shrink: 1},
-          {...valid, object_shrink: 'false'}, {...valid, presentationZoom: '1.3'},
+        ...[{...valid, v: 1}, {...valid, v: '2'}, {...valid, table_mode: 'auto'},
+           {...valid, text_fit: 'grow'}, {...valid, table_shrink: 1},
+          {...valid, object_shrink: true},
+          {...valid, object_shrink_horizontal: 'false'},
+          {...valid, object_shrink_vertical: 'false'},
+          {...valid, presentationZoom: '1.3'},
           {...valid, presentationZoom: 0.49}, {...valid, presentationZoom: 2.01},
           {...valid, presentationZoom: null}, {...valid, min_text_scale: 0.1},
           {...expected}].map(value => JSON.stringify(value)),
@@ -183,7 +190,7 @@ async function run() {
       assert.equal(await page.locator('#presenterMenu').isVisible(), false);
       assert.equal(await page.evaluate(() => document.activeElement.id), 'readingMenuBack');
       await page.keyboard.press('Shift+Tab');
-      assert.equal(await page.evaluate(() => document.activeElement.dataset.readingOption), 'object_shrink');
+      assert.equal(await page.evaluate(() => document.activeElement.dataset.readingOption), 'object_shrink_vertical');
       await page.keyboard.press('Tab');
       assert.equal(await page.evaluate(() => document.activeElement.id), 'readingMenuBack');
       await activate('#readingMenuBack');
@@ -264,10 +271,15 @@ async function run() {
       await page.locator('#menuTableMode').selectOption('scroll');
       await page.locator('#menuTextFit').selectOption('per-slide');
       await activate('[data-reading-option="table_shrink"]');
-      assert.equal(await page.locator('[data-reading-option="object_shrink"]').isChecked(), false);
-      await activate('[data-reading-option="object_shrink"]');
+      assert.equal(await page.locator('[data-reading-option="object_shrink_horizontal"]').isChecked(), true);
+      assert.equal(await page.locator('[data-reading-option="object_shrink_vertical"]').isChecked(), true);
+      await activate('[data-reading-option="object_shrink_horizontal"]');
+      await activate('[data-reading-option="object_shrink_vertical"]');
       await activate('[data-reading-option="table_shrink"]');
-      assert.equal(await page.locator('[data-reading-option="object_shrink"]').isChecked(), true);
+      await activate('[data-reading-option="object_shrink_horizontal"]');
+      await activate('[data-reading-option="object_shrink_vertical"]');
+      assert.equal(await page.locator('[data-reading-option="object_shrink_horizontal"]').isChecked(), true);
+      assert.equal(await page.locator('[data-reading-option="object_shrink_vertical"]').isChecked(), true);
       await page.keyboard.press('Escape');
       await openMenu();
       assert.equal(await page.locator('#menuTableMode').inputValue(), 'scroll');
@@ -518,9 +530,12 @@ async function run() {
         'touch help must omit unsupported Home/End/number-jump menu actions');
       await page.keyboard.press('Escape');
       await openMenu();
-      assert.equal(await page.locator('[data-reading-option="object_shrink"]').isChecked(), true,
+      assert.equal(await page.locator('[data-reading-option="object_shrink_horizontal"]').isChecked(), true,
         'reloading a note fragment must preserve the object preference too');
-      await page.locator('[data-reading-option="object_shrink"]').uncheck();
+      assert.equal(await page.locator('[data-reading-option="object_shrink_vertical"]').isChecked(), true,
+        'reloading a note fragment must preserve the vertical object preference too');
+      await page.locator('[data-reading-option="object_shrink_horizontal"]').uncheck();
+      await page.locator('[data-reading-option="object_shrink_vertical"]').uncheck();
       await settle();
       const status = page.locator('#menuReadingStatus');
       assert.equal(await status.getAttribute('aria-live'), 'polite');
@@ -562,7 +577,8 @@ async function run() {
       await page.locator('#menuTextFit').selectOption('fixed');
       await settle();
       assert.equal(await status.isVisible(), false);
-      for (const option of ['table_shrink', 'object_shrink']) {
+      for (const option of ['table_shrink', 'object_shrink_horizontal',
+        'object_shrink_vertical']) {
         await activate(`[data-reading-option="${option}"]`);
         await settle();
         assert.equal(await status.textContent(), singular, `${option} must enable the residual-overflow notice`);
@@ -587,7 +603,7 @@ async function run() {
       assert.equal(await status.textContent(), singular);
       await page.locator('#other-long').evaluate(el => { el.style.removeProperty('display'); });
       await page.locator('#menuTextFit').selectOption('fixed');
-      await activate('[data-reading-option="object_shrink"]');
+      await activate('[data-reading-option="object_shrink_horizontal"]');
       await filter('brief');
       assert.equal(await page.locator('.slide[data-lwp-fit-overflow="true"]:not([hidden])').count(), 0,
         JSON.stringify(await page.locator('#cover').evaluate(el => ({
