@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.64.0
+## v0.65.0
 
 Incremental multipage builds now keep a disposable, per-page image inventory
 cache beside the navigation fingerprint. A matching output hash reuses the
@@ -48,6 +48,10 @@ against one viewport height without shrinking it because surrounding prose
 spans several screens. Author settings use `object_shrink_horizontal` and
 `object_shrink_vertical`, and the saved reader record is now version 2; the
 former `object_shrink` format is removed for explicit agent migration.
+
+`slug_prefix` now shares one normalized value and provenance resolution across
+builds, reports and `series slug`, so blank values cannot appear as winners
+when the build correctly falls back to the next level.
 
 ## v0.63.0
 

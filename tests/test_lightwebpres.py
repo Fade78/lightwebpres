@@ -20577,6 +20577,49 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
             self.assertTrue(levels['article']['winner'])
             self.assertEqual(levels['series-default']['value'], 'series-')
 
+    def test_slug_prefix_report_matches_build_and_inventory_after_normalizing(self):
+        for authored, expected, source in (
+                ('   ', '', 'default'),
+                ('  series-  ', 'series-', 'series-default')):
+            with self.subTest(authored=authored), tempfile.TemporaryDirectory() as tmp:
+                root = self._one_article(
+                    tmp, series_meta={'slug_prefix': authored})
+                report = self._resolve(root, 'slug_prefix', '--article',
+                                       'intro.md')
+                resolution = report['resolution']
+                self.assertEqual(resolution['value'], expected)
+                self.assertEqual(resolution['source'], source)
+                levels = self._levels(report)
+                self.assertFalse(levels['article']['present'])
+                self.assertEqual(levels['series-default']['value'],
+                                 expected or None)
+                self.assertEqual(levels['series-default']['present'], bool(expected))
+
+                built = run('build', str(root))
+                self.assertEqual(built.returncode, 0, built.stderr)
+                html = (root / 'public' / 'intro.html').read_text(encoding='utf-8')
+                self.assertIn(f'id="{expected}k261"' if expected
+                              else 'id="k261"', html)
+
+                inventory = run('series', 'slug', str(root), '--format', 'json')
+                self.assertEqual(inventory.returncode, 0, inventory.stderr)
+                data = json.loads(inventory.stdout)
+                self.assertEqual(data['articles'][0]['slides'][0]['slug'],
+                                 f'{expected}k261' if expected else 'k261')
+
+    def test_slug_prefix_series_query_uses_the_same_normalized_resolution(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(
+                tmp, series_meta={'slug_prefix': '  series-  '})
+            report = self._resolve(root, 'slug_prefix')
+
+        self.assertEqual(report['query']['kind'], 'series-field')
+        self.assertEqual(report['resolution']['value'], 'series-')
+        self.assertEqual(report['resolution']['source'], 'series')
+        levels = self._levels(report)
+        self.assertEqual(levels['series']['value'], 'series-')
+        self.assertTrue(levels['series']['winner'])
+
     # ------------------------------------------------------------------
     # Against a real build, not against an expectation written here
     # ------------------------------------------------------------------

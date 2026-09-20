@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.64.0"
+VERSION = "0.65.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -19869,35 +19869,56 @@ def resolve_page_slide_ids(visible_slides, prefix='', where=''):
 
 
 
-def resolve_slug_prefix(meta, series_meta, source_name):
-    """`slug_prefix`: the namespace an author puts in front of every id on
-    a page, declared and derived alike.
+def resolve_slug_prefix(meta, series_meta, source_name, article_scope=True):
+    """Resolve ``slug_prefix`` once for build and report consumers.
 
-    The same cascade as `author`, `license` and the notes settings —
-    series.json first, the article's own meta block over it — because the
-    common case is a whole series wanting one, and the exception is one
-    article inside it wanting another.
+    The result carries the normalized value, its winning source and the
+    normalized candidate values. Keeping those three pieces together avoids
+    letting the generic field resolver describe a different winner from the
+    helper that actually puts the prefix on anchors.
 
-    A wrong value is a build error rather than a silent drop, for the
-    reason every typed value in this tool is: an author who mistyped a
-    prefix would otherwise publish a page whose anchors are not the ones
-    they think they minted, and find out from a broken link."""
-    for source, origin in ((meta, source_name), (series_meta, 'series.json')):
-        if 'slug_prefix' not in source or source['slug_prefix'] is None:
-            continue
-        if not isinstance(source['slug_prefix'], str):
-            log('error', f'{origin}: slug_prefix must be a string '
-                f'(got {type(source["slug_prefix"]).__name__}).')
-            sys.exit(1)
-        if source['slug_prefix'].strip():
-            value = source['slug_prefix'].strip()
-            if not SLUG_PREFIX_RE.match(value):
-                log('error', f'{origin}: slug_prefix: {value!r} must start '
-                             f'with a letter or a digit and may then contain '
-                             f'letters, digits, "-", "_" and ".".')
+    The article scope follows the same cascade as `author`, `license` and
+    the notes settings: the article's own meta block over the series-wide
+    default. The series-only form is used by `resolve` when no article was
+    selected. A wrong winning value is a build error rather than a silent
+    drop: an author who mistyped a prefix would otherwise publish anchors
+    different from the ones they think they minted."""
+    if article_scope:
+        sources = ((meta or {}, 'article', source_name),
+                   (series_meta or {}, _SERIES_DEFAULT_ORIGIN, 'series.json'))
+    else:
+        sources = ((series_meta or {}, 'series', 'series.json'),)
+
+    candidates = []
+    value = ''
+    winner_source = 'default'
+    for source, level, origin in sources:
+        raw = source.get('slug_prefix')
+        if raw is None:
+            candidate = ''
+        elif not isinstance(raw, str):
+            if value:
+                # An overridden lower-priority value was not validated by
+                # the former build path either; keep it visible in reports.
+                candidate = raw
+            else:
+                log('error', f'{origin}: slug_prefix must be a string '
+                    f'(got {type(raw).__name__}).')
                 sys.exit(1)
-            return value
-    return ''
+        else:
+            candidate = raw.strip()
+            if candidate and not value:
+                if not SLUG_PREFIX_RE.match(candidate):
+                    log('error', f'{origin}: slug_prefix: {candidate!r} must '
+                                 f'start with a letter or a digit and may '
+                                 f'then contain letters, digits, "-", "_" '
+                                 f'and ".".')
+                    sys.exit(1)
+        candidates.append((level, candidate))
+        if not value and isinstance(candidate, str) and candidate:
+            value = candidate
+            winner_source = level
+    return {'value': value, 'source': winner_source, 'candidates': candidates}
 
 
 class Slide:
@@ -22245,8 +22266,8 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # id has to be unique across the page, so it cannot be decided card by
     # card (§12.1.1). Keep only emitted identities after validating all
     # source cards, including excluded ones.
-    slug_prefix = resolve_slug_prefix(meta, series_meta_of(series_data),
-                                      source_path.name)
+    slug_prefix = resolve_slug_prefix(
+        meta, series_meta_of(series_data), source_path.name)['value']
     try:
         all_identities = resolve_page_slide_ids(slides, slug_prefix,
                                                 source_path.name)
@@ -23916,14 +23937,13 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
         entry['nav_title'] = take('nav_title', derived=entry['card_title'])
         entry['nav_desc'] = take('nav_desc', derived=entry['card_desc'])
 
-        # `slug_prefix` has the article-meta -> series-meta cascade, but no
-        # articles[] override. Keep it in the same resolution record so the
-        # read-only `resolve` command cannot ask for a field the build knows.
-        entry['slug_prefix'] = take(
-            'slug_prefix', series_default=series_meta.get('slug_prefix', ''),
-            include_entry=False)
-        entry['slug_prefix'] = resolve_slug_prefix(
+        # `slug_prefix` has a field-specific normalizer and provenance result:
+        # the build, reports and slug inventory must use the same winner.
+        slug_prefix_resolution = resolve_slug_prefix(
             meta, series_meta, entry['page_source'])
+        entry['slug_prefix'] = slug_prefix_resolution['value']
+        origins['slug_prefix'] = slug_prefix_resolution['source']
+        candidates['slug_prefix'] = slug_prefix_resolution['candidates']
 
         # The editorial three take the same path as the rest, with one
         # level the display fields do not have: `series-default`, the
@@ -29603,7 +29623,7 @@ def cmd_series_slug(series_dir, args):
             continue
         meta, _slides, _has_meta, _before_meta = parse_markdown_extended(text)
         prefix = resolve_slug_prefix(meta or {}, series_meta or {},
-                                     entry['page_source'])
+                                     entry['page_source'])['value']
         slides = [{'ordinal': n, 'slug': slug or None}
                   for n, (_i, slug) in enumerate(_slugs_in_article(text), 1)]
         for slide in slides:
@@ -30411,6 +30431,15 @@ def resolve_theme_property(name, templates_dir, article_meta, article_name,
 def resolve_series_field(name, series_meta, appearance=None):
     """A `series_meta` field (§20.5): written once for the whole series,
     or absent. One level, and saying so is the answer."""
+    if name == 'slug_prefix':
+        resolved = resolve_slug_prefix(
+            None, series_meta, 'series.json', article_scope=False)
+        chain = [_chain_link(level, value)
+                 for level, value in resolved['candidates']]
+        chain.append(_chain_link('default', ''))
+        _crown(chain)
+        return {'value': resolved['value'], 'source': resolved['source'],
+                'chain': chain}
     if name == 'scroll_duration':
         default = DEFAULT_SCROLL_DURATION_MS
     elif name == 'default_tag':
