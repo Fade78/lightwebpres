@@ -33,6 +33,13 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.66.0
+
+Slide headers and footers now expose typed horizontal alignment with the
+`left`, `center` and `right` values. Themes and `settings.conf` can set the
+default, while an article can override the two chrome rows through its
+`style.*` metadata without changing the chrome content or slide model.
+
 ## v0.65.0
 
 Incremental multipage builds now keep a disposable, per-page image inventory

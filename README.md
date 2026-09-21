@@ -123,8 +123,11 @@ typed values, not arbitrary custom CSS or overall accessibility.
 Authors can also set presentation chrome without making a kit: root
 `series.json.chrome` supplies series defaults, `slide-header` and
 `slide-footer` in article metadata supply article defaults, and the same fields
-on a slide win last. Named chrome models still come from the selected Identity
-Kits; `""` or JSON `null` clears an inherited slot.
+on a slide win last. Typed `slide-header.align` and `slide-footer.align`
+properties let a theme author choose `left`, `center` or `right`, while an
+article author can override them with `style.slide-header.align` and
+`style.slide-footer.align`. Named chrome models still come from the selected
+Identity Kits; `""` or JSON `null` clears an inherited slot.
 
 Browse the [interactive theme gallery](generated/themes-gallery.html) or its
 [compact catalogue](generated/themes-gallery.png). For a complete, inspectable

@@ -141,7 +141,10 @@ flow. Rendered article slides expose the resolved value through
 `data-lwp-chrome-placement`; runtime preset switching updates the attribute.
 Themes can enlarge the vertical footprint of those slots with
 `slide-header.padding-block` and `slide-footer.padding-block`; both default to
-`0` and affect spacing, not the semantic chrome model.
+`0` and affect spacing, not the semantic chrome model. The typed
+`slide-header.align` and `slide-footer.align` properties accept `left`,
+`center` or `right` and default to `left`; they control the horizontal position
+of the rendered chrome row.
 
 ### Reading fields
 

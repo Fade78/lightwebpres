@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.65.0"
+VERSION = "0.66.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -2891,6 +2891,9 @@ PROP_WEIGHT = ChoiceType('normal', 'bold',
 PROP_STYLE = ChoiceType('normal', 'italic')
 PROP_CASE = ChoiceType('none', 'uppercase', 'lowercase', 'small-caps')
 PROP_ALIGN = ChoiceType('left', 'center', 'right', 'justify')
+# Slide chrome is a flex row, not a prose block: `justify` has no equivalent
+# here. Keep the public vocabulary to the three positions the row can express.
+PROP_CHROME_ALIGN = ChoiceType('left', 'center', 'right')
 # Breaking words at end of line is never done unless it is asked for, by
 # name. `manual` is CSS's own initial value: words break only where the
 # author put a soft hyphen. This shipped once tied to `justify`, which meant
@@ -3287,6 +3290,8 @@ THEME_COMPONENTS = [
     # by the chrome renderer, never arbitrary article images.
     ThemeComponent('slide-header', '.slide-chrome-header', [
         ThemeProp('slide-header.fg',       PROP_COLOR,  'ink', css='color'),
+        ThemeProp('slide-header.align',    PROP_CHROME_ALIGN, 'left',
+                  css='justify-content'),
         ThemeProp('slide-header.font',     PROP_FONT,   'ui', css='font-family'),
         ThemeProp('slide-header.size',     PROP_LENGTH, 'max(12px, 1.5vmin)',
                   css='font-size'),
@@ -3302,10 +3307,12 @@ THEME_COMPONENTS = [
         ThemeProp('slide-header.logo-max-size', PROP_LENGTH, '64px',
                   css='max-width', selector='.slide-chrome-header img'),
         ThemeProp('slide-header.asset-gap', PROP_LENGTH, '8px', css='gap',
-                  selector='.slide-chrome-header .slide-chrome-icon'),
-    ]),
+                   selector='.slide-chrome-header .slide-chrome-icon'),
+    ], composite=[('text-align', 'var(--slide-header-align)')]),
     ThemeComponent('slide-footer', '.slide-chrome-footer', [
         ThemeProp('slide-footer.fg',       PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('slide-footer.align',    PROP_CHROME_ALIGN, 'left',
+                  css='justify-content'),
         ThemeProp('slide-footer.font',     PROP_FONT,   'ui', css='font-family'),
         ThemeProp('slide-footer.size',     PROP_LENGTH, 'max(12px, 1.5vmin)',
                   css='font-size'),
@@ -3325,8 +3332,8 @@ THEME_COMPONENTS = [
         ThemeProp('slide-footer.logo-max-size', PROP_LENGTH, '64px',
                   css='max-width', selector='.slide-chrome-footer img'),
         ThemeProp('slide-footer.asset-gap', PROP_LENGTH, '8px', css='gap',
-                  selector='.slide-chrome-footer .slide-chrome-icon'),
-    ]),
+                   selector='.slide-chrome-footer .slide-chrome-icon'),
+    ], composite=[('text-align', 'var(--slide-footer-align)')]),
 
     ThemeComponent('cover', '.slide-cover', [
         ThemeProp('cover.bg.from',  PROP_COLOR, 'ink'),
@@ -4054,14 +4061,14 @@ THEME_OPTIONAL_PROPERTIES = frozenset({
     'slide-body.heading2.shadow.dx', 'slide-body.heading2.shadow.dy',
     'slide-body.heading3.shadow.fg', 'slide-body.heading3.shadow.blur',
     'slide-body.heading3.shadow.dx', 'slide-body.heading3.shadow.dy',
-    'slide-header.fg', 'slide-header.font', 'slide-header.size',
+    'slide-header.fg', 'slide-header.align', 'slide-header.font', 'slide-header.size',
     'slide-header.leading', 'slide-header.weight', 'slide-header.tracking',
     'slide-header.gap', 'slide-header.padding-block',
     'slide-header.logo-size',
     'slide-header.logo-max-size', 'slide-header.asset-gap',
     'slide-header.shadow.fg', 'slide-header.shadow.blur',
     'slide-header.shadow.dx', 'slide-header.shadow.dy',
-    'slide-footer.fg', 'slide-footer.font', 'slide-footer.size',
+    'slide-footer.fg', 'slide-footer.align', 'slide-footer.font', 'slide-footer.size',
     'slide-footer.leading', 'slide-footer.weight', 'slide-footer.tracking',
     'slide-footer.gap', 'slide-footer.padding-block',
     'slide-footer.rule-fg', 'slide-footer.rule-width',
@@ -29395,11 +29402,11 @@ def print_theme_info_text(report):
         'slide-body.leading', 'slide-body.align',
         'slide-body.heading1.size', 'slide-body.heading2.size',
         'slide-body.heading3.size', 'slide-body.heading.leading',
-        'slide-header.fg', 'slide-header.font', 'slide-header.size',
+        'slide-header.fg', 'slide-header.align', 'slide-header.font', 'slide-header.size',
         'slide-header.weight', 'slide-header.tracking', 'slide-header.gap',
         'slide-header.padding-block',
         'slide-header.logo-size', 'slide-header.logo-max-size',
-        'slide-footer.fg', 'slide-footer.font', 'slide-footer.size',
+        'slide-footer.fg', 'slide-footer.align', 'slide-footer.font', 'slide-footer.size',
         'slide-footer.weight', 'slide-footer.tracking', 'slide-footer.gap',
         'slide-footer.padding-block',
         'slide-footer.rule-fg', 'slide-footer.rule-width',

@@ -122,6 +122,7 @@ Human walkthrough: [Integrate and automate](https://github.com/Fade78/lightwebpr
 - Every card needs a stable `slug:`. Only standard slides accept a free body; `full-article` references a separate file without LWP markers. `unit-index` generates a list, not prose.
 - Index `*` includes every supplied published slide, including itself. Literal tags have no reader shared-default magic; selectors do not replace global publication filters.
 - Presentation chrome follows preset < root `series.json.chrome` < article `lwp:meta` < slide fields. Textual header/footer values work with `builtin/standard`; named models and assets require every selected Identity Kit. `""` or root JSON `null` explicitly clears a slot.
+- Slide chrome alignment is separate from that content cascade: `slide-header.align` and `slide-footer.align` accept only `left`, `center` or `right`, with article-level `style.*` overrides.
 - Speaker `note:` content is public in the HTML, even when hidden from normal view. `comment:` stays out of generated pages, but not out of a published source repository.
 - Keep research and editorial approval separate from format validation. An optional, externally maintained `sourced-presentation` skill can supply a method; it is not a build requirement.
 

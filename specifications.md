@@ -4936,8 +4936,10 @@ content as well as the kit's semantic chrome. The current native additions are
 `slide-body` (foreground, font, size, leading and alignment),
 `slide-body.heading1`, `slide-body.heading2`, `slide-body.heading3` (foreground,
 font, size and weight) plus `slide-body.heading.leading`, and
-`slide-header`/`slide-footer` (foreground, font, size, leading, weight,
-tracking, gap and block padding). Header and footer also expose their
+`slide-header`/`slide-footer` (foreground, alignment, font, size, leading,
+weight, tracking, gap and block padding). Their alignment axes accept
+`left | center | right`, default to `left`, and position the chrome flex row
+while also aligning text that wraps inside it. Header and footer also expose their
 declared-asset geometry; the footer exposes its rule colour and width.
 Body-heading sizes reference
 `--slide-body-size`, so a reading-size theme changes the hierarchy together.

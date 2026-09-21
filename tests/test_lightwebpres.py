@@ -13195,6 +13195,8 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
                              'Custom, sans-serif')
             self.assertEqual(loaded[f'slide-body.{heading}.weight'], 'normal')
         self.assertEqual(loaded['slide-body.heading.leading'], '2')
+        self.assertEqual(loaded['slide-header.align'], 'left')
+        self.assertEqual(loaded['slide-footer.align'], 'left')
 
     def test_a_slugs_facets_are_the_same_ones_themes_prints(self):
         """§9.5.2: one function feeds every surface, so a terminal
@@ -14363,12 +14365,20 @@ class DefaultStylesheetCoverage(unittest.TestCase):
         resolved = self.resolve({
             'slide-header.padding-block': '2vmin',
             'slide-footer.padding-block': '3vmin',
+            'slide-header.align': 'center',
+            'slide-footer.align': 'right',
         })
         css = self.lwp.emit_theme_css(resolved)
         self.assertIn('--slide-header-padding-block: 2vmin;', css)
         self.assertIn('--slide-footer-padding-block: 3vmin;', css)
         self.assertIn('padding-block: var(--slide-header-padding-block);', css)
         self.assertIn('padding-block: var(--slide-footer-padding-block);', css)
+        self.assertIn('--slide-header-align: center;', css)
+        self.assertIn('--slide-footer-align: right;', css)
+        self.assertIn('justify-content: var(--slide-header-align);', css)
+        self.assertIn('justify-content: var(--slide-footer-align);', css)
+        self.assertIn('text-align: var(--slide-header-align);', css)
+        self.assertIn('text-align: var(--slide-footer-align);', css)
 
 
 class FactStrongEmphasis(unittest.TestCase):
@@ -17690,6 +17700,25 @@ class AlignmentAxes(unittest.TestCase):
         self.assertIn('--highlight-align: right', self._sheet(**{
             'highlight.align': 'right'}))
 
+    def test_slide_chrome_alignment_uses_only_the_three_flex_positions(self):
+        lwp = self.lwp
+        for key in ('slide-header.align', 'slide-footer.align'):
+            prop = lwp.PROPERTY_REGISTRY[key]
+            self.assertEqual(prop.default, 'left')
+            self.assertEqual(prop.type.values, ('left', 'center', 'right'))
+        sheet = self._emitted(**{
+            'slide-header.align': 'center',
+            'slide-footer.align': 'right',
+        })
+        self.assertIn('justify-content: var(--slide-header-align);', sheet)
+        self.assertIn('justify-content: var(--slide-footer-align);', sheet)
+        self.assertIn('text-align: var(--slide-header-align);', sheet)
+        self.assertIn('text-align: var(--slide-footer-align);', sheet)
+        for key in ('slide-header.align', 'slide-footer.align'):
+            with self.subTest(key=key), self.assertRaisesRegex(
+                    lwp.PropertyError, key):
+                lwp.resolve_theme_properties({key: 'justify'})
+
     def test_alignment_sets_alignment_and_nothing_else(self):
         # `justify` used to drag `hyphens: auto` along. Breaking words at end
         # of line is a typographic decision of its own; it must not arrive as
@@ -19009,6 +19038,17 @@ class ArticleStyleLayer(unittest.TestCase):
             # the page pins the mark; everything else is still nord
             self.assertIn('--color-mark: #101010FF;', page)
             self.assertIn('--color-page: #ECEFF4FF;', page)
+
+    def test_page_layer_can_align_slide_chrome(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(
+                tmp,
+                'style.slide-header.align: center\n'
+                'style.slide-footer.align: right\n')
+            self.assertEqual(run('build', str(root)).returncode, 0)
+            page = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('--slide-header-align: center;', page)
+            self.assertIn('--slide-footer-align: right;', page)
 
     def test_a_bad_value_is_a_build_error_naming_the_article(self):
         with tempfile.TemporaryDirectory() as tmp:

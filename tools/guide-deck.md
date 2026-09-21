@@ -75,7 +75,8 @@ kits into one final kit. Authors need the result, not its source kits.
 Follow the Field Notes example and its composition diagram in the manual.
 Use a theme alone when colors and typography are all you need to change: the
 typed registry also controls free-form slide prose, body headings and native
-header/footer treatment. A preset can also place its declared slide chrome at
+header/footer treatment, including its left, center or right alignment. A
+preset can also place its declared slide chrome at
 the slide edge or in the content flow; keep that structural choice with the
 preset, not the Theme. `contract --format json` exposes the exact live keys and
 defaults, while kit CSS should keep only identity-specific structure.

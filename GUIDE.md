@@ -943,6 +943,12 @@ preset's theme supplies the typed base unless
 published under `public/assets/presentations/<id>/<version>/...`, or embedded
 by `--inline-images`.
 
+The theme's slide chrome alignment is typed too: `slide-header.align` and
+`slide-footer.align` accept `left`, `center` or `right`. A document author can
+override the theme for one article with `style.slide-header.align` and
+`style.slide-footer.align` in its `lwp:meta` block; this changes the position
+of the chrome row, not the inherited content or model.
+
 `slide_chrome_placement` is optional and defaults to `edge`. Use `edge` when
 the preset's header and footer should use the available slide height as space
 around the content; use `content` when those slots belong in the normal flow of
@@ -1461,6 +1467,8 @@ Any property, scoped to that page only:
 page_title: The apple pie
 style.cover.bg.angle: 90deg
 style.page.content-max: 60ch
+style.slide-header.align: center
+style.slide-footer.align: right
 ```
 
 And `fact-variant: warning` on a standard slide gives that one fact box a

@@ -385,6 +385,11 @@ article meta < slide. The typed style order is
 base preset theme < `settings.conf` pins < article `style.*` < instance styles,
 then advanced final CSS in `templates/custom.css`.
 
+Slide chrome alignment is a typed visual axis, separate from the chrome content
+cascade. `slide-header.align` and `slide-footer.align` accept `left`, `center`
+or `right` in a theme or `settings.conf`; an article can override them with
+`style.slide-header.align` and `style.slide-footer.align` in `lwp:meta`.
+
 ## Runtime Presentation Alternatives
 
 A series publishes the ordered presentation choices declared in

@@ -679,12 +679,19 @@ typographic blocks.
 
 **État :** terminé
 
-**Done.** Ten align axes (`title1`, `title2`, `summary`, `fact`, `cover`,
-`table.head`, `table.cell`, `caption`, `article`, `highlight`), enum
+**Done.** Twelve align axes (`title1`, `title2`, `summary`, `fact`, `cover`,
+`table.head`, `table.cell`, `caption`, `article`, `highlight`,
+`slide-header`, `slide-footer`), enum
 `left | center | right | justify`, behaving like every other axis across
 layers 1–4. What left the skeleton is layout by fiat: the key figure
 centred with no recourse (**this closes B4**), table cells left, the
 figure caption centred.
+
+The two chrome axes deliberately expose only `left | center | right`.
+Headers and footers are flex rows rather than prose blocks, so their typed
+value controls `justify-content` for the item group and `text-align` for any
+wrapped text. `justify` remains a text-block value and is not silently given a
+different flex meaning.
 
 Two decisions worth keeping:
 
