@@ -1394,9 +1394,11 @@ pages. Inspect the actual page after customization.
 The catalogue includes original palettes and ports such as Nord, Dracula,
 Solarized, Gruvbox and Catppuccin. `family` uses `desk`, `light`, `terrain`,
 `heat`, `pop`, `ported`, `print`; polarity and background hue are computed.
-The [compact catalogue](generated/themes-gallery.png) gives an overview;
-open [the HTML gallery](generated/themes-gallery.html) in a browser to filter
-real covers, cards with notes, page-wide notes and long-form text.
+The [compact catalogue](generated/themes-gallery.png) gives a colour-first
+overview of the covers. The [featured comparison](generated/themes-featured.png)
+shows three themes with both a cover and a standard card; open [the HTML
+gallery](generated/themes-gallery.html) in a browser to filter real covers,
+cards with notes, page-wide notes and long-form text.
 
 ### Why essential themes ship by default
 

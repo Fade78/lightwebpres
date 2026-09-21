@@ -155,8 +155,9 @@ pas reproductible à l'octet, à refaire à la main quand la galerie change.
   `test_the_committed_gallery_is_byte_identical_to_a_fresh_one`).
 - `generated/themes-featured.png`: `TMPDIR="$PWD/work/tmp" node
   tools/screenshot-gallery.cjs --featured` captures three actual landscape
-  themes. Use the supplied Node/Playwright environment; do not search external
-  installations when it is unavailable. No byte-identity guard applies.
+  themes, each with its cover and standard card. Use the supplied
+  Node/Playwright environment; do not search external installations when it is
+  unavailable. No byte-identity guard applies.
 - `generated/themes-gallery.png`: `TMPDIR="$PWD/work/tmp" node
   tools/screenshot-gallery.cjs` generates the compact theme contact sheet.
 - `generated/guide/` — `python3 tools/build_guide.py`, y compris les assets

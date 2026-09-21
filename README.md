@@ -130,9 +130,18 @@ article author can override them with `style.slide-header.align` and
 Identity Kits; `""` or JSON `null` clears an inherited slot.
 
 Browse the [interactive theme gallery](generated/themes-gallery.html) or its
-[compact catalogue](generated/themes-gallery.png). For a complete, inspectable
-design workflow, the [Field Notes example](examples/kit-composition/README.md)
-composes layouts, marks and a theme from three independent source kits.
+[compact catalogue](generated/themes-gallery.png). The compact catalogue is a
+colour-first cover overview; the featured comparison below shows three actual
+themes with both a cover and a standard card, so the ordinary reading surface
+is visible before you choose a palette.
+
+<p align="center">
+  <img src="generated/themes-featured.png" alt="Three LightWebPres themes, Lava, Terminal and Pop Lemon, each shown with its cover and standard card in an actual Chromium preview" width="100%">
+</p>
+
+For a complete, inspectable design workflow, the
+[Field Notes example](examples/kit-composition/README.md) composes layouts,
+marks and a theme from three independent source kits.
 Distribute themes as files and complete kits as directories or archives,
 through your own downloads or repositories. LightWebPres loads those files;
 no account is required.

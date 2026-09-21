@@ -62,7 +62,7 @@ const FEATURED_SLUGS = ['lava', 'terminal', 'pop-lemon'];
 //
 // `--full` captures the page as it stands, every panel, for anyone who
 // wants the long strip.
-const FEATURED_HEIGHT = 360;
+const FEATURED_HEIGHT = 480;
 const PANEL = FEATURED ? 640 : 340;
 const COLUMNS = FEATURED ? 3 : 4;
 const GAP = FEATURED ? 24 : 18;
@@ -71,7 +71,7 @@ const VIEWPORT = FULL
   ? { width: 1280, height: 1400 }
   : {
       width: COLUMNS * ROW + (COLUMNS - 1) * GAP + 56 + 24,
-      height: FEATURED ? 600 : 1400,
+      height: FEATURED ? 1100 : 1400,
     };
 const TIMEOUT = 120000;
 
@@ -101,9 +101,9 @@ const CONTACT_CSS = `
 `;
 
 // FEATURED is the product-first image: three real landscape presentation
-// covers, not the gallery's swatches or its narrow contact sheet. The fixed
-// panel width and height are also the iframe viewport dimensions; no transform
-// or post-paint scaling is involved.
+// themes, each with its cover and standard card, not the gallery's swatches or
+// its narrow contact sheet. The fixed panel width and height are also the
+// iframe viewport dimensions; no transform or post-paint scaling is involved.
 const FEATURED_CSS = `
   :root { --gal-panel: ${PANEL}px !important; }
   .wrap { max-width: none !important; padding: 40px 28px 56px; }
@@ -119,6 +119,7 @@ const FEATURED_CSS = `
     overflow: visible !important;
     grid-template-columns: ${PANEL}px !important;
   }
+  .panel:nth-of-type(n+3) { display: none !important; }
   .preview {
     visibility: hidden !important;
     width: ${PANEL}px !important;
@@ -168,7 +169,7 @@ async function main() {
         });
         [].slice.call(document.querySelectorAll('.theme-row')).forEach((row) => {
           [].slice.call(row.querySelectorAll('.panel')).forEach((panel, index) => {
-            if (index !== 0) panel.remove();
+            if (index > 1) panel.remove();
           });
         });
       } else {
@@ -188,9 +189,9 @@ async function main() {
     return frames.length;
   }, { contact: !FULL, featured: FEATURED, slugs: FEATURED_SLUGS });
   if (expected === 0) throw new Error('no iframe.preview found — is this the themes gallery?');
-  if (FEATURED && expected !== FEATURED_SLUGS.length) {
+  if (FEATURED && expected !== FEATURED_SLUGS.length * 2) {
     throw new Error(`featured montage found ${expected} previews, expected ` +
-                    `${FEATURED_SLUGS.length}`);
+                    `${FEATURED_SLUGS.length * 2}`);
   }
 
   // The frames are reached through the elements that own them, not
@@ -234,8 +235,9 @@ async function main() {
     // layout first, then replace each row's hidden preview with a screenshot
     // taken while that row is in the viewport.
     const rows = await page.$$('.theme-row');
-    if (rows.length !== expected) {
-      throw new Error(`${rows.length} theme rows, expected ${expected}`);
+    const expectedRows = FEATURED ? FEATURED_SLUGS.length : expected;
+    if (rows.length !== expectedRows) {
+      throw new Error(`${rows.length} theme rows, expected ${expectedRows}`);
     }
     const positions = await page.evaluate(() => (
       [...document.querySelectorAll('.theme-row')].map((row) => {
@@ -276,21 +278,30 @@ async function main() {
           });
       }, index);
       await rows[index].scrollIntoViewIfNeeded();
-      const handle = await rows[index].$('iframe.preview');
-      const frame = await frameFor(handle);
-      await frame.waitForSelector('.slide', { state: 'attached', timeout: TIMEOUT });
-      if (FEATURED) {
-        const viewport = await frame.evaluate(() => ({
-          width: window.innerWidth,
-          height: window.innerHeight,
-        }));
-        if (viewport.width !== PANEL || viewport.height !== FEATURED_HEIGHT) {
-          throw new Error(`featured preview ${index + 1} has viewport ` +
-                          `${viewport.width}x${viewport.height}, expected ` +
-                          `${PANEL}x${FEATURED_HEIGHT}`);
-        }
+      const rowHandles = await rows[index].$$('iframe.preview');
+      const expectedPanels = FEATURED ? 2 : 1;
+      if (rowHandles.length !== expectedPanels) {
+        throw new Error(`theme row ${index + 1} has ${rowHandles.length} previews, ` +
+                        `expected ${expectedPanels}`);
       }
-      await frame.evaluate(() => document.fonts && document.fonts.ready);
+      for (const handle of rowHandles) {
+        const frame = await frameFor(handle);
+        await frame.waitForSelector('.slide', { state: 'attached', timeout: TIMEOUT });
+        if (FEATURED) {
+          const viewport = await frame.evaluate(() => ({
+            width: window.innerWidth,
+            height: window.innerHeight,
+          }));
+          if (viewport.width !== PANEL || viewport.height !== FEATURED_HEIGHT) {
+            throw new Error(`featured preview ${index + 1} has viewport ` +
+                            `${viewport.width}x${viewport.height}, expected ` +
+                            `${PANEL}x${FEATURED_HEIGHT}`);
+          }
+        }
+        await frame.evaluate(() => document.fonts && document.fonts.ready);
+      }
+      // All row panels are waited for above; the row screenshot composes them
+      // without changing either iframe's rendering scale.
       await page.waitForTimeout(20);
       captures.push({
         ...positions[index],

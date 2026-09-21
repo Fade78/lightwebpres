@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.66.0"
+VERSION = "0.66.1"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -30825,7 +30825,7 @@ def cmd_resolve(series_dir, name, args):
 # then the working surface, then the two places a note's body can live.
 THEMES_GALLERY_PANELS = (
     ('cover',   'Cover'),
-    ('card',    'Card, with a note'),
+    ('card',    'Standard card, with a note'),
     ('notes',   'Notes section'),
     ('article', 'Full article'),
 )

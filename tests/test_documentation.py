@@ -268,6 +268,15 @@ class TheDocumentationDeliversItsExamples(unittest.TestCase):
             [('landscape', 960, 540, False, False, 1),
              ('mobile', 390, 844, True, True, 1)])
 
+    def test_readme_shows_a_cover_and_standard_theme_selection(self):
+        readme = (ROOT / 'README.md').read_text(encoding='utf-8')
+        self.assertIn('generated/themes-featured.png', readme)
+        self.assertIn('both a cover and a standard card', readme)
+        image = (ROOT / 'generated/themes-featured.png').read_bytes()
+        self.assertEqual(image[:8], b'\x89PNG\r\n\x1a\n')
+        width, height = struct.unpack('>II', image[16:24])
+        self.assertGreater(width, height)
+
     def test_document_links_reach_files_and_real_headings(self):
         documents = {ROOT / 'README.md', ROOT / 'GUIDE.md'}
         documents.update((ROOT / 'examples').rglob('README.md'))

@@ -33,7 +33,14 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.66.0
+## Unreleased — 0.66.1
+
+The theme gallery's featured documentation now shows three real themes with
+both their covers and standard cards, so a palette is not mistaken for the
+whole presentation surface. The README and guide expose that comparison,
+while the compact catalogue is identified as a colour-first cover overview.
+
+## v0.66.0
 
 Slide headers and footers now expose typed horizontal alignment with the
 `left`, `center` and `right` values. Themes and `settings.conf` can set the
