@@ -1679,6 +1679,7 @@ Browser emulation is not verification on a physical device.
 | A | Cycle text fitting: fixed, uniform, per-slide |
 | F | Fullscreen (Esc to exit) |
 | I | Toggle between the configured smooth slide glide and an instant jump |
+| R | Reverse only background left/right click navigation; keyboard, touch, wheel, links and controls keep their own behavior |
 | C | Open Appearance when a kit is published, otherwise Theme; published choices only |
 | M | Open the presenter menu |
 | S | Open sharing for the series, article or current slide |
@@ -1717,6 +1718,11 @@ help/fullscreen gestures, touch and pointer cancellation cancel the hold.
 Elsewhere, the wheel always keeps its native reading role.
 A second mouse click during a glide remains a mouse-specific jump, not a
 keyboard shortcut.
+
+Press **R** to exchange only the next/previous meaning of left and right
+clicks on the page background. The shortcut also applies to the index card
+journey; it does not remap the browser's buttons, links, controls, wheel,
+touch gestures or keyboard navigation.
 
 When the help overlay is open, its scrollable foreground owns the arrow,
 PageUp/PageDown, Home/End and Space keys. The same is true of the speaker

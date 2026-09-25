@@ -2471,7 +2471,10 @@ quand le menu est ouvert, comme les autres actions qu'il affiche.
 
 **Souris** : clic gauche sur le fond d'une page d'article = slide suivante,
 clic droit = slide précédente (deux boutons distincts, sans visée) — sur
-l'index, un pas de plus ou de moins dans le parcours des cartes. Un clic gauche
+l'index, un pas de plus ou de moins dans le parcours des cartes. **R** inverse
+ces deux directions pour les clics de fond uniquement ; les touches, la
+molette, le tactile, les liens et les contrôles gardent leur sens propre.
+Un clic gauche
 direct sur une carte suit son lien. Le clic gauche
 est **instantané** — il n'a jamais de latence artificielle. Le pas
 d'une fiche à l'autre est un **glissé de la durée configurée** (200 ms par

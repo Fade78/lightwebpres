@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.66.1"
+VERSION = "0.66.2"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1377,6 +1377,7 @@ LANG_FR = r'''{
     "help_reading": "Ouvrir le sous-menu Affichage (touche D)",
     "help_fullscreen": "Plein écran (Échap pour quitter)",
     "help_scroll": "Basculer entre défilement fluide et instantané (touche I)",
+    "help_reverse_clicks": "Inverser le sens des clics gauche/droit de navigation (touche R)",
     "help_menu": "Menu du présentateur",
     "help_theme": "Changer de thème pendant la présentation (touche C)",
     "help_appearance": "Changer d’apparence pendant la présentation (touche C)",
@@ -1588,6 +1589,7 @@ LANG_EN = r'''{
     "help_reading": "Open the Display settings submenu (D key)",
     "help_fullscreen": "Fullscreen (Esc to exit)",
     "help_scroll": "Toggle smooth and instant scrolling (I key)",
+    "help_reverse_clicks": "Reverse left/right background-click navigation (R key)",
     "help_menu": "Presenter menu",
     "help_theme": "Change theme during the presentation (C key)",
     "help_appearance": "Change appearance during the presentation (C key)",
@@ -10892,6 +10894,9 @@ document.addEventListener('DOMContentLoaded', function() {
   if (seriesTags.indexOf(defaultTag) === -1) seriesTags.unshift(defaultTag);
   var selectedTag = defaultTag;
   var isScrolling = false;
+  // R swaps only the two background-click navigation directions. Other
+  // pointer gestures and every keyboard/touch path retain their meaning.
+  var reverseClickNavigation = false;
   var scrollDurationText = document.body.getAttribute('data-lwp-scroll-duration') || '';
   var configuredScrollDuration = /^\d+$/.test(scrollDurationText)
     ? parseInt(scrollDurationText, 10) : 200;
@@ -12473,6 +12478,14 @@ document.addEventListener('DOMContentLoaded', function() {
     updateScrollMenu();
   }
 
+  function toggleClickNavigationDirection() {
+    reverseClickNavigation = !reverseClickNavigation;
+  }
+
+  function clickNavigationDirection(direction) {
+    return reverseClickNavigation ? -direction : direction;
+  }
+
   function updateThemeOptions() {
     if (!themeOptionsBox) return;
     Array.prototype.forEach.call(themeOptionsBox.querySelectorAll('.theme-option'), function (button) {
@@ -13070,6 +13083,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ['A', lwpString('menu_text_fit'), lwpString('help_text_fit')],
     ['F', lwpString('help_touch_fullscreen'), lwpString('help_fullscreen')],
     ['I', lwpString('help_touch_scroll'), lwpString('help_scroll')],
+    ['R', '', lwpString('help_reverse_clicks'), ''],
     ['M', lwpString('help_touch_menu'), lwpString('help_menu')],
     ['B / W / T', lwpString('help_touch_pause'), lwpString('help_pause')],
     ['N', lwpString('help_touch_speaker'), lwpString('help_speaker')],
@@ -14408,6 +14422,8 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault(); togglePresenterMenu();
     } else if (e.key === 'i' || e.key === 'I') {
       e.preventDefault(); toggleScroll();
+    } else if (e.key === 'r' || e.key === 'R') {
+      e.preventDefault(); toggleClickNavigationDirection();
     } else if (e.key === 'b' || e.key === 'B') {
       e.preventDefault(); togglePause('b');
     } else if (e.key === 'w' || e.key === 'W') {
@@ -14830,7 +14846,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // --- Click to advance, long-press wheel selection, right-click back, middle-button fullscreen gesture ---
+  // --- Click navigation, long-press wheel selection, middle-button fullscreen gesture ---
   // The remote-mouse use case. Left-click advances (200ms glide; a
   // click while gliding jumps straight to its target, §8.4), right-click
   // goes back the same way, the middle button arms fullscreen entry when the
@@ -15163,7 +15179,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Table cells retain their bounded reading journey; only the surrounding
     // article background changes slides directly.
     if (tableClick) stepForward(true);
-    else changeSlide(1, isScrolling);
+    else changeSlide(clickNavigationDirection(1), isScrolling);
     // The second click of a quick pair is also the platform's own
     // double-click, which selects the word under the pointer — on the
     // card the deck has just left. That selection is a ghost: the
@@ -15193,7 +15209,7 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       return;
     }
-    // Right-click = go back, the exact mirror of the left button — it
+    // Right-click = go back by default, the exact mirror of the left button — it
     // works everywhere the left one does, including on the index cards
     // and the series-nav links: on a mouse, the right button is the
     // deck's "back", not the browser's menu. On a touch screen this
@@ -15221,8 +15237,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (Date.now() < fsIntentUntil) return;
     e.preventDefault();
     // The mirror of the left button: article background goes straight to the
-    // preceding slide; the index still moves one card backward.
-    changeSlide(-1, isScrolling);
+    // preceding slide by default; R may exchange the two directions.
+    changeSlide(clickNavigationDirection(-1), isScrolling);
   });
   // The middle button is the fullscreen gatekeeper. Browsers refuse
   // requestFullscreen() from a non-left event (B37), so entry is a

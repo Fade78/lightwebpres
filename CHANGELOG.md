@@ -33,7 +33,13 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.66.1
+## Unreleased — 0.66.2
+
+Readers can press **R** to reverse only the left/right background-click
+navigation direction. Keyboard, touch, wheel, links, controls and native
+context-menu behavior remain unchanged.
+
+## v0.66.1
 
 The theme gallery's featured documentation now shows three real themes with
 both their covers and standard cards, so a palette is not mistaken for the

@@ -361,6 +361,12 @@ async function main() {
         && li.querySelector('.help-keyboard').textContent === 'I'
         && li.textContent.indexOf('défilement') !== -1
     ),
+     reverseClicksLine: Array.prototype.some.call(
+       document.querySelectorAll('#helpList li'),
+       (li) => li.querySelector('.help-keyboard')
+         && li.querySelector('.help-keyboard').textContent === 'R'
+         && li.textContent.indexOf('Inverser') !== -1
+     ),
     mode: document.getElementById('helpModeToggle').getAttribute('aria-checked'),
     modeValue: document.getElementById('helpModeValue').textContent,
     keyboardCount: document.querySelectorAll('.help-keyboard').length,
@@ -373,7 +379,8 @@ async function main() {
   }));
   if (!help.open || help.role !== 'dialog' || !help.titleId
       || help.labelledby !== 'helpTitle' || help.cardTabindex !== '0'
-       || !help.helpOpenLine || !help.scrollLine || !help.noHelpFoot
+       || !help.helpOpenLine || !help.scrollLine || !help.reverseClicksLine
+       || !help.noHelpFoot
       || help.mode !== 'false' || help.modeValue !== 'Clavier'
       || help.keyboardCount === 0 || help.keyboardHidden || !help.touchHidden
       || !/^Compilé avec LightWebPres v\d+\.\d+\.\d+$/.test(help.stamp)

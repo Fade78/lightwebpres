@@ -98,6 +98,34 @@ async function main() {
     fail('an ordinary click no longer advances the deck');
   }
 
+  // --- 2b. R reverses only the two background-click directions --------
+  // Keyboard navigation keeps its own meaning, and the toggle is deliberately
+  // not a browser-wide mouse-button remap.
+  await page.keyboard.press('r');
+  const reversedBefore = await currentSlide(page);
+  await page.mouse.click(640, 400, { button: 'right' });
+  await page.waitForTimeout(900);
+  const reversedNext = await currentSlide(page);
+  if (reversedNext !== reversedBefore + 1) {
+    fail('R did not make a right-click advance the deck: ' + reversedBefore
+      + ' -> ' + reversedNext);
+  }
+  await page.mouse.click(640, 400);
+  await page.waitForTimeout(900);
+  const reversedBack = await currentSlide(page);
+  if (reversedBack !== reversedBefore) {
+    fail('R did not make a left-click go back: ' + reversedNext
+      + ' -> ' + reversedBack);
+  }
+  await page.keyboard.press('PageDown');
+  await page.waitForTimeout(300);
+  if (await currentSlide(page) !== reversedBefore + 1) {
+    fail('R changed keyboard page navigation as well as mouse clicks');
+  }
+  await page.keyboard.press('PageUp');
+  await page.waitForTimeout(300);
+  await page.keyboard.press('r');
+
   // --- 3. The cursor AND the buttons come back only on sustained
   //        movement, together ------------------------------------------
   // Both halves of one gesture, on one clock. The buttons used to come

@@ -141,6 +141,27 @@ async function main() {
     fail('a right-click did not focus the previous card: ' + afterRight);
   }
 
+  // R reverses only background-click navigation on the index too. Keyboard
+  // card navigation remains independently directional.
+  await page.keyboard.press('r');
+  await page.keyboard.press('PageDown');
+  await page.waitForTimeout(200);
+  await page.mouse.click(groundX, groundY);
+  await page.waitForTimeout(300);
+  const reversedIndexBack = await focusedCard();
+  if (reversedIndexBack !== 0) {
+    fail('R did not make a left-click step back on the index: '
+      + reversedIndexBack);
+  }
+  await page.mouse.click(groundX, groundY, { button: 'right' });
+  await page.waitForTimeout(300);
+  const reversedIndexNext = await focusedCard();
+  if (reversedIndexNext !== 1) {
+    fail('R did not make a right-click step forward on the index: '
+      + reversedIndexNext);
+  }
+  await page.keyboard.press('r');
+
   // --- 3. A click on a card follows it --------------------------------
   // The click target is the card's own link (isInteractive), so the
   // deck must let the native default through. The landing is asserted

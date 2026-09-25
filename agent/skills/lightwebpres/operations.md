@@ -166,7 +166,8 @@ can rebuild and serve on `127.0.0.1`; launching it is an explicit local preview,
 not public hosting. The page's presenter menu and built-in help document
 controls. **C** opens Appearance when a real kit is published, otherwise Theme
 when theme alternatives are available; **L** selects tags when available,
-**N** toggles the speaker panel and **I** toggles scrolling duration.
+**N** toggles the speaker panel, **I** toggles scrolling duration and **R**
+reverses only the left/right background-click navigation direction.
 Check the active tag and browser-persisted choices when reproducing a view.
 
 **Menu > Display settings** (**Affichage** in French) opens the

@@ -21228,7 +21228,7 @@ class RegressionFixes(unittest.TestCase):
             end = html.find('\n  });', i)
             self.assertNotEqual(end, -1, 'the contextmenu handler has no end')
             handler = html[i:end]
-            self.assertIn('changeSlide(-1, isScrolling)', handler)
+            self.assertIn('changeSlide(clickNavigationDirection(-1), isScrolling)', handler)
             self.assertNotIn('clearTimeout', handler)
 
     # --- B9: audit must not false-positive a retired name as a prefix ---
