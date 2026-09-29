@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.66.2"
+VERSION = "0.66.3"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1295,6 +1295,9 @@ LANG_FR = r'''{
     "tags_articles": "fiches",
     "tags_slides": "slides",
     "tags_no_results": "Aucune fiche ou slide ne sera affichée avec ce tag.",
+    "tags_unavailable_series": "Aucune fiche publiée de cette série ne contient de contenu pour « {tag} ».",
+    "tags_unavailable_article": "Le champ tags de cette fiche la limite à « {allowed} » ; « {tag} » ne peut pas être choisi ici.",
+    "tags_unavailable_slides": "Aucune slide de cette fiche n'est disponible avec le tag « {tag} ».",
     "help_tags": "Filtrer par tag et mémoriser la sélection",
     "presenter_next": "Suivant :",
     "presenter_label": "Panneau du présentateur",
@@ -1507,6 +1510,9 @@ LANG_EN = r'''{
     "tags_articles": "articles",
     "tags_slides": "slides",
     "tags_no_results": "No article or slide will be displayed with this tag.",
+    "tags_unavailable_series": "No published article in this series has content for “{tag}”.",
+    "tags_unavailable_article": "This article's tags field restricts it to “{allowed}”; “{tag}” cannot be selected here.",
+    "tags_unavailable_slides": "No slides in this article match the “{tag}” tag.",
     "help_tags": "Filter by tag and remember the selection",
     "presenter_next": "Next:",
     "presenter_label": "Presenter panel",
@@ -9271,7 +9277,19 @@ body.fs-noselect {
   margin: 0 4px 12px;
   font-size: 0.75em;
 }
-.tag-menu-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-menu-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: inherit;
+  color: inherit;
+}
+.tag-option-wrap {
+  position: relative;
+  display: inline-flex;
+  background: inherit;
+  color: inherit;
+}
 .tag-option {
   border-style: solid;
   border-width: 1px;
@@ -9287,7 +9305,31 @@ body.fs-noselect {
   font-weight: 700;
   border-width: 2px;
 }
+.tag-option.unavailable { opacity: 0.45; cursor: not-allowed; }
 .tag-option:focus-visible { outline-style: solid; outline-offset: 2px; }
+.tag-option-tooltip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 260;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(280px, 70vw);
+  padding: 6px 8px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: inherit;
+  color: inherit;
+  font-size: 0.75em;
+  font-weight: 400;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  pointer-events: none;
+}
+.tag-option-wrap:hover .tag-option-tooltip,
+.tag-option-wrap:focus-within .tag-option-tooltip { display: block; }
 .tag-menu-preview-title {
   margin: 16px 4px 7px;
   padding-top: 11px;
@@ -12086,6 +12128,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  function tagUnavailableReason(tag) {
+    if (isIndex) {
+      return lwpString('tags_unavailable_series').replace('{tag}', tag);
+    }
+    var allowed = articleTags(document.body);
+    if (allowed.length && allowed.indexOf(tag) === -1) {
+      return lwpString('tags_unavailable_article')
+        .replace('{allowed}', allowed.join(', ')).replace('{tag}', tag);
+    }
+    return lwpString('tags_unavailable_slides').replace('{tag}', tag);
+  }
+
   function firstPublishableTag() {
     var candidates = [defaultTag].concat(tagList());
     var seen = {};
@@ -12131,17 +12185,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (menuTagsAction) menuTagsAction.hidden = false;
     tagMenuList.innerHTML = '';
-    tags.forEach(function (tag) {
+    tags.forEach(function (tag, index) {
+      var wrapper = document.createElement('span');
+      wrapper.className = 'tag-option-wrap';
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'tag-option';
       button.setAttribute('data-tag', tag);
       button.textContent = tag;
+      var reason = tagHasContent(tag) ? '' : tagUnavailableReason(tag);
+      if (reason) {
+        var tooltip = document.createElement('span');
+        tooltip.className = 'tag-option-tooltip';
+        tooltip.id = 'tag-option-tooltip-' + index;
+        tooltip.setAttribute('role', 'tooltip');
+        tooltip.textContent = reason;
+        button.classList.add('unavailable');
+        button.setAttribute('aria-disabled', 'true');
+        button.setAttribute('aria-describedby', tooltip.id);
+        wrapper.appendChild(button);
+        wrapper.appendChild(tooltip);
+      } else {
+        wrapper.appendChild(button);
+      }
       button.addEventListener('click', function () {
+        if (button.getAttribute('aria-disabled') === 'true') return;
         selectTag(tag, true);
         closeTagMenu();
       });
-      tagMenuList.appendChild(button);
+      tagMenuList.appendChild(wrapper);
     });
     if (tagMenuTitle) tagMenuTitle.textContent = lwpString('tags_menu');
   }

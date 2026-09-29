@@ -293,7 +293,8 @@ class ArticleTagsRuntime(unittest.TestCase):
         result = subprocess.run(
             ['node', str(ARTICLE_TAGS_SCRIPT),
              'http://127.0.0.1:%d/index.html' % self.port,
-             'http://127.0.0.1:%d/a.html' % self.port],
+             'http://127.0.0.1:%d/a.html' % self.port,
+             'http://127.0.0.1:%d/c.html' % self.port],
             capture_output=True, text=True,
             env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
             timeout=30,

@@ -33,7 +33,13 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.66.2
+## Unreleased — 0.66.3
+
+Unavailable series tags are now visibly disabled in the tag menu, with a
+localized explanation distinguishing article-level restrictions from tags
+that have no matching slide or published article on the current page.
+
+## v0.66.2
 
 Readers can press **R** to reverse only the left/right background-click
 navigation direction. Keyboard, touch, wheel, links, controls and native

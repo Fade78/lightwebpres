@@ -1256,6 +1256,16 @@ revient au `default_tag` de la série s'il y a du contenu, sinon au premier tag
 effectivement publiable dans l'ordre du vocabulaire. Il persiste ce choix
 corrigé, et ne laisse donc pas une page vide pour un tag sans contenu.
 
+Le menu conserve le vocabulaire de la série même lorsqu'un tag n'est pas
+utilisable sur la page courante : les tags sans fiche ou slide visible sont
+grisés, non activables, et leur explication est disponible au survol et au
+focus. Sur l'index, elle indique qu'aucune fiche publiée ne correspond ; sur
+une fiche, elle distingue une restriction du champ `tags:` de l'article d'une
+absence de slide correspondante. Ces tags peuvent rester utilisables depuis
+l'index ou une autre fiche. Le runtime garde le repli décrit ci-dessus pour
+un choix mémorisé devenu indisponible ou toute sélection qui contournerait le
+menu.
+
 Le menu se ferme par **Échap**, par la touche **L**, par la sélection d'un
 tag, et par un clic **ailleurs que dessus**. Fermer par un clic extérieur
 est le seul de ces quatre cas qui ne se voit pas dans le HTML : ce clic

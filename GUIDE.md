@@ -446,6 +446,10 @@ The field is one physical line, like every structural field.
   in the browser.
 - Press **L** to open the variant menu. It is hidden for a single-variant
   article and persists the choice in `localStorage['lwp-active-tag']`.
+- The menu uses the series-wide tag vocabulary. A tag with no content on the
+  current page stays visible but is disabled; hover or focus explains why.
+  Article-level `tags:` deliberately restrict a whole article, while slide-level
+  `tags:` select variants inside an unrestricted article.
 - The selected tag shows its own slides and shared `default` slides; counts,
   navigation, anchors, and the presenter panel use the visible slides.
 
