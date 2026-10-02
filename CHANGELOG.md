@@ -33,7 +33,13 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.66.3
+## Unreleased — 0.66.4
+
+The Bash and Zsh completion scripts now share option lists across command
+paths. This keeps the generated scripts below 8 KiB and avoids truncation in
+shell launchers that evaluate them.
+
+## v0.66.3
 
 Unavailable series tags are now visibly disabled in the tag menu, with a
 localized explanation distinguishing article-level restrictions from tags

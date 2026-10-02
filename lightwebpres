@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.66.3"
+VERSION = "0.66.4"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -25339,11 +25339,22 @@ def cmd_completion(args):
     # node takes is the one it answers: --help.
     for _node in ('series', 'theme', 'preset', 'kit', 'template'):
         per_command[_node] = '--help'
-    # Longest path first, so `series build` is matched before `series`.
+    # Emit each option set once, grouping every command path that shares it.
+    def path_order(path):
+        return -path.count(' '), path
+
+    grouped_paths = {}
+    for path, options in per_command.items():
+        grouped_paths.setdefault(options, []).append(path)
+    for paths in grouped_paths.values():
+        paths.sort(key=path_order)
+
     cases = '\n'.join(
-        f'            {path!r}) opts="{opts}" ;;'.replace("'", '"')
-        for path, opts in sorted(per_command.items(),
-                                 key=lambda kv: (-kv[0].count(' '), kv[0])))
+        '            ' + '|'.join(repr(path).replace("'", '"')
+                                for path in paths)
+        + f') opts="{options}" ;;'
+        for options, paths in sorted(
+            grouped_paths.items(), key=lambda item: path_order(item[1][0])))
 
     if shell == 'bash':
         hook = 'complete -F _lightwebpres_completion lightwebpres'
@@ -25369,7 +25380,7 @@ _lightwebpres_completion() {{
     local cur="${{COMP_WORDS[COMP_CWORD]}}"
     COMPREPLY=()
 
-    # Root-level: commands OR global options (--help, --version, --lang, ...)
+    # Root commands and global options.
     if [ "$COMP_CWORD" -eq 1 ]; then
         if [[ "$cur" == --* ]]; then
             COMPREPLY=($(compgen -W "{root_opts}" -- "$cur"))
@@ -25379,42 +25390,38 @@ _lightwebpres_completion() {{
         return 0
     fi
 
-    # series <verb>
+    # First-level verbs.
     if [ "${{COMP_WORDS[1]}}" = "series" ] && [ "$COMP_CWORD" -eq 2 ] \
        && [[ "$cur" != --* ]]; then
         COMPREPLY=($(compgen -W "{series_list}" -- "$cur"))
         return 0
     fi
 
-    # theme <verb>
     if [ "${{COMP_WORDS[1]}}" = "theme" ] && [ "$COMP_CWORD" -eq 2 ] \
        && [[ "$cur" != --* ]]; then
         COMPREPLY=($(compgen -W "{theme_list}" -- "$cur"))
         return 0
     fi
 
-    # template <verb> (two-word)
     if [ "${{COMP_WORDS[1]}}" = "template" ] && [ "$COMP_CWORD" -eq 2 ] \
        && [[ "$cur" != --* ]]; then
         COMPREPLY=($(compgen -W "{template_list}" -- "$cur"))
         return 0
     fi
 
-    # preset <verb>
     if [ "${{COMP_WORDS[1]}}" = "preset" ] && [ "$COMP_CWORD" -eq 2 ] \
        && [[ "$cur" != --* ]]; then
         COMPREPLY=($(compgen -W "{preset_list}" -- "$cur"))
         return 0
     fi
 
-    # kit <verb>
     if [ "${{COMP_WORDS[1]}}" = "kit" ] && [ "$COMP_CWORD" -eq 2 ] \
        && [[ "$cur" != --* ]]; then
         COMPREPLY=($(compgen -W "{kit_list}" -- "$cur"))
         return 0
     fi
 
-    # template show|write <file>: a closed set of three, not the filesystem
+    # Closed set for template files.
     if [ "${{COMP_WORDS[1]}}" = "template" ] && [ "$COMP_CWORD" -eq 3 ] \
        && [[ "$cur" != --* ]] \
        && {{ [ "${{COMP_WORDS[2]}}" = "show" ] || [ "${{COMP_WORDS[2]}}" = "write" ]; }}; then
@@ -25422,7 +25429,7 @@ _lightwebpres_completion() {{
         return 0
     fi
 
-    # The three-word series paths with their own verbs.
+    # Nested verbs.
     if [ "${{COMP_WORDS[1]}}" = "series" ] \
        && [ "${{COMP_WORDS[2]}}" = "theme" ] \
        && [ "$COMP_CWORD" -eq 3 ] && [[ "$cur" != --* ]]; then
@@ -25436,8 +25443,7 @@ _lightwebpres_completion() {{
         return 0
     fi
 
-    # Options (any position after the command) — the ones THIS command
-    # takes, from the same table the parser refuses against.
+    # Options accepted by the current command.
     if [[ "$cur" == --* ]]; then
         local path="${{COMP_WORDS[1]}}"
         if [ "$COMP_CWORD" -gt 2 ]; then
@@ -25466,7 +25472,7 @@ _lightwebpres_completion() {{
         return 0
     fi
 
-    # File/directory completion for positional args
+    # Positional files and directories.
     COMPREPLY=($(compgen -f -- "$cur"))
 }}
 

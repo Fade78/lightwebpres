@@ -5059,6 +5059,10 @@ class CliVersionAndShortcuts(unittest.TestCase):
         # `completion --shell bash` prints a bash completion script.
         result = run('completion', '--shell', 'bash')
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertLessEqual(
+            len(result.stdout.encode('utf-8')), 8192,
+            'the evaluated completion script must stay below 8 KiB so '
+            'shell launchers do not truncate it')
         self.assertIn('_lightwebpres_completion', result.stdout)
         self.assertIn('complete -F _lightwebpres_completion lightwebpres',
                      result.stdout)
@@ -5083,6 +5087,10 @@ class CliVersionAndShortcuts(unittest.TestCase):
         result = run('completion', '--shell', 'zsh')
         self.assertEqual(result.returncode, 0, result.stderr)
         script = result.stdout
+        self.assertLessEqual(
+            len(script.encode('utf-8')), 8192,
+            'the evaluated completion script must stay below 8 KiB so '
+            'shell launchers do not truncate it')
         self.assertIn('_lightwebpres_completion', script)
         self.assertIn('compdef _lightwebpres_completion lightwebpres', script)
         self.assertIn('bashcompinit', script,

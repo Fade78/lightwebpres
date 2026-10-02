@@ -556,7 +556,7 @@ class KitCompose(unittest.TestCase):
         for shell in ('bash', 'zsh'):
             result = run('completion', '--shell', shell)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('"kit compose") opts=', result.stdout)
+            self.assertIn('"kit compose"', result.stdout)
         script = run('completion', '--shell', 'bash').stdout
         for words, expected in ((['lightwebpres', 'ki'], {'kit'}),
                                 (['lightwebpres', 'kit', ''],
