@@ -1,7 +1,8 @@
 // Playwright driver for keyboard navigation on an article page (nav.js,
 // TEMPLATE_NAV_JS): arrow keys and the wheel outside card lists retain native
 // reading scroll; PageUp/PageDown, navigation buttons and article background
-// clicks change slides. Space keeps the natural editorial journey for cards
+// clicks change slides when there is an adjacent target. At deck edges, page
+// keys resume native scrolling. Space keeps the natural editorial journey for cards
 // and long slides. Invoked by
 // tests/test_keyboard_nav.py — not a standalone entry point.
 //
@@ -407,8 +408,34 @@ async function main() {
     console.log('index edge shortcuts OK: End / Home / Control+Home return to top');
     await page.close();
 
-    // --- 2. A tall full-article that is the LAST slide stays at its
-    // bottom when the native ArrowDown scroll has nowhere to go. --------
+    // --- 2. PageUp/PageDown at a deck edge fall through to native page
+    // scrolling; a long last slide remains readable. --------------------
+    page = await context.newPage();
+    collectConsoleErrors(page, consoleErrors);
+    page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
+    await page.goto(tallArticleUrl);
+    await page.waitForSelector('.nav-dots a');
+    const firstSlideOffset = await page.evaluate(() => {
+      const first = document.querySelector('.slide');
+      first.style.setProperty('min-height', (window.innerHeight * 2) + 'px', 'important');
+      window.scrollTo({top: window.innerHeight * 0.5, behavior: 'instant'});
+      return window.scrollY;
+    });
+    await page.waitForTimeout(120);
+    await press(page, 'PageUp');
+    await page.waitForTimeout(600);
+    const firstSlidePageUp = await page.evaluate(() => ({
+      active: Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'))
+        .findIndex((d) => d.classList.contains('active')),
+      scrollY: window.scrollY,
+    }));
+    if (firstSlidePageUp.active !== 0
+        || firstSlidePageUp.scrollY >= firstSlideOffset - 20) {
+      fail('PageUp at the first slide should scroll the oversized slide upward: '
+        + JSON.stringify({firstSlideOffset, firstSlidePageUp}));
+    }
+    await page.close();
+
     page = await context.newPage();
     collectConsoleErrors(page, consoleErrors);
     page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
@@ -419,6 +446,19 @@ async function main() {
     await page.waitForTimeout(600);
     idx = await activeDotIndex(page);
     if (idx !== 1) fail('expected slide 1 (the last full-article) after one PageDown, got ' + idx);
+
+    const lastSlideTop = await page.evaluate(() => window.scrollY);
+    await press(page, 'PageDown');
+    await page.waitForTimeout(600);
+    const lastSlidePageDown = await page.evaluate(() => ({
+      active: Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'))
+        .findIndex((d) => d.classList.contains('active')),
+      scrollY: window.scrollY,
+    }));
+    if (lastSlidePageDown.active !== 1 || lastSlidePageDown.scrollY <= lastSlideTop) {
+      fail('PageDown at the last slide should scroll the oversized slide downward: '
+        + JSON.stringify({lastSlideTop, lastSlidePageDown}));
+    }
 
     const bottomY = await page.evaluate(() => {
       const maxY = Math.max(0, document.scrollingElement.scrollHeight - window.innerHeight);

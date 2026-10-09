@@ -13,6 +13,9 @@ standard-slide bodies, with or without a fact-box. It supports headings,
 `**bold**`, `*italic*`, `[links](url)`, source notes, lists, tables,
 blockquotes, images, inline code and fenced code blocks. Consecutive
 non-blank text lines merge into one paragraph; blank lines separate paragraphs.
+Unordered lists accept `-`, `*` or `+`; ordered lists use decimal markers such
+as `1.`. The first ordered marker sets the list's starting number; later item
+numbers do not override the rendered sequence.
 
 Images use `![alt](img/pic.png)`. Alone on a line, an image becomes a centered
 `<figure>`. A title, `![alt](src "Caption")`, becomes a small centered caption.

@@ -16186,6 +16186,27 @@ class FactBoxBlockquoteAndCode(unittest.TestCase):
             self.assertIn('<blockquote><p>A quoted sentence.</p></blockquote>', html)
             self.assertIn('<code>lightwebpres build</code>', html)
 
+    def test_fact_box_uses_markdown_bullets_and_ordered_list_start(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\nslug: k205b\n## Title\nfact-label: Source\n\n'
+            '5. First numbered item\n9. Second numbered item\n\n'
+            '* First bullet\n+ Second bullet\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+        self.assertIn('<div class="fact-content">', html)
+        self.assertIn('<ol start="5">', html)
+        self.assertIn('<li>First numbered item</li>', html)
+        self.assertIn('<li>Second numbered item</li>', html)
+        self.assertIn('<ul>', html)
+        self.assertIn('<li>First bullet</li>', html)
+        self.assertIn('<li>Second bullet</li>', html)
+
 
 class CheckNewMarker(unittest.TestCase):
     """§11.4: check must print [NEW] for an article in series.json that
@@ -21839,6 +21860,19 @@ class AListItemKeepsTheLinesThatContinueIt(unittest.TestCase):
                             '2. Un autre.\n')
         self.assertEqual(html.count('<ol>'), 1, html)
         self.assertIn('<li>Un numéroté coupé sur deux lignes.</li>', html, html)
+
+    def test_markdown_bullet_markers_include_asterisk_and_plus(self):
+        for marker in ('*', '+'):
+            with self.subTest(marker=marker):
+                html = self._render(
+                    f'{marker} Première puce\n{marker} Deuxième puce\n')
+                self.assertEqual(html.count('<ul>'), 1, html)
+                self.assertEqual(html.count('<li>'), 2, html)
+
+    def test_ordered_list_preserves_its_start_number(self):
+        html = self._render('5. Premier item\n9. Deuxième item\n')
+        self.assertIn('<ol start="5">', html, html)
+        self.assertEqual(html.count('<li>'), 2, html)
 
 
 class AFieldSaysWhenItIsCarryingMarkupItWillNotRender(unittest.TestCase):

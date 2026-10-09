@@ -2848,7 +2848,7 @@ button.share-action:hover:not(:disabled) {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.66.4</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.66.5</div>
   </div>
 </div>
 
@@ -6888,23 +6888,25 @@ document.addEventListener('DOMContentLoaded', function() {
    // for Space on an article (§8.4 — "un coup, c'est une carte").
   function stepIndexCards(direction) {
     var cards = indexCardList();
-    if (!cards.length) return;
+    if (!cards.length) return false;
     var next = focusedCard + direction;
-    if (next < 0 || next >= cards.length) return;
+    if (next < 0 || next >= cards.length) return false;
     focusIndexCard(next);
     updateUI();
+    return true;
   }
 
   function changeSlide(direction, instant) {
     if (isIndex) {
       // The index has no slides: its buttons and page keys move through
       // article cards, while its arrow keys retain native page scrolling.
-      stepIndexCards(direction);
-      return;
+      return stepIndexCards(direction);
     }
+    if (!slides.length) return false;
     var target = syncCurrentToViewport() + direction;
-    if (target < 0 || target >= slides.length) return;
+    if (target < 0 || target >= slides.length) return false;
     goTo(target, instant);
+    return true;
   }
 
   function setNavDisabled(button, disabled) {
@@ -7445,8 +7447,10 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       runStepped(e.shiftKey ? stepBackward : stepForward);
     } else if (e.key === 'PageDown') {
-      e.preventDefault(); changeSlide(1);
-    } else if (e.key === 'PageUp' || e.key === 'Backspace') {
+      if (changeSlide(1)) e.preventDefault();
+    } else if (e.key === 'PageUp') {
+      if (changeSlide(-1)) e.preventDefault();
+    } else if (e.key === 'Backspace') {
       e.preventDefault(); changeSlide(-1);
     } else if (e.key === 'Home') {
       e.preventDefault();

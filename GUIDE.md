@@ -337,6 +337,8 @@ Omitting `article:` is fatal; an explicitly empty `article:` warns and omits
 that unfinished slide. A non-empty reference to a missing file is fatal.
 
 Markdown supports lists, tables, blockquotes, inline/fenced code and raw HTML.
+Bullet lists accept `-`, `*` and `+`; numbered lists use `1.` markers, with
+the first number setting the list's starting value.
 A linked standalone image, `[![alt](img/x.png "Caption")](https://example.org)`,
 keeps its caption outside the link; a mid-sentence image stays inline and its
 title is a tooltip. Relative Markdown links are not converted: use raw
@@ -1673,7 +1675,8 @@ Browser emulation is not verification on a physical device.
 | Key | Action |
 |---|---|
 | ↑ / ↓ / ← / → | Native page scrolling; focused foreground surfaces and local tables keep their own scroll |
-| PageDown / PageUp / Backspace | Next / previous slide; on the index, next / previous article card |
+| PageDown / PageUp | Next / previous slide or index card; at either end, native page scrolling |
+| Backspace | Previous slide |
 | Space / Shift+Space | Next / previous reading step: slide, navigation card or bounded scroll within a long slide |
 | Home | Beginning of the page — first slide on an article; top on the index |
 | Ctrl/Cmd+Home | Back to the series index — on the index: top of the page |
@@ -1711,7 +1714,9 @@ follows the focused card's link; Space does not activate it. Ordinary links
 retain the browser's Space/Shift+Space scrolling. Buttons, form fields and
 editable text keep their own Space behaviour, and Ctrl/Cmd/Alt+Space is not a
 deck shortcut. Holding Space uses the repeat cooldown. PageUp/PageDown and the
-navigation buttons change slides directly rather than entering that journey.
+navigation buttons change slides directly rather than entering that journey;
+at the first or last slide/card, PageUp/PageDown fall back to native page
+scrolling. Backspace remains a previous-slide shortcut.
 Over one of those card lists, the vertical wheel selects one adjacent card,
 keeps its outline visible, and never opens it; Enter or a direct left click
 follows the link. At the first and last card, the wheel returns to native page

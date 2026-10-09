@@ -1455,8 +1455,8 @@ pas inline dans l'exécutable au moment du build.
 | `*italique*`      | `<em>italique</em>`                    |
 | `[^label]`        | appel de note — voir §6.5              |
 | `[^label]: corps` | corps de note — voir §6.5              |
-| `1. item`         | `<li>item</li>` (regroupés en `<ol>`)  |
-| `- item`          | `<li>item</li>` (regroupés en `<ul>`)  |
+| `1. item`         | `<li>item</li>` (regroupés en `<ol>` ; le premier nombre fixe le départ) |
+| `- item`, `* item`, `+ item` | `<li>item</li>` (regroupés en `<ul>`) |
 | item sur 2 lignes | une seule `<li>` — voir ci-dessous     |
 | `| a | b |`       | `<table>` avec thead/tbody             |
 | `---` (seul)      | séparateur de slides (pas de `<hr>`)  |
@@ -1470,6 +1470,11 @@ continuation appartient à l'item, ce que CommonMark appelle la
 *continuation paresseuse*. La règle est celle des paragraphes, partagée et
 non redite : le texte d'un item **est** un paragraphe, et deux copies de ce
 jugement divergeraient.
+
+Les trois marqueurs de puce (`-`, `*`, `+`) sont équivalents. Pour une liste
+ordonnée, le nombre du premier item devient le départ de `<ol>` ; les marqueurs
+numériques suivants identifient des items, mais le navigateur affiche la suite
+numérique sans reprendre leurs valeurs individuelles.
 
 L'item d'une seule ligne, qui a précédé, ne perdait pas seulement le
 repli : la continuation devenait un paragraphe autonome émis **après** la
@@ -2381,8 +2386,9 @@ d'article, puis les cartes sur la fiche `series-nav`, puis les incréments
 d'une fiche plus haute que l'écran (§9.3.5). Sur une page d'article, un clic
 de fond gauche/droit change directement de fiche ; sur l'index, il déplace une
 carte. PageDown/PageUp et les boutons prev/next changent aussi directement de
-fiche, ou de carte sur l'index. Les quatre flèches restent le défilement natif
-de la page. La molette le reste hors des listes de cartes de l'index,
+fiche, ou de carte sur l'index, tant qu'une cible adjacente existe. À une borne,
+PageDown/PageUp retrouvent le défilement natif de la page. Les quatre flèches
+restent toujours le défilement natif de la page. La molette le reste hors des listes de cartes de l'index,
 `series-nav` et `unit-index` : au-dessus d'une telle liste, son axe vertical
 sélectionne une carte voisine sans la suivre, puis retrouve le défilement natif
 à la première ou dernière carte. Une surface au premier plan ou un tableau
@@ -3201,16 +3207,18 @@ priorité décrite ci-dessus ; un tableau en mode `scroll` ne laisse pas son
 défilement se propager à la page. Un écran de pause n'est pas une surface de
 lecture : la molette y est consommée et ne déplace pas la fiche qu'il masque.
 
-PageDown et PageUp changent directement de fiche sur un article, sans parcourir
-les cartes ni les incréments internes d'une fiche longue. Avant le changement,
-le runtime synchronise la fiche courante avec celle qui possède le bord haut de
-la fenêtre ; la cible est ensuite positionnée par `goTo(current ± 1)`, avec le
-glissé configuré. Backspace est le raccourci inverse. À la première ou dernière
-fiche, l'action reste sans effet, même si la dernière fiche est encore longue.
-Sur l'index, PageDown/PageUp parcourent les cartes d'articles dans l'ordre du
-document, comme les boutons prev/next. Ces boutons changent directement de
-fiche sur un article et de carte sur l'index ; ils ne déclenchent pas le
-parcours de lecture de Space.
+PageDown et PageUp changent directement de fiche sur un article lorsqu'une
+cible adjacente existe, sans parcourir les incréments internes d'une fiche
+longue. Avant le changement, le runtime synchronise la fiche courante avec celle
+qui possède le bord haut de la fenêtre ; la cible est ensuite positionnée par
+`goTo(current ± 1)`, avec le glissé configuré. À la première ou dernière fiche,
+ils laissent le navigateur défiler la page : ainsi un lecteur peut poursuivre
+ou remonter dans une fiche longue sans changer de fiche. Backspace reste le
+raccourci explicite de fiche précédente et ne déclenche pas ce repli. Sur
+l'index, PageDown/PageUp parcourent les cartes d'articles dans l'ordre du
+document ; aux deux extrémités, ils retrouvent aussi le défilement natif. Les
+boutons prev/next restent désactivés à leurs bornes et changent directement de
+fiche ou de carte ; ils ne déclenchent pas le parcours de lecture de Space.
 
 **Space navigation:** unmodified Space (`KeyboardEvent.key` equal to `" "` or
 `"Spacebar"`) follows `stepForward()` through the existing `runStepped()`

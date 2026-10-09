@@ -33,7 +33,15 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.66.4
+## Unreleased — 0.66.5
+
+At the first or last slide/card, PageUp/PageDown now fall back to native page
+scrolling so oversized boundary slides remain readable.
+
+Free-text lists accept Markdown's `-`, `*` and `+` bullet markers, and ordered
+lists preserve a non-default starting number.
+
+## v0.66.4
 
 The Bash and Zsh completion scripts now share option lists across command
 paths. This keeps the generated scripts below 8 KiB and avoids truncation in

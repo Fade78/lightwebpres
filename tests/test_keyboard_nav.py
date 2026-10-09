@@ -4,8 +4,9 @@ generated HTML), covering native reading scroll, direct page navigation and
 the bounded Space journey:
 
    - Arrow keys and the wheel outside card lists scroll the page without changing slides.
-  - PageUp/PageDown and the buttons change slides directly, including across
-    a long full-article and a partially visible adjacent slide.
+   - PageUp/PageDown and the buttons change slides directly when an adjacent
+     target exists; at deck edges, page keys resume native scrolling, including
+     on an oversized first or last slide.
   - A final overflowing slide stays at its bottom when native ArrowDown has
     no further page to scroll.
    - Space and Shift+Space step through series-nav cards and bounded long-slide

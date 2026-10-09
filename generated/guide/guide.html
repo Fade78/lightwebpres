@@ -2849,7 +2849,7 @@ button.share-action:hover:not(:disabled) {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.66.4</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.66.5</div>
   </div>
 </div>
 
@@ -3572,7 +3572,7 @@ python3 lightwebpres watch my-series --lang en --serve --port 8000 --open
   <p><code>comment:</code> is a source-only review field, accepted on every slide and in article/series metadata. It is never published, not even in the HTML source. <code>note:</code> is different: on a cover, standard or unit-index slide it is embedded in the HTML for the speaker panel (route 4). Both support indented continuation lines.</p>
   <p>For editor or agent integrations, <code>lightwebpres contract --format text</code> describes the versioned <code>lightwebpres.slide-draft/2</code> contract for all five types: accepted and required fields, cardinalities, source order, empty-value rules, reserved IDs and parseable skeletons. JSON is the default. <code>--article first-page.md</code> avoids slugs already declared in that source. It writes nothing.</p>
   <p>A <code>full-article</code> slide accepts an optional <code>kicker:</code> label such as <code>Glossary</code> or <code>Appendices</code>, then needs <code>article: filename.md</code>, pointing to a separate plain Markdown file under <code>sources/</code>, with no LWP metadata or slide markers. Omitting <code>article:</code> is fatal; an explicitly empty <code>article:</code> warns and omits that unfinished slide. A non-empty reference to a missing file is fatal.</p>
-  <p>Markdown supports lists, tables, blockquotes, inline/fenced code and raw HTML. A linked standalone image, <code>[![alt](img/x.png "Caption")](https://example.org)</code>, keeps its caption outside the link; a mid-sentence image stays inline and its title is a tooltip. Relative Markdown links are not converted: use raw <code>&lt;a href="other.html"&gt;Other page&lt;/a&gt;</code> for local links. Headings at levels 4-6 render as paragraphs, not semantic headings. See the format reference for converter limits; this is not a general CommonMark implementation.</p>
+  <p>Markdown supports lists, tables, blockquotes, inline/fenced code and raw HTML. Bullet lists accept <code>-</code>, <code>*</code> and <code>+</code>; numbered lists use <code>1.</code> markers, with the first number setting the list's starting value. A linked standalone image, <code>[![alt](img/x.png "Caption")](https://example.org)</code>, keeps its caption outside the link; a mid-sentence image stays inline and its title is a tooltip. Relative Markdown links are not converted: use raw <code>&lt;a href="other.html"&gt;Other page&lt;/a&gt;</code> for local links. Headings at levels 4-6 render as paragraphs, not semantic headings. See the format reference for converter limits; this is not a general CommonMark implementation.</p>
   <p>For comparison tables, wrap a cell value in <code>&lt;span class="yes"&gt;Yes&lt;/span&gt;</code>, <code>no</code> or <code>partial</code> to add a verdict treatment with a shape marker, not color alone. A <code>col-signal</code> class on a header emphasizes its column; that requires a raw HTML table because Markdown cannot attach a class to a header cell.</p>
 <h3 id="review-a-draft-with-another-person-or-an-agent" tabindex="-1">Review a draft with another person or an agent</h3>
   <p>Set <code>status: draft</code> in the article metadata while it is under review. Ask the reviewer to leave <code>comment:</code> fields before body prose, not HTML comments in the prose: only <code>comment:</code> is guaranteed absent from published HTML.</p>
@@ -4215,8 +4215,12 @@ link.decoration-color: mark
         <td>Native page scrolling; focused foreground surfaces and local tables keep their own scroll</td>
       </tr>
       <tr>
-        <td>PageDown / PageUp / Backspace</td>
-        <td>Next / previous slide; on the index, next / previous article card</td>
+        <td>PageDown / PageUp</td>
+        <td>Next / previous slide or index card; at either end, native page scrolling</td>
+      </tr>
+      <tr>
+        <td>Backspace</td>
+        <td>Previous slide</td>
       </tr>
       <tr>
         <td>Space / Shift+Space</td>
@@ -4307,7 +4311,7 @@ link.decoration-color: mark
   </div>
   <p>While the theme picker is open, typing an unmodified letter focuses its search field and starts filtering. Escape closes the picker.</p>
   <p>Every navigation action leaves its selected target visible. An index card or a series-navigation card is kept entirely inside the viewport when it fits. A slide taller than the screen is the necessary exception: it enters with its top aligned to the top of the viewport, then its bounded reading steps finish with its top or bottom aligned to the corresponding viewport edge.</p>
-  <p>Space and Shift+Space follow the bounded reading journey, including focused cards on the series index, series-navigation slides and unit indexes. Enter follows the focused card's link; Space does not activate it. Ordinary links retain the browser's Space/Shift+Space scrolling. Buttons, form fields and editable text keep their own Space behaviour, and Ctrl/Cmd/Alt+Space is not a deck shortcut. Holding Space uses the repeat cooldown. PageUp/PageDown and the navigation buttons change slides directly rather than entering that journey. Over one of those card lists, the vertical wheel selects one adjacent card, keeps its outline visible, and never opens it; Enter or a direct left click follows the link. At the first and last card, the wheel returns to native page scrolling. A mouse-only reader can hold the left button for 500 ms on that list to follow the selected card, even if the pointer is still over another card; radial movement beyond 4 CSS px, text selection, modifiers, tables, competing help/fullscreen gestures, touch and pointer cancellation cancel the hold. Elsewhere, the wheel always keeps its native reading role. A second mouse click during a glide remains a mouse-specific jump, not a keyboard shortcut.</p>
+  <p>Space and Shift+Space follow the bounded reading journey, including focused cards on the series index, series-navigation slides and unit indexes. Enter follows the focused card's link; Space does not activate it. Ordinary links retain the browser's Space/Shift+Space scrolling. Buttons, form fields and editable text keep their own Space behaviour, and Ctrl/Cmd/Alt+Space is not a deck shortcut. Holding Space uses the repeat cooldown. PageUp/PageDown and the navigation buttons change slides directly rather than entering that journey; at the first or last slide/card, PageUp/PageDown fall back to native page scrolling. Backspace remains a previous-slide shortcut. Over one of those card lists, the vertical wheel selects one adjacent card, keeps its outline visible, and never opens it; Enter or a direct left click follows the link. At the first and last card, the wheel returns to native page scrolling. A mouse-only reader can hold the left button for 500 ms on that list to follow the selected card, even if the pointer is still over another card; radial movement beyond 4 CSS px, text selection, modifiers, tables, competing help/fullscreen gestures, touch and pointer cancellation cancel the hold. Elsewhere, the wheel always keeps its native reading role. A second mouse click during a glide remains a mouse-specific jump, not a keyboard shortcut.</p>
   <p>Press <strong>R</strong> to exchange only the next/previous meaning of left and right clicks on the page background. The shortcut also applies to the index card journey; it does not remap the browser's buttons, links, controls, wheel, touch gestures or keyboard navigation.</p>
   <p>When the help overlay is open, its scrollable foreground owns the arrow, PageUp/PageDown, Home/End and Space keys. The same is true of the speaker panel when it has focus; while that panel is merely open and unfocused, the arrows keep scrolling the page. Focused speaker notes retain Space even when they fit without scrolling.</p>
   <p>The B/W/T pause screens hide the slide so the audience's eye comes back to the speaker — the same feature PowerPoint and Keynote call "blank". T uses the theme's own background colour, so a dark theme pauses on a dark screen rather than flashing white.</p>
@@ -8740,23 +8744,25 @@ document.addEventListener('DOMContentLoaded', function() {
    // for Space on an article (§8.4 — "un coup, c'est une carte").
   function stepIndexCards(direction) {
     var cards = indexCardList();
-    if (!cards.length) return;
+    if (!cards.length) return false;
     var next = focusedCard + direction;
-    if (next < 0 || next >= cards.length) return;
+    if (next < 0 || next >= cards.length) return false;
     focusIndexCard(next);
     updateUI();
+    return true;
   }
 
   function changeSlide(direction, instant) {
     if (isIndex) {
       // The index has no slides: its buttons and page keys move through
       // article cards, while its arrow keys retain native page scrolling.
-      stepIndexCards(direction);
-      return;
+      return stepIndexCards(direction);
     }
+    if (!slides.length) return false;
     var target = syncCurrentToViewport() + direction;
-    if (target < 0 || target >= slides.length) return;
+    if (target < 0 || target >= slides.length) return false;
     goTo(target, instant);
+    return true;
   }
 
   function setNavDisabled(button, disabled) {
@@ -9297,8 +9303,10 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       runStepped(e.shiftKey ? stepBackward : stepForward);
     } else if (e.key === 'PageDown') {
-      e.preventDefault(); changeSlide(1);
-    } else if (e.key === 'PageUp' || e.key === 'Backspace') {
+      if (changeSlide(1)) e.preventDefault();
+    } else if (e.key === 'PageUp') {
+      if (changeSlide(-1)) e.preventDefault();
+    } else if (e.key === 'Backspace') {
       e.preventDefault(); changeSlide(-1);
     } else if (e.key === 'Home') {
       e.preventDefault();
