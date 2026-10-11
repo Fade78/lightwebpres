@@ -506,6 +506,38 @@ async function main() {
 
     // Native DOM tab order would reach the earlier slide's link before the
     // cards in the visible series-nav slide. Enter the visible section first.
+    const nativeTabPage = await context.newPage();
+    await nativeTabPage.addInitScript(() => {
+      // Leave the browser's default Tab action intact while suppressing only
+      // the application key handler, to prove the fixture's natural target.
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Tab') event.stopImmediatePropagation();
+      }, true);
+    });
+    await nativeTabPage.goto(navArticleUrl);
+    await nativeTabPage.waitForSelector('.nav-dots a');
+    await nativeTabPage.locator('#navNext').click();
+    await nativeTabPage.waitForTimeout(600);
+    await nativeTabPage.locator('#navNext').click();
+    await nativeTabPage.waitForTimeout(600);
+    const earlierLink = await nativeTabPage.locator(
+      '.slide#c5 a[href="https://example.org"]');
+    if (await earlierLink.count() !== 1) {
+      fail('the nav fixture must include a focusable link in the preceding slide');
+    }
+    await nativeTabPage.locator('#navMenu').focus();
+    await nativeTabPage.keyboard.press('Tab');
+    const nativeTabTarget = await nativeTabPage.evaluate(() => ({
+      href: document.activeElement.getAttribute('href'),
+      slide: document.activeElement.closest('section.slide')?.id,
+    }));
+    if (nativeTabTarget.href !== 'https://example.org'
+        || nativeTabTarget.slide !== 'c5') {
+      fail('without the LWP Tab handler, the fixture should focus its earlier link: '
+        + JSON.stringify(nativeTabTarget));
+    }
+    await nativeTabPage.close();
+
     const tabPage = await context.newPage();
     collectConsoleErrors(tabPage, consoleErrors);
     tabPage.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
