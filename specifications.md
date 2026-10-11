@@ -3220,6 +3220,14 @@ document ; aux deux extrémités, ils retrouvent aussi le défilement natif. Les
 boutons prev/next restent désactivés à leurs bornes et changent directement de
 fiche ou de carte ; ils ne déclenchent pas le parcours de lecture de Space.
 
+Quand le focus est hors de la slide courante, `Tab` et `Shift+Tab` n'entrent
+pas dans une autre slide située ailleurs dans le document avant d'atteindre
+celle dont le bord haut possède la fenêtre : ils commencent par le premier
+élément focusable de cette slide (le dernier avec `Shift+Tab`). Une fois le
+focus entré dans la slide, l'ordre natif entre ses éléments continue. Sur
+l'index, l'entrée dans la liste commence par la première carte active visible
+dans la fenêtre, puis les cartes suivent l'ordre du document.
+
 **Space navigation:** unmodified Space (`KeyboardEvent.key` equal to `" "` or
 `"Spacebar"`) follows `stepForward()` through the existing `runStepped()`
 cooldown; Shift+Space follows `stepBackward()`. This is the bounded reading

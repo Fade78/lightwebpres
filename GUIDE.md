@@ -1716,7 +1716,11 @@ editable text keep their own Space behaviour, and Ctrl/Cmd/Alt+Space is not a
 deck shortcut. Holding Space uses the repeat cooldown. PageUp/PageDown and the
 navigation buttons change slides directly rather than entering that journey;
 at the first or last slide/card, PageUp/PageDown fall back to native page
-scrolling. Backspace remains a previous-slide shortcut.
+scrolling. Backspace remains a previous-slide shortcut. When Tab would enter a
+different, offscreen slide, focus starts at the first focusable element of the
+slide currently in view; normal Tab order continues within that slide. On the
+index, focus starts at the first active card visible in the viewport, then
+continues in document order.
 Over one of those card lists, the vertical wheel selects one adjacent card,
 keeps its outline visible, and never opens it; Enter or a direct left click
 follows the link. At the first and last card, the wheel returns to native page

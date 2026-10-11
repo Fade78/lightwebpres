@@ -2849,7 +2849,7 @@ button.share-action:hover:not(:disabled) {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.66.5</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.66.6</div>
   </div>
 </div>
 
@@ -4311,7 +4311,7 @@ link.decoration-color: mark
   </div>
   <p>While the theme picker is open, typing an unmodified letter focuses its search field and starts filtering. Escape closes the picker.</p>
   <p>Every navigation action leaves its selected target visible. An index card or a series-navigation card is kept entirely inside the viewport when it fits. A slide taller than the screen is the necessary exception: it enters with its top aligned to the top of the viewport, then its bounded reading steps finish with its top or bottom aligned to the corresponding viewport edge.</p>
-  <p>Space and Shift+Space follow the bounded reading journey, including focused cards on the series index, series-navigation slides and unit indexes. Enter follows the focused card's link; Space does not activate it. Ordinary links retain the browser's Space/Shift+Space scrolling. Buttons, form fields and editable text keep their own Space behaviour, and Ctrl/Cmd/Alt+Space is not a deck shortcut. Holding Space uses the repeat cooldown. PageUp/PageDown and the navigation buttons change slides directly rather than entering that journey; at the first or last slide/card, PageUp/PageDown fall back to native page scrolling. Backspace remains a previous-slide shortcut. Over one of those card lists, the vertical wheel selects one adjacent card, keeps its outline visible, and never opens it; Enter or a direct left click follows the link. At the first and last card, the wheel returns to native page scrolling. A mouse-only reader can hold the left button for 500 ms on that list to follow the selected card, even if the pointer is still over another card; radial movement beyond 4 CSS px, text selection, modifiers, tables, competing help/fullscreen gestures, touch and pointer cancellation cancel the hold. Elsewhere, the wheel always keeps its native reading role. A second mouse click during a glide remains a mouse-specific jump, not a keyboard shortcut.</p>
+  <p>Space and Shift+Space follow the bounded reading journey, including focused cards on the series index, series-navigation slides and unit indexes. Enter follows the focused card's link; Space does not activate it. Ordinary links retain the browser's Space/Shift+Space scrolling. Buttons, form fields and editable text keep their own Space behaviour, and Ctrl/Cmd/Alt+Space is not a deck shortcut. Holding Space uses the repeat cooldown. PageUp/PageDown and the navigation buttons change slides directly rather than entering that journey; at the first or last slide/card, PageUp/PageDown fall back to native page scrolling. Backspace remains a previous-slide shortcut. When Tab would enter a different, offscreen slide, focus starts at the first focusable element of the slide currently in view; normal Tab order continues within that slide. On the index, focus starts at the first active card visible in the viewport, then continues in document order. Over one of those card lists, the vertical wheel selects one adjacent card, keeps its outline visible, and never opens it; Enter or a direct left click follows the link. At the first and last card, the wheel returns to native page scrolling. A mouse-only reader can hold the left button for 500 ms on that list to follow the selected card, even if the pointer is still over another card; radial movement beyond 4 CSS px, text selection, modifiers, tables, competing help/fullscreen gestures, touch and pointer cancellation cancel the hold. Elsewhere, the wheel always keeps its native reading role. A second mouse click during a glide remains a mouse-specific jump, not a keyboard shortcut.</p>
   <p>Press <strong>R</strong> to exchange only the next/previous meaning of left and right clicks on the page background. The shortcut also applies to the index card journey; it does not remap the browser's buttons, links, controls, wheel, touch gestures or keyboard navigation.</p>
   <p>When the help overlay is open, its scrollable foreground owns the arrow, PageUp/PageDown, Home/End and Space keys. The same is true of the speaker panel when it has focus; while that panel is merely open and unfocused, the arrows keep scrolling the page. Focused speaker notes retain Space even when they fit without scrolling.</p>
   <p>The B/W/T pause screens hide the slide so the audience's eye comes back to the speaker — the same feature PowerPoint and Keynote call "blank". T uses the theme's own background colour, so a dark theme pauses on a dark screen rather than flashing white.</p>
@@ -7664,6 +7664,45 @@ document.addEventListener('DOMContentLoaded', function() {
     )).filter(function (element) { return element.getClientRects().length > 0; });
   }
 
+  // A page-wide Tab order can land on links in earlier, offscreen slides
+  // before it reaches the links on the slide the reader is viewing. On the
+  // index it can start above the visible cards. Enter the current reading
+  // section at its first (or last, for Shift+Tab) focusable instead.
+  function enterCurrentSectionOnTab(event) {
+    var section = isIndex ? null : slides[currentVisible()];
+    var sectionStops;
+    if (isIndex) {
+      var cards = indexCardList();
+      if (cards.indexOf(document.activeElement) !== -1) return false;
+      sectionStops = cards.filter(function (card) {
+        var rect = card.getBoundingClientRect();
+        return rect.bottom > 0 && rect.top < window.innerHeight;
+      });
+    } else {
+      if (!section || section.contains(document.activeElement)) return false;
+      sectionStops = focusablesWithin(section);
+    }
+    if (!sectionStops.length) return false;
+    var pageStops = focusablesWithin(document.body);
+    var currentStop = pageStops.indexOf(document.activeElement);
+    var direction = event.shiftKey ? -1 : 1;
+    var nextStop = currentStop < 0
+      ? pageStops[direction < 0 ? pageStops.length - 1 : 0]
+      : pageStops[currentStop + direction];
+    if (isIndex) {
+      var nextCard = nextStop && nextStop.closest
+        ? nextStop.closest('.article-card') : null;
+      if (!nextCard || sectionStops.indexOf(nextCard) !== -1) return false;
+    } else {
+      var nextSlide = nextStop && nextStop.closest
+        ? nextStop.closest('section.slide') : null;
+      if (!nextSlide || nextSlide === section) return false;
+    }
+    event.preventDefault();
+    sectionStops[direction < 0 ? sectionStops.length - 1 : 0].focus();
+    return true;
+  }
+
   function focusIfVisible(element) {
     if (element && element.isConnected && element.getClientRects().length) {
       element.focus();
@@ -9243,6 +9282,7 @@ document.addEventListener('DOMContentLoaded', function() {
       else if (e.key === 'End') goToLastSlide();
       return;
     }
+    if (e.key === 'Tab' && enterCurrentSectionOnTab(e)) return;
     var tableViewport = tableScrollViewport(e.target);
     if (tableViewport && isForegroundScrollKey(e.key)) {
       // Consume the key even at an edge: leaving a table requires moving

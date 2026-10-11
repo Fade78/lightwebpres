@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.66.5"
+VERSION = "0.66.6"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -12834,6 +12834,45 @@ document.addEventListener('DOMContentLoaded', function() {
     )).filter(function (element) { return element.getClientRects().length > 0; });
   }
 
+  // A page-wide Tab order can land on links in earlier, offscreen slides
+  // before it reaches the links on the slide the reader is viewing. On the
+  // index it can start above the visible cards. Enter the current reading
+  // section at its first (or last, for Shift+Tab) focusable instead.
+  function enterCurrentSectionOnTab(event) {
+    var section = isIndex ? null : slides[currentVisible()];
+    var sectionStops;
+    if (isIndex) {
+      var cards = indexCardList();
+      if (cards.indexOf(document.activeElement) !== -1) return false;
+      sectionStops = cards.filter(function (card) {
+        var rect = card.getBoundingClientRect();
+        return rect.bottom > 0 && rect.top < window.innerHeight;
+      });
+    } else {
+      if (!section || section.contains(document.activeElement)) return false;
+      sectionStops = focusablesWithin(section);
+    }
+    if (!sectionStops.length) return false;
+    var pageStops = focusablesWithin(document.body);
+    var currentStop = pageStops.indexOf(document.activeElement);
+    var direction = event.shiftKey ? -1 : 1;
+    var nextStop = currentStop < 0
+      ? pageStops[direction < 0 ? pageStops.length - 1 : 0]
+      : pageStops[currentStop + direction];
+    if (isIndex) {
+      var nextCard = nextStop && nextStop.closest
+        ? nextStop.closest('.article-card') : null;
+      if (!nextCard || sectionStops.indexOf(nextCard) !== -1) return false;
+    } else {
+      var nextSlide = nextStop && nextStop.closest
+        ? nextStop.closest('section.slide') : null;
+      if (!nextSlide || nextSlide === section) return false;
+    }
+    event.preventDefault();
+    sectionStops[direction < 0 ? sectionStops.length - 1 : 0].focus();
+    return true;
+  }
+
   function focusIfVisible(element) {
     if (element && element.isConnected && element.getClientRects().length) {
       element.focus();
@@ -14413,6 +14452,7 @@ document.addEventListener('DOMContentLoaded', function() {
       else if (e.key === 'End') goToLastSlide();
       return;
     }
+    if (e.key === 'Tab' && enterCurrentSectionOnTab(e)) return;
     var tableViewport = tableScrollViewport(e.target);
     if (tableViewport && isForegroundScrollKey(e.key)) {
       // Consume the key even at an edge: leaving a table requires moving

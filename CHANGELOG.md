@@ -33,7 +33,12 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.66.5
+## v0.66.6
+
+Tab enters focusable content in the slide in view before links in other slides;
+on the index it starts at the first active card in the viewport.
+
+## v0.66.5
 
 At the first or last slide/card, PageUp/PageDown now fall back to native page
 scrolling so oversized boundary slides remain readable.

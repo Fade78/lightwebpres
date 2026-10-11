@@ -7,6 +7,8 @@ the bounded Space journey:
    - PageUp/PageDown and the buttons change slides directly when an adjacent
      target exists; at deck edges, page keys resume native scrolling, including
      on an oversized first or last slide.
+   - Tab enters the first focusable item of the slide in view rather than a
+     link in an earlier offscreen slide.
   - A final overflowing slide stays at its bottom when native ArrowDown has
     no further page to scroll.
    - Space and Shift+Space step through series-nav cards and bounded long-slide
@@ -158,7 +160,8 @@ class KeyboardNav(unittest.TestCase):
             '<!-- lwp:slide:cover -->\nslug: c4\nkicker: T\n# Nav test\n'
             'summary: Cover slide.\n\n---\n\n'
             '<!-- lwp:slide -->\nslug: c5\nkicker: T2\n## Standard slide\n'
-            'summary: One ordinary slide before the series-nav slide.\n\n---\n\n'
+            'summary: One ordinary slide before the series-nav slide.\n'
+            'See [the earlier reference](https://example.org).\n\n---\n\n'
             '<!-- lwp:slide:series-nav -->\nslug: c6\n',
             encoding='utf-8',
         )

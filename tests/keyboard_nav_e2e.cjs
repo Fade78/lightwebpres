@@ -2,8 +2,9 @@
 // TEMPLATE_NAV_JS): arrow keys and the wheel outside card lists retain native
 // reading scroll; PageUp/PageDown, navigation buttons and article background
 // clicks change slides when there is an adjacent target. At deck edges, page
-// keys resume native scrolling. Space keeps the natural editorial journey for cards
-// and long slides. Invoked by
+// keys resume native scrolling. Tab enters the focusable elements of the slide
+// in view before links in other slides. Space keeps the natural editorial
+// journey for cards and long slides. Invoked by
 // tests/test_keyboard_nav.py — not a standalone entry point.
 //
 // argv: <tallArticleUrl> <lastArticleUrl> <navArticleUrl> <heldArticleUrl>
@@ -502,6 +503,77 @@ async function main() {
 
     let active = await activeElementInfo(page);
     if (active.tag === 'A') fail('arriving at the series-nav slide must not auto-focus a card — the next Space press should be the one that does');
+
+    // Native DOM tab order would reach the earlier slide's link before the
+    // cards in the visible series-nav slide. Enter the visible section first.
+    const tabPage = await context.newPage();
+    collectConsoleErrors(tabPage, consoleErrors);
+    tabPage.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
+    await tabPage.goto(navArticleUrl);
+    await tabPage.waitForSelector('.nav-dots a');
+    await press(tabPage, 'PageDown');
+    await press(tabPage, 'PageDown');
+    await tabPage.waitForTimeout(600);
+    await tabPage.locator('#navMenu').focus();
+    await tabPage.keyboard.press('Tab');
+    const tabTarget = await tabPage.evaluate(() => ({
+      href: document.activeElement.getAttribute('href'),
+      slide: document.activeElement.closest('section.slide')?.id,
+    }));
+    if (tabTarget.href !== 'b.html' || tabTarget.slide !== 'c6') {
+      fail('Tab from page controls should enter the visible series-nav at its first card, got '
+        + JSON.stringify(tabTarget));
+    }
+    await tabPage.keyboard.press('Tab');
+    const secondTabTarget = await tabPage.evaluate(() => ({
+      href: document.activeElement.getAttribute('href'),
+      slide: document.activeElement.closest('section.slide')?.id,
+    }));
+    if (secondTabTarget.href !== 'c.html' || secondTabTarget.slide !== 'c6') {
+      fail('Tab within the visible series-nav should continue to its next card, got '
+        + JSON.stringify(secondTabTarget));
+    }
+    await tabPage.close();
+
+    const indexTabPage = await context.newPage();
+    collectConsoleErrors(indexTabPage, consoleErrors);
+    indexTabPage.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
+    await indexTabPage.setViewportSize({ width: 1024, height: 350 });
+    await indexTabPage.goto(new URL('index.html', navArticleUrl).href);
+    await indexTabPage.waitForSelector('.article-card');
+    const visibleIndexCard = await indexTabPage.evaluate(() => {
+      const cards = Array.from(document.querySelectorAll('.article-card:not([hidden])'));
+      const target = cards[1];
+      window.scrollTo({
+        top: target.getBoundingClientRect().top + window.scrollY + 30,
+        behavior: 'instant',
+      });
+      return {
+        scrollY: window.scrollY,
+        cards: cards.map((card) => ({
+          href: card.getAttribute('href'),
+          top: card.getBoundingClientRect().top,
+          bottom: card.getBoundingClientRect().bottom,
+        })),
+        firstVisible: cards.find((card) => {
+        const rect = card.getBoundingClientRect();
+        return rect.bottom > 0 && rect.top < window.innerHeight;
+        })?.getAttribute('href'),
+      };
+    });
+    if (visibleIndexCard.firstVisible !== 'b.html') {
+      fail('index tab setup did not expose b.html first: '
+        + JSON.stringify(visibleIndexCard));
+    }
+    await indexTabPage.locator('#navMenu').focus();
+    await indexTabPage.keyboard.press('Tab');
+    const focusedIndexCard = await indexTabPage.evaluate(
+      () => document.activeElement.getAttribute('href'));
+    if (focusedIndexCard !== visibleIndexCard.firstVisible) {
+      fail('Tab on a scrolled index should start at its first visible active card: '
+        + focusedIndexCard + ' instead of ' + visibleIndexCard.firstVisible);
+    }
+    await indexTabPage.close();
 
     const forwardHrefs = [];
     for (let i = 0; i < 3; i++) {
