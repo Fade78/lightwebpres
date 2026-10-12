@@ -238,10 +238,8 @@ async function main() {
   await page.keyboard.press('Escape');
 
   // --- 6. Middle-then-left asks for fullscreen (two-step entry) -------
-  // The same stub as chrome_behaviour_e2e: the middle button alone can
-  // only EXIT (browsers refuse requestFullscreen from a non-left
-  // event), so the entry is a middle press then a LEFT click within the
-  // window — on the index exactly as on an article (B37).
+  // MG dispatches fullscreen on the index exactly as on an article.
+  // Native APIs are covered separately by mouse_commands_e2e.cjs.
   await page.evaluate(() => {
     window.__fs = 0;
     window.__inFs = false;

@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 10 · **à faire** 0 · **en cours** 2 · **terminé** 59 · **abandonné** 1 · **sans objet** 3
+**à étudier** 10 · **à faire** 0 · **en cours** 3 · **terminé** 59 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -120,6 +120,7 @@ gets its own entry and its own state**, however small.
 
 - **B62** — Le cover Lava reste sauvegardé dans Lava hot
 - **B67** — Logical units, scoped selectors and resolution policies
+- **B72** — Mouse command sequences and actual pointer capture
 
 ### terminé
 
@@ -2333,10 +2334,11 @@ double-click's entry role entirely — which closed the only mouse entry
 left. This entry records the rule so the next redesign does not need a
 Firefox console error to rediscover it.
 
-**What the middle button is now:** it arms the two-step entry gesture when the
-page is not fullscreen and exits fullscreen when it is. Entry is completed with
-a left click; the ⛶ button and F remain direct entries. The wheel itself keeps
-scrolling.
+**The initial resolution (0.43.7)** used middle then left for entry, and
+middle alone for exit. In 0.67.0 the owner replaced that asymmetry with the
+M/2M command grammar (B72): middle then left toggles fullscreen in either
+direction. Entry remains a left-button gesture, so the browser constraint is
+preserved. The fullscreen button and F remain direct entries.
 
 ## B38 — The two pages share one skeleton and one script
 
@@ -3655,3 +3657,48 @@ describe the same contract.
 
 The focused B71 tests and the full parallel registry passed on 2026-09-14:
 **1,500 tests across 234 classes with 8 workers**, without failures or skips.
+
+
+## B72 — Mouse command sequences and actual pointer capture
+
+**État :** en cours · **Depuis :** 2026-10-12 · **Version :** 0.67.0
+
+**Owner decision.** M prefixes a mouse command; MG toggles fullscreen, MD
+captures/releases the mouse, MM waits for another suffix, MMG returns to the
+actual beginning (then series home when already there), MMD toggles theme
+pause, and MMM cancels. The deadline is 900 ms after each accepted M. Keyboard,
+wheel and other commands cancel the sequence before retaining their own
+behavior; sensor movement does not. Opening menus preserves theme pause;
+reading navigation dismisses it. These replace the former middle-only exit
+and middle-then-right home gesture, with no compatibility branch.
+
+**Architecture.** One recognizer emits actions into the shared reader. Cursor
+and chrome visibility use one decision, dominated by browser-confirmed pointer
+capture. Pointer Lock is necessary: CSS cursor hiding still permits movement
+onto another monitor or accidental link activation. The stable document root
+owns capture across combined-HTML view replacement. Requests, refusal, external
+release and late capture after cancellation are explicit; foreground surfaces
+release capture without automatically requesting it again.
+
+**Hybrid input.** The owner requires the same commands with a mouse connected
+to a tablet/phone, without changing native touch gestures. Input type is tracked
+per event instead of gating behavior on primary-pointer media queries; touch
+compatibility mouse events stay outside command/capture ownership. Returning to
+touch/pen releases capture. Controlled-runtime and emulated-browser tests cover
+this switch; physical mobile/browser API support still needs verification.
+
+**Validation still open.** Generated-runtime tests exercise the grammar, native
+follow-up event ownership and asynchronous capture lifecycle with controlled
+acknowledgements. Native Chromium and Firefox tests are supplied, but their
+executables are unavailable in this workspace. Physical two-screen validation
+and screenshot regeneration (product and documentation capture manifests) must
+be completed in an equipped environment. Do not replace stale capture hashes
+with current input hashes without rerunning their capture scripts.
+
+**Checks on 2026-10-12.** All 25 focused executable/runtime regressions passed;
+compilation, JavaScript syntax and reference checks also passed. The final
+parallel run discovered 1,534 tests across 235 classes with 9 workers (216 s).
+It failed three checks: the two capture-freshness guards require regeneration,
+and the existing reading-controls browser check cannot launch the absent
+Chromium executable. The new native Chromium/Firefox checks were skipped for
+missing executables. This is not a fully passing or hardware-validated delivery.

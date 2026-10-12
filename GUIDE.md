@@ -1685,6 +1685,7 @@ Browser emulation is not verification on a physical device.
 | O | Cycle wide tables: clip, overflow, local scroll |
 | A | Cycle text fitting: fixed, uniform, per-slide |
 | F | Fullscreen (Esc to exit) |
+| P | Lock or release the mouse; captured clicks drive the presentation without aiming |
 | I | Toggle between the configured smooth slide glide and an instant jump |
 | R | Reverse only background left/right click navigation; keyboard, touch, wheel, links and controls keep their own behavior |
 | C | Open Appearance when a kit is published, otherwise Theme; published choices only |
@@ -1823,7 +1824,11 @@ assume a long-form article fits on one physical sheet.
 | Vertical wheel over an index, series-navigation or unit-index list | Select the adjacent card without opening it; native scrolling resumes at either edge |
 | 500 ms left press on a card list after wheel selection | Follow the selected card; movement, text selection, modifiers, tables, competing help/fullscreen gestures, touch and pointer cancellation cancel it |
 | Click during the glide | Jump straight to that click's target |
-| Middle button anywhere | Exit fullscreen on its own; to enter, press the middle button, then click left inside the window |
+| Middle then left | Toggle fullscreen |
+| Middle then right | Lock or release the mouse |
+| Two middle presses then left | Return to the presentation beginning; if already there, return to the index |
+| Two middle presses then right | Toggle the theme-background pause screen (T) |
+| Three middle presses | Cancel the pending sequence |
 | Click in the bottom-right corner | Toggle the navigation buttons (hide/show) |
 
 Clicks on links, images, buttons, and the share popover are not
@@ -1838,13 +1843,41 @@ next slide and glides to it over the configured duration (200 ms by default);
 a click that arrives while the
 deck is still gliding does not wait — it jumps straight to its target,
 so two clicks in quick succession land two pages on, and a right-click
-during the glide returns you to the card you left. The middle button
-only leaves fullscreen by itself: browsers refuse `requestFullscreen()`
-from any non-left event, so entering is a two-step gesture — middle
-button to arm the intent, then a left click inside the window (a right
-click in the same window goes to the index instead). Outside navigation lists,
-the wheel keeps scrolling; the ⛶ button and F stay direct entries. Esc exits
-fullscreen. The cursor hides after 1 second of idleness in fullscreen.
+during the glide returns you to the card you left.
+
+Each middle press renews a **900 ms** sequence window. A lone middle press
+has no action; an expired prefix returns to normal clicks. Keyboard input
+(including modifiers and editable fields), wheel commands, extra buttons,
+touch/pen input, cancellation, a menu opening or focus loss cancels the pending
+sequence before its usual action. Mouse movement does not cancel it.
+
+Mouse locking uses the browser's **Pointer Lock** API: the cursor stays hidden,
+movement cannot take clicks to a second screen, and clicks navigate without
+activating content links. The menu's **Lock mouse** action and **P** use the same
+command. Opening menus/help/notes releases the mouse; use the command again to
+capture it. Escape releases capture, and fullscreen exit also releases it.
+The browser may refuse capture; LWP reports failure instead of claiming that
+CSS hiding immobilized the mouse. Capture survives article switches within one
+combined HTML; a full page navigation starts a fresh session.
+
+On a tablet or phone with a mouse connected, LWP uses the actual input event,
+so the mouse commands work even when the browser still reports touch as its
+primary pointer. Switching back to a finger releases mouse capture and retains
+tap, double tap, swipe, selection and pinch behavior. Touch-generated mouse
+compatibility events do not arm sequences or reveal mouse chrome. Pointer Lock
+availability still depends on the browser.
+
+Two middles then left uses actual position: a scrolled first slide returns to
+its own top before a later command may go to the index. On the index it simply
+returns to the page top. Two middles then right and **T** share one pause toggle.
+Mouse or keyboard navigation dismisses pause and continues its usual action;
+opening or closing the menu preserves it. Prefix presses, fullscreen and
+mouse capture also preserve pause.
+
+Outside navigation lists, the wheel keeps scrolling; the ⛶ button and F stay
+direct fullscreen entries. The cursor and navigation hide after 1 second of
+idleness in fullscreen, or 3 seconds in regular reading. Sustained movement
+can reveal them only while the mouse is released.
 A left click on an existing selection just dismisses the highlight —
 no step — and a right-click on a selection opens the browser's own
 menu, the deck stepping aside. Two clicks in quick succession are two
@@ -1897,10 +1930,9 @@ started a slide or scroll, recognizing the pair cancels that movement and
 restores the slide and position from before the first tap. A touch or a scroll
 restarts the countdown while the controls are still up, so they never vanish
 under your finger; once they are gone they no longer answer a touch at all, so
-the corner of your own text is safe to touch. Fullscreen is the ⛶ button in
-that bar rather than the middle button: the middle button alone only exits
-fullscreen — entering is the two-step, middle button then a left click. With
-a mouse, clicking the corner (not a button) toggles their current visibility.
+the corner of your own text is safe to touch. Touch fullscreen uses the ⛶
+button in that bar. With a mouse, middle then left toggles fullscreen in either
+direction, and clicking the corner (not a button) toggles chrome visibility.
 
 Touch long press, text selection and the copy menu remain the browser's everywhere;
 only the fine-pointer mouse gesture on a wheel-selected card list is intercepted. The

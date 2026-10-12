@@ -1052,13 +1052,9 @@ async function main() {
          + 'expected 0, got ' + backDuringGlide);
   }
 
-  // 5h. The middle BUTTON is the fullscreen gatekeeper (B37): the
-  // browsers refuse requestFullscreen from any non-left mouse event,
-  // so the button alone can only EXIT. The entry is a two-step — a
-  // middle press then a LEFT click within the window (the left click
-  // carries the gesture the browser requires) — and middle then RIGHT
-  // goes Home. Stubbed, like the F test above, so the calls are
-  // observable without a real fullscreen grant.
+  // 5h. MG toggles fullscreen in either direction. MMG goes to the
+  // beginning, or Home when already there. Stubbed here to observe dispatch;
+  // mouse_commands_e2e.cjs separately checks the native fullscreen/capture APIs.
   await page.evaluate(() => {
     window.__fs = 0;
     window.__inFs = false;
@@ -1073,9 +1069,9 @@ async function main() {
     };
     window.__exit = 0;
   });
-  // Middle alone arms nothing and enters nothing.
+  // A lone middle arms a prefix, then expires without an action.
   await page.mouse.click(640, 400, { button: 'middle' });
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(950);
   const midAlone = await page.evaluate(() => window.__fs);
   if (midAlone !== 0) {
     fail('the middle button alone must not ENTER fullscreen: fs asked '
@@ -1091,22 +1087,25 @@ async function main() {
     fail('middle-then-left did not ENTER fullscreen: fs asked '
          + midIn + ' times');
   }
-  // Middle while fullscreen: exits, and arms nothing.
+  // Middle then LEFT while fullscreen: exits without a navigation click.
   await page.mouse.click(640, 400, { button: 'middle' });
+  await page.waitForTimeout(50);
+  await page.mouse.click(640, 400);
   await page.waitForTimeout(300);
   const midOut = await page.evaluate(() => window.__exit);
   if (midOut !== 1) {
-    fail('the middle button did not EXIT fullscreen: exit asked '
+    fail('middle-then-left did not EXIT fullscreen: exit asked '
          + midOut + ' times');
   }
-  // Middle then RIGHT: return to the index.
+  // Two middles then LEFT at the beginning: return to the index.
   await page.mouse.click(640, 400, { button: 'middle' });
   await page.waitForTimeout(50);
-  await page.mouse.click(640, 400, { button: 'right' });
+  await page.mouse.click(640, 400, { button: 'middle' });
+  await page.mouse.click(640, 400);
   await page.waitForTimeout(900);
   const homePath = await page.evaluate(() => location.pathname);
   if (!/index\.html$/.test(homePath)) {
-    fail('middle-then-right did not go Home: path ' + homePath);
+    fail('two middles then left at the beginning did not go Home: path ' + homePath);
   }
   await page.goBack();
   await page.waitForTimeout(400);

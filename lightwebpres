@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.66.7"
+VERSION = "0.67.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1307,6 +1307,10 @@ LANG_FR = r'''{
     "menu_series_start": "Début de la série",
     "menu_next": "Planche suivante",
     "menu_fullscreen": "Plein écran",
+    "menu_pointer_lock": "Verrouiller la souris",
+    "pointer_lock_failed": "La souris n’a pas pu être verrouillée. Autorisez le verrouillage dans le navigateur, puis réessayez.",
+    "pointer_lock_unavailable": "Le verrouillage de la souris est indisponible dans ce navigateur.",
+    "help_pointer_lock": "Verrouiller ou libérer la souris : le curseur capturé reste caché, les clics commandent la présentation. Échap ou l’ouverture d’un menu libère la souris.",
     "menu_theme": "Changer de thème",
     "menu_appearance": "Changer d’apparence",
     "menu_presenter": "Notes présentateur",
@@ -1390,7 +1394,7 @@ LANG_FR = r'''{
     "help_jump_keys": "0&ndash;9 + Entr&eacute;e",
     "help_mouse_keys": "Souris / Molette",
     "help_jump": "Aller à la slide N (puis Entrée)",
-    "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : armer l'entrée (puis clic gauche) ou quitter le plein écran · molette verticale sans modificateur sur une carte disponible : sélectionner · appui gauche de 500 ms sur sa liste : ouvrir la carte sélectionnée · ailleurs et aux bornes : défiler",
+    "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · milieu puis gauche : plein écran · milieu puis droit : verrouillage souris · deux milieux puis gauche : début, puis index si déjà au début · deux milieux puis droit : écran du thème · trois milieux : annuler · délai de 900 ms après chaque milieu ; clavier, molette ou autre commande annule · molette verticale sur une carte disponible : sélectionner · appui gauche de 500 ms sur sa liste : ouvrir la carte sélectionnée · ailleurs et aux bornes : défiler",
     "help_touch_home": "",
     "help_touch_index": "Menu : Retour à l'index",
     "help_touch_edges": "",
@@ -1522,6 +1526,10 @@ LANG_EN = r'''{
     "menu_series_start": "Start of series",
     "menu_next": "Next slide",
     "menu_fullscreen": "Fullscreen",
+    "menu_pointer_lock": "Lock mouse",
+    "pointer_lock_failed": "The mouse could not be locked. Allow pointer lock in the browser, then try again.",
+    "pointer_lock_unavailable": "Mouse locking is unavailable in this browser.",
+    "help_pointer_lock": "Lock or release the mouse: the captured cursor stays hidden and clicks drive the presentation. Escape or opening a menu releases the mouse.",
     "menu_theme": "Change theme",
     "menu_appearance": "Change appearance",
     "menu_presenter": "Presenter notes",
@@ -1605,7 +1613,7 @@ LANG_EN = r'''{
     "help_jump_keys": "0&ndash;9 + Enter",
     "help_mouse_keys": "Mouse / Wheel",
     "help_jump": "Jump to slide N (then Enter)",
-    "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · unmodified vertical wheel on an available card: select · 500 ms left press on its list: open the selected card · elsewhere and at boundaries: scroll",
+    "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle then left: fullscreen · middle then right: mouse lock · two middles then left: beginning, or index if already there · two middles then right: theme pause · three middles: cancel · 900 ms after each middle; keyboard, wheel or another command cancels · vertical wheel on an available card: select · 500 ms left press on its list: open the selected card · elsewhere and at boundaries: scroll",
     "help_touch_home": "",
     "help_touch_index": "Menu: Back to index",
     "help_touch_edges": "",
@@ -9214,12 +9222,33 @@ body.fs-noselect {
 :root.nav-idle { scrollbar-color: transparent transparent; }
 .nav-buttons.idle { opacity: 0; }
 .nav-buttons.idle:hover { opacity: 1; }
+:root.mouse-locked .nav-buttons.idle,
+:root.mouse-locked .nav-dots.idle,
+:root.mouse-locked .slide-counter.idle {
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+.pointer-lock-status {
+  position: fixed;
+  inset: auto 24px 24px;
+  z-index: 600;
+  padding: 16px;
+  background: inherit;
+  color: inherit;
+  border: 1px solid currentColor;
+  pointer-events: none;
+}
 /* Faded chrome must also stop answering the finger. `opacity: 0` hides a
    thing without disarming it, and with a mouse that is harmless — the
    hover rule above brings it back before any click can land. There is no
    hover on a phone, so an invisible button in the bottom-right corner
    would fire on a reader who touched the corner of their own text. */
-@media (pointer: coarse) { .nav-buttons.idle, .nav-dots.idle, .slide-counter.idle { pointer-events: none; } }
+@media (pointer: coarse) {
+  :root:not(.mouse-input) .nav-buttons.idle,
+  :root:not(.mouse-input) .nav-dots.idle,
+  :root:not(.mouse-input) .slide-counter.idle { pointer-events: none; }
+}
 /* No width/height here: the circle is drawn against the glyph, so the
    engine derives both from `nav-btn.size` (see the nav-btn composite).
    The skeleton stating a second number is how they drifted apart. */
@@ -12255,6 +12284,7 @@ document.addEventListener('DOMContentLoaded', function() {
       closeTagMenu();
       return;
     }
+    preparePointerSurface();
     // The share popover and the tag menu never stack: opening one closes
     // the other. The closing overlay must not steal focus during the switch.
     closeSharePopover(false);
@@ -12972,6 +13002,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function openThemeMenu(returnFocus) {
     if (!appearanceAlternatives() || !themeMenu) return;
+    preparePointerSurface();
     themeReturnFocus = returnFocus || document.activeElement;
     closeHelp();
     closeAbout(false);
@@ -13004,6 +13035,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function openPresenterMenu() {
     if (!presenterMenu) return;
+    preparePointerSurface();
     closeReadingMenu(false);
     updateAppearanceLabels();
     menuReturnFocus = document.activeElement === document.body
@@ -13042,6 +13074,7 @@ document.addEventListener('DOMContentLoaded', function() {
     else if (action === 'home') goHome();
     else if (action === 'next' && btnNext) btnNext.click();
     else if (action === 'fullscreen') toggleFullscreen();
+    else if (action === 'pointer-lock') togglePointerLock();
     else if (action === 'theme') openThemeMenu();
     else if (action === 'presenter') togglePresenter();
     else if (action === 'tags') toggleTagMenu(btnMenu);
@@ -13056,7 +13089,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function runMenuShortcut(key) {
     if (runReadingShortcut(key)) return true;
     var actions = {
-      f: 'fullscreen', i: 'scroll', c: 'theme', n: 'presenter', l: 'tags',
+      f: 'fullscreen', p: 'pointer-lock', i: 'scroll', c: 'theme', n: 'presenter', l: 'tags',
       d: 'reading', s: 'share', h: 'help', b: 'pause-black', w: 'pause-white',
       t: 'pause-theme'
     };
@@ -13078,6 +13111,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function openReadingMenu() {
     if (!readingMenu) return;
+    preparePointerSurface();
     readingReturnFocus = menuReturnFocus || btnMenu;
     closePresenterMenu(false);
     updateReadingMenu();
@@ -13211,6 +13245,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ['O', lwpString('menu_table_mode'), lwpString('help_tables')],
     ['A', lwpString('menu_text_fit'), lwpString('help_text_fit')],
     ['F', lwpString('help_touch_fullscreen'), lwpString('help_fullscreen')],
+    ['P', '', lwpString('help_pointer_lock'), ''],
     ['I', lwpString('help_touch_scroll'), lwpString('help_scroll')],
     ['R', '', lwpString('help_reverse_clicks'), ''],
     ['M', lwpString('help_touch_menu'), lwpString('help_menu')],
@@ -13306,10 +13341,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!helpOverlay) return;
     helpOverlay.classList.toggle('open', open);
     document.documentElement.classList.toggle('help-open', open);
-    // Opening the modal cancels any armed fullscreen intent: a middle
-    // click before H must not let a left/right click during help enter or
-    // navigate fullscreen (C1 from the code review).
-    if (open) fsIntentUntil = 0;
+    // Foreground surfaces cancel pending mouse commands and release capture.
+    if (open) preparePointerSurface();
     if (open) {
       // Move focus into the dialog so it is keyboard-reachable (A3).
       var card = helpOverlay.querySelector('.help-card');
@@ -13347,6 +13380,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   function openAbout(returnFocus) {
     if (!aboutOverlay) return;
+    preparePointerSurface();
     aboutReturnFocus = returnFocus || document.activeElement;
     aboutOverlay.classList.add('open');
     aboutOverlay.setAttribute('aria-hidden', 'false');
@@ -13414,13 +13448,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // A modal's own overlay may scroll to reveal its content, but no pointer
   // gesture may move the deck behind it.
   document.addEventListener('wheel', function (e) {
-    // A pause screen has no reading surface of its own. Consume the wheel
-    // instead of revealing a different part of the deck it is hiding.
-    if (pauseOverlay && pauseOverlay.classList.contains('open')) {
-      e.preventDefault();
-      return;
-    }
     var surface = modalWheelSurface();
+    // Foreground scrolling and native zoom retain their own meanings.
+    if (!surface && !e.ctrlKey && !e.metaKey && (e.deltaX || e.deltaY)) closePause();
     if (surface) {
       var deltaX = e.deltaX || (e.shiftKey ? e.deltaY : 0);
       var deltaY = e.shiftKey ? 0 : e.deltaY;
@@ -13482,6 +13512,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function togglePresenter() {
     if (!presenterPanel) return;
+    if (!presenterPanel.classList.contains('open')) preparePointerSurface();
     presenterPanel.classList.toggle('open');
     updatePresenter();
   }
@@ -13909,6 +13940,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // journey. The same focus ring, the same Enter-to-follow, and the
   // nav buttons are disabled at the ends just as on an article.
   function stepForward(fromTableClick) {
+    closePause();
     if (isIndex) { stepIndexCards(1); return; }
     if (!slides.length) return;
     if (fromTableClick && !isScrolling) syncCurrentToViewport();
@@ -13944,6 +13976,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function stepBackward() {
+    closePause();
     if (isIndex) { stepIndexCards(-1); return; }
     if (!slides.length) return;
     if (alignPartiallyVisibleSlide(current, -1)) return;
@@ -13980,6 +14013,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function changeSlide(direction, instant) {
+    closePause();
     if (isIndex) {
       // The index has no slides: its buttons and page keys move through
       // article cards, while its arrow keys retain native page scrolling.
@@ -14031,6 +14065,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Series home is the contents view, or the first unit when contents are omitted.
   // On the index itself, this action returns to the top of the page.
   function goHome() {
+    closePause();
     if (!isIndex) {
       if (seriesViews) activateSeriesView({key: seriesHomeKey, target: ''}, true);
       else window.location.href = 'index.html';
@@ -14042,6 +14077,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function goToFirstSlide() {
+    closePause();
     if (isIndex) {
       clearIndexFocus();
       scrollToTop();
@@ -14051,7 +14087,21 @@ document.addEventListener('DOMContentLoaded', function() {
     goTo(0, true);
   }
 
+  function goToBeginningOrHome() {
+    // Read actual geometry: current can already name the first slide while
+    // a glide is still arriving, or while a tall first slide is scrolled down.
+    if (!isIndex && slides.length && !isScrolling
+        && currentVisible() === 0 && atSlideTop(slides[0])) goHome();
+    else {
+      // Unlike goTo()'s repeated-target guard, this explicit command must
+      // finish an in-flight trip to the beginning immediately.
+      if (isScrolling) { jumpScrollTo(window.pageYOffset); isScrolling = false; }
+      goToFirstSlide();
+    }
+  }
+
   function goToLastSlide() {
+    closePause();
     if (isIndex) {
       var cards = indexCardList();
       if (cards.length) focusIndexCard(cards.length - 1);
@@ -14451,18 +14501,17 @@ document.addEventListener('DOMContentLoaded', function() {
      }
      return;
     }
-    // If a pause screen is up, any navigation key dismisses it.
+    // Pause is independent from foreground menus and presentation settings.
+    // Navigation dismisses it and continues through the normal reading path.
     if (pauseOverlay && pauseOverlay.classList.contains('open')) {
       if (e.key === 'b' || e.key === 'B' || e.key === 'w' || e.key === 'W'
           || e.key === 't' || e.key === 'T') {
-        // Same key toggles off; others also dismiss.
         togglePause(e.key);
         e.preventDefault();
-      } else {
+        return;
+      } else if (isPauseNavigationKey(e)) {
         closePause();
-        e.preventDefault();
       }
-      return;
     }
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
@@ -14496,6 +14545,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     if (e.key === 'Enter' && jumpBuffer) {
+      closePause();
       var jumpN = parseInt(jumpBuffer, 10);
       jumpBuffer = '';
       if (jumpTimer) clearTimeout(jumpTimer);
@@ -14546,6 +14596,9 @@ document.addEventListener('DOMContentLoaded', function() {
       goToLastSlide();
     } else if (e.key === 'f' || e.key === 'F') {
       e.preventDefault(); toggleFullscreen();
+    } else if (e.key === 'p' || e.key === 'P') {
+      e.preventDefault();
+      if (!e.repeat) togglePointerLock();
     } else if (e.key === 'd' || e.key === 'D') {
       e.preventDefault(); openReadingMenu();
     } else if (e.key === 'c' || e.key === 'C') {
@@ -14762,6 +14815,7 @@ document.addEventListener('DOMContentLoaded', function() {
       closeSharePopover();
       return;
     }
+    preparePointerSurface();
     shareReturnFocus = returnFocus ||
       (document.activeElement !== document.body
        ? document.activeElement : btnMenu);
@@ -14880,6 +14934,154 @@ document.addEventListener('DOMContentLoaded', function() {
     return request ? request.call(el) : null;
   }
 
+  // Mouse command grammar. Recognition has no DOM or navigation side effects;
+  // the event adapter below executes an action synchronously in its user gesture.
+  function createMouseSequence() {
+    var count = 0, until = 0, timer = null;
+    function cancel() {
+      count = 0;
+      until = 0;
+      if (timer !== null) clearTimeout(timer);
+      timer = null;
+    }
+    function active() {
+      if (count && Date.now() >= until) cancel();
+      return count !== 0;
+    }
+    function press(button) {
+      active();
+      if (button === 1) {
+        if (count === 2) { cancel(); return 'cancel'; }
+        count++;
+        until = Date.now() + 900;
+        if (timer !== null) clearTimeout(timer);
+        timer = setTimeout(cancel, 900);
+        return 'prefix';
+      }
+      if (button !== 0 && button !== 2) { cancel(); return null; }
+      if (!count) return null;
+      var action = count === 1
+        ? (button === 0 ? 'fullscreen' : 'pointer-lock')
+        : (button === 0 ? 'beginning-or-home' : 'pause-theme');
+      cancel();
+      return action;
+    }
+    return {press: press, cancel: cancel, active: active};
+  }
+  var mouseSequence = createMouseSequence();
+  function cancelMouseSequence() { mouseSequence.cancel(); }
+
+  // Capabilities describe the primary device, not the gesture being handled.
+  // A tablet may keep (pointer: coarse) while a connected mouse is in use.
+  var lastInputWasMouse = hasFinePointer;
+  function notePointerInput(type) {
+    if (type !== 'mouse' && type !== 'touch' && type !== 'pen') return;
+    var mouse = type === 'mouse';
+    if (mouse !== lastInputWasMouse) fsMoveStart = fsLastMove = 0;
+    lastInputWasMouse = mouse;
+    document.documentElement.classList.toggle('mouse-input', mouse);
+    document.body.classList.toggle('fs-noselect', mouse && !!currentFullscreenElement());
+    if (!mouse) {
+      cancelMouseSequence();
+      if (pointerIsLocked() || pointerRequestPending) releasePointerLock();
+    }
+    syncCursorVisibility();
+  }
+  function syncCursorVisibility() {
+    var cursor = lastInputWasMouse && navIsIdle() ? 'none' : '';
+    if (document.body.style.cursor !== cursor) document.body.style.cursor = cursor;
+  }
+  function isMouseInputEvent(e) {
+    if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return false;
+    if (e.pointerType) return e.pointerType === 'mouse';
+    return lastInputWasMouse;
+  }
+  document.documentElement.classList.toggle('mouse-input', lastInputWasMouse);
+
+  // The browser owns capture. Never represent a CSS-hidden cursor or an
+  // outstanding/refused request as a locked mouse. The root survives view swaps.
+  var pointerRequestPending = false;
+  var pointerRequestCancelled = false;
+  var pointerErrorReported = false;
+  var pointerStatusTimer = null;
+  function pointerIsLocked() {
+    return document.pointerLockElement === document.documentElement;
+  }
+  function updatePointerLockUI() {
+    var button = document.getElementById('menuPointerLock');
+    if (!button) return;
+    button.setAttribute('aria-pressed', pointerIsLocked() ? 'true' : 'false');
+    button.disabled = typeof document.documentElement.requestPointerLock !== 'function';
+  }
+  function showPointerLockError(message) {
+    var status = document.getElementById('pointerLockStatus');
+    if (!status) return;
+    if (pointerStatusTimer !== null) clearTimeout(pointerStatusTimer);
+    status.textContent = message;
+    status.hidden = false;
+    pointerStatusTimer = setTimeout(function () {
+      status.hidden = true;
+      pointerStatusTimer = null;
+    }, 7000);
+  }
+  function releasePointerLock() {
+    pointerRequestCancelled = true;
+    if (pointerIsLocked() && typeof document.exitPointerLock === 'function') {
+      document.exitPointerLock();
+    }
+  }
+  function pointerLockFailed() {
+    pointerRequestPending = false;
+    if (!pointerRequestCancelled && !pointerErrorReported) {
+      pointerErrorReported = true;
+      showPointerLockError(lwpString('pointer_lock_failed'));
+    }
+    updatePointerLockUI();
+  }
+  function togglePointerLock() {
+    if (pointerIsLocked() || pointerRequestPending) {
+      releasePointerLock();
+      return;
+    }
+    var root = document.documentElement;
+    if (typeof root.requestPointerLock !== 'function') {
+      showPointerLockError(lwpString('pointer_lock_unavailable'));
+      return;
+    }
+    var status = document.getElementById('pointerLockStatus');
+    if (status) status.hidden = true;
+    pointerRequestPending = true;
+    pointerRequestCancelled = false;
+    pointerErrorReported = false;
+    try {
+      // Some browsers return undefined; others also reject a Promise.
+      var result = root.requestPointerLock();
+      if (result && typeof result.catch === 'function') result.catch(pointerLockFailed);
+    } catch (error) { pointerLockFailed(); }
+  }
+  function preparePointerSurface() {
+    cancelMouseSequence();
+    releasePointerLock();
+    setNavIdle(false);
+    scheduleHide();
+  }
+  document.addEventListener('pointerlockchange', function () {
+    pointerRequestPending = false;
+    cancelMouseSequence();
+    var locked = pointerIsLocked();
+    if (locked) window.getSelection().removeAllRanges();
+    document.documentElement.classList.toggle('mouse-locked', locked);
+    updatePointerLockUI();
+    fsMoveStart = fsLastMove = 0;
+    setNavIdle(locked);
+    scheduleHide();
+    // A menu, blur or fullscreen exit may have cancelled a request before
+    // the browser acknowledged it. Release that late capture immediately.
+    if (locked && pointerRequestCancelled) releasePointerLock();
+  });
+  document.addEventListener('pointerlockerror', pointerLockFailed);
+  updatePointerLockUI();
+
   // The cursor is hidden by the same clock as the navigation chrome,
   // below: three seconds of stillness, one in fullscreen. It used to
   // hide in fullscreen alone, which left the page in a state nobody
@@ -14913,11 +15115,11 @@ document.addEventListener('DOMContentLoaded', function() {
   var fsMoveStart = 0;
   var fsLastMove = 0;
   function revealChrome() {
+    if (pointerIsLocked()) return;
     var now = Date.now();
     if (now - fsLastMove > 100) fsMoveStart = now;
     fsLastMove = now;
     if (now - fsMoveStart >= 250) {
-      document.body.style.cursor = '';
       setNavIdle(false);
     }
   }
@@ -14936,13 +15138,15 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function handleFullscreenChange() {
+    cancelMouseSequence();
     setNavIdle(false);
     var fs = currentFullscreenElement();
     if (fs) {
       window.getSelection().removeAllRanges();
-      document.body.classList.add('fs-noselect');
+      document.body.classList.toggle('fs-noselect', lastInputWasMouse);
       requestWakeLock();
     } else {
+      releasePointerLock();
       document.body.classList.remove('fs-noselect');
       releaseWakeLock();
     }
@@ -14958,6 +15162,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function closePause() {
     if (pauseOverlay) pauseOverlay.classList.remove('open');
+  }
+
+  function isPauseNavigationKey(e) {
+    return ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp',
+      'PageDown', 'Backspace', 'Home', 'End', ' ', 'Spacebar'].indexOf(e.key) !== -1
+      || (e.key === 'Enter' && (jumpBuffer || (e.target && e.target.closest
+        && e.target.closest('a[href]'))));
   }
 
   function togglePause(kind) {
@@ -14981,13 +15192,10 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // --- Click navigation, long-press wheel selection, middle-button fullscreen gesture ---
-  // The remote-mouse use case. Left-click advances (200ms glide; a
-  // click while gliding jumps straight to its target, §8.4), right-click
-  // goes back the same way, the middle button arms fullscreen entry when the
-  // page is not fullscreen and exits fullscreen when it is
-  // (the middle WHEEL scrolls). Esc exits
-  // fullscreen (native browser). Buttons, links, images, and the pause
-  // overlay intercept clicks so they keep working.
+  // The remote-mouse use case. Left/right navigate; the middle button
+  // prefixes the bounded M/2M command grammar below. The wheel scrolls.
+  // Esc exits capture/fullscreen through the browser's native gesture.
+  // Released-pointer links and controls retain their native click behavior.
   function isFullscreen() {
     return !!currentFullscreenElement();
   }
@@ -15084,14 +15292,14 @@ document.addEventListener('DOMContentLoaded', function() {
     return card ? {card: card} : null;
   }
   function cardLongPressCanStart(e) {
-    return hasFinePointer && e.isPrimary && e.pointerType === 'mouse'
+    return e.isPrimary && e.pointerType === 'mouse'
       && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey
       && !helpIsOpen() && !tableScrollViewport(e.target)
       && !(e.target.closest && e.target.closest(
         'button, input, select, textarea, [contenteditable], img, audio, video, summary, label, '
         + '[role~="button"], [role~="checkbox"], [role~="switch"], [role~="slider"], '
         + '[role~="textbox"]'))
-      && !(Date.now() < fsIntentUntil) && !String(window.getSelection());
+      && !mouseSequence.active() && !String(window.getSelection());
   }
   document.addEventListener('pointerdown', function (e) {
     clearCardLongPress();
@@ -15106,7 +15314,7 @@ document.addEventListener('DOMContentLoaded', function() {
     cardLongPressTimer = setTimeout(function () {
       if (!cardLongPress || !cardLongPress.card.classList.contains('lwp-card-selected')
           || String(window.getSelection()) || helpIsOpen()
-          || Date.now() < fsIntentUntil) {
+          || mouseSequence.active()) {
         clearCardLongPress();
         return;
       }
@@ -15130,7 +15338,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var activate = e.type === 'pointerup' && gesture.ready
         && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey
         && !String(window.getSelection()) && !helpIsOpen()
-        && !(Date.now() < fsIntentUntil)
+        && !mouseSequence.active()
         && endX * endX + endY * endY
           <= CARD_LONG_PRESS_SLOP_PX * CARD_LONG_PRESS_SLOP_PX
         && gesture.card.classList.contains('lwp-card-selected');
@@ -15287,7 +15495,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // A click the touch side has already answered for. See
     // swallowClicksUntil.
     if (Date.now() < swallowClicksUntil) return;
-    if (pauseOverlay && pauseOverlay.contains(e.target)) { closePause(); return; }
+    if (pauseOverlay && pauseOverlay.contains(e.target)) {
+      if (e.button === 0) changeSlide(clickNavigationDirection(1), isScrolling);
+      return;
+    }
     // A popover or dialog is open and the reader clicks outside it: the
     // capture listener above has already closed it and consumed the click.
     // Keeping a second dismissal rule here would make the two phases
@@ -15356,8 +15567,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // is the same one: a mouse has a second button and a finger does not,
     // and that is the whole of the distinction.
     if ((contextPointerType && contextPointerType !== 'mouse')
-        || (!contextPointerType && !hasFinePointer)) return;
-    if (pauseOverlay && pauseOverlay.contains(e.target)) return;
+        || (!contextPointerType && !isMouseInputEvent(e))) return;
+    if (pauseOverlay && pauseOverlay.contains(e.target)) {
+      e.preventDefault();
+      changeSlide(clickNavigationDirection(-1), isScrolling);
+      return;
+    }
     // A selection is the reader's own text, and right-clicking it asks
     // for the browser's own menu — copy, copy link, search. Reported
     // from the field: right-clicking a highlighted passage went back a
@@ -15365,84 +15580,104 @@ document.addEventListener('DOMContentLoaded', function() {
     // (`endedADrag`) prevents on the way in. Without a selection,
     // right-click keeps its deck meaning: go back one card.
     if (String(window.getSelection())) return;
-    // A right-click inside the intent window was already consumed by
-    // the middle-then-right gesture (return to the index) — the menu must not also
-    // appear.
-    if (Date.now() < fsIntentUntil) return;
     e.preventDefault();
     // The mirror of the left button: article background goes straight to the
     // preceding slide by default; R may exchange the two directions.
     changeSlide(clickNavigationDirection(-1), isScrolling);
   });
-  // The middle button is the fullscreen gatekeeper. Browsers refuse
-  // requestFullscreen() from a non-left event (B37), so entry is a
-  // two-step gesture: middle button (arms the intent), then a LEFT click
-  // within the window (carries the gesture the browser requires). A RIGHT
-  // click within the same window returns to the index instead. A middle press while
-  // fullscreen simply exits. The WHEEL itself keeps scrolling; the ⛶ button
-  // and F keep working as direct entries.
-  var fsIntentUntil = 0;
-  var fsEntryPending = false;
-  var FS_INTENT_MS = 900;
-  document.addEventListener('mousedown', function (e) {
-    var inAbout = aboutIsOpen() && aboutOverlay.contains(e.target);
-    if (tableScrollViewport(e.target) || multiTouchActive
-        || Date.now() < multiTouchClicksUntil) return;
-    var inHelpControl = e.target && e.target.closest
-      && e.target.closest('.help-mode-control, .help-about');
-    if (helpIsOpen() && !inAbout && !inHelpControl) {
-      e.preventDefault();
-      e.stopPropagation();
+  // One physical mouse command owns its release and native follow-up events.
+  // contextmenu can precede OR follow mouseup; keep ownership until the next
+  // press of that button instead of clearing it on release or on lock changes.
+  var consumedMouseButtons = {};
+  function consumeMouseEvent(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+  function mouseCommandSurfaceBlocked(e) {
+    return helpIsOpen() || tableScrollViewport(e.target)
+      || (e.target && e.target.closest && e.target.closest(
+        '.presenter-menu, .theme-menu, .tag-menu, .share-popover, '
+        + '.share-qr-modal, .about-overlay, input, select, textarea, [contenteditable]'));
+  }
+  window.addEventListener('mousedown', function (e) {
+    delete consumedMouseButtons[e.button];
+    if (e.button !== 0 && e.button !== 1 && e.button !== 2) {
+      cancelMouseSequence();
       return;
     }
-    if (e.button === 1) {
-      e.preventDefault();
-      if (isFullscreen()) {
-        toggleFullscreen();
-      } else {
-        fsIntentUntil = Date.now() + FS_INTENT_MS;
-      }
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey
+        || multiTouchActive || Date.now() < multiTouchClicksUntil
+        || (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents)
+        || mouseCommandSurfaceBlocked(e)) {
+      cancelMouseSequence();
       return;
     }
-    if (Date.now() >= fsIntentUntil) return;
-    if (e.button === 0) {
-      // The second half of the gesture: a left click inside the
-      // intent window carries the entry. preventDefault keeps the
-      // click from also doing whatever the left button normally does
-      // on this target (advance the deck, follow a card link).
-      e.preventDefault();
-      fsIntentUntil = 0;
-      fsEntryPending = true;
-      toggleFullscreen();
-    } else if (e.button === 2) {
-      // The same intent, the other way: middle then RIGHT returns to the index.
-      // Right-click normally steps back; inside the intent window it
-      // is a deliberate second half, so it is swallowed here — and the
-      // contextmenu handler below never sees it (its own guard checks
-      // the intent window too).
-      e.preventDefault();
-      fsIntentUntil = 0;
-      if (seriesViews) goHome();
-      else window.location.href = 'index.html';
+    if (e.pointerType && e.pointerType !== 'mouse') { cancelMouseSequence(); return; }
+    // Secondary button presses are mouse evidence even when the browser
+    // reports touch as its primary device or omits MouseEvent.pointerType.
+    if (e.button === 1 || e.button === 2 || e.pointerType === 'mouse'
+        || (e.sourceCapabilities && !e.sourceCapabilities.firesTouchEvents)) {
+      notePointerInput('mouse');
+    }
+    if (!isMouseInputEvent(e)) return;
+    var action = mouseSequence.press(e.button);
+    if (action) {
+      consumedMouseButtons[e.button] = true;
+      consumeMouseEvent(e);
+      clearCardLongPress();
+      if (action === 'fullscreen') toggleFullscreen();
+      else if (action === 'pointer-lock') togglePointerLock();
+      else if (action === 'beginning-or-home') goToBeginningOrHome();
+      else if (action === 'pause-theme') togglePause('t');
+      return;
+    }
+    if (pointerIsLocked() && e.button === 2) {
+      // Pointer lock targets the root, and need not deliver contextmenu.
+      // Drive the existing navigation action directly, without aiming.
+      consumedMouseButtons[2] = true;
+      consumeMouseEvent(e);
+      changeSlide(clickNavigationDirection(-1), isScrolling);
     }
   }, true);
+  ['mouseup', 'click', 'dblclick', 'auxclick', 'contextmenu'].forEach(function (type) {
+    window.addEventListener(type, function (e) {
+      if (!isMouseInputEvent(e)) return;
+      // Programmatic and keyboard activation are not the physical suffix click.
+      if ((type === 'click' || type === 'dblclick') && !e.detail) return;
+      if (type === 'contextmenu' && e.button !== 2) return;
+      if (consumedMouseButtons[e.button]) consumeMouseEvent(e);
+    }, true);
+  });
+  // Cancellation precedes controls and shortcuts, including editable fields,
+  // modifiers and local wheel owners. It never consumes the cancelling command.
+  ['keydown', 'wheel', 'pointercancel'].forEach(function (type) {
+    window.addEventListener(type, cancelMouseSequence, {capture: true, passive: true});
+  });
+  window.addEventListener('pointerdown', function (e) {
+    notePointerInput(e.pointerType);
+  }, {capture: true, passive: true});
+  window.addEventListener('pointermove', function (e) {
+    notePointerInput(e.pointerType);
+  }, {capture: true, passive: true});
+  window.addEventListener('touchstart', function () {
+    notePointerInput('touch');
+  }, {capture: true, passive: true});
+  window.addEventListener('blur', function () {
+    cancelMouseSequence();
+    consumedMouseButtons = {};
+    releasePointerLock();
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { cancelMouseSequence(); releasePointerLock(); }
+  });
   document.addEventListener('click', function (e) {
-    // The second half of the two-step consumed this click: cancel the
-    // link navigation that would otherwise follow (the click default),
-    // so the entry does not also open the card under the pointer.
     if (cardLongPressClick) {
       if (Date.now() >= cardLongPressClick.expires) clearCardLongPressClick();
       else if (e.target !== cardLongPressClick.card || e.isTrusted) {
         clearCardLongPressClick();
         e.preventDefault();
         e.stopPropagation();
-        return;
       }
-    }
-    if (fsEntryPending) {
-      fsEntryPending = false;
-      e.preventDefault();
-      e.stopPropagation();
     }
   }, true);
 
@@ -15472,7 +15707,7 @@ document.addEventListener('DOMContentLoaded', function() {
     touchStartX = touchStartY = null;
     touchStartT = lastTapT = 0;
     touchNavigationBlocked = true;
-    fsIntentUntil = 0;
+    cancelMouseSequence();
     multiTouchClicksUntil = Date.now() + 450;
     if (!e.touches.length) multiTouchActive = false;
     return true;
@@ -15555,6 +15790,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // This lets the speaker hide all distracting chrome on a large screen.
   var navButtons = document.querySelector('.nav-buttons');
   function setNavIdle(isIdle) {
+    isIdle = !!isIdle || pointerIsLocked();
     if (navButtons) navButtons.classList.toggle('idle', isIdle);
     if (navDots) navDots.classList.toggle('idle', isIdle);
     if (slideCounter) slideCounter.classList.toggle('idle', isIdle);
@@ -15564,6 +15800,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // drag, which is exactly what should not appear on a wall behind a
     // speaker who has stopped touching the mouse.
     document.documentElement.classList.toggle('nav-idle', isIdle);
+    syncCursorVisibility();
   }
   // The root class is the one flag all four pieces share, so it is the
   // one thing to ask. Reading `.idle` off any single element would be
@@ -15640,34 +15877,30 @@ document.addEventListener('DOMContentLoaded', function() {
   function scheduleHide() {
     if (idleTimer) clearTimeout(idleTimer);
     idleTimer = null;
+    if (pointerIsLocked()) { setNavIdle(true); return; }
     idleTimer = setTimeout(function () {
       idleTimer = null;
       setNavIdle(true);
-      // Only where there is one to hide. Setting it on a touch device is
-      // harmless but says something false about what just happened.
-      if (hasFinePointer) document.body.style.cursor = 'none';
     }, getIdleDelay());
   }
-  if (hasFinePointer) {
-    document.addEventListener('mousemove', function () {
-      // Nothing is revealed here. revealChrome() decides, on the one
-      // condition that governs both: movement that has already lasted
-      // 250ms. What this handler always does is restart the countdown,
-      // so a mouse that is moving is never a mouse that has gone idle.
-      revealChrome();
-      scheduleHide();
-    });
-  } else {
-    // Nothing here reveals anything: that is the point of asking for a
-    // double tap. What a touch does do is restart the countdown while the
-    // chrome is still up, so it never fades out from under a finger that is
-    // in the middle of using it.
-    function keepAwakeOnTouch() {
-      if (!navIsIdle()) scheduleHide();
-    }
-    document.addEventListener('touchstart', keepAwakeOnTouch, { passive: true });
-    window.addEventListener('scroll', keepAwakeOnTouch, { passive: true });
+  document.addEventListener('mousemove', function (e) {
+    if (!isMouseInputEvent(e)) return;
+    // Nothing is revealed here. revealChrome() decides, on the one
+    // condition that governs both: movement that has already lasted
+    // 250ms. What this handler always does is restart the countdown,
+    // so a mouse that is moving is never a mouse that has gone idle.
+    revealChrome();
+    scheduleHide();
+  });
+  // Nothing here reveals anything: that is the point of asking for a
+  // double tap. What a touch does do is restart the countdown while the
+  // chrome is still up, so it never fades out from under a finger that is
+  // in the middle of using it.
+  function keepAwakeOnTouch() {
+    if (!lastInputWasMouse && !navIsIdle()) scheduleHide();
   }
+  document.addEventListener('touchstart', keepAwakeOnTouch, { passive: true });
+  window.addEventListener('scroll', keepAwakeOnTouch, { passive: true });
   scheduleHide();
 
   function activateSeriesView(route, push) {
@@ -15709,8 +15942,7 @@ document.addEventListener('DOMContentLoaded', function() {
     focusedCard = -1;
     touchStartX = touchStartY = null;
     lastTapT = 0;
-    fsIntentUntil = 0;
-    fsEntryPending = false;
+    cancelMouseSequence();
     closeReadingMenu(false);
     closePresenterMenu(false);
     closeThemeMenu(false);
@@ -15871,6 +16103,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 <nav class="nav-dots"></nav>
 
 <div class="pause-overlay" id="pauseOverlay"></div>
+<div class="pointer-lock-status" id="pointerLockStatus" role="status" aria-live="polite" hidden></div>
 
 <div class="slide-counter" id="slideCounter"></div>
 <div class="presenter-panel" id="presenterPanel" role="region"
@@ -15999,6 +16232,9 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
         </button>
         <button type="button" class="presenter-menu-action" id="menuHelp" data-menu-action="help" aria-keyshortcuts="H">
           {{icon_help}}<span class="presenter-menu-label" data-lwp-i18n="menu_help">{{str_menu_help}}</span><kbd>H</kbd>
+        </button>
+        <button type="button" class="presenter-menu-action" id="menuPointerLock" data-menu-action="pointer-lock" aria-pressed="false" aria-keyshortcuts="P">
+          {{icon_pointer_lock}}<span class="presenter-menu-label" data-lwp-i18n="menu_pointer_lock">{{str_menu_pointer_lock}}</span><kbd>P</kbd>
         </button>
       </div>
       <div class="presenter-menu-row">
@@ -16152,6 +16388,8 @@ NAV_ICON_PATHS = {
     'help': '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4.5 1.5c-.8.9-2 1.1-2 2.5"/>'
             '<path d="M12 16h.01"/>',
     'pause': '<path d="M8 5v14"/><path d="M16 5v14"/>',
+    'pointer_lock': '<rect x="6" y="2" width="12" height="20" rx="6"/>'
+                    '<path d="M12 2v6"/>',
 }
 
 

@@ -2438,6 +2438,13 @@ noir, W = écran blanc, T = écran de la couleur de fond du thème. Les
 l'orateur ; appuyer de nouveau sur la même touche ou n'importe quelle
 touche de navigation les lève.
 
+Mouse and keyboard navigation dismiss pause and execute their normal action.
+Opening or closing a menu does not dismiss the theme-background pause, nor do
+fullscreen, capture or an incomplete M/2M prefix. T and 2M + D share one toggle.
+Arrow/page/edge/Space navigation, a numeric jump confirmed with Enter, card or
+slide navigation, and an unmodified reading wheel command dismiss pause;
+foreground-menu navigation remains owned by that surface.
+
 Quatre touches de plus, arrivées avec l'aide, le panneau présentateur, le
 filtre de tags et le défilement : **H** ouvre et ferme l'overlay de raccourcis,
 **N** le panneau présentateur (notes de la fiche courante + fiche suivante),
@@ -2503,22 +2510,74 @@ que le lecteur vient de quitter. C'est le même modèle en mode
 présentation et en lecture — il n'y a pas de geste « double-clic » :
 il y a un clic hors défilement et un clic pendant le défilement.
 
-Le **bouton du milieu** est le gardien du plein écran : il **sort**
-du plein écran tout seul, et **entre** par un geste en deux temps —
-bouton du milieu puis **clic gauche** dans la fenêtre (le clic gauche
-porte le geste que les navigateurs exigent pour `requestFullscreen`,
-refusé depuis tout évènement souris non-gauche — B37). Le même
-deux-temps avec un **clic droit** va à l'**index**. En plein
-écran, le bouton du milieu sort sans armer de geste : le clic qui
-suit a son sens ordinaire. La molette défile hors des listes de cartes ; sur
-une liste d'index, `series-nav` ou `unit-index`, elle sélectionne la carte
-voisine sans l'ouvrir et reprend le défilement à chaque borne ; après une telle
-sélection, un appui gauche maintenu 500 ms sur la liste suit la carte
-sélectionnée, même si le pointeur est resté sur une autre carte. Tout
-déplacement de plus de 4 px, une sélection de texte, un modificateur, un
-tableau, un pointeur tactile, l'aide, une intention de plein écran ou une
-annulation de pointeur annule cet appui ; le clic court garde son sens ordinaire.
-le bouton ⛶ et F restent des entrées directes.
+**Middle-button command sequences** share one recognizer on articles and the
+series index. In the table, M means the mouse's middle button, G the left
+button and D the right button; keyboard M remains the presenter menu.
+
+| Sequence | Action |
+|---|---|
+| M + G | Toggle fullscreen, entering or leaving |
+| M + D | Request mouse capture, or release it if captured |
+| M + M | Wait for a suffix in the 2M state |
+| 2M + G | Return to the first visible slide's top; if already there, return to series home |
+| 2M + D | Toggle the theme-background pause screen, exactly like T |
+| 3M | Cancel the sequence immediately, with no action |
+
+Each accepted middle press renews a 900 ms deadline. Expiry and completed
+actions return to neutral. A keyboard key (including modifiers and keys owned
+by an input), wheel command, extra mouse button, touch/pen input, pointer
+cancellation, foreground-surface opening, focus loss or view replacement
+cancels the pending sequence before its normal command runs. Mouse movement
+never cancels it. Physical release, auxiliary-click and context-menu events
+belonging to a consumed sequence cannot also navigate, open links or trigger
+native middle-button behavior. Context-menu ordering relative to mouse release
+must not affect this ownership. Ordinary left/right navigation gains no delay.
+
+For 2M + G, being on the first slide is insufficient: its actual top must be
+reached, including when it is taller than the viewport. An in-flight return is
+finished before a later command may go home. On the index, the action returns
+to the page top. Combined HTML uses its existing series-home route, including
+the first unit when an index was omitted; multipage output uses its existing
+index destination.
+
+**Mouse capture** uses the browser's Pointer Lock API on the stable document
+root. Successful capture hides the system cursor and directs mouse events to
+the presentation, preventing mouse movement or clicks from reaching another
+screen/application. Captured left/right clicks use the same navigation actions
+as background clicks, including R's reversal; they do not depend on an
+underlying link or on the browser emitting a context-menu event. Movement does
+not reveal navigation chrome while captured. Pause does not release capture.
+
+P and the presenter menu expose the same capture action. Its pressed state
+comes from `document.pointerLockElement`, never a CSS flag or an outstanding
+request. `pointerlockchange` and `pointerlockerror` handle acknowledgements,
+external release and denied requests; both promise-returning and event-only
+browser APIs are supported. Failure is reported and does not pretend that a
+hidden cursor is captured. Escape remains the browser's unlock gesture.
+Opening a foreground menu/help/notes surface releases capture without
+cancelling pause; returning to capture requires an explicit command. Fullscreen
+exit and focus loss release capture, including a late acknowledgement of a
+cancelled request. Capture survives in-document article/index switches; a full
+page navigation or reload creates a fresh browser session.
+
+**Hybrid touch and mouse input** is classified per gesture, not by the device's
+primary `(pointer: fine)` capability. Pointer Events identify mouse, touch and
+pen input; secondary mouse-button presses also establish mouse ownership on
+browsers that omit `MouseEvent.pointerType`. A connected mouse can therefore use
+M/2M, wheel-selected card holds and movement reveal on a primary-touch device,
+without a reload. Returning to touch/pen cancels the prefix, releases mouse
+capture and restores native touch ownership. Touch-generated compatibility mouse
+events cannot enter the mouse grammar, consume a copy callout or wake mouse
+chrome. Native tap, double tap, swipe, selection, local table pan and pinch
+remain with the touch reader/browser. Capture itself requires browser Pointer
+Lock support; unsupported browsers report its unavailability. Fullscreen text
+selection suppression applies only while mouse input owns the interaction.
+
+Fullscreen and capture are independent. M + G calls fullscreen directly from
+its left-button gesture, retaining B37's Firefox constraint; the fullscreen
+button and F remain direct entries. The wheel keeps native scrolling outside
+navigation-card lists. Wheel selection and the 500 ms left hold retain their
+existing ownership rules; an M command cancels a pending card hold.
 
 En plein écran, les clics gauche et droit obéissent au même modèle
 (glissé de 200 ms, saut au clic pendant le glissé) — rien à détecter,
@@ -2544,9 +2603,9 @@ s'effaçaient seuls et un curseur restait posé au milieu du texte. Deux
 choses qui répondent à l'immobilité y répondent ensemble — et au
 mouvement aussi, voir plus bas.
 
-Entrer ou sortir du plein écran, ou cliquer dans la zone des boutons,
-révèle le chrome immédiatement : ce sont des gestes explicites, pas des
-mouvements de souris, et ils ne passent pas par cette condition.
+Outside mouse capture, entering or leaving fullscreen, or clicking the
+navigation area, reveals chrome immediately. These explicit commands do not
+wait for sustained movement; successful capture always keeps chrome hidden.
 
 **La barre de défilement fait partie de la navigation** et suit le même
 état. C'était la dernière chose à répondre au pointeur pour son compte :

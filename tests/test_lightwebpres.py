@@ -13534,7 +13534,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             r'<button type="button" class="presenter-menu-action[^>]*" '
             r'id="([^"]+)"[^>]*data-menu-action="([^"]+)"([^>]*)>(.*?)'
             r'</button>', menu, re.S)
-        self.assertEqual(len(actions), 14)
+        self.assertEqual(len(actions), 15)
         for button, action, attrs, body in actions:
             with self.subTest(action=action):
                 self.assertIn('<svg ', body, button)
@@ -13548,6 +13548,10 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                     self.assertIn('aria-keyshortcuts="I"', attrs, button)
                     self.assertIn('<kbd>I</kbd>', body, button)
                     self.assertIn('id="menuScrollValue"', body, button)
+                elif action == 'pointer-lock':
+                    self.assertIn('aria-keyshortcuts="P"', attrs, button)
+                    self.assertIn('aria-pressed="false"', attrs, button)
+                    self.assertIn('<kbd>P</kbd>', body, button)
                 else:
                     self.assertRegex(attrs, r'aria-keyshortcuts="[^"]+"', button)
                     self.assertIn('<kbd>', body, button)

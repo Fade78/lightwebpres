@@ -33,7 +33,21 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.66.7
+## Unreleased — 0.67.0
+
+Mouse middle clicks now prefix commands: middle then left toggles fullscreen,
+middle then right locks/releases the mouse, two middles then left returns to
+the beginning (or series home when already there), two middles then right
+toggles theme pause, and three middles cancel. Each middle renews a 900 ms
+window; another command cancels it without consuming that command.
+
+Mouse capture uses Pointer Lock, keeps the cursor hidden and prevents movement
+or clicks from reaching another screen. P and the presenter menu expose the
+same action; browser refusal is reported. Opening a foreground surface or
+leaving fullscreen releases capture. Reading navigation dismisses pause;
+opening or closing menus preserves it. Touch/mouse ownership follows the actual
+input, including a connected mouse on a primary-touch tablet or phone. Returning
+to touch releases capture and preserves native gestures.
 
 Tab now starts in the visible slide or article-card list even when its prior
 focus was a non-tabbable container, rather than following earlier links in DOM
