@@ -2591,7 +2591,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.67.0</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.67.1</div>
   </div>
 </div>
 
@@ -3815,6 +3815,30 @@ document.addEventListener('DOMContentLoaded', function() {
         else item.node.style.removeProperty(item.property);
       });
     }
+    function imageSize(node) {
+      var style = node.ownerDocument.defaultView.getComputedStyle(node);
+      var rect = node.getBoundingClientRect();
+      return {node: node, width: style.width, height: style.height,
+        renderedWidth: rect.width, renderedHeight: rect.height};
+    }
+    function preserveImageScale(item, factor) {
+      var rect = item.node.getBoundingClientRect();
+      if (Math.abs(rect.width - item.renderedWidth * factor) < 0.5
+          && Math.abs(rect.height - item.renderedHeight * factor) < 0.5) return [];
+      if (!(parseFloat(item.width) > 0 && parseFloat(item.height) > 0)) return [];
+      // CSS zoom does not multiply auto/percentage bounds. A responsive
+      // max-width can therefore undo the requested scale. Pin the measured
+      // local size only when that happens; the usual restore path keeps the
+      // author's units, priorities and responsive rules for the next layout.
+      var sizes = {width: item.width, height: item.height,
+        'min-width': '0px', 'min-height': '0px',
+        'max-width': 'none', 'max-height': 'none'};
+      return Object.keys(sizes).map(function (property) {
+        var original = remember(item.node, property);
+        item.node.style.setProperty(property, sizes[property], 'important');
+        return original;
+      });
+    }
     function enhanceTables(slideList, root) {
       slideList.forEach(function (slide) {
         Array.prototype.forEach.call(slide.querySelectorAll('table'), function (table) {
@@ -3933,18 +3957,24 @@ document.addEventListener('DOMContentLoaded', function() {
         objects = objects.map(function (entry) {
           var node = entry.node;
           var rect = node.getBoundingClientRect();
+          var images = entry.kind === 'image' ? (node.tagName === 'IMG'
+            ? [node] : Array.prototype.slice.call(node.querySelectorAll('img'))).map(imageSize) : [];
+          var objectWidth = Math.max.apply(null, [rect.width].concat(images.map(function (image) {
+            return image.renderedWidth;
+          })));
           var parent = node.parentElement;
           var parentStyle = getComputedStyle(parent);
           var width = parent.clientWidth - parseFloat(parentStyle.paddingLeft)
             - parseFloat(parentStyle.paddingRight);
           var maximum = 1;
           if (entry.kind === 'table' || readingSettings.object_shrink_horizontal) {
-            maximum = Math.min(maximum, width / Math.max(1, rect.width));
+            maximum = Math.min(maximum, width / Math.max(1, objectWidth));
           }
           if (entry.kind === 'image' && readingSettings.object_shrink_vertical) {
             maximum = Math.min(maximum, viewportHeight / Math.max(1, rect.height));
           }
           return {node: node, kind: entry.kind, minimum: entry.minimum,
+            images: images, imageStyles: [],
             maximum: Math.max(entry.minimum, Math.min(1, maximum)),
             zoom: parseFloat(getComputedStyle(node).zoom) || 1,
             original: remember(node, 'zoom')};
@@ -4049,7 +4079,12 @@ document.addEventListener('DOMContentLoaded', function() {
           if (kind && item.kind !== kind) return;
           var factor = Math.max(item.minimum, Math.min(item.maximum, scale));
           if (factor === 1) restore([item.original]);
-          else item.node.style.setProperty('zoom', String(item.zoom * factor), 'important');
+          else {
+            item.node.style.setProperty('zoom', String(item.zoom * factor), 'important');
+            item.images.forEach(function (image) {
+              item.imageStyles = item.imageStyles.concat(preserveImageScale(image, factor));
+            });
+          }
         });
       }
       function fits(candidate) {
@@ -4092,7 +4127,17 @@ document.addEventListener('DOMContentLoaded', function() {
       function refreshObjectBounds(candidate) {
         candidate.objects.forEach(function (item) {
           var node = item.node;
+          if (item.kind === 'image') {
+            // Remeasure responsive/relative sizes in the current fitted text
+            // context, without retaining pins from a previous solver trial.
+            restore([item.original].concat(item.imageStyles));
+            item.imageStyles = [];
+            item.images = item.images.map(function (image) { return imageSize(image.node); });
+          }
           var rect = node.getBoundingClientRect();
+          var objectWidth = Math.max.apply(null, [rect.width].concat(item.images.map(function (image) {
+            return image.renderedWidth;
+          })));
           var parent = node.parentElement;
           var parentStyle = parent.ownerDocument.defaultView.getComputedStyle(parent);
           var width = parent.clientWidth - parseFloat(parentStyle.paddingLeft)
@@ -4101,7 +4146,7 @@ document.addEventListener('DOMContentLoaded', function() {
           var objectScale = currentZoom / Math.max(0.001, item.zoom);
           var maximum = 1;
           if (item.kind === 'table' || readingSettings.object_shrink_horizontal) {
-            maximum = Math.min(maximum, width / Math.max(1, rect.width / objectScale));
+            maximum = Math.min(maximum, width / Math.max(1, objectWidth / objectScale));
           }
           if (item.kind === 'image' && readingSettings.object_shrink_vertical) {
             maximum = Math.min(maximum, height / Math.max(1, rect.height / objectScale));
@@ -4257,7 +4302,10 @@ document.addEventListener('DOMContentLoaded', function() {
           Array.prototype.forEach.call(candidate.slide.querySelectorAll('img'), function (node) {
             if (node.closest('[hidden], svg, object, button, .slide-chrome')) return;
             var style = getComputedStyle(node);
-            manualImages.push({node: node, font: style.fontSize, zoom: parseFloat(style.zoom) || 1});
+            var image = imageSize(node);
+            image.font = style.fontSize;
+            image.zoom = parseFloat(style.zoom) || 1;
+            manualImages.push(image);
           });
         });
         manualText.forEach(function (item) {
@@ -4275,6 +4323,7 @@ document.addEventListener('DOMContentLoaded', function() {
           item.node.style.setProperty('font-size', item.font, 'important');
           remember(item.node, 'zoom');
           item.node.style.setProperty('zoom', String(item.zoom * presentationZoom), 'important');
+          preserveImageScale(item, presentationZoom);
         });
       }
       if (position && !position.slide.hidden) reanchorPresentation(position);

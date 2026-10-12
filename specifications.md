@@ -3622,6 +3622,16 @@ enabled, the reader menu reports the number of visible marked slides through
 a localized polite live region. This is not a guarantee about every embedded
 object, and no notice is drawn over slide content or printed.
 
+Responsive and percentage-sized images must follow the requested factor rather
+than retaining their former displayed size because of CSS auto/percentage
+bounds. The runtime compares the scaled geometry with its measured baseline
+and temporarily pins image dimensions only when needed. Horizontal fitting
+includes image overflow beyond the figure's own box. Each subsequent fit trial
+or layout restores authored dimensions and constraints before measuring again;
+image loading, viewport changes and relative font sizing therefore use a fresh
+baseline. Original declarations and priorities also return when fitting is
+disabled at 100% and during print.
+
 **Zoom and print.** Presentation zoom changes content font sizes, line heights
 and images, not root CSS zoom. Frame widths, padding, borders and minimum
 heights retain their normal responsive geometry; foreground controls are not

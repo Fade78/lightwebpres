@@ -1666,7 +1666,12 @@ keep their normal responsive geometry; the controls neither shrink nor grow
 with presentation zoom. At 100%, native responsive sizing remains in effect.
 Long content can still grow a slide or require scrolling. Fitting is calculated
 at 100% before the manual zoom factor is applied, so zooming in can create
-overflow rather than being silently cancelled by fitting. Ctrl/Cmd+plus/minus
+overflow rather than being silently cancelled by fitting. Responsive Markdown
+images and percentage-sized images follow the same factor. When their CSS
+bounds would cancel resizing, the reader temporarily uses their measured size;
+resetting to 100% with image fitting disabled restores the original responsive
+rules. The next layout recalculates from those rules at the current viewport.
+Ctrl/Cmd+plus/minus
 and native browser pinch remain browser zoom, not a custom LWP pinch gesture.
 Browser emulation is not verification on a physical device.
 

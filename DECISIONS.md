@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 10 · **à faire** 0 · **en cours** 3 · **terminé** 59 · **abandonné** 1 · **sans objet** 3
+**à étudier** 10 · **à faire** 0 · **en cours** 4 · **terminé** 59 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -121,6 +121,7 @@ gets its own entry and its own state**, however small.
 - **B62** — Le cover Lava reste sauvegardé dans Lava hot
 - **B67** — Logical units, scoped selectors and resolution policies
 - **B72** — Mouse command sequences and actual pointer capture
+- **B73** — Responsive images obey Display settings
 
 ### terminé
 
@@ -3702,3 +3703,34 @@ It failed three checks: the two capture-freshness guards require regeneration,
 and the existing reading-controls browser check cannot launch the absent
 Chromium executable. The new native Chromium/Firefox checks were skipped for
 missing executables. This is not a fully passing or hardware-validated delivery.
+
+## B73 — Responsive images obey Display settings
+
+**État :** en cours · **Depuis :** 2026-10-12 · **Version :** 0.67.1
+
+**Reported defect.** Images on slides do not visibly resize from the D menu.
+This predates B72: CSS zoom alone does not multiply auto/percentage bounds.
+Native Markdown figures have `max-width: 100%` on their images, which can
+cancel the requested change; earlier browser checks explicitly accepted the
+unchanged size of percentage images and mostly used unconstrained fixtures.
+
+**Correction.** The private reading runtime measures the image before scaling
+and compares its resulting geometry with the requested factor. If responsive
+constraints cancel the scale, it temporarily pins the measured local size and
+removes those constraints. Existing style ownership restores source units and
+priorities before each fit trial/layout, at 100% with fitting disabled and for
+print. Width bounds include image overflow beyond a figure's box. Tables keep
+their independent fitting path, and the control shell keeps its normal size.
+
+**Validation.** A controlled-geometry regression executes the actual reading
+runtime from generated Markdown HTML: it fails before the correction and passes
+after it. It covers image fitting, percentage dimensions, authored pixel sizes
+and zoom, floors, repeated layouts, resize, reset and print restoration. Native
+browser tests now require percentage images to scale and exercise the public D
+menu on an ordinary responsive Markdown figure. Browser execution and screenshot
+regeneration remain blocked by the missing supplied browser executables, as in
+B72. The 42 executed targeted checks passed (3 native-browser skips). The
+final parallel registry discovered 1,535 tests across 236 classes with 9
+workers (222 s), with only the same three failed checks as the baseline:
+the two screenshot-freshness guards and the absent Chromium executable.
+Compilation, JavaScript syntax and reference checks passed.

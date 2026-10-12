@@ -126,9 +126,7 @@ ${marker}`) });
     for (const { factor, images } of unitMeasurements) {
       for (const [index, image] of images.entries()) {
         const baseline = unitBaseline[index];
-        // Percentage dimensions retain their existing responsive CSS-zoom
-        // behavior; the font context must not change that geometry either.
-        const scale = image.id === 'unit-percent' ? 1 : factor;
+        const scale = factor;
         assert.ok(Math.abs(image.width - baseline.width * scale) < .15
           && Math.abs(image.height - baseline.height * scale) < .15,
         'image dimensions scale once: ' + JSON.stringify(unitMeasurements));
@@ -151,7 +149,7 @@ ${marker}`) });
         await menuZoom(factor);
         const current = await unitImages();
         for (const [index, image] of current.entries()) {
-          const scale = image.id === 'unit-percent' ? 1 : factor;
+          const scale = factor;
           assert.ok(Math.abs(image.width - fittedBaseline[index].width * scale) < .15, image.id);
           assert.ok(Math.abs(image.height - fittedBaseline[index].height * scale) < .15, image.id);
         }
@@ -183,6 +181,60 @@ ${marker}`) });
     await page.keyboard.press('Escape');
     await page.$eval('#image-unit-fixture', fixture => fixture.remove());
     checks.push('public menu scales em/ex/ch/rem/percent/pixel images once, restores authored fonts and zoom, and refreshes fitted table/caption baselines');
+
+    await selectSlides(['responsive']);
+    await page.locator('#responsive img').evaluate(image => image.decode());
+    await set('text_fit', 'fixed');
+    await set('object_shrink_horizontal', false);
+    await set('object_shrink_vertical', false);
+    const responsiveImage = () => page.$eval('#responsive img', image => ({
+      width: image.getBoundingClientRect().width,
+      height: image.getBoundingClientRect().height,
+      style: image.getAttribute('style'),
+      source: image.getAttribute('src'),
+      figureWidth: image.closest('figure').getBoundingClientRect().width,
+    }));
+    const nativeImage = await responsiveImage();
+    assert.ok(nativeImage.height > 700, JSON.stringify(nativeImage));
+    await page.keyboard.press('d');
+    const resizeFromMenu = async factor => {
+      await page.locator('#readingMenu [data-menu-action="zoom-reset"]').click();
+      for (let n = 0; n < Math.round(Math.abs(factor - 1) * 10); n++) {
+        await page.locator(`#readingMenu [data-menu-action="zoom-${factor < 1 ? 'out' : 'in'}"]`).click();
+      }
+      await settle();
+    };
+    for (const factor of [.5, 2, 1]) {
+      await resizeFromMenu(factor);
+      const image = await responsiveImage();
+      assert.ok(Math.abs(image.width - nativeImage.width * factor) < .5, JSON.stringify(image));
+      assert.ok(Math.abs(image.height - nativeImage.height * factor) < .5, JSON.stringify(image));
+      assert.equal(image.source, nativeImage.source);
+      assert.ok(Math.abs(image.figureWidth - nativeImage.figureWidth) < .5,
+        'presentation zoom does not resize the figure frame');
+    }
+    assert.deepEqual(await responsiveImage(), nativeImage, 'reset restores native Markdown image sizing');
+    await page.locator('[data-reading-option="object_shrink_vertical"]').check();
+    await settle();
+    const fittedImage = await responsiveImage();
+    const fitFactor = Math.max(.85, Math.min(1, 700 / nativeImage.height));
+    assert.ok(Math.abs(fittedImage.height - nativeImage.height * fitFactor) < .5,
+      'ordinary Markdown images obey the height checkbox and author floor');
+    await resizeFromMenu(2);
+    const enlargedFit = await responsiveImage();
+    assert.ok(Math.abs(enlargedFit.height - fittedImage.height * 2) < .5);
+    await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+    assert.deepEqual(await responsiveImage(), nativeImage, 'print removes all transient image sizing');
+    await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+    await settle();
+    assert.deepEqual(await responsiveImage(), enlargedFit);
+    await resizeFromMenu(1);
+    await page.locator('[data-reading-option="object_shrink_vertical"]').uncheck();
+    await settle();
+    assert.deepEqual(await responsiveImage(), nativeImage, 'disabling image fitting restores native sizing');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    checks.push('ordinary responsive Markdown images obey D zoom and height fitting without changing frame, source or print sizing');
 
     await selectSlides(['short', 'dense']);
     await set('text_fit', 'uniform');

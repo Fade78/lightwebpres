@@ -33,7 +33,13 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.67.0
+## Unreleased — 0.67.1
+
+Display settings now resize ordinary responsive Markdown images and images
+with percentage dimensions. Automatic image fitting and manual zoom use the
+measured image size when CSS auto/percentage bounds would cancel the scale.
+Width fitting also measures images that overflow their figure. Reset, print
+and later layout passes restore authored styles and responsive sizing.
 
 Mouse middle clicks now prefix commands: middle then left toggles fullscreen,
 middle then right locks/releases the mouse, two middles then left returns to
