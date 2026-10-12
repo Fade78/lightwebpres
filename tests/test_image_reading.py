@@ -31,10 +31,27 @@ class ImageReadingRuntime(unittest.TestCase):
                 '<svg xmlns="http://www.w3.org/2000/svg" width="1000" '
                 'height="2000"><rect width="1000" height="2000"/></svg>',
                 encoding='utf-8')
+            (root / 'sources' / 'img' / 'medium.svg').write_text(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="1000" '
+                'height="900"><rect width="1000" height="900"/></svg>',
+                encoding='utf-8')
+            (root / 'sources' / 'img' / 'giant.svg').write_text(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="1000" '
+                'height="20000"><rect width="1000" height="20000"/></svg>',
+                encoding='utf-8')
             (root / 'sources' / 'images.md').write_text(
                 '<!-- lwp:meta -->\npage_title: Responsive images\n---\n\n'
                 '<!-- lwp:slide -->\nslug: image\n## Image\n\n'
-                '![Responsive image](img/image.svg)\n', encoding='utf-8')
+                '![Responsive image](img/image.svg)\n\n---\n\n'
+                '<!-- lwp:slide -->\nslug: medium\n## Medium image\n'
+                'summary: A visible heading and summary.\n'
+                'slide-footer: A footer stays readable.\n\n'
+                '![Medium image](img/medium.svg "A legible caption")\n\n---\n\n'
+                '<!-- lwp:slide -->\nslug: giant\n## Giant image\n\n'
+                '![Giant image](img/giant.svg)\n\n---\n\n'
+                '<!-- lwp:slide -->\nslug: impossible\n## Long text and an image\n\n'
+                + ('A paragraph that takes its own line.\n\n' * 45)
+                + '![Image after long text](img/medium.svg)\n', encoding='utf-8')
             output = root / 'public'
             built = run('build', root, '--output', output, env=env, cwd=ROOT)
             self.assertEqual(built.returncode, 0, built.stdout + built.stderr)

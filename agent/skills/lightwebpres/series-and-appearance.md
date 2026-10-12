@@ -259,10 +259,12 @@ the floor, not hidden.
 
 `object_shrink_horizontal` and `object_shrink_vertical` support images/figures,
 not arbitrary iframes, players or buttons. The horizontal switch bounds an
-object by its available content width; the vertical switch bounds the image or
-figure by the viewport height. The two factors combine by taking the smaller
-scale and preserve the object's aspect ratio. Surrounding prose may still span
-several screens. Presentation zoom scales content fonts, line heights and images,
+object by its available content width, down to `min_object_scale`. The vertical
+switch shrinks the images further if needed to fit the entire slide, including
+its title, captions, footer and padding; it is not limited by that minimum.
+Captions retain their type size. If text alone cannot fit, the image keeps its
+width-fitted size and the slide can scroll. Aspect ratios remain intact.
+Presentation zoom scales content fonts, line heights and images,
 not the page root or frame widths, padding, borders, minimum heights or UI.
 At 100%, native responsive sizing remains in effect. Fitting is solved at
 100% before the manual factor, so it cannot cancel magnification; long content

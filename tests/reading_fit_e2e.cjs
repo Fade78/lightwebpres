@@ -217,9 +217,9 @@ ${marker}`) });
     await page.locator('[data-reading-option="object_shrink_vertical"]').check();
     await settle();
     const fittedImage = await responsiveImage();
-    const fitFactor = Math.max(.85, Math.min(1, 700 / nativeImage.height));
-    assert.ok(Math.abs(fittedImage.height - nativeImage.height * fitFactor) < .5,
-      'ordinary Markdown images obey the height checkbox and author floor');
+    assert.ok(fittedImage.height < nativeImage.height * .5
+      && await page.$eval('#responsive', slide => slide.getBoundingClientRect().height <= 701),
+    'ordinary Markdown image and its heading fit together, below the former author floor');
     await resizeFromMenu(2);
     const enlargedFit = await responsiveImage();
     assert.ok(Math.abs(enlargedFit.height - fittedImage.height * 2) < .5);
@@ -234,7 +234,7 @@ ${marker}`) });
     assert.deepEqual(await responsiveImage(), nativeImage, 'disabling image fitting restores native sizing');
     await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
-    checks.push('ordinary responsive Markdown images obey D zoom and height fitting without changing frame, source or print sizing');
+    checks.push('ordinary responsive Markdown images fit with surrounding content, independent of the width floor, and restore for print');
 
     await selectSlides(['short', 'dense']);
     await set('text_fit', 'uniform');
@@ -381,8 +381,8 @@ ${marker}`) });
     await set('object_shrink_horizontal', false);
     await set('object_shrink_vertical', true);
     const verticalPair = await pairGeometry();
-    assert.ok(verticalPair.images.every(image => image.height <= 700.1
-      && image.height > 690 && Math.abs(image.zoom - .875) < .001),
+    assert.ok(verticalPair.slideHeight <= 701
+      && verticalPair.images.every(image => image.height < 350 && image.zoom < .5),
     JSON.stringify(verticalPair));
     await set('object_shrink_vertical', false);
     const unrestrictedPair = await pairGeometry();
@@ -396,18 +396,18 @@ ${marker}`) });
     await set('object_shrink_horizontal', true);
     await set('object_shrink_vertical', true);
     const fittedPair = await pairGeometry();
-    assert.equal(fittedPair.slideHeight, originalPair.slideHeight);
+    assert.ok(fittedPair.slideHeight <= 701, JSON.stringify(fittedPair));
     assert.equal(fittedPair.scale, 1);
     assert.equal(fittedPair.images[0].zoom, fittedPair.images[1].zoom);
-    assert.ok(fittedPair.images.every(image => image.zoom === 1
-      && image.height === 300 && image.width === 100), JSON.stringify(fittedPair));
+    assert.ok(fittedPair.images.every(image => image.zoom < 1
+      && image.height < 300 && image.width < 100), JSON.stringify(fittedPair));
     await set('text_fit', 'uniform');
-    assert.equal((await pairGeometry()).scale, .75);
+    assert.equal((await pairGeometry()).scale, 1);
     await set('object_shrink_horizontal', false);
     await set('object_shrink_vertical', false);
     await set('text_fit', 'fixed');
     assert.deepEqual(await pairGeometry(), originalPair);
-    checks.push('image width and height bounds are independent of surrounding prose');
+    checks.push('image height fitting shares available room across multiple images, preserving authored width when disabled');
 
     await page.$eval('#paired-images', el => {
       const label = document.createElement('p');
@@ -419,22 +419,22 @@ ${marker}`) });
     await set('object_shrink_horizontal', true);
     await set('object_shrink_vertical', true);
     const floorPair = await pairGeometry();
-    assert.ok(floorPair.slideHeight > 700, JSON.stringify(floorPair));
-    assert.ok(floorPair.images.every(image => image.zoom === 1));
+    assert.ok(floorPair.slideHeight <= 701, JSON.stringify(floorPair));
+    assert.ok(floorPair.images.every(image => image.zoom < 1));
     await selectSlides(['paired', 'impossible']);
     await set('text_fit', 'uniform');
     const recoveredPair = await pairGeometry();
     assert.equal(recoveredPair.scale, .75);
-    assert.ok(recoveredPair.slideHeight > 700, JSON.stringify(recoveredPair));
-    assert.ok(recoveredPair.images.every(image => image.zoom === 1
-      && image.height === 300), JSON.stringify(recoveredPair));
+    assert.ok(recoveredPair.slideHeight <= 701, JSON.stringify(recoveredPair));
+    assert.ok(recoveredPair.images.every(image => image.zoom < 1
+      && image.height < 300), JSON.stringify(recoveredPair));
     assert.ok(await page.$eval('#paired-label', el => el.getBoundingClientRect().height) <= 60.1);
     await set('text_fit', 'fixed');
     await set('object_shrink_horizontal', false);
     await set('object_shrink_vertical', false);
     await page.$eval('#paired-label', el => el.remove());
     assert.deepEqual(await pairGeometry(), originalPair);
-    checks.push('objects recover available space after a shared text floor');
+    checks.push('images still fit their own slide after a shared text floor');
 
     await page.evaluate(() => readingProbe.tag('long', false));
     await settle();
@@ -589,8 +589,8 @@ ${marker}`) });
       tableParentWidth: host.querySelector('#mixed-table').parentElement.getBoundingClientRect().width,
     }));
     assert.equal(mixedGeometry.tableZoom, 1, JSON.stringify(mixedGeometry));
-    assert.ok(Math.abs(mixedGeometry.imageZoom - .875) < .001
-      && Math.abs(mixedGeometry.imageHeight - 700) < .1, JSON.stringify(mixedGeometry));
+    assert.ok(mixedGeometry.imageZoom < .875 && mixedGeometry.imageHeight < 700
+      && mixedGeometry.slideHeight <= 701, JSON.stringify(mixedGeometry));
     await page.$eval('#mixed-image', image => {
       image.style.width = '1200px';
       image.style.height = '100px';
@@ -638,8 +638,8 @@ ${marker}`) });
       zoom: Number(getComputedStyle(host.querySelector('#relative-image')).zoom),
       height: host.querySelector('#relative-image').getBoundingClientRect().height,
     }));
-    assert.ok(Math.abs(relativeInitial.zoom - .875) < .001
-      && Math.abs(relativeInitial.height - 700) < .1, JSON.stringify(relativeInitial));
+    assert.equal(relativeInitial.zoom, 1, JSON.stringify(relativeInitial));
+    assert.equal(relativeInitial.height, 800, JSON.stringify(relativeInitial));
     await set('text_fit', 'uniform');
     const relativeFitted = await page.$eval('#relative-image-fixture', host => ({
       textSize: parseFloat(getComputedStyle(host.querySelector('#relative-image-label')).fontSize),
@@ -651,18 +651,25 @@ ${marker}`) });
     assert.equal(relativeFitted.height, 600, JSON.stringify(relativeFitted));
     await set('text_fit', 'fixed');
     await page.$eval('#relative-image-fixture', host => host.remove());
-    checks.push('relative image dimensions are remeasured after text fitting');
+    checks.push('an unsatisfiable slide keeps its image legible; relative image dimensions remeasure after text fitting');
 
     const originals = await page.$eval('#author-image', el => ({
       width: el.getAttribute('width'), height: el.getAttribute('height'), style: el.getAttribute('style'),
     }));
     await set('object_shrink_horizontal', true);
+    await set('object_shrink_vertical', false);
+    const authoredCaptionHeight = await page.$eval('#author-figure figcaption', caption =>
+      caption.getBoundingClientRect().height);
     await set('object_shrink_vertical', true);
     const objectZoom = await page.$eval('#author-figure', el => parseFloat(getComputedStyle(el).zoom));
-    assert.ok(objectZoom >= .85 && objectZoom < 1);
+    assert.ok(objectZoom > 0 && objectZoom <= 1, String(objectZoom));
+    assert.ok(await page.$eval('#author-image', el => Number(el.style.zoom) < 1));
+    assert.ok(Math.abs(await page.$eval('#author-figure figcaption', caption =>
+      caption.getBoundingClientRect().height) - authoredCaptionHeight) < 1,
+    'vertical fitting preserves the caption height');
     assert.deepEqual(await page.$eval('#author-image', el => ({
-      width: el.getAttribute('width'), height: el.getAttribute('height'), style: el.getAttribute('style'),
-    })), originals);
+      width: el.getAttribute('width'), height: el.getAttribute('height'),
+    })), {width: originals.width, height: originals.height});
     assert.equal(await page.$eval('#author-player', el => el.style.zoom), '1.1');
     await page.$eval('#author-image', el => {
       el.style.width = '100px'; el.style.height = '50px';
@@ -679,6 +686,7 @@ ${marker}`) });
     await set('object_shrink_horizontal', false);
     await set('object_shrink_vertical', false);
     assert.equal(await page.$eval('#author-figure', el => el.style.zoom), '');
+    assert.equal(await page.$eval('#author-image', el => el.getAttribute('style')), originals.style);
     await page.$eval('#author-image', el => {
       const image = el.cloneNode();
       image.id = 'standalone-image';
@@ -690,7 +698,8 @@ ${marker}`) });
       zoom: Number(el.style.zoom), width: el.style.width, height: el.style.height,
       widthAttribute: el.getAttribute('width'), heightAttribute: el.getAttribute('height'),
     }));
-    assert.ok(Math.abs(standalone.zoom - 1.2 * .85) < .001, JSON.stringify(standalone));
+    assert.ok(standalone.zoom > 0 && standalone.zoom < 1.2 * .85,
+      JSON.stringify(standalone));
     assert.equal(standalone.width, '1000px');
     assert.equal(standalone.height, '700px');
     assert.equal(standalone.widthAttribute, '1000');
@@ -886,17 +895,22 @@ ${marker}`) });
       scale: Number(document.querySelector('#dense').dataset.lwpTextScale),
       table: Number(document.querySelector('#raw-table').style.zoom),
       figure: Number(document.querySelector('#author-figure').style.zoom),
+      figureImage: Number(document.querySelector('#author-image').style.zoom),
       payload: JSON.parse(document.getElementById('lwp-reading-data').textContent),
     }));
-    assert.equal(configuredState.scale, .9);
+    assert.ok(configuredState.scale >= .9 && configuredState.scale < 1,
+      JSON.stringify(configuredState));
     assert.equal(configuredState.table, .93);
     assert.equal(configuredState.figure, .94);
+    assert.ok(configuredState.figureImage > 0 && configuredState.figureImage < 1.2,
+      JSON.stringify(configuredState));
+    assert.equal(configuredState.payload.min_object_scale, .94);
     assert.equal(configuredState.payload.text_fit, 'uniform');
     await configured.evaluate(() => readingProbe.set('table_mode', 'clip'));
     await configured.waitForFunction(() => document.documentElement.dataset.lwpTableMode === 'clip');
     assert.equal(await configured.$eval('.comparison-table', el =>
       getComputedStyle(el.parentElement).overflowX), 'clip');
-    checks.push('resolved Python payload drives configured scalar floors');
+    checks.push('configured table/text floors remain binding; vertical image fit overrides the horizontal floor');
     await configured.close();
     process.stdout.write(JSON.stringify({ checks, imageUnits: unitMeasurements.map(({ factor, images }) => ({
       factor, images: images.map(({ id, width, height }) => ({ id, width, height })),

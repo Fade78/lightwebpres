@@ -3606,17 +3606,21 @@ selected presentation/theme and authored styles.
 It recalculates after viewport resize, theme/preset or tag changes, font
 loading and image loading. This is not the audit's estimate.
 
-Fitting factors range from the configured minimum to `1`, never enlarging
-content above its baseline. Text originally at least 12 CSS pixels is not
+Text, table and width-only image fitting factors range from the configured
+minimum to `1`, never enlarging content above its baseline. Text originally at least 12 CSS pixels is not
 reduced below 12 CSS pixels; a smaller authored size is not enlarged to that
 floor. Text fitting excludes table text, which follows the independent table
 scale. Optional `table_shrink`, `object_shrink_horizontal` and
-`object_shrink_vertical` reductions have their own floor. The horizontal image
-bound uses the available content width; the vertical image bound uses one
-viewport height. When both are active, the smaller factor wins and the image
-ratio is preserved. These bounds apply to the image/figure itself, not to the
-total height of surrounding prose, so a long slide may scroll while its image
-remains visible on one screen. Supported objects are images/figures, not a
+`object_shrink_horizontal` reductions use the author's `min_object_scale` floor.
+Vertical image fitting has no author floor: it can shrink images below 10% if
+necessary to fit the rendered slide in one viewport. The browser measures its
+actual slide height, including titles, prose, figure captions, slide chrome and
+padding, and shrinks the images together to leave those elements room without
+reducing their type. When both image controls are active, the width limit is
+applied first, then the extra height reduction if needed; image ratios remain
+intact. If non-image content alone cannot fit, the browser retains the
+width-fitted image size and lets the slide scroll instead of hiding the image.
+Supported objects are images/figures, not a
 general fitting contract for iframes, media players or buttons. An unfit slide can remain at its floor,
 including a long-form article that drives a uniform group to the minimum.
 The runtime marks remaining slide overflow with `data-lwp-fit-overflow="true"`;

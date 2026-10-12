@@ -33,6 +33,15 @@ link to the originals. They are at
 
 ---
 
+## v0.67.2
+
+Reduce images to fit the available height of the whole slide, including its
+title, summary, caption, footer and padding. The height control can shrink an
+image below the author's horizontal image floor, even below 10% when needed;
+captions keep their readable size. If other content alone cannot fit, keep
+images legible and let the slide scroll. Width-only image fitting, manual zoom
+and print restoration retain their existing behavior.
+
 ## v0.67.1
 
 Display settings now resize ordinary responsive Markdown images and images

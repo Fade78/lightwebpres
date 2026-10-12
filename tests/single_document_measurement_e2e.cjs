@@ -140,19 +140,32 @@ ${body}
     })), {width: 1100, height: 700, mode: 'CSS1Compat', scripts: 0, runtime: 'undefined'});
     imageReleased = true;
     releaseImage();
-    await page.waitForFunction(() => Number(document.getElementById('intro').getAttribute('data-lwp-text-scale')) < 1);
+    await page.waitForFunction(() => {
+      const surface = document.querySelector('[data-lwp-fit-measurement]');
+      const image = surface && surface.contentDocument.querySelector('#intro img');
+      return image && image.naturalWidth === 300;
+    });
     await settle();
     const factor = await page.locator('#intro').getAttribute('data-lwp-text-scale');
-    assert(Number(factor) >= .75 && Number(factor) < 1, 'intrinsic image dimensions invalidate the prior factor');
+    assert.equal(factor, '1', 'the image shrinks to preserve readable text');
+    assert.equal(await surface.evaluate(frame => frame.contentDocument.querySelector('#intro img').style.zoom), '',
+      'the passive solver restores source styles after measuring');
     await page.evaluate(() => { location.hash = '#lwp/a/delayed.html'; });
     await settle();
     await page.waitForFunction(() => document.querySelector('#lwp-series-view img').naturalWidth === 300);
     await scope('article');
     assert.equal(await page.locator('#intro').getAttribute('data-lwp-text-scale'), factor,
       'the passive image measurement equals the real mounted article, not an estimate');
+    const mounted = await page.locator('#lwp-series-view #intro').evaluate(slide => ({
+      imageHeight: slide.querySelector('img').getBoundingClientRect().height,
+      slideHeight: slide.getBoundingClientRect().height, scrollHeight: slide.scrollHeight,
+    }));
+    assert.ok(mounted.imageHeight < 420 && mounted.slideHeight <= 700
+      && mounted.scrollHeight <= 700,
+    'mounted image shrinks while heading and prose keep their size: ' + JSON.stringify(mounted));
     assert.deepEqual(widgetRequests, []);
     assert.deepEqual(errors, []);
-    console.log('Passive measurement: all widget preflights refused without execution/requests; isolated IDs, sandbox, delayed SVG dimensions and mounted-factor equality passed.');
+    console.log('Passive measurement: widgets refused without execution/requests; isolated IDs, sandbox, delayed SVG load and mounted image fit passed.');
   } finally {
     await browser.close();
     console.log('Passive probe fixtures: ' + path.relative(root, work));

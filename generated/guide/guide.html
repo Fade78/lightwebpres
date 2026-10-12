@@ -2871,7 +2871,7 @@ button.share-action:hover:not(:disabled) {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.67.1</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.67.2</div>
   </div>
 </div>
 
@@ -4213,7 +4213,7 @@ link.decoration-color: mark
       </tr>
       <tr>
         <td>Reduce images to fit height</td>
-        <td>Independently allow bounded shrinking of supported images/figures to one viewport height; on by default, without counting surrounding prose.</td>
+        <td>Shrink images as far as needed to fit the whole slide, reserving room for titles, captions, footers and other content; on by default. If non-image content alone is too tall, the slide still scrolls. This control can shrink below the authored image minimum, unlike width-only fitting.</td>
       </tr>
     </tbody>
   </table>
@@ -6022,7 +6022,6 @@ document.addEventListener('DOMContentLoaded', function() {
       var getComputedStyle = function (node, pseudo) {
         return node.ownerDocument.defaultView.getComputedStyle(node, pseudo);
       };
-      var viewportHeight = document.documentElement.clientHeight;
       var visible = roots.filter(function (slide) {
         return !slide.hidden && getComputedStyle(slide).display !== 'none';
       });
@@ -6114,9 +6113,6 @@ document.addEventListener('DOMContentLoaded', function() {
           var maximum = 1;
           if (entry.kind === 'table' || readingSettings.object_shrink_horizontal) {
             maximum = Math.min(maximum, width / Math.max(1, objectWidth));
-          }
-          if (entry.kind === 'image' && readingSettings.object_shrink_vertical) {
-            maximum = Math.min(maximum, viewportHeight / Math.max(1, rect.height));
           }
           return {node: node, kind: entry.kind, minimum: entry.minimum,
             images: images, imageStyles: [],
@@ -6293,21 +6289,59 @@ document.addEventListener('DOMContentLoaded', function() {
           if (item.kind === 'table' || readingSettings.object_shrink_horizontal) {
             maximum = Math.min(maximum, width / Math.max(1, objectWidth / objectScale));
           }
-          if (item.kind === 'image' && readingSettings.object_shrink_vertical) {
-            maximum = Math.min(maximum, height / Math.max(1, rect.height / objectScale));
-          }
           item.maximum = Math.max(item.minimum, Math.min(1, maximum));
         });
       }
       function fitObjects(group) {
         group.forEach(function (candidate) {
           refreshObjectBounds(candidate);
-          // Image bounds are independent of the slide's total height: a long
-          // text slide may scroll while its image still fits one viewport.
+          // Width keeps the author's image floor. Height, when enabled, fits
+          // the complete rendered slide (chrome, text, caption and padding).
           applyObjects(candidate, 1, 'image');
-          // Tables use their own width bound; other slide content must not
-          // force a small table to its minimum scale.
+          // Tables keep their independent width bound; a tall slide must not
+          // shrink a small table just because it contains an image.
           applyObjects(candidate, 1, 'table');
+          if (!readingSettings.object_shrink_vertical
+              || !candidate.objects.some(function (item) {
+                return item.kind === 'image' && item.images.length;
+              })) return;
+          function heightFits() {
+            return candidate.slide.getBoundingClientRect().height <= height
+              && candidate.slide.scrollHeight <= height;
+          }
+          if (heightFits()) return;
+          function test(scale) {
+            // Release responsive image pins from the previous trial before
+            // measuring and applying the next factor. Shrink image elements,
+            // not their figures: a caption must retain its readable font.
+            refreshObjectBounds(candidate);
+            applyObjects(candidate, 1, 'image');
+            if (scale !== 1) candidate.objects.forEach(function (item) {
+              if (item.kind !== 'image') return;
+              item.images.forEach(function (image) {
+                var measured = imageSize(image.node);
+                var zoom = parseFloat(image.node.ownerDocument.defaultView.getComputedStyle(image.node).zoom) || 1;
+                item.imageStyles.push(remember(image.node, 'zoom'));
+                image.node.style.setProperty('zoom', String(zoom * scale), 'important');
+                item.imageStyles = item.imageStyles.concat(preserveImageScale(measured, scale));
+              });
+            });
+            return heightFits();
+          }
+          var low = 0.000001;
+          if (!test(low)) {
+            // Non-image content already exceeds the viewport: keep the image
+            // legible and leave the existing overflow/scroll contract intact.
+            test(1);
+            return;
+          }
+          var high = 1;
+          for (var i = 0; i < 14; i++) {
+            var middle = (low + high) / 2;
+            if (test(middle)) low = middle;
+            else high = middle;
+          }
+          test(low);
         });
       }
       function measureSeriesView(view) {
@@ -6392,9 +6426,7 @@ document.addEventListener('DOMContentLoaded', function() {
           restore(changed.splice(start));
         }
       }
-      // Image bounds are individual in both dimensions; surrounding prose does
-      // not force an image to fit the slide's total height.
-      // Spend the permitted object reduction before reducing any text.
+      // Spend image reduction before reducing text; keep tables independent.
       var seriesFactor = 1;
       if (!isIndex && seriesViews && fitScope === 'series' && readingSettings.text_fit === 'uniform') {
         var relevant = [];
