@@ -516,16 +516,19 @@ async function main() {
     });
     await nativeTabPage.goto(navArticleUrl);
     await nativeTabPage.waitForSelector('.nav-dots a');
-    await nativeTabPage.locator('#navNext').click();
-    await nativeTabPage.waitForTimeout(600);
-    await nativeTabPage.locator('#navNext').click();
+    await nativeTabPage.evaluate(() => {
+      const cover = document.querySelector('section.slide');
+      cover.setAttribute('tabindex', '-1');
+      cover.focus({preventScroll: true});
+    });
+    await press(nativeTabPage, 'PageDown');
+    await press(nativeTabPage, 'PageDown');
     await nativeTabPage.waitForTimeout(600);
     const earlierLink = await nativeTabPage.locator(
       '.slide#c5 a[href="https://example.org"]');
     if (await earlierLink.count() !== 1) {
       fail('the nav fixture must include a focusable link in the preceding slide');
     }
-    await nativeTabPage.locator('#navMenu').focus();
     await nativeTabPage.keyboard.press('Tab');
     const nativeTabTarget = await nativeTabPage.evaluate(() => ({
       href: document.activeElement.getAttribute('href'),
@@ -543,10 +546,14 @@ async function main() {
     tabPage.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
     await tabPage.goto(navArticleUrl);
     await tabPage.waitForSelector('.nav-dots a');
+    await tabPage.evaluate(() => {
+      const cover = document.querySelector('section.slide');
+      cover.setAttribute('tabindex', '-1');
+      cover.focus({preventScroll: true});
+    });
     await press(tabPage, 'PageDown');
     await press(tabPage, 'PageDown');
     await tabPage.waitForTimeout(600);
-    await tabPage.locator('#navMenu').focus();
     await tabPage.keyboard.press('Tab');
     const tabTarget = await tabPage.evaluate(() => ({
       href: document.activeElement.getAttribute('href'),

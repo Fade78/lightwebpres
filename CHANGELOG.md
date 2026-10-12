@@ -33,6 +33,12 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.66.7
+
+Tab now starts in the visible slide or article-card list even when its prior
+focus was a non-tabbable container, rather than following earlier links in DOM
+order.
+
 ## v0.66.6
 
 Tab enters focusable content in the slide in view before links in other slides;

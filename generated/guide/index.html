@@ -2848,7 +2848,7 @@ button.share-action:hover:not(:disabled) {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.66.6</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.66.7</div>
   </div>
 </div>
 
@@ -5808,6 +5808,27 @@ document.addEventListener('DOMContentLoaded', function() {
     )).filter(function (element) { return element.getClientRects().length > 0; });
   }
 
+  function nextTabStop(stops, active, direction) {
+    var index = stops.indexOf(active);
+    if (index >= 0) return stops[index + direction] || null;
+    if (!active || active === document.body
+        || active === document.documentElement) {
+      return stops[direction < 0 ? stops.length - 1 : 0] || null;
+    }
+    if (direction > 0) {
+      for (var i = 0; i < stops.length; i++) {
+        if (active.compareDocumentPosition(stops[i])
+            & Node.DOCUMENT_POSITION_FOLLOWING) return stops[i];
+      }
+    } else {
+      for (var j = stops.length - 1; j >= 0; j--) {
+        if (active.compareDocumentPosition(stops[j])
+            & Node.DOCUMENT_POSITION_PRECEDING) return stops[j];
+      }
+    }
+    return null;
+  }
+
   // A page-wide Tab order can land on links in earlier, offscreen slides
   // before it reaches the links on the slide the reader is viewing. On the
   // index it can start above the visible cards. Enter the current reading
@@ -5828,11 +5849,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (!sectionStops.length) return false;
     var pageStops = focusablesWithin(document.body);
-    var currentStop = pageStops.indexOf(document.activeElement);
     var direction = event.shiftKey ? -1 : 1;
-    var nextStop = currentStop < 0
-      ? pageStops[direction < 0 ? pageStops.length - 1 : 0]
-      : pageStops[currentStop + direction];
+    var nextStop = nextTabStop(pageStops, document.activeElement, direction);
     if (isIndex) {
       var nextCard = nextStop && nextStop.closest
         ? nextStop.closest('.article-card') : null;
