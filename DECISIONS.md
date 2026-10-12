@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 10 · **à faire** 0 · **en cours** 4 · **terminé** 59 · **abandonné** 1 · **sans objet** 3
+**à étudier** 11 · **à faire** 1 · **en cours** 3 · **terminé** 60 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -115,13 +115,17 @@ gets its own entry and its own state**, however small.
 - **B64** — Historical fact-heading report needs its original case
 - **B65** — The historical pop-rose proposal has no recorded disposition
 - **B66** — Unreconciled archive design options remain deferred
+- **B74** — Windows 4K display scaling loses presentation geometry
+
+### à faire
+
+- **B75** — Plain slide images should not swallow navigation clicks
 
 ### en cours
 
 - **B62** — Le cover Lava reste sauvegardé dans Lava hot
 - **B67** — Logical units, scoped selectors and resolution policies
 - **B72** — Mouse command sequences and actual pointer capture
-- **B73** — Responsive images obey Display settings
 
 ### terminé
 
@@ -184,6 +188,7 @@ gets its own entry and its own state**, however small.
 - **B69** — Canonical theme-resource index and appearance resolution
 - **B70** — Publication planning and revision-bound GitLab snapshots
 - **B71** — Author chrome independent of Identity Kits
+- **B73** — Responsive images obey Display settings
 
 ### abandonné
 
@@ -3688,7 +3693,7 @@ compatibility mouse events stay outside command/capture ownership. Returning to
 touch/pen releases capture. Controlled-runtime and emulated-browser tests cover
 this switch; physical mobile/browser API support still needs verification.
 
-**Validation still open.** Generated-runtime tests exercise the grammar, native
+**Validation on the original 2026-10-12 ChatGPT Work environment was open.** Generated-runtime tests exercise the grammar, native
 follow-up event ownership and asynchronous capture lifecycle with controlled
 acknowledgements. Native Chromium and Firefox tests are supplied, but their
 executables are unavailable in this workspace. Physical two-screen validation
@@ -3704,9 +3709,22 @@ and the existing reading-controls browser check cannot launch the absent
 Chromium executable. The new native Chromium/Firefox checks were skipped for
 missing executables. This is not a fully passing or hardware-validated delivery.
 
+**Follow-up on the devint host, 2026-10-12.** Native Chromium and Firefox tests
+now run and pass separately for both multipage and single-document output,
+including real fullscreen and Pointer Lock transitions. An Escape used to close
+a menu may also exit Firefox fullscreen, so the native test checks the actual
+browser state before asking MG to toggle it. It waits for the corresponding
+browser event and for the visible capture state, not just for an API request.
+The existing chrome and reading-controls browser tests also pass after keeping
+black/white pause isolation separate from theme pause and using one display
+state synchronizer for fullscreen and pointer-lock notifications. The product
+and documentation captures were regenerated and their input/image hashes
+match. Physical two-screen and real mobile-hardware behavior remain untested;
+this entry stays open for those checks.
+
 ## B73 — Responsive images obey Display settings
 
-**État :** en cours · **Depuis :** 2026-10-12 · **Version :** 0.67.1
+**État :** terminé · **Depuis :** 2026-10-12 · **Version :** 0.67.1
 
 **Reported defect.** Images on slides do not visibly resize from the D menu.
 This predates B72: CSS zoom alone does not multiply auto/percentage bounds.
@@ -3734,3 +3752,45 @@ final parallel registry discovered 1,535 tests across 236 classes with 9
 workers (222 s), with only the same three failed checks as the baseline:
 the two screenshot-freshness guards and the absent Chromium executable.
 Compilation, JavaScript syntax and reference checks passed.
+
+**Follow-up on the devint host, 2026-10-12.** The image fixtures were corrected
+to use `sources/img/`, the path that is actually copied into built output.
+The Display settings tests now pass in Chromium and Firefox on a decoded
+ordinary Markdown figure, for manual zoom, vertical fitting, reset and print.
+The runtime restores the absence of an inline `style` attribute when the
+author supplied none, in addition to the existing property and priority
+restoration. Both capture generators have run and their check modes pass.
+Windows 4K scaling remains a separate, unverified report (B74), not a claimed
+consequence of this image correction.
+
+## B74 — Windows 4K display scaling loses presentation geometry
+
+**État :** à étudier · **Depuis :** 2026-10-12
+
+**Owner report, not reproduced.** With a 4K external monitor at 300% Windows
+display scaling, slides no longer fit one screen. Switching to 100% leaves
+presenter menus too narrow (one or two letters per button line, unnaturally
+tall buttons), and table cell lines nearly overlap. At 200% the view returns
+to normal, with roughly the same logical viewing area as the laptop's 1080p
+screen. Moving between scales appears to lose layout reference points.
+
+**Investigation needed.** Reproduce the monitor/Windows/browser transition
+before attributing the problem to CSS units, stored presentation zoom, the
+resize/reanchor logic, or the reading fit cache. Record the actual viewport
+CSS dimensions, devicePixelRatio, visual viewport, slide and table geometry,
+menu widths and font/line heights at each scale and after moving displays.
+Neither a 4K viewport alone nor the responsive-image correction in B73 proves
+this case. No fix or physical-device check is claimed here.
+
+## B75 — Plain slide images should not swallow navigation clicks
+
+**État :** à faire · **Depuis :** 2026-10-12
+
+**Owner decision.** A normal image can occupy almost an entire slide. A left
+click on that image should advance just like a left click on the slide ground,
+unless the image or its containing control has its own explicit action.
+Linked images, buttons and any future interactive image must keep their own
+activation. Do not change native touch, text selection or intentional drags,
+nor the bounded clicks on locally scrolling tables. Distinguish plain images
+from interactive ancestors in a browser test before changing `isInteractive`;
+this request is recorded for a separate change, not implemented by B72/B73.

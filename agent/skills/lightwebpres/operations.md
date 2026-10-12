@@ -168,6 +168,12 @@ controls. **C** opens Appearance when a real kit is published, otherwise Theme
 when theme alternatives are available; **L** selects tags when available,
 **N** toggles the speaker panel, **I** toggles scrolling duration and **R**
 reverses only the left/right background-click navigation direction.
+For a mouse used as a presenter remote, middle then left toggles fullscreen,
+middle then right toggles Pointer Lock, two middles then left return to the
+beginning (then series contents), two middles then right toggle theme pause,
+and three middles cancel. Each middle press renews the 900 ms sequence window;
+**P** and the presenter menu also toggle mouse capture. Touch retains its
+own gestures. See the guide's **Present with a mouse as a remote** section.
 Check the active tag and browser-persisted choices when reproducing a view.
 
 **Menu > Display settings** (**Affichage** in French) opens the

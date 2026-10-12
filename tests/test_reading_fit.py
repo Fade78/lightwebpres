@@ -97,7 +97,7 @@ slug: objects
 slug: responsive
 ## Ordinary Markdown image
 
-![Responsive image](responsive.svg)
+![Responsive image](img/responsive.svg)
 
 ---
 <!-- lwp:slide -->
@@ -129,7 +129,8 @@ article: long.md
                 '# Long article\n\n' + '\n\n'.join(['Paragraph of long-form prose.'] * 55),
                 encoding='utf-8')
             (root / 'sources' / 'reading.md').write_text(article, encoding='utf-8')
-            (root / 'sources' / 'responsive.svg').write_text(
+            (root / 'sources' / 'img').mkdir()
+            (root / 'sources' / 'img' / 'responsive.svg').write_text(
                 '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="2000">'
                 '<rect width="1000" height="2000" fill="gray"/></svg>', encoding='utf-8')
             (root / 'templates' / 'custom.css').write_text(

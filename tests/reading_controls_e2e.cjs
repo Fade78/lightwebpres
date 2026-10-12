@@ -303,17 +303,35 @@ async function run() {
       await page.mouse.move(Math.min(550, width - 1), 400);
       await page.mouse.wheel(0, 400);
       await settle();
-      assert.deepEqual(await page.evaluate(() => ({
+      const afterThemeWheel = await page.evaluate(() => ({
         y: window.scrollY,
         active: Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'))
           .findIndex(d => d.classList.contains('active')),
-      })), pausedPosition, 'pause screen must hold the hidden deck position');
+      }));
+      assert.equal(await page.locator('#pauseOverlay.open').count(), 0,
+        'an unmodified reading wheel dismisses theme pause');
+      assert.ok(afterThemeWheel.y > pausedPosition.y,
+        'the same wheel gesture must continue scrolling the revealed page');
       await page.keyboard.press('t');
       await page.keyboard.press('b');
       assert.equal(await page.evaluate(() =>
         getComputedStyle(document.getElementById('pauseOverlay')).backgroundColor),
       'rgb(0, 0, 0)', 'black pause screen must be black');
-      await page.keyboard.press('b');
+      const blackPosition = await page.evaluate(() => window.scrollY);
+      await page.mouse.wheel(0, 400);
+      await settle();
+      assert.equal(await page.locator('#pauseOverlay.open').count(), 1,
+        'black pause retains its previous wheel ownership');
+      assert.equal(await page.evaluate(() => window.scrollY), blackPosition,
+        'a wheel on black pause must not move the hidden page');
+      const blackSlide = await page.evaluate(() => Array.from(document.querySelectorAll('.nav-dots a'))
+        .findIndex(dot => dot.classList.contains('active')));
+      await page.keyboard.press('PageDown');
+      assert.equal(await page.locator('#pauseOverlay.open').count(), 0,
+        'the first navigation key dismisses black pause');
+      assert.equal(await page.evaluate(() => Array.from(document.querySelectorAll('.nav-dots a'))
+        .findIndex(dot => dot.classList.contains('active'))), blackSlide,
+      'black pause must consume its dismissal key, not advance the slide');
       await page.keyboard.press('w');
       assert.equal(await page.evaluate(() =>
         getComputedStyle(document.getElementById('pauseOverlay')).backgroundColor),

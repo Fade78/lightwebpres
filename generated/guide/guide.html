@@ -4358,12 +4358,7 @@ note: Mention the 2020 study — the audience asked for it last time.
   </code></pre>
   <p>The <code>note:</code> value is embedded in the HTML as a hidden element and displayed by the presenter panel. Anyone with the page can open the panel or inspect its source: do not put confidential content in <code>note:</code>.</p>
   <p>A <code>note:</code> may run over several lines: any line that starts with whitespace continues the note, and an indented blank line marks a paragraph break. The block ends at the first non-indented, non-empty line (the next field or the slide's body), so the continuation lines are never captured as slide content.</p>
-<h3 id="printing-and-pdf" tabindex="-1">Printing and PDF</h3>
-  <p><strong>Print</strong> from the browser (Ctrl/Cmd+P) and choose "Save as PDF". Slides start on separate sheets, navigation chrome is stripped, and print styles preserve the active theme colors. Print content is not constrained to the screen's viewport height; a long slide can span several sheets. Table viewports expand without screen clipping or local scroll limits, and runtime fitting scales and presentation zoom are cleared for print. The screen choices return afterwards; print expansion does not guarantee that a wide table fits the physical paper.</p>
-  <p>In combined-HTML series output, printing includes only the active article with its current tag filter, never the whole collection. If the series contents view is active, only those contents print. Switch to the intended article before opening print preview.</p>
-  <p>For black ink on white, press <strong>C</strong> and select <strong>Print Ink</strong> before opening the print dialog. It is included by default in the essential theme bundle; printing does not switch to it automatically.</p>
-  <p>Check print preview before sending the PDF: the selected variant, the longest card and its notes, a wide table, image captions and long-form page breaks. Browser paper size, margins, scaling and background-printing settings affect the result. If a card overflows, try another orientation or scale; ask the author to shorten or split it if essential text still does not fit. Do not assume a long-form article fits on one physical sheet.</p>
-<h3 id="mouse" tabindex="-1">Mouse</h3>
+<h3 id="present-with-a-mouse-as-a-remote" tabindex="-1">Present with a mouse as a remote</h3>
   <div class="lwp-table-viewport">
   <table class="comparison-table">
     <thead>
@@ -4424,8 +4419,13 @@ note: Mention the 2020 study — the audience asked for it last time.
   <p>Each middle press renews a <strong>900 ms</strong> sequence window. A lone middle press has no action; an expired prefix returns to normal clicks. Keyboard input (including modifiers and editable fields), wheel commands, extra buttons, touch/pen input, cancellation, a menu opening or focus loss cancels the pending sequence before its usual action. Mouse movement does not cancel it.</p>
   <p>Mouse locking uses the browser's <strong>Pointer Lock</strong> API: the cursor stays hidden, movement cannot take clicks to a second screen, and clicks navigate without activating content links. The menu's <strong>Lock mouse</strong> action and <strong>P</strong> use the same command. Opening menus/help/notes releases the mouse; use the command again to capture it. Escape releases capture, and fullscreen exit also releases it. The browser may refuse capture; LWP reports failure instead of claiming that CSS hiding immobilized the mouse. Capture survives article switches within one combined HTML; a full page navigation starts a fresh session.</p>
   <p>On a tablet or phone with a mouse connected, LWP uses the actual input event, so the mouse commands work even when the browser still reports touch as its primary pointer. Switching back to a finger releases mouse capture and retains tap, double tap, swipe, selection and pinch behavior. Touch-generated mouse compatibility events do not arm sequences or reveal mouse chrome. Pointer Lock availability still depends on the browser.</p>
-  <p>Two middles then left uses actual position: a scrolled first slide returns to its own top before a later command may go to the index. On the index it simply returns to the page top. Two middles then right and <strong>T</strong> share one pause toggle. Mouse or keyboard navigation dismisses pause and continues its usual action; opening or closing the menu preserves it. Prefix presses, fullscreen and mouse capture also preserve pause.</p>
+  <p>Two middles then left uses actual position: a scrolled first slide returns to its own top before a later command may go to the index. On the index it simply returns to the page top. Two middles then right and <strong>T</strong> share one pause toggle. Mouse or keyboard navigation dismisses <strong>theme</strong> pause and continues its usual action; opening or closing the menu preserves it. Prefix presses, fullscreen and mouse capture also preserve theme pause. The black and white screens retain their earlier behavior: the first navigation key dismisses without moving the slide, and the wheel cannot scroll the hidden page.</p>
   <p>Outside navigation lists, the wheel keeps scrolling; the ⛶ button and F stay direct fullscreen entries. The cursor and navigation hide after 1 second of idleness in fullscreen, or 3 seconds in regular reading. Sustained movement can reveal them only while the mouse is released. A left click on an existing selection just dismisses the highlight — no step — and a right-click on a selection opens the browser's own menu, the deck stepping aside. Two clicks in quick succession are two steps: the deck never treats a double click as anything else.</p>
+<h3 id="printing-and-pdf" tabindex="-1">Printing and PDF</h3>
+  <p><strong>Print</strong> from the browser (Ctrl/Cmd+P) and choose "Save as PDF". Slides start on separate sheets, navigation chrome is stripped, and print styles preserve the active theme colors. Print content is not constrained to the screen's viewport height; a long slide can span several sheets. Table viewports expand without screen clipping or local scroll limits, and runtime fitting scales and presentation zoom are cleared for print. The screen choices return afterwards; print expansion does not guarantee that a wide table fits the physical paper.</p>
+  <p>In combined-HTML series output, printing includes only the active article with its current tag filter, never the whole collection. If the series contents view is active, only those contents print. Switch to the intended article before opening print preview.</p>
+  <p>For black ink on white, press <strong>C</strong> and select <strong>Print Ink</strong> before opening the print dialog. It is included by default in the essential theme bundle; printing does not switch to it automatically.</p>
+  <p>Check print preview before sending the PDF: the selected variant, the longest card and its notes, a wide table, image captions and long-form page breaks. Browser paper size, margins, scaling and background-printing settings affect the result. If a card overflows, try another orientation or scale; ask the author to shorten or split it if essential text still does not fit. Do not assume a long-form article fits on one physical sheet.</p>
 <h3 id="touch-phone-tablet" tabindex="-1">Touch (phone, tablet)</h3>
   <div class="lwp-table-viewport">
   <table class="comparison-table">
@@ -5938,11 +5938,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function remember(node, property) {
       var properties = originals.get(node);
-      if (!properties) { properties = new Map(); originals.set(node, properties); }
+      if (!properties) {
+        properties = new Map();
+        properties.hadStyleAttribute = !!(node.hasAttribute && node.hasAttribute('style'));
+        originals.set(node, properties);
+      }
       if (properties.has(property)) return properties.get(property);
       var item = {node: node, property: property,
         value: node.style.getPropertyValue(property),
-        priority: node.style.getPropertyPriority(property)};
+        priority: node.style.getPropertyPriority(property),
+        hadStyleAttribute: properties.hadStyleAttribute};
       changed.push(item);
       properties.set(property, item);
       return item;
@@ -5951,6 +5956,8 @@ document.addEventListener('DOMContentLoaded', function() {
       items.forEach(function (item) {
         if (item.value) item.node.style.setProperty(item.property, item.value, item.priority);
         else item.node.style.removeProperty(item.property);
+        if (item.hadStyleAttribute === false && item.node.getAttribute
+            && item.node.getAttribute('style') === '') item.node.removeAttribute('style');
       });
     }
     function imageSize(node) {
@@ -8349,8 +8356,16 @@ document.addEventListener('DOMContentLoaded', function() {
   // gesture may move the deck behind it.
   document.addEventListener('wheel', function (e) {
     var surface = modalWheelSurface();
-    // Foreground scrolling and native zoom retain their own meanings.
-    if (!surface && !e.ctrlKey && !e.metaKey && (e.deltaX || e.deltaY)) closePause();
+    // Black and white screens retain the earlier pause contract: a wheel
+    // must not scroll the hidden page. Theme pause instead yields to reading
+    // gestures, while modal scrolling and browser zoom keep their owners.
+    if (!surface && pauseOverlay && pauseOverlay.classList.contains('open')) {
+      if (pauseOverlay.dataset.pauseKind !== 't') {
+        e.preventDefault();
+        return;
+      }
+      if (!e.ctrlKey && !e.metaKey && (e.deltaX || e.deltaY)) closePause();
+    }
     if (surface) {
       var deltaX = e.deltaX || (e.shiftKey ? e.deltaY : 0);
       var deltaY = e.shiftKey ? 0 : e.deltaY;
@@ -9401,12 +9416,17 @@ document.addEventListener('DOMContentLoaded', function() {
      }
      return;
     }
-    // Pause is independent from foreground menus and presentation settings.
-    // Navigation dismisses it and continues through the normal reading path.
+    // Theme pause is independent from foreground menus and settings: reading
+    // dismisses it and continues. Black/white pauses consume the first key
+    // that dismisses them, as they did before the mouse-command grammar.
     if (pauseOverlay && pauseOverlay.classList.contains('open')) {
       if (e.key === 'b' || e.key === 'B' || e.key === 'w' || e.key === 'W'
           || e.key === 't' || e.key === 'T') {
         togglePause(e.key);
+        e.preventDefault();
+        return;
+      } else if (pauseOverlay.dataset.pauseKind !== 't') {
+        closePause();
         e.preventDefault();
         return;
       } else if (isPauseNavigationKey(e)) {
@@ -9965,19 +9985,26 @@ document.addEventListener('DOMContentLoaded', function() {
     setNavIdle(false);
     scheduleHide();
   }
-  document.addEventListener('pointerlockchange', function () {
-    pointerRequestPending = false;
-    cancelMouseSequence();
+  // One browser-confirmed display state paints chrome for both fullscreen
+  // and mouse capture. Wake lock belongs only to fullscreen transitions.
+  function syncDisplayState() {
     var locked = pointerIsLocked();
-    if (locked) window.getSelection().removeAllRanges();
+    var fullscreen = !!currentFullscreenElement();
+    if (locked || fullscreen) window.getSelection().removeAllRanges();
     document.documentElement.classList.toggle('mouse-locked', locked);
+    document.body.classList.toggle('fs-noselect', fullscreen && lastInputWasMouse);
     updatePointerLockUI();
     fsMoveStart = fsLastMove = 0;
     setNavIdle(locked);
     scheduleHide();
+  }
+  document.addEventListener('pointerlockchange', function () {
+    pointerRequestPending = false;
+    cancelMouseSequence();
+    syncDisplayState();
     // A menu, blur or fullscreen exit may have cancelled a request before
     // the browser acknowledged it. Release that late capture immediately.
-    if (locked && pointerRequestCancelled) releasePointerLock();
+    if (pointerIsLocked() && pointerRequestCancelled) releasePointerLock();
   });
   document.addEventListener('pointerlockerror', pointerLockFailed);
   updatePointerLockUI();
@@ -10039,18 +10066,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function handleFullscreenChange() {
     cancelMouseSequence();
-    setNavIdle(false);
     var fs = currentFullscreenElement();
     if (fs) {
-      window.getSelection().removeAllRanges();
-      document.body.classList.toggle('fs-noselect', lastInputWasMouse);
       requestWakeLock();
     } else {
       releasePointerLock();
-      document.body.classList.remove('fs-noselect');
       releaseWakeLock();
     }
-    scheduleHide();
+    syncDisplayState();
   }
   document.addEventListener('fullscreenchange', handleFullscreenChange);
   document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
@@ -10396,7 +10419,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // swallowClicksUntil.
     if (Date.now() < swallowClicksUntil) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) {
-      if (e.button === 0) changeSlide(clickNavigationDirection(1), isScrolling);
+      if (pauseOverlay.dataset.pauseKind === 't' && e.button === 0) {
+        changeSlide(clickNavigationDirection(1), isScrolling);
+      } else if (pauseOverlay.dataset.pauseKind !== 't') closePause();
       return;
     }
     // A popover or dialog is open and the reader clicks outside it: the
@@ -10469,8 +10494,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if ((contextPointerType && contextPointerType !== 'mouse')
         || (!contextPointerType && !isMouseInputEvent(e))) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) {
-      e.preventDefault();
-      changeSlide(clickNavigationDirection(-1), isScrolling);
+      if (pauseOverlay.dataset.pauseKind === 't') {
+        e.preventDefault();
+        changeSlide(clickNavigationDirection(-1), isScrolling);
+      }
       return;
     }
     // A selection is the reader's own text, and right-clicking it asks

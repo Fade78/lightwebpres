@@ -26,14 +26,15 @@ class ImageReadingRuntime(unittest.TestCase):
                 'series_meta': {'title': 'Responsive images'},
                 'articles': [{'page_source': 'images.md'}],
             }), encoding='utf-8')
-            (root / 'sources' / 'image.svg').write_text(
+            (root / 'sources' / 'img').mkdir()
+            (root / 'sources' / 'img' / 'image.svg').write_text(
                 '<svg xmlns="http://www.w3.org/2000/svg" width="1000" '
                 'height="2000"><rect width="1000" height="2000"/></svg>',
                 encoding='utf-8')
             (root / 'sources' / 'images.md').write_text(
                 '<!-- lwp:meta -->\npage_title: Responsive images\n---\n\n'
                 '<!-- lwp:slide -->\nslug: image\n## Image\n\n'
-                '![Responsive image](image.svg)\n', encoding='utf-8')
+                '![Responsive image](img/image.svg)\n', encoding='utf-8')
             output = root / 'public'
             built = run('build', root, '--output', output, env=env, cwd=ROOT)
             self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
@@ -46,3 +47,13 @@ class ImageReadingRuntime(unittest.TestCase):
                 self.skipTest('Node unavailable in the supplied environment')
             self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
             self.assertIn('Image reading runtime checks passed', check.stdout)
+
+            browser = subprocess.run(
+                ['node', str(ROOT / 'tests' / 'image_reading_browser.cjs'),
+                 (output / 'images.html').as_uri()], cwd=ROOT, env=env,
+                capture_output=True, text=True, timeout=90)
+            if browser.returncode == 77:
+                self.skipTest(browser.stderr.strip())
+            self.assertEqual(browser.returncode, 0, browser.stdout + browser.stderr)
+            for engine in ('chromium', 'firefox'):
+                self.assertIn(engine + ': responsive image controls passed', browser.stdout)

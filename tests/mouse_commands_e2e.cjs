@@ -34,6 +34,12 @@ const playwright = require('playwright');
       const sequence = async buttons => {
         for (const button of buttons) await press({M: 'middle', G: 'left', D: 'right'}[button]);
       };
+      const fullscreenTransition = () => page.evaluate(() => new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(Error('no fullscreenchange in 5 seconds')), 5000);
+        document.addEventListener('fullscreenchange', () => {
+          clearTimeout(timeout); resolve();
+        }, {once: true});
+      }));
       const pauseOpen = () => page.locator('#pauseOverlay').evaluate(node => node.classList.contains('open'));
       const current = () => page.evaluate(() => [...document.querySelectorAll('.nav-dots a')]
         .findIndex(node => node.classList.contains('active')));
@@ -99,18 +105,40 @@ const playwright = require('playwright');
       await sequence('MMG');
       await page.waitForFunction(() => document.body.classList.contains('index-page'));
       await openArticle();
+      let transition = fullscreenTransition();
       await sequence('MG');
+      await transition;
       await page.waitForFunction(() => !!document.fullscreenElement);
+      transition = fullscreenTransition();
       await sequence('MG');
-      await page.waitForFunction(() => !document.fullscreenElement);
+      await transition;
+      try {
+        await page.waitForFunction(() => !document.fullscreenElement, null, {timeout: 3000});
+      } catch (error) {
+        throw new Error('MG did not leave fullscreen: ' + JSON.stringify(await page.evaluate(() => ({
+          fullscreen: !!document.fullscreenElement, lock: !!document.pointerLockElement,
+          menu: !!document.querySelector('.presenter-menu.open'),
+          focus: document.activeElement.tagName, cursor: document.body.style.cursor,
+        }))));
+      }
       assert.equal(await current(), 0, 'fullscreen suffix clicks do not navigate');
       // Call the actual API from real input, not a success stub.
+      transition = fullscreenTransition();
       await sequence('MG');
-      await page.waitForFunction(() => !!document.fullscreenElement);
+      await transition;
+      try {
+        await page.waitForFunction(() => !!document.fullscreenElement, null, {timeout: 3000});
+      } catch (error) {
+        throw new Error('MG did not re-enter fullscreen: ' + JSON.stringify(await page.evaluate(() => ({
+          fullscreen: !!document.fullscreenElement, lock: !!document.pointerLockElement,
+          focus: document.hasFocus(), menu: !!document.querySelector('.presenter-menu.open'),
+        }))));
+      }
       await sequence('MD');
       await page.waitForFunction(() => document.pointerLockElement === document.documentElement,
         null, {timeout: 5000});
-      assert.equal(await page.locator('#menuPointerLock').getAttribute('aria-pressed'), 'true');
+      await page.waitForFunction(() => document.getElementById('menuPointerLock')
+        .getAttribute('aria-pressed') === 'true', null, {timeout: 5000});
       for (let i = 0; i < 8; i++) {
         await page.mouse.move(1200 + i * 100, 1000 + i * 50);
         await page.waitForTimeout(50);
@@ -141,12 +169,37 @@ const playwright = require('playwright');
           'the stable combined-document root retains capture across view replacement');
       }
       await sequence('MD');
-      await page.waitForFunction(() => !document.pointerLockElement);
+      await page.waitForFunction(() => !document.pointerLockElement
+        && document.body.style.cursor !== 'none');
       assert.equal(await page.evaluate(() => document.body.style.cursor), '', 'unlock reveals immediately');
       await sequence('MD');
       await page.waitForFunction(() => !!document.pointerLockElement);
+      // Firefox may leave fullscreen on the Escape that closes the menu.
+      // Capture does not imply fullscreen: toggle from the actual state.
+      const fullscreenBefore = await page.evaluate(() => !!document.fullscreenElement);
+      transition = fullscreenTransition();
       await sequence('MG');
-      await page.waitForFunction(() => !document.fullscreenElement && !document.pointerLockElement);
+      await transition;
+      try {
+        await page.waitForFunction(before =>
+          !!document.fullscreenElement !== before && !document.pointerLockElement,
+          fullscreenBefore, {timeout: 5000});
+      } catch (error) {
+        const state = await page.evaluate(() => ({
+          fullscreen: !!document.fullscreenElement,
+          pointerLock: !!document.pointerLockElement,
+          menuOpen: !!document.querySelector('.presenter-menu.open'),
+          activeView: document.body.className,
+        }));
+        throw new Error('MG did not toggle fullscreen and release capture: '
+          + JSON.stringify({state, combined, fullscreenBefore}));
+      }
+      if (!fullscreenBefore) {
+        transition = fullscreenTransition();
+        await sequence('MG');
+        await transition;
+        await page.waitForFunction(() => !document.fullscreenElement);
+      }
       assert.deepEqual(errors, []);
       await page.close();
     }

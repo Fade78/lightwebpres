@@ -3800,11 +3800,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function remember(node, property) {
       var properties = originals.get(node);
-      if (!properties) { properties = new Map(); originals.set(node, properties); }
+      if (!properties) {
+        properties = new Map();
+        properties.hadStyleAttribute = !!(node.hasAttribute && node.hasAttribute('style'));
+        originals.set(node, properties);
+      }
       if (properties.has(property)) return properties.get(property);
       var item = {node: node, property: property,
         value: node.style.getPropertyValue(property),
-        priority: node.style.getPropertyPriority(property)};
+        priority: node.style.getPropertyPriority(property),
+        hadStyleAttribute: properties.hadStyleAttribute};
       changed.push(item);
       properties.set(property, item);
       return item;
@@ -3813,6 +3818,8 @@ document.addEventListener('DOMContentLoaded', function() {
       items.forEach(function (item) {
         if (item.value) item.node.style.setProperty(item.property, item.value, item.priority);
         else item.node.style.removeProperty(item.property);
+        if (item.hadStyleAttribute === false && item.node.getAttribute
+            && item.node.getAttribute('style') === '') item.node.removeAttribute('style');
       });
     }
     function imageSize(node) {
@@ -6211,8 +6218,16 @@ document.addEventListener('DOMContentLoaded', function() {
   // gesture may move the deck behind it.
   document.addEventListener('wheel', function (e) {
     var surface = modalWheelSurface();
-    // Foreground scrolling and native zoom retain their own meanings.
-    if (!surface && !e.ctrlKey && !e.metaKey && (e.deltaX || e.deltaY)) closePause();
+    // Black and white screens retain the earlier pause contract: a wheel
+    // must not scroll the hidden page. Theme pause instead yields to reading
+    // gestures, while modal scrolling and browser zoom keep their owners.
+    if (!surface && pauseOverlay && pauseOverlay.classList.contains('open')) {
+      if (pauseOverlay.dataset.pauseKind !== 't') {
+        e.preventDefault();
+        return;
+      }
+      if (!e.ctrlKey && !e.metaKey && (e.deltaX || e.deltaY)) closePause();
+    }
     if (surface) {
       var deltaX = e.deltaX || (e.shiftKey ? e.deltaY : 0);
       var deltaY = e.shiftKey ? 0 : e.deltaY;
@@ -7263,12 +7278,17 @@ document.addEventListener('DOMContentLoaded', function() {
      }
      return;
     }
-    // Pause is independent from foreground menus and presentation settings.
-    // Navigation dismisses it and continues through the normal reading path.
+    // Theme pause is independent from foreground menus and settings: reading
+    // dismisses it and continues. Black/white pauses consume the first key
+    // that dismisses them, as they did before the mouse-command grammar.
     if (pauseOverlay && pauseOverlay.classList.contains('open')) {
       if (e.key === 'b' || e.key === 'B' || e.key === 'w' || e.key === 'W'
           || e.key === 't' || e.key === 'T') {
         togglePause(e.key);
+        e.preventDefault();
+        return;
+      } else if (pauseOverlay.dataset.pauseKind !== 't') {
+        closePause();
         e.preventDefault();
         return;
       } else if (isPauseNavigationKey(e)) {
@@ -7827,19 +7847,26 @@ document.addEventListener('DOMContentLoaded', function() {
     setNavIdle(false);
     scheduleHide();
   }
-  document.addEventListener('pointerlockchange', function () {
-    pointerRequestPending = false;
-    cancelMouseSequence();
+  // One browser-confirmed display state paints chrome for both fullscreen
+  // and mouse capture. Wake lock belongs only to fullscreen transitions.
+  function syncDisplayState() {
     var locked = pointerIsLocked();
-    if (locked) window.getSelection().removeAllRanges();
+    var fullscreen = !!currentFullscreenElement();
+    if (locked || fullscreen) window.getSelection().removeAllRanges();
     document.documentElement.classList.toggle('mouse-locked', locked);
+    document.body.classList.toggle('fs-noselect', fullscreen && lastInputWasMouse);
     updatePointerLockUI();
     fsMoveStart = fsLastMove = 0;
     setNavIdle(locked);
     scheduleHide();
+  }
+  document.addEventListener('pointerlockchange', function () {
+    pointerRequestPending = false;
+    cancelMouseSequence();
+    syncDisplayState();
     // A menu, blur or fullscreen exit may have cancelled a request before
     // the browser acknowledged it. Release that late capture immediately.
-    if (locked && pointerRequestCancelled) releasePointerLock();
+    if (pointerIsLocked() && pointerRequestCancelled) releasePointerLock();
   });
   document.addEventListener('pointerlockerror', pointerLockFailed);
   updatePointerLockUI();
@@ -7901,18 +7928,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function handleFullscreenChange() {
     cancelMouseSequence();
-    setNavIdle(false);
     var fs = currentFullscreenElement();
     if (fs) {
-      window.getSelection().removeAllRanges();
-      document.body.classList.toggle('fs-noselect', lastInputWasMouse);
       requestWakeLock();
     } else {
       releasePointerLock();
-      document.body.classList.remove('fs-noselect');
       releaseWakeLock();
     }
-    scheduleHide();
+    syncDisplayState();
   }
   document.addEventListener('fullscreenchange', handleFullscreenChange);
   document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
@@ -8258,7 +8281,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // swallowClicksUntil.
     if (Date.now() < swallowClicksUntil) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) {
-      if (e.button === 0) changeSlide(clickNavigationDirection(1), isScrolling);
+      if (pauseOverlay.dataset.pauseKind === 't' && e.button === 0) {
+        changeSlide(clickNavigationDirection(1), isScrolling);
+      } else if (pauseOverlay.dataset.pauseKind !== 't') closePause();
       return;
     }
     // A popover or dialog is open and the reader clicks outside it: the
@@ -8331,8 +8356,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if ((contextPointerType && contextPointerType !== 'mouse')
         || (!contextPointerType && !isMouseInputEvent(e))) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) {
-      e.preventDefault();
-      changeSlide(clickNavigationDirection(-1), isScrolling);
+      if (pauseOverlay.dataset.pauseKind === 't') {
+        e.preventDefault();
+        changeSlide(clickNavigationDirection(-1), isScrolling);
+      }
       return;
     }
     // A selection is the reader's own text, and right-clicking it asks

@@ -2438,12 +2438,14 @@ noir, W = écran blanc, T = écran de la couleur de fond du thème. Les
 l'orateur ; appuyer de nouveau sur la même touche ou n'importe quelle
 touche de navigation les lève.
 
-Mouse and keyboard navigation dismiss pause and execute their normal action.
-Opening or closing a menu does not dismiss the theme-background pause, nor do
+Theme-background pause dismisses on mouse and keyboard navigation while the
+same action continues. Opening or closing a menu does not dismiss it, nor do
 fullscreen, capture or an incomplete M/2M prefix. T and 2M + D share one toggle.
 Arrow/page/edge/Space navigation, a numeric jump confirmed with Enter, card or
-slide navigation, and an unmodified reading wheel command dismiss pause;
-foreground-menu navigation remains owned by that surface.
+slide navigation, and an unmodified reading wheel command dismiss theme pause;
+foreground-menu navigation remains owned by that surface. Black and white
+pause keep their previous contract: the first navigation key dismisses without
+also navigating, and a wheel does not scroll the hidden page.
 
 Quatre touches de plus, arrivées avec l'aide, le panneau présentateur, le
 filtre de tags et le défilement : **H** ouvre et ferme l'overlay de raccourcis,
@@ -3263,8 +3265,9 @@ dernière carte, la molette ne consomme plus le geste et le navigateur défile
 normalement. Les flèches horizontales gardent également
 leur éventuel défilement horizontal natif. Une surface focalisée conserve la
 priorité décrite ci-dessus ; un tableau en mode `scroll` ne laisse pas son
-défilement se propager à la page. Un écran de pause n'est pas une surface de
-lecture : la molette y est consommée et ne déplace pas la fiche qu'il masque.
+défilement se propager à la page. Les écrans de pause noir et blanc ne sont pas
+des surfaces de lecture : la molette y est consommée et ne déplace pas la fiche
+qu'ils masquent. La pause couleur thème suit l'exception de lecture ci-dessus.
 
 PageDown et PageUp changent directement de fiche sur un article lorsqu'une
 cible adjacente existe, sans parcourir les incréments internes d'une fiche

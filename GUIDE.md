@@ -1794,33 +1794,7 @@ blank line marks a paragraph break. The block ends at the first
 non-indented, non-empty line (the next field or the slide's body), so the
 continuation lines are never captured as slide content.
 
-### Printing and PDF
-
-**Print** from the browser (Ctrl/Cmd+P) and choose "Save as PDF". Slides start
-on separate sheets, navigation chrome is stripped, and print styles preserve
-the active theme colors. Print content is not constrained to the screen's
-viewport height; a long slide can span several sheets. Table viewports expand
-without screen clipping or local scroll limits, and runtime fitting scales and
-presentation zoom are cleared for print. The screen choices return afterwards;
-print expansion does not guarantee that a wide table fits the physical paper.
-
-In combined-HTML series output, printing includes only the active article with
-its current tag filter, never the whole collection. If the series contents
-view is active, only those contents print. Switch to the intended article
-before opening print preview.
-
-For black ink on white, press **C** and select **Print Ink** before opening
-the print dialog. It is included by default in the essential theme bundle;
-printing does not switch to it automatically.
-
-Check print preview before sending the PDF: the selected variant, the longest
-card and its notes, a wide table, image captions and long-form page breaks.
-Browser paper size, margins, scaling and background-printing settings affect
-the result. If a card overflows, try another orientation or scale; ask the
-author to shorten or split it if essential text still does not fit. Do not
-assume a long-form article fits on one physical sheet.
-
-### Mouse
+### Present with a mouse as a remote
 
 | Gesture | Action |
 |---|---|
@@ -1875,9 +1849,11 @@ availability still depends on the browser.
 Two middles then left uses actual position: a scrolled first slide returns to
 its own top before a later command may go to the index. On the index it simply
 returns to the page top. Two middles then right and **T** share one pause toggle.
-Mouse or keyboard navigation dismisses pause and continues its usual action;
-opening or closing the menu preserves it. Prefix presses, fullscreen and
-mouse capture also preserve pause.
+Mouse or keyboard navigation dismisses **theme** pause and continues its
+usual action; opening or closing the menu preserves it. Prefix presses,
+fullscreen and mouse capture also preserve theme pause. The black and white
+screens retain their earlier behavior: the first navigation key dismisses
+without moving the slide, and the wheel cannot scroll the hidden page.
 
 Outside navigation lists, the wheel keeps scrolling; the ⛶ button and F stay
 direct fullscreen entries. The cursor and navigation hide after 1 second of
@@ -1887,6 +1863,32 @@ A left click on an existing selection just dismisses the highlight —
 no step — and a right-click on a selection opens the browser's own
 menu, the deck stepping aside. Two clicks in quick succession are two
 steps: the deck never treats a double click as anything else.
+
+### Printing and PDF
+
+**Print** from the browser (Ctrl/Cmd+P) and choose "Save as PDF". Slides start
+on separate sheets, navigation chrome is stripped, and print styles preserve
+the active theme colors. Print content is not constrained to the screen's
+viewport height; a long slide can span several sheets. Table viewports expand
+without screen clipping or local scroll limits, and runtime fitting scales and
+presentation zoom are cleared for print. The screen choices return afterwards;
+print expansion does not guarantee that a wide table fits the physical paper.
+
+In combined-HTML series output, printing includes only the active article with
+its current tag filter, never the whole collection. If the series contents
+view is active, only those contents print. Switch to the intended article
+before opening print preview.
+
+For black ink on white, press **C** and select **Print Ink** before opening
+the print dialog. It is included by default in the essential theme bundle;
+printing does not switch to it automatically.
+
+Check print preview before sending the PDF: the selected variant, the longest
+card and its notes, a wide table, image captions and long-form page breaks.
+Browser paper size, margins, scaling and background-printing settings affect
+the result. If a card overflows, try another orientation or scale; ask the
+author to shorten or split it if essential text still does not fit. Do not
+assume a long-form article fits on one physical sheet.
 
 ### Touch (phone, tablet)
 

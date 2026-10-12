@@ -594,7 +594,8 @@ async function main() {
       (button) => getComputedStyle(button).display !== 'none'
     ).length,
   }));
-  if (!menu.open || menu.expanded !== 'true' || menu.visibleActions !== 13) {
+  if (!menu.open || menu.expanded !== 'true' || menu.visibleActions !== 14
+      || await page.locator('#menuPointerLock').count() !== 1) {
     fail('M did not expose the complete presenter menu: ' + JSON.stringify(menu));
   }
   const menuRows = await page.evaluate(() => Array.prototype.map.call(
