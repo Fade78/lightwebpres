@@ -1598,13 +1598,13 @@ and themed.
 
 | Control | What it changes |
 |---|---|
-| Presentation zoom: **-**, **+**, **Reset** | Reduce or enlarge presentation text and images, or return to 100%, without scaling the slide frame or controls; the current percentage is shown. Keyboard equivalents are **-**, **+**, **=**. |
+| Presentation zoom: **-**, **+**, **Reset** | Reduce or enlarge presentation text and images, or return to 100%, without scaling the slide frame or controls; height-fitted images stop growing when the rest of the slide needs the space. The current percentage is shown. Keyboard equivalents are **-**, **+**, **=**. |
 | Wide tables | **Hide what does not fit** (`clip`, default), **Allow overflow** (`overflow`), or **Scroll inside the table** (`scroll`). **O** cycles in that order. |
 | Text size | **Keep the chosen size** (`fixed`, default), **Reduce all slides together** (`uniform`), or **Reduce each slide as needed** (`per-slide`). **A** cycles in that order. |
 | Uniform fit scope | Combined-HTML output only, while text size is `uniform`: **Current article** (default) or **Entire series**. |
 | Reduce tables as needed | Independently allow bounded table shrinking; off by default. |
 | Reduce images to fit width | Independently allow bounded shrinking of supported images/figures to their available content width; on by default, not a control for arbitrary embedded widgets. |
-| Reduce images to fit height | Shrink images as far as needed to fit the whole slide, reserving room for titles, captions, footers and other content; on by default. If non-image content alone is too tall, the slide still scrolls. This control can shrink below the authored image minimum, unlike width-only fitting. |
+| Reduce images to fit height | Shrink images as far as needed to fit the whole slide, reserving room for titles, captions, headers, footers and other content even as you change presentation zoom; on by default. If non-image content alone is too tall, the slide still scrolls. This control can shrink below the authored image minimum, unlike width-only fitting. |
 
 The author can choose different starting settings and reduction limits.
 Your table mode, text fitting, table/image shrink switches and presentation
@@ -1798,7 +1798,7 @@ continuation lines are never captured as slide content.
 
 | Gesture | Action |
 |---|---|
-| Single left click on article background | Next slide (configured glide, 200ms default) |
+| Single left click on article background or a plain, non-interactive image | Next slide (configured glide, 200ms default) |
 | Right-click on article background | Previous slide (configured glide, 200ms default) |
 | Vertical wheel over an index, series-navigation or unit-index list | Select the adjacent card without opening it; native scrolling resumes at either edge |
 | 500 ms left press on a card list after wheel selection | Follow the selected card; movement, text selection, modifiers, tables, competing help/fullscreen gestures, touch and pointer cancellation cancel it |
@@ -1810,8 +1810,9 @@ continuation lines are never captured as slide content.
 | Three middle presses | Cancel the pending sequence |
 | Click in the bottom-right corner | Toggle the navigation buttons (hide/show) |
 
-Clicks on links, images, buttons, and the share popover are not
-intercepted — they keep working. A direct left click on a card follows its
+Linked images, images with their own click action, buttons, and the share
+popover retain their actions; a plain slide image follows the background-click
+navigation, without changing native touch gestures. A direct left click on a card follows its
 link; an index-background click still moves through the card journey. The
 right-click to go back is the
 remote-mouse use case: the speaker with a wireless mouse in hand

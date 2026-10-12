@@ -33,6 +33,16 @@ link to the originals. They are at
 
 ---
 
+## v0.67.3
+
+Height-fitted images now follow the reader's presentation zoom only while the
+whole slide still fits. Enlarging text recalculates the image's remaining
+space, including the title, summary, header, caption and footer; reducing the
+zoom can release the image cap. Unfit text still scrolls, and print restores
+authored image styles. An ordinary left mouse click on a plain slide image now
+advances like a click on the slide ground. Linked or explicitly interactive
+images, table images, intentional drags and touch keep their own actions.
+
 ## v0.67.2
 
 Reduce images to fit the available height of the whole slide, including its

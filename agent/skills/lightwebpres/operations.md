@@ -204,6 +204,8 @@ Author limits live in `series_meta.reading`; use
 [Series and Appearance](series-and-appearance.md)
 for exact keys, defaults and validation. Content that still does not fit at
 the floor stays available to scroll rather than being removed.
+The vertical image limit is recalculated after presentation zoom; a left mouse
+click on a plain image advances, while linked images and touch keep their actions.
 
 Record reading preferences separately from Appearance's unchanged session
 choices. Reading uses `localStorage` per output directory path on the same

@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 11 · **à faire** 1 · **en cours** 3 · **terminé** 60 · **abandonné** 1 · **sans objet** 3
+**à étudier** 11 · **à faire** 0 · **en cours** 3 · **terminé** 61 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -116,10 +116,6 @@ gets its own entry and its own state**, however small.
 - **B65** — The historical pop-rose proposal has no recorded disposition
 - **B66** — Unreconciled archive design options remain deferred
 - **B74** — Windows 4K display scaling loses presentation geometry
-
-### à faire
-
-- **B75** — Plain slide images should not swallow navigation clicks
 
 ### en cours
 
@@ -189,6 +185,7 @@ gets its own entry and its own state**, however small.
 - **B70** — Publication planning and revision-bound GitLab snapshots
 - **B71** — Author chrome independent of Identity Kits
 - **B73** — Responsive images obey Display settings
+- **B75** — Plain slide images should not swallow navigation clicks
 
 ### abandonné
 
@@ -3784,7 +3781,7 @@ this case. No fix or physical-device check is claimed here.
 
 ## B75 — Plain slide images should not swallow navigation clicks
 
-**État :** à faire · **Depuis :** 2026-10-12
+**État :** terminé · **Depuis :** 2026-10-12 · **Version :** 0.67.3
 
 **Owner decision.** A normal image can occupy almost an entire slide. A left
 click on that image should advance just like a left click on the slide ground,
@@ -3792,5 +3789,13 @@ unless the image or its containing control has its own explicit action.
 Linked images, buttons and any future interactive image must keep their own
 activation. Do not change native touch, text selection or intentional drags,
 nor the bounded clicks on locally scrolling tables. Distinguish plain images
-from interactive ancestors in a browser test before changing `isInteractive`;
-this request is recorded for a separate change, not implemented by B72/B73.
+from interactive ancestors in a browser test before changing `isInteractive`.
+
+**Correction.** The mouse click path allows plain content images to use the
+existing slide-ground navigation. Linked images and authored click handlers
+retain their actions; images in local tables and slide chrome stay excluded.
+Touch gestures remain owned by the touch path, including with a mouse connected.
+Native Chromium and Firefox checks cover plain, linked and authored-action
+images and touch; the separate image-height regression covers zoomed title,
+summary, header, caption and footer in both the standard and documentation
+presets. This does not claim a physical Windows 4K or mobile-device test.

@@ -136,13 +136,14 @@ near(responsive.image.getBoundingClientRect().width, 350, 'height fitting preser
 responsive.layout();
 near(responsive.image.getBoundingClientRect().height, 700, 'repeated layout has no drift');
 responsive.zoom(2);
-near(responsive.image.getBoundingClientRect().height, 1400, 'manual zoom follows automatic fitting');
+near(responsive.image.getBoundingClientRect().height, 700, 'manual zoom cannot push a fitted image past the viewport');
+near(responsive.image.getBoundingClientRect().width, 350, 'height cap preserves aspect ratio during zoom');
 responsive.callbacks.window.beforeprint();
 assert.deepEqual(responsive.image.style.snapshot(), styles, 'print restores authored sizing');
 near(responsive.image.getBoundingClientRect().height, 1200, 'print uses responsive original geometry');
 responsive.callbacks.window.afterprint();
 responsive.settle();
-near(responsive.image.getBoundingClientRect().height, 1400, 'screen layout resumes after print');
+near(responsive.image.getBoundingClientRect().height, 700, 'screen height cap resumes after print');
 responsive.zoom(1);
 responsive.settings.object_shrink_vertical = false;
 responsive.layout();

@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.67.2"
+VERSION = "0.67.3"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1342,7 +1342,7 @@ LANG_FR = r'''{
     "menu_reading_status_one": "{count} slide nécessite encore de faire défiler.",
     "menu_reading_status_many": "{count} slides nécessitent encore de faire défiler.",
     "help_tables": "Tableaux trop larges : masquer, laisser dépasser ou faire défiler localement (O). Les flèches dans un tableau défilant restent dans ce tableau, même au bord.",
-    "help_text_fit": "Texte : taille choisie, réduction commune ou réduction par slide (A). Le menu permet aussi de réduire les tableaux et les images séparément en largeur et en hauteur, dans les limites prévues par l'auteur.",
+    "help_text_fit": "Texte : taille choisie, réduction commune ou par slide (A). Le menu réduit aussi les tableaux et les images en largeur selon les limites de l'auteur ; les images en hauteur restent dans la slide, même après zoom.",
     "menu_pause_black": "Écran noir",
     "menu_pause_white": "Écran blanc",
     "menu_pause_theme": "Écran du thème",
@@ -1561,7 +1561,7 @@ LANG_EN = r'''{
     "menu_reading_status_one": "{count} slide still needs scrolling.",
     "menu_reading_status_many": "{count} slides still need scrolling.",
     "help_tables": "Wide tables: hide overflow, allow overflow or scroll locally (O). Arrow keys in a focused scrolling table stay inside it, even at its edges.",
-    "help_text_fit": "Text: chosen size, shared reduction or per-slide reduction (A). The menu also reduces tables and images independently by width and height, within the author's limits.",
+    "help_text_fit": "Text: chosen size, shared or per-slide reduction (A). The menu also shrinks tables and image widths within author limits; height-fitted images stay in the slide even after zoom.",
     "menu_pause_black": "Black screen",
     "menu_pause_white": "White screen",
     "menu_pause_theme": "Theme screen",
@@ -11242,7 +11242,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isIndex && (readingSettings.object_shrink_horizontal
                          || readingSettings.object_shrink_vertical)) {
           Array.prototype.forEach.call(slide.querySelectorAll('figure, .figure, img'), function (node) {
-            if (node.parentElement.closest('figure, .figure, table')
+            if (node.closest('.slide-chrome')
+                || node.parentElement.closest('figure, .figure, table')
                 || node.querySelector('iframe, video, audio, object, embed')) return;
             addObject(node, readingSettings.min_object_scale, 'image');
           });
@@ -11441,7 +11442,28 @@ document.addEventListener('DOMContentLoaded', function() {
           item.maximum = Math.max(item.minimum, Math.min(1, maximum));
         });
       }
-      function fitObjects(group) {
+      function solveImageHeight(candidate, test) {
+        function heightFits() {
+          return candidate.slide.getBoundingClientRect().height <= height
+            && candidate.slide.scrollHeight <= height;
+        }
+        if (heightFits()) return;
+        var low = 0.000001;
+        if (!test(low, heightFits)) {
+          // Non-image content already exceeds the viewport: keep the image
+          // legible and leave the existing overflow/scroll contract intact.
+          test(1, heightFits);
+          return;
+        }
+        var high = 1;
+        for (var i = 0; i < 14; i++) {
+          var middle = (low + high) / 2;
+          if (test(middle, heightFits)) low = middle;
+          else high = middle;
+        }
+        test(low, heightFits);
+      }
+      function fitObjects(group, widthOnly) {
         group.forEach(function (candidate) {
           refreshObjectBounds(candidate);
           // Width keeps the author's image floor. Height, when enabled, fits
@@ -11450,16 +11472,11 @@ document.addEventListener('DOMContentLoaded', function() {
           // Tables keep their independent width bound; a tall slide must not
           // shrink a small table just because it contains an image.
           applyObjects(candidate, 1, 'table');
-          if (!readingSettings.object_shrink_vertical
+          if (widthOnly || !readingSettings.object_shrink_vertical
               || !candidate.objects.some(function (item) {
                 return item.kind === 'image' && item.images.length;
               })) return;
-          function heightFits() {
-            return candidate.slide.getBoundingClientRect().height <= height
-              && candidate.slide.scrollHeight <= height;
-          }
-          if (heightFits()) return;
-          function test(scale) {
+          solveImageHeight(candidate, function (scale, heightFits) {
             // Release responsive image pins from the previous trial before
             // measuring and applying the next factor. Shrink image elements,
             // not their figures: a caption must retain its readable font.
@@ -11476,21 +11493,43 @@ document.addEventListener('DOMContentLoaded', function() {
               });
             });
             return heightFits();
-          }
-          var low = 0.000001;
-          if (!test(low)) {
-            // Non-image content already exceeds the viewport: keep the image
-            // legible and leave the existing overflow/scroll contract intact.
-            test(1);
-            return;
-          }
-          var high = 1;
-          for (var i = 0; i < 14; i++) {
-            var middle = (low + high) / 2;
-            if (test(middle)) low = middle;
-            else high = middle;
-          }
-          test(low);
+          });
+        });
+      }
+      function capZoomedImages(candidate) {
+        if (!readingSettings.object_shrink_vertical) return;
+        var properties = ['zoom', 'width', 'height', 'min-width', 'min-height',
+          'max-width', 'max-height'];
+        var images = [];
+        candidate.objects.forEach(function (item) {
+          if (item.kind !== 'image') return;
+          item.images.forEach(function (image) {
+            var node = image.node;
+            images.push({node: node,
+              hadStyle: !!(node.hasAttribute && node.hasAttribute('style')),
+              styles: properties.map(function (property) {
+                return {property: property, value: node.style.getPropertyValue(property),
+                  priority: node.style.getPropertyPriority(property)};
+              }),
+              zoom: parseFloat(node.ownerDocument.defaultView.getComputedStyle(node).zoom) || 1,
+              size: imageSize(node)});
+          });
+        });
+        if (!images.length) return;
+        solveImageHeight(candidate, function (scale, heightFits) {
+          images.forEach(function (image) {
+            image.styles.forEach(function (style) {
+              if (style.value) image.node.style.setProperty(style.property, style.value, style.priority);
+              else image.node.style.removeProperty(style.property);
+            });
+            if (!image.hadStyle && image.node.getAttribute
+                && image.node.getAttribute('style') === '') image.node.removeAttribute('style');
+            if (scale === 1) return;
+            remember(image.node, 'zoom');
+            image.node.style.setProperty('zoom', String(image.zoom * scale), 'important');
+            preserveImageScale(image.size, scale);
+          });
+          return heightFits();
         });
       }
       function measureSeriesView(view) {
@@ -11599,7 +11638,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
       var candidates = collectCandidates(contentRoots);
-      fitObjects(candidates);
+      fitObjects(candidates, presentationZoom !== 1);
       if (!isIndex && readingSettings.text_fit === 'uniform') {
         var factor = solve(candidates, readingSettings.min_text_scale, apply);
         if (seriesViews && fitScope === 'series') {
@@ -11610,10 +11649,7 @@ document.addEventListener('DOMContentLoaded', function() {
       } else if (!isIndex && readingSettings.text_fit === 'per-slide') {
         candidates.forEach(function (candidate) { solve([candidate], readingSettings.min_text_scale, apply); });
       }
-      if (!isIndex && readingSettings.text_fit !== 'fixed') fitObjects(candidates);
-      candidates.forEach(function (candidate) {
-        if (!isIndex && !fits(candidate)) candidate.slide.setAttribute('data-lwp-fit-overflow', 'true');
-      });
+      if (!isIndex && readingSettings.text_fit !== 'fixed') fitObjects(candidates, presentationZoom !== 1);
       if (presentationZoom !== 1) {
         // Snapshot the fitted sizes before writing any manual size: inherited
         // inline line boxes and relative descendants must scale exactly once.
@@ -11651,7 +11687,11 @@ document.addEventListener('DOMContentLoaded', function() {
           item.node.style.setProperty('zoom', String(item.zoom * presentationZoom), 'important');
           preserveImageScale(item, presentationZoom);
         });
+        if (!isIndex) candidates.forEach(capZoomedImages);
       }
+      candidates.forEach(function (candidate) {
+        if (!isIndex && !fits(candidate)) candidate.slide.setAttribute('data-lwp-fit-overflow', 'true');
+      });
       if (position && !position.slide.hidden) reanchorPresentation(position);
       ready = true;
       if (typeof updateReadingMenu === 'function') updateReadingMenu();
@@ -15303,12 +15343,27 @@ document.addEventListener('DOMContentLoaded', function() {
   function isFullscreen() {
     return !!currentFullscreenElement();
   }
-  function isInteractive(e, allowTableClick) {
-    return !!(e.target && e.target.closest && e.target.closest(
-      '.nav-btn, .nav-dots, a, button, input, select, textarea, [contenteditable], img, .share-popover, .share-qr-modal, .tag-menu, .presenter-menu, .theme-menu, .about-overlay, .nav-buttons'))
-      || (!!tableScrollViewport(e.target) && (!allowTableClick
-        || !!e.target.closest('audio, video, summary, label, [role~="button"], [role~="checkbox"], '
-          + '[role~="switch"], [role~="slider"], [role~="textbox"]')));
+  function isInteractive(e, allowTableClick, allowPlainMouseImage) {
+    var target = e.target;
+    var image = target && target.closest && target.closest('img');
+    // Only a physical mouse click on a plain content image follows the slide
+    // ground. Linked images, authored click handlers, table images, chrome
+    // logos and every touch gesture retain their own behavior.
+    var plainMouseImage = !!(image && allowPlainMouseImage && e.detail > 0
+      && isMouseInputEvent(e) && !target.closest(
+        'table, .slide-chrome, [onclick], [tabindex], [role~="button"], [role~="link"], '
+        + '[role~="checkbox"], [role~="switch"], [role~="slider"], [role~="textbox"]'));
+    if (plainMouseImage) {
+      for (var owner = image; owner && !owner.classList.contains('slide'); owner = owner.parentElement) {
+        if (typeof owner.onclick === 'function') { plainMouseImage = false; break; }
+      }
+    }
+    return !!(target && target.closest && target.closest(
+      '.nav-btn, .nav-dots, a, button, input, select, textarea, [contenteditable], .share-popover, .share-qr-modal, .tag-menu, .presenter-menu, .theme-menu, .about-overlay, .nav-buttons'))
+      || !!(image && !plainMouseImage)
+      || (!!tableScrollViewport(target) && (!allowTableClick
+        || !!target.closest('audio, video, summary, label, [role~="button"], [role~="checkbox"], '
+           + '[role~="switch"], [role~="slider"], [role~="textbox"]')));
   }
   function tableScrollViewport(target) {
     return readingSettings.table_mode === 'scroll' && target && target.closest
@@ -15595,7 +15650,7 @@ document.addEventListener('DOMContentLoaded', function() {
       closeHelp();
       return;
     }
-    if (isInteractive(e, true)) return;
+    if (isInteractive(e, true, true)) return;
     // A click the touch side has already answered for. See
     // swallowClicksUntil.
     if (Date.now() < swallowClicksUntil) return;
@@ -15645,7 +15700,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // lands), so it is wiped again, out of reach of the copy menu.
   document.addEventListener('dblclick', function (e) {
     if (helpIsOpen()) return;
-    if (isInteractive(e)) return;
+    if (isInteractive(e, false, true)) return;
     window.getSelection().removeAllRanges();
   });
   document.addEventListener('contextmenu', function (e) {

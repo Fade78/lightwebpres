@@ -262,12 +262,14 @@ not arbitrary iframes, players or buttons. The horizontal switch bounds an
 object by its available content width, down to `min_object_scale`. The vertical
 switch shrinks the images further if needed to fit the entire slide, including
 its title, captions, footer and padding; it is not limited by that minimum.
-Captions retain their type size. If text alone cannot fit, the image keeps its
-width-fitted size and the slide can scroll. Aspect ratios remain intact.
-Presentation zoom scales content fonts, line heights and images,
+Captions retain their type size. Height fitting runs again after presentation
+zoom, so images grow only while the enlarged heading, body and chrome still fit.
+If text alone cannot fit, the image keeps its width-fitted size and the slide
+can scroll. Aspect ratios remain intact. Presentation zoom scales content fonts, line heights and images,
 not the page root or frame widths, padding, borders, minimum heights or UI.
 At 100%, native responsive sizing remains in effect. Fitting is solved at
-100% before the manual factor, so it cannot cancel magnification; long content
+100% before the manual factor; vertical image fitting then caps the image
+against the zoomed slide, without cancelling text magnification. Long content
 can still grow or scroll. Native pinch remains browser zoom, not a custom LWP
 gesture. Browser emulation is not a physical-device guarantee.
 

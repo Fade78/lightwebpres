@@ -44,9 +44,16 @@ class ImageReadingRuntime(unittest.TestCase):
                 '<!-- lwp:slide -->\nslug: image\n## Image\n\n'
                 '![Responsive image](img/image.svg)\n\n---\n\n'
                 '<!-- lwp:slide -->\nslug: medium\n## Medium image\n'
+                'slide-header: A visible header takes room above the title.\n'
                 'summary: A visible heading and summary.\n'
                 'slide-footer: A footer stays readable.\n\n'
                 '![Medium image](img/medium.svg "A legible caption")\n\n---\n\n'
+                '<!-- lwp:slide -->\nslug: chrome-tall\n'
+                'slide-header: Header above a large image.\n'
+                'slide-footer: Footer below the same image.\n'
+                '## A substantial title\n'
+                'summary: This description shares the image’s slide.\n\n'
+                '![Large image](img/image.svg "Its caption also needs space")\n\n---\n\n'
                 '<!-- lwp:slide -->\nslug: giant\n## Giant image\n\n'
                 '![Giant image](img/giant.svg)\n\n---\n\n'
                 '<!-- lwp:slide -->\nslug: impossible\n## Long text and an image\n\n'
@@ -65,12 +72,21 @@ class ImageReadingRuntime(unittest.TestCase):
             self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
             self.assertIn('Image reading runtime checks passed', check.stdout)
 
-            browser = subprocess.run(
-                ['node', str(ROOT / 'tests' / 'image_reading_browser.cjs'),
-                 (output / 'images.html').as_uri()], cwd=ROOT, env=env,
-                capture_output=True, text=True, timeout=90)
-            if browser.returncode == 77:
-                self.skipTest(browser.stderr.strip())
-            self.assertEqual(browser.returncode, 0, browser.stdout + browser.stderr)
-            for engine in ('chromium', 'firefox'):
-                self.assertIn(engine + ': responsive image controls passed', browser.stdout)
+            config = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            config['appearance'] = {'presets': ['lightwebpres-docs@0.1.0/docs']}
+            (root / 'series.json').write_text(json.dumps(config), encoding='utf-8')
+            docs_output = root / 'docs'
+            docs_env = {**env, 'LWP_IDENTITY_KITS_DIR': str(ROOT / 'examples' / 'kits')}
+            built = run('build', root, '--output', docs_output, env=docs_env, cwd=ROOT)
+            self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+            for variant, page in (('standard', output), ('docs preset', docs_output)):
+                with self.subTest(variant=variant):
+                    browser = subprocess.run(
+                        ['node', str(ROOT / 'tests' / 'image_reading_browser.cjs'),
+                         (page / 'images.html').as_uri()], cwd=ROOT, env=env,
+                        capture_output=True, text=True, timeout=90)
+                    if browser.returncode == 77:
+                        self.skipTest(browser.stderr.strip())
+                    self.assertEqual(browser.returncode, 0, browser.stdout + browser.stderr)
+                    for engine in ('chromium', 'firefox'):
+                        self.assertIn(engine + ': responsive image controls passed', browser.stdout)

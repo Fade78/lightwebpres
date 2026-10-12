@@ -222,7 +222,9 @@ ${marker}`) });
     'ordinary Markdown image and its heading fit together, below the former author floor');
     await resizeFromMenu(2);
     const enlargedFit = await responsiveImage();
-    assert.ok(Math.abs(enlargedFit.height - fittedImage.height * 2) < .5);
+    assert.ok(enlargedFit.height > 0 && enlargedFit.height < fittedImage.height * 2
+      && await page.$eval('#responsive', slide => slide.getBoundingClientRect().height <= 701),
+    'the zoomed image yields to its heading rather than breaking the slide');
     await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
     assert.deepEqual(await responsiveImage(), nativeImage, 'print removes all transient image sizing');
     await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));

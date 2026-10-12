@@ -85,6 +85,8 @@ catch (error) { console.error('Playwright is unavailable in the supplied environ
         caption.getBoundingClientRect().height);
       const giantBaseline = await page.locator('#giant figure img').evaluate(image =>
         image.getBoundingClientRect().height);
+      assert.equal(await page.locator('#medium .slide-chrome-header').count(), 1,
+        `${name}: the header is actually rendered in the slide`);
       assert.equal(await page.locator('#medium .slide-chrome-footer').count(), 1,
         `${name}: the footer is actually rendered in the slide`);
       assert.ok(mediumBaseline < 700 && (await slideHeight('medium')).rendered > 700,
@@ -94,9 +96,49 @@ catch (error) { console.error('Playwright is unavailable in the supplied environ
       const mediumFit = await slideHeight('medium');
       assert.ok(mediumFit.rendered <= mediumFit.viewport + 1
         && mediumFit.scroll <= mediumFit.viewport + 1,
-      `${name}: medium image must leave room for title, summary and footer: ${JSON.stringify(mediumFit)}`);
+      `${name}: medium image must leave room for header, title, summary and footer: ${JSON.stringify(mediumFit)}`);
       near(await page.locator('#medium figcaption').evaluate(caption =>
         caption.getBoundingClientRect().height), captionBaseline, 'image fitting keeps caption readable');
+      const chromeFit = await slideHeight('chrome-tall');
+      const chromeVisible = await page.locator('#chrome-tall').evaluate(slide => {
+        const origin = slide.getBoundingClientRect().top;
+        return ['.slide-chrome-header', 'h2', '.summary', 'figure', '.slide-chrome-footer']
+          .map(selector => {
+            const rect = slide.querySelector(selector).getBoundingClientRect();
+            return {selector, top: rect.top - origin, bottom: rect.bottom - origin};
+          });
+      });
+      assert.ok(chromeFit.rendered <= chromeFit.viewport + 1
+        && chromeFit.scroll <= chromeFit.viewport + 1
+        && chromeVisible.every(rect => rect.top >= -1 && rect.bottom <= chromeFit.viewport + 1),
+      `${name}: large image, title, header, summary, caption and footer must all remain visible: `
+        + JSON.stringify({chromeFit, chromeVisible}));
+      const chromeImageAt100 = await page.locator('#chrome-tall figure img').evaluate(image =>
+        image.getBoundingClientRect().height);
+      const titleSizeAt100 = await page.locator('#chrome-tall h2').evaluate(title =>
+        parseFloat(getComputedStyle(title).fontSize));
+      const chromeLogosAt100 = await page.locator('#chrome-tall .slide-chrome-header img').evaluateAll(images =>
+        images.map(image => image.getBoundingClientRect().height));
+      for (let i = 0; i < 5; i++) {
+        await page.locator('#readingMenu [data-menu-action="zoom-in"]').click();
+      }
+      await settle();
+      const zoomedChrome = await slideHeight('chrome-tall');
+      const zoomedImage = await page.locator('#chrome-tall figure img').evaluate(image =>
+        image.getBoundingClientRect().height);
+      near(await page.locator('#chrome-tall h2').evaluate(title =>
+        parseFloat(getComputedStyle(title).fontSize)), titleSizeAt100 * 1.5,
+      'capping the image does not cancel the chosen text zoom');
+      assert.deepEqual(await page.locator('#chrome-tall .slide-chrome-header img').evaluateAll(images =>
+        images.map(image => image.getBoundingClientRect().height)), chromeLogosAt100,
+      `${name}: a header logo is chrome, not an image to shrink with the slide`);
+      assert.ok(zoomedChrome.rendered <= zoomedChrome.viewport + 1
+        && zoomedChrome.scroll <= zoomedChrome.viewport + 1
+        && zoomedImage > 0 && zoomedImage < chromeImageAt100 * 1.5 - 2,
+      `${name}: at 150% the image stops growing before pushing title/header/footer out: `
+        + JSON.stringify({zoomedChrome, zoomedImage, chromeImageAt100}));
+      await page.locator('#readingMenu [data-menu-action="zoom-reset"]').click();
+      await settle();
       const giantFit = await page.locator('#giant figure img').evaluate(image =>
         image.getBoundingClientRect().height);
       assert.ok(giantFit / giantBaseline < .1 && (await slideHeight('giant')).rendered <= 701,
@@ -108,8 +150,47 @@ catch (error) { console.error('Playwright is unavailable in the supplied environ
       assert.ok(await page.locator('#impossible figure img').evaluate(image =>
         image.getBoundingClientRect().height) > 500,
       `${name}: do not hide an image when reducing it cannot make the text fit`);
+
+      await page.keyboard.press('Escape');
+      await page.keyboard.press('Escape');
+      await page.locator('#image figure img').click();
+      await page.waitForFunction(() => Math.abs(document.getElementById('medium').getBoundingClientRect().top) < 2,
+        null, {timeout: 5000});
+      await page.locator('#medium figure img').evaluate(image => {
+        const link = document.createElement('a');
+        link.href = '#image';
+        link.addEventListener('click', event => {
+          event.preventDefault();
+          window.linkedImageClicks = (window.linkedImageClicks || 0) + 1;
+        });
+        image.replaceWith(link);
+        link.appendChild(image);
+      });
+      await page.locator('#medium figure img').click();
+      assert.equal(await page.evaluate(() => window.linkedImageClicks), 1,
+        `${name}: linked images retain their own click action`);
+      assert.ok(Math.abs(await page.locator('#medium').evaluate(slide => slide.getBoundingClientRect().top)) < 2,
+        `${name}: clicking a linked image does not advance the deck`);
+      await page.locator('#giant').evaluate(slide => slide.scrollIntoView({behavior: 'instant'}));
+      await page.locator('#giant figure').evaluate(figure => {
+        figure.onclick = () => { window.authoredImageClicks = (window.authoredImageClicks || 0) + 1; };
+      });
+      await page.locator('#giant figure img').click();
+      assert.equal(await page.evaluate(() => window.authoredImageClicks), 1,
+        `${name}: an authored figure click handler retains its own action`);
+      assert.ok(Math.abs(await page.locator('#giant').evaluate(slide => slide.getBoundingClientRect().top)) < 2,
+        `${name}: an authored figure action must not advance the deck`);
       assert.deepEqual(errors, [], `${name}: browser errors`);
       await page.close();
+
+      const touch = await browser.newPage({viewport: {width: 900, height: 700}, hasTouch: true});
+      await touch.goto(url);
+      await touch.locator('#image figure img').evaluate(image => image.decode());
+      const box = await touch.locator('#image figure img').boundingBox();
+      await touch.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      assert.ok(Math.abs(await touch.locator('#image').evaluate(slide => slide.getBoundingClientRect().top)) < 2,
+        `${name}: native touch on an image must not become a mouse navigation click`);
+      await touch.close();
       console.log(`${name}: responsive image controls passed`);
     } finally { await browser.close(); }
   }
