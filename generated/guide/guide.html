@@ -174,13 +174,22 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.slide-header-region {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  min-width: 0;
+  margin-bottom: 16px;
+}
+.slide-header-region > .slide-chrome-header { margin-bottom: 16px; }
+.slide-header-region > .slide-kicker { margin-bottom: 0; }
 
 /* Placement is owned by the selected preset, not by the visual Theme. The
    edge mode lets the layout's chrome parent consume the slide's free height;
    the content mode leaves the header/content/footer group in normal flow.
    `:has` identifies the kit's slot parent without allowing a kit stylesheet to
    select the LWP slide shell itself. */
-.slide[data-lwp-chrome-placement="edge"] > .slide-chrome-header {
+.slide[data-lwp-chrome-placement="edge"] > :is(.slide-chrome-header, .slide-header-region) {
   margin-bottom: auto;
 }
 .slide[data-lwp-chrome-placement="edge"] > .slide-chrome-footer {
@@ -192,23 +201,23 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
   flex-direction: column;
   min-height: 0;
 }
-.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"]:not(:has(> .slide-chrome-header)):not(:has(> .slide-chrome-footer)) > :only-child {
+.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"]:not(:has(> :is(.slide-chrome-header, .slide-header-region))):not(:has(> .slide-chrome-footer)) > :only-child {
   flex: 1 1 auto;
   min-height: 0;
 }
-.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> .slide-chrome-header),
+.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> :is(.slide-chrome-header, .slide-header-region)):not(.slide-header-region),
 .slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> .slide-chrome-footer) {
   display: flex;
   flex-direction: column;
   min-height: 100%;
 }
-.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> .slide-chrome-header) > .slide-chrome-header {
+.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> :is(.slide-chrome-header, .slide-header-region)):not(.slide-header-region) > :is(.slide-chrome-header, .slide-header-region) {
   margin-bottom: auto;
 }
 .slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> .slide-chrome-footer) > .slide-chrome-footer {
   margin-top: auto;
 }
-.slide[data-lwp-chrome-placement="content"] > [class^="lwp-presentation--"] :has(> .slide-chrome-header) > .slide-chrome-header + *,
+.slide[data-lwp-chrome-placement="content"] > [class^="lwp-presentation--"] :has(> :is(.slide-chrome-header, .slide-header-region)):not(.slide-header-region) > :is(.slide-chrome-header, .slide-header-region) + *,
 .slide[data-lwp-chrome-placement="content"] > [class^="lwp-presentation--"] :has(> .slide-chrome-footer) > * + .slide-chrome-footer {
   flex: 0 0 auto;
 }
@@ -2871,7 +2880,7 @@ button.share-action:hover:not(:disabled) {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.68.3</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.69.0</div>
   </div>
 </div>
 
@@ -3490,27 +3499,27 @@ python3 lightwebpres watch my-series --lang en --serve --port 8000 --open
     <tbody>
       <tr>
         <td><code>cover</code></td>
-        <td><code>slug</code>, <code>kicker</code>, <code>tags:</code>, <code># Title</code>, <code>summary</code>, <code>slide-layout</code>, <code>slide-header</code>, <code>slide-footer</code>, <code>comment</code>, <code>note</code></td>
+        <td><code>slug</code>, <code>kicker</code>, <code>tags:</code>, <code># Title</code>, <code>summary</code>, <code>slide-layout</code>, <code>slide-header</code>, <code>slide-footer</code>, <code>kicker-position</code>, <code>comment</code>, <code>note</code></td>
         <td>any number, anywhere — it is a look, not a structural marker</td>
       </tr>
       <tr>
         <td>standard <em>(the default)</em></td>
-        <td><code>slug</code>, <code>kicker</code>, <code>tags:</code>, <code>## Title</code>, <code>summary</code>, <code>highlight</code>, <code>highlight-caption</code>, <code>fact-label</code>, <code>fact-variant</code>, <code>source</code>, <code>slide-layout</code>, <code>slide-header</code>, <code>slide-footer</code>, <code>comment</code>, <code>note</code>, then free Markdown</td>
+        <td><code>slug</code>, <code>kicker</code>, <code>tags:</code>, <code>## Title</code>, <code>summary</code>, <code>highlight</code>, <code>highlight-caption</code>, <code>fact-label</code>, <code>fact-variant</code>, <code>source</code>, <code>slide-layout</code>, <code>slide-header</code>, <code>slide-footer</code>, <code>kicker-position</code>, <code>comment</code>, <code>note</code>, then free Markdown</td>
         <td>as many as you want</td>
       </tr>
       <tr>
         <td><code>series-nav</code></td>
-        <td><code>slug</code>, <code>tags:</code>, <code>slide-layout</code>, <code>slide-header</code>, <code>slide-footer</code>, <code>comment:</code> — the navigation itself is generated from <code>series.json</code></td>
+        <td><code>slug</code>, <code>tags:</code>, <code>slide-layout</code>, <code>slide-header</code>, <code>slide-footer</code>, <code>kicker-position</code>, <code>comment:</code> — the navigation itself is generated from <code>series.json</code></td>
         <td>0 or 1 per article</td>
       </tr>
       <tr>
         <td><code>full-article</code></td>
-        <td><code>slug</code>, <code>kicker</code>, <code>article: filename.md</code>, <code>tags:</code>, <code>slide-layout</code>, <code>slide-header</code>, <code>slide-footer</code> and <code>comment:</code></td>
+        <td><code>slug</code>, <code>kicker</code>, <code>article: filename.md</code>, <code>tags:</code>, <code>slide-layout</code>, <code>slide-header</code>, <code>slide-footer</code>, <code>kicker-position</code> and <code>comment:</code></td>
         <td>any number, each with its own file</td>
       </tr>
       <tr>
         <td><code>unit-index</code></td>
-        <td><code>slug</code>, optional <code>## Title</code>, <code>kicker</code>, <code>summary</code>, <code>tags</code>, <code>note</code>, <code>comment</code>, <code>index-max-columns</code>, <code>index-selector</code>, <code>slide-layout</code>, <code>slide-header</code>, <code>slide-footer</code>; no free body</td>
+        <td><code>slug</code>, optional <code>## Title</code>, <code>kicker</code>, <code>summary</code>, <code>tags</code>, <code>note</code>, <code>comment</code>, <code>index-max-columns</code>, <code>index-selector</code>, <code>slide-layout</code>, <code>slide-header</code>, <code>slide-footer</code>, <code>kicker-position</code>; no free body</td>
         <td>any number, anywhere</td>
       </tr>
     </tbody>
@@ -3931,6 +3940,19 @@ python3 lightwebpres build my-series --lang en --open
   <p><code>slide-layout</code>, <code>slide-header</code> and <code>slide-footer</code> work on all five slide types. Existing kits may omit a dedicated <code>unit-index</code> layout and use standard with chrome. <code>slide-layout</code> overrides the selected preset's layout for one slide. For chrome, the optional root <code>series.json.chrome</code> layer comes after the preset, article <code>lwp:meta</code> values come after the series, and slide fields remain strongest. Textual chrome works with <code>builtin/standard</code>; named models and assets must be supplied by every selected Identity Kit. The preset's theme supplies the typed base unless <code>appearance.themes</code> selects another theme. Precedence is: base theme < <code>settings.conf</code> pins < article <code>style.*</code> < instance styles; <code>templates/custom.css</code> remains the final advanced CSS layer. Assets are published under <code>public/assets/presentations/&lt;id&gt;/&lt;version&gt;/...</code>, or embedded by <code>--inline-images</code>.</p>
   <p>The theme's slide chrome alignment is typed too: <code>slide-header.align</code> and <code>slide-footer.align</code> accept <code>left</code>, <code>center</code> or <code>right</code>. A document author can override the theme for one article with <code>style.slide-header.align</code> and <code>style.slide-footer.align</code> in its <code>lwp:meta</code> block; this changes the position of the chrome row, not the inherited content or model.</p>
   <p><code>slide_chrome_placement</code> is optional and defaults to <code>edge</code>. Use <code>edge</code> when the preset's header and footer should use the available slide height as space around the content; use <code>content</code> when those slots belong in the normal flow of the selected layout. It is a preset structural choice, not a Theme property.</p>
+  <p>To keep a kicker with its title, use <code>before-title</code> (the existing default). To attach it beneath the header instead, use <code>after-header</code>. Position is independent of the text <code>kicker:</code> and does not add a label to a slide without one. It cascades from the selected kit preset's <code>kicker_position</code>, through <code>series_meta.kicker_position</code> and article meta <code>kicker_position</code>, to the slide-local <code>kicker-position</code>. Omit a declaration to inherit; blank and unknown values are errors. This is not a Theme property or an <code>articles[]</code> setting.</p>
+  <pre><code class="language-markdown">
+&lt;!-- lwp:meta --&gt;
+kicker_position: after-header
+---
+
+&lt;!-- lwp:slide --&gt;
+slug: title-attached
+kicker: One local exception
+kicker-position: before-title
+## Keep this label with its title
+  </code></pre>
+  <p>Under <code>after-header</code>, the kicker remains outside the header model and retains its own type and colour. Without a header, it starts the same header region; that region still follows the preset's edge/content placement. Preset switches, combined HTML and printing keep the placement. Inspect the article default with <code>resolve &lt;series-dir&gt; kicker_position --article file.md</code>, or all per-slide decisions with <code>resolve &lt;series-dir&gt; kicker-position --article file.md</code>.</p>
   <p>For a kit offering the <code>hero</code> variant, place overrides before the slide body:</p>
   <pre><code class="language-text">
 slide-layout: hero
@@ -4580,7 +4602,7 @@ kicker.fg — theme property
     default   ink-quiet
   </code></pre>
   <p>That second half is the one that solves problems. A line you wrote that changed nothing shows up here as a level holding nothing — still commented out, or beaten by a <code>series.json</code> entry you had forgotten.</p>
-  <p>A slide field has no cascade, so <code>resolve fact-label</code> answers with the list of slides that set it instead — across the series, or within one article with <code>--article</code>. Add <code>--format json</code> for a machine, and pass <code>--article</code> to a theme property to fold that page's own <code>style.*</code> lines into the chain.</p>
+  <p>An ordinary slide field has no cascade, so <code>resolve fact-label</code> answers with the list of slides that set it instead — across the series, or within one article with <code>--article</code>. Add <code>--format json</code> for a machine, and pass <code>--article</code> to a theme property to fold that page's own <code>style.*</code> lines into the chain.</p>
 <h3 id="publish-the-output-not-the-project" tabindex="-1">Publish the output, not the project</h3>
   <p>Upload the contents of <code>public/</code> to a static host: the article HTML files, <code>index.html</code>, referenced <code>img/</code> files and any <code>assets/presentations/</code> files. The generated series README lives beside <code>series.json</code>, not inside <code>public/</code>. No Python server or LightWebPres runtime is needed on the host. Reopen the hosted index, follow an article link and test a slide link from another device. Local <code>file://</code> viewing works, but does not make an address reachable by a phone.</p>
   <p>By default, only referenced images are copied from <code>sources/img/</code>; unused source files are not published and existing output assets are left in place. <code>--inline-images</code> embeds Markdown images from cards and included long-form files as data URIs, with no copied <code>img/</code> directory. Base64 adds roughly a third to image size before serving compression. Raw HTML images with relative paths cannot be inlined: the build names and rejects them rather than leaving references to an absent asset directory. <code>verify --inline-images</code> reproduces this mode; <code>watch</code> accepts the option too. Declared kit images follow the same embedding rule.</p>

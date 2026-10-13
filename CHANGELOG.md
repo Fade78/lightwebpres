@@ -33,6 +33,17 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.69.0
+
+Kickers can stay immediately above the slide title (`before-title`, the existing
+default), or sit beneath the slide header (`after-header`). The optional
+`kicker_position` default cascades from the selected kit preset through
+`series_meta` and article metadata; a slide's `kicker-position` is strongest.
+Without a header, `after-header` starts the same header region. It remains
+separate from header text and keeps its own styling and reading order. The
+placement follows runtime preset changes, combined HTML and print, and is
+documented in the draft contract and resolution reports.
+
 ## Unreleased — 0.68.3
 
 Height fitting now includes ordinary images and figures **inside table cells**.

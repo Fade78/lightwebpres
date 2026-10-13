@@ -210,11 +210,11 @@ syntax and every edge case.
 
 | Type | Carries | How many |
 |---|---|---|
-| `cover` | `slug`, `kicker`, `tags:`, `# Title`, `summary`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note` | any number, anywhere — it is a look, not a structural marker |
-| standard *(the default)* | `slug`, `kicker`, `tags:`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note`, then free Markdown | as many as you want |
-| `series-nav` | `slug`, `tags:`, `slide-layout`, `slide-header`, `slide-footer`, `comment:` — the navigation itself is generated from `series.json` | 0 or 1 per article |
-| `full-article` | `slug`, `kicker`, `article: filename.md`, `tags:`, `slide-layout`, `slide-header`, `slide-footer` and `comment:` | any number, each with its own file |
-| `unit-index` | `slug`, optional `## Title`, `kicker`, `summary`, `tags`, `note`, `comment`, `index-max-columns`, `index-selector`, `slide-layout`, `slide-header`, `slide-footer`; no free body | any number, anywhere |
+| `cover` | `slug`, `kicker`, `tags:`, `# Title`, `summary`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `comment`, `note` | any number, anywhere — it is a look, not a structural marker |
+| standard *(the default)* | `slug`, `kicker`, `tags:`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `comment`, `note`, then free Markdown | as many as you want |
+| `series-nav` | `slug`, `tags:`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `comment:` — the navigation itself is generated from `series.json` | 0 or 1 per article |
+| `full-article` | `slug`, `kicker`, `article: filename.md`, `tags:`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position` and `comment:` | any number, each with its own file |
+| `unit-index` | `slug`, optional `## Title`, `kicker`, `summary`, `tags`, `note`, `comment`, `index-max-columns`, `index-selector`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`; no free body | any number, anywhere |
 
 Five, and only five. Mistype one, such as `<!-- lwp:slide:covre -->`, and the
 build stops and tells you which slide, what you wrote, and what the five
@@ -959,6 +959,33 @@ of the chrome row, not the inherited content or model.
 the preset's header and footer should use the available slide height as space
 around the content; use `content` when those slots belong in the normal flow of
 the selected layout. It is a preset structural choice, not a Theme property.
+
+To keep a kicker with its title, use `before-title` (the existing default).
+To attach it beneath the header instead, use `after-header`. Position is
+independent of the text `kicker:` and does not add a label to a slide without
+one. It cascades from the selected kit preset's `kicker_position`, through
+`series_meta.kicker_position` and article meta `kicker_position`, to the
+slide-local `kicker-position`. Omit a declaration to inherit; blank and unknown
+values are errors. This is not a Theme property or an `articles[]` setting.
+
+```markdown
+<!-- lwp:meta -->
+kicker_position: after-header
+---
+
+<!-- lwp:slide -->
+slug: title-attached
+kicker: One local exception
+kicker-position: before-title
+## Keep this label with its title
+```
+
+Under `after-header`, the kicker remains outside the header model and retains
+its own type and colour. Without a header, it starts the same header region;
+that region still follows the preset's edge/content placement. Preset switches,
+combined HTML and printing keep the placement. Inspect the article default with
+`resolve <series-dir> kicker_position --article file.md`, or all per-slide
+decisions with `resolve <series-dir> kicker-position --article file.md`.
 
 For a kit offering the `hero` variant, place overrides before the slide body:
 
@@ -2086,7 +2113,7 @@ That second half is the one that solves problems. A line you wrote that
 changed nothing shows up here as a level holding nothing — still
 commented out, or beaten by a `series.json` entry you had forgotten.
 
-A slide field has no cascade, so `resolve fact-label` answers with the
+An ordinary slide field has no cascade, so `resolve fact-label` answers with the
 list of slides that set it instead — across the series, or within one
 article with `--article`. Add `--format json` for a machine, and pass
 `--article` to a theme property to fold that page's own `style.*` lines

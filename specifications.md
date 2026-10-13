@@ -733,7 +733,7 @@ fiches sont :
 A selected Identity Kit wraps the rendered LWP content without replacing this
 section. LWP still owns `<head>`, `<body>`, navigation, scripts and slide
 identity. All five slide types accept `slide-layout`, `slide-header` and
-`slide-footer` (§9.9.3).
+`slide-footer`, plus the independent `kicker-position` (§9.9.3).
 
 #### 3.3.1 Fiche de couverture (`cover`)
 
@@ -1173,6 +1173,7 @@ meta chrome, then the slide's `slide-header` and `slide-footer` fields
 | `slide-layout`   | Choisit une variante du kit d'identité (§9.9.3) | Non |
 | `slide-header`   | Chrome d'en-tête ; `""` le supprime de la cascade | Non |
 | `slide-footer`   | Chrome de pied ; `""` le supprime de la cascade | Non |
+| `kicker-position` | `before-title` or `after-header`; overrides the inherited kicker position | No |
 | `note`           | `<div class="speaker-note" hidden>` : embarqué dans le HTML, affiché par le panneau de la même page, sans confidentialité (§8.4) | Non |
 | `comment`        | Aucun — jamais rendu (§4.6)               | Non         |
 
@@ -1181,6 +1182,18 @@ le dérive. Rien ne verrouille ce tableau-ci contre lui : il se relit à la
 main, et c'est pour l'avoir oublié qu'il a manqué trois champs.
 
 `slide-layout`, `slide-header` and `slide-footer` are shared by all five types.
+`kicker-position` is also shared: it moves an existing kicker but does not
+create one or alter its text. Its two exact values are `before-title` (the
+existing position immediately above the slide heading) and `after-header`
+(in the header region, immediately after the header, outside the chrome model).
+If no header is rendered, the latter uses the start of that region. The region
+follows the preset's edge/content placement. The default is `before-title`.
+The scalar cascade is selected kit preset `kicker_position` <
+`series_meta.kicker_position` < article `lwp:meta` `kicker_position` < slide
+`kicker-position`. Omit a field to inherit; a declared blank, `""`, JSON `null`
+or unknown value is invalid, even when a stronger declaration masks it.
+`articles[]` entries cannot set this field. Kicker colour, type and header
+alignment remain separate typed appearance properties.
 Textual chrome works with `builtin/standard`; a named chrome model or asset
 reference requires the selected Identity Kit to provide it. A non-`default`
 variant also requires a supporting kit. `slide-layout: default` retains the
@@ -1381,6 +1394,8 @@ The JSON contains:
 
 - `canonical_order`: `cover`, `standard`, `series-nav`, `full-article`, `unit-index`.
 - `empty_rules`: shared and type-specific empty-value rules.
+- `value_sets`: closed vocabularies for fields such as `kicker-position`
+  (`before-title`, `after-header`); omitted fields retain their own contracts.
 - `slug`: accepted pattern, reserved IDs and generated-draft identity policy.
 - `types`: each marker, title marker, fields, canonical `field_order` (including
   `title`), `required_fields`, `cardinality`, free-text rule, summary and complete
@@ -4997,6 +5012,17 @@ the same slots remain in the layout's normal content flow. LWP emits the
 resolved value as `data-lwp-chrome-placement` on article slides, and updates
 that attribute when a reader switches a runtime presentation preset. The
 series index has no slide chrome and does not receive the attribute.
+
+A preset may also declare `kicker_position: "before-title" | "after-header"`,
+with `before-title` as the fallback for existing kits, native Standard and
+Commons presets. This default participates in the author cascade in §4.3;
+unlike `slide_chrome_placement`, it can be overridden at series, article and
+slide scope. No new layout placeholder is required: LWP removes its own kicker
+from `{{content}}` and adds a sibling of the header inside
+`.slide-header-region` at `{{slide_header}}`. It is not part of
+`.slide-chrome-header` and keeps `.slide-kicker` styling and localization.
+Pre-rendered runtime alternatives, combined HTML and print preserve this
+semantic order without copying the kicker.
 
 Sur une fiche, les trois champs Markdown sont les overrides finaux :
 
@@ -9145,6 +9171,7 @@ indépendamment de ces choix, mais est validé contre chaque preset sélectionn�
 | `license` | string | non | Licence par défaut de toute la série (§20.3.1) ; même affichage que `author` ; HTML brut autorisé (lien) |
 | `default_tag` | string | non | Tag sélectionné au premier affichage (`default` si absent). Un tag unique de l'espace de noms partagé; il doit être présent sur un article ou une slide non exclue sélectionnée pour le build (§4.3.1) |
 | `scroll_duration` | integer non négatif | non | Durée en millisecondes du glissé de navigation. `200` par défaut, `0` instantané ; `--scroll-duration` la surcharge pour un build, une vérification ou une surveillance (§8.4) |
+| `kicker_position` | `before-title` or `after-header` | no | Series-wide kicker position; overrides the selected preset and is overridden by article metadata and `kicker-position` on a slide (§4.3) |
 | `comment` | string | non | Note de relecture sur la série entière ; ignorée par le build (§4.6) |
 | `lang_tags` | object `{tag: pack}` | non | Déclare les tags qui sélectionnent un moteur typographique, par exemple `{"fr": "fr", "en": "en"}`. Les clés suivent la syntaxe de `tags:` ; les noms de packs sont des identifiants sûrs et désignent `typography/<pack>.json`, un ancien `language/<pack>.json` ou un pack intégré (§7.5) |
 | `notes_placement` | `local` ou `page` | non | Emplacement des corps de notes ; cascade défaut → série → bloc meta de l'article (§6.5) |
@@ -9398,7 +9425,7 @@ horizontal dans le texte, utiliser `<hr>` en HTML inline.
 
 Les métadonnées (`kicker:`, `tags:`, `summary:`, `fact-label:`, `fact-variant:`,
 `source:`, `highlight:`, `highlight-caption:`, `slide-layout:`,
-`slide-header:`, `slide-footer:`, `comment:`, `note:`, `article:`)
+`slide-header:`, `slide-footer:`, `kicker-position:`, `comment:`, `note:`, `article:`)
 ne sont reconnues que **dans l'en-tête** de la slide (les premières lignes avant
 le premier paragraphe de contenu). Une fois
 que le parseur a rencontré une ligne de contenu (paragraphe, liste, titre), il

@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.68.3"
+VERSION = "0.69.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -4492,6 +4492,7 @@ _PRESENTATION_SLIDE_TYPES = (
     'cover', 'standard', 'series-nav', 'full-article', 'unit-index',
 )
 _PRESENTATION_CHROME_PLACEMENTS = ('edge', 'content')
+_KICKER_POSITIONS = ('before-title', 'after-header')
 _PRESENTATION_LAYOUT_SLOTS = frozenset({
     'content', 'slide_header', 'slide_footer',
 })
@@ -4580,7 +4581,8 @@ class PresentationPreset:
                  slide_chrome=None, slide_chrome_placement='edge', starter=None,
                  default=False,
                  resource_collection=None, scope=None,
-                 dependency_paths=None, digest=None, theme_origin=None):
+                 dependency_paths=None, digest=None, theme_origin=None,
+                 kicker_position='before-title'):
         self.identity_kit = identity_kit
         self.id = preset_id
         self.label = label
@@ -4596,6 +4598,7 @@ class PresentationPreset:
                 f'slide_chrome_placement must be one of '
                 f'{" | ".join(_PRESENTATION_CHROME_PLACEMENTS)}')
         self.slide_chrome_placement = slide_chrome_placement
+        self.kicker_position = _parse_kicker_position(kicker_position, 'kicker_position')
         self.starter = starter
         # This selects the native renderer, not the selected/default preset.
         self.default = default
@@ -4875,6 +4878,13 @@ def _parse_slide_chrome_placement(value, origin):
         raise PropertyError(
             f'{origin}: must be one of '
             f'{" | ".join(_PRESENTATION_CHROME_PLACEMENTS)}')
+    return value
+
+
+def _parse_kicker_position(value, origin):
+    """Omission inherits; a declared position must be one exact enum value."""
+    if not isinstance(value, str) or value not in _KICKER_POSITIONS:
+        raise PropertyError(f'{origin}: must be one of {" | ".join(_KICKER_POSITIONS)}')
     return value
 
 
@@ -5602,7 +5612,7 @@ def _load_identity_kit(root, scope):
                                 f'presets.{preset_id} must be an object')
         allowed_preset = {
             'label', 'description', 'theme', 'slide_layouts',
-            'slide_chrome', 'slide_chrome_placement', 'starter',
+            'slide_chrome', 'slide_chrome_placement', 'kicker_position', 'starter',
         }
         unknown = sorted(set(descriptor) - allowed_preset)
         if unknown:
@@ -5645,6 +5655,9 @@ def _load_identity_kit(root, scope):
         chrome_placement = _parse_slide_chrome_placement(
             descriptor.get('slide_chrome_placement'),
             f'{manifest_path}: presets.{preset_id}.slide_chrome_placement')
+        kicker_position = _parse_kicker_position(
+            descriptor.get('kicker_position', 'before-title'),
+            f'{manifest_path}: presets.{preset_id}.kicker_position')
         for slide_type, slots in chrome_defaults.items():
             for slot, value in slots.items():
                 _validate_presentation_chrome_value(
@@ -5667,7 +5680,8 @@ def _load_identity_kit(root, scope):
             theme_id=theme_id, theme_props=theme['props'],
             theme_meta=theme['meta'], slide_layouts=layout_defaults,
             slide_chrome=chrome_defaults,
-            slide_chrome_placement=chrome_placement, starter=starter)
+            slide_chrome_placement=chrome_placement, starter=starter,
+            kicker_position=kicker_position)
 
     identity_kit.presets = presets
     default_preset = manifest.get('default_preset', next(iter(presets)))
@@ -8865,13 +8879,22 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.slide-header-region {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  min-width: 0;
+  margin-bottom: 16px;
+}
+.slide-header-region > .slide-chrome-header { margin-bottom: 16px; }
+.slide-header-region > .slide-kicker { margin-bottom: 0; }
 
 /* Placement is owned by the selected preset, not by the visual Theme. The
    edge mode lets the layout's chrome parent consume the slide's free height;
    the content mode leaves the header/content/footer group in normal flow.
    `:has` identifies the kit's slot parent without allowing a kit stylesheet to
    select the LWP slide shell itself. */
-.slide[data-lwp-chrome-placement="edge"] > .slide-chrome-header {
+.slide[data-lwp-chrome-placement="edge"] > :is(.slide-chrome-header, .slide-header-region) {
   margin-bottom: auto;
 }
 .slide[data-lwp-chrome-placement="edge"] > .slide-chrome-footer {
@@ -8883,23 +8906,23 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
   flex-direction: column;
   min-height: 0;
 }
-.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"]:not(:has(> .slide-chrome-header)):not(:has(> .slide-chrome-footer)) > :only-child {
+.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"]:not(:has(> :is(.slide-chrome-header, .slide-header-region))):not(:has(> .slide-chrome-footer)) > :only-child {
   flex: 1 1 auto;
   min-height: 0;
 }
-.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> .slide-chrome-header),
+.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> :is(.slide-chrome-header, .slide-header-region)):not(.slide-header-region),
 .slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> .slide-chrome-footer) {
   display: flex;
   flex-direction: column;
   min-height: 100%;
 }
-.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> .slide-chrome-header) > .slide-chrome-header {
+.slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> :is(.slide-chrome-header, .slide-header-region)):not(.slide-header-region) > :is(.slide-chrome-header, .slide-header-region) {
   margin-bottom: auto;
 }
 .slide[data-lwp-chrome-placement="edge"] > [class^="lwp-presentation--"] :has(> .slide-chrome-footer) > .slide-chrome-footer {
   margin-top: auto;
 }
-.slide[data-lwp-chrome-placement="content"] > [class^="lwp-presentation--"] :has(> .slide-chrome-header) > .slide-chrome-header + *,
+.slide[data-lwp-chrome-placement="content"] > [class^="lwp-presentation--"] :has(> :is(.slide-chrome-header, .slide-header-region)):not(.slide-header-region) > :is(.slide-chrome-header, .slide-header-region) + *,
 .slide[data-lwp-chrome-placement="content"] > [class^="lwp-presentation--"] :has(> .slide-chrome-footer) > * + .slide-chrome-footer {
   flex: 0 0 auto;
 }
@@ -19306,14 +19329,14 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
 SLIDE_FIELD_NAMES = (
     'slug', 'kicker', 'tags', 'summary', 'fact-label', 'fact-variant',
     'source', 'highlight', 'highlight-caption', 'slide-layout',
-    'slide-header', 'slide-footer', 'comment', 'note',
+    'slide-header', 'slide-footer', 'kicker-position', 'comment', 'note',
 )
 
 # These fields are structural instructions for an Identity Kit, not
 # ordinary prose. They are accepted on every slide type so a header/footer can
 # follow the card it belongs to, including a cover, series navigation or a
 # full-article card.
-_PRESENTATION_SLIDE_FIELDS = ('slide-layout', 'slide-header', 'slide-footer')
+_PRESENTATION_SLIDE_FIELDS = ('slide-layout', 'slide-header', 'slide-footer', 'kicker-position')
 
 
 # Logical selection is independent of physical output and publication policy.
@@ -19492,7 +19515,8 @@ def _article_selector_field_policies():
     return policies
 
 
-def make_selector_record(series_fields, unit_sources, slide_fields, field_policies=None):
+def make_selector_record(series_fields, unit_sources, slide_fields, field_policies=None,
+                          fallbacks=()):
     """Build query views from owned fields, never from inherited unit defaults.
 
     unit_sources contains {source, priority, values}; callers supply only known
@@ -19504,14 +19528,18 @@ def make_selector_record(series_fields, unit_sources, slide_fields, field_polici
     omitted fields retain false/empty/None. Eligibility applies before all
     scoped and resolved reads, and rejected declarations remain in the trace.
     A scoped field with no eligible declaration is absent, not inherited.
+    Optional unscoped fallbacks follow authored fields in both directions.
     """
     sources = [(LogicalScope.SERIES, 'series', 0, series_fields)]
     sources.extend((LogicalScope.UNIT, item['source'], item['priority'],
                     item['values']) for item in unit_sources)
     sources.append((LogicalScope.SLIDE, 'slide', 0, slide_fields))
+    sources.extend((None, item['source'], 0, item['values']) for item in fallbacks)
     fields = {}
     for scope, source, priority, values in sources:
         for field, value in values.items():
+            spec = field_spec(field)
+            field = spec.internal_name if spec is not None else field
             fields.setdefault(field, []).append(
                 FieldDeclaration(field=field, scope=scope, source=source,
                                 priority=priority, value=value).as_candidate())
@@ -20237,6 +20265,7 @@ SLIDE_DRAFT_EMPTY_RULES = {
     'slide-layout': 'an empty value is invalid',
     'slide-header': 'an exact "" suppresses inherited chrome; an unquoted empty value is invalid',
     'slide-footer': 'an exact "" suppresses inherited chrome; an unquoted empty value is invalid',
+    'kicker-position': 'an empty value is invalid; omit to inherit before-title or after-header',
 }
 
 
@@ -20430,6 +20459,7 @@ def slide_draft_contract(existing_slugs=()):
         'lightwebpres_version': VERSION,
         'canonical_order': [slide_type.name for slide_type in SLIDE_TYPES],
         'empty_rules': dict(SLIDE_DRAFT_EMPTY_RULES),
+        'value_sets': {'kicker-position': list(_KICKER_POSITIONS)},
         'slug': {
             'generated': True,
             'required': True,
@@ -20566,6 +20596,7 @@ class Slide:
         # rather than letting it be derived (see SLIDE IDENTITY above).
         self.slug = None
         self.kicker = None
+        self.kicker_position = None
         self.tags = None
         self.h2 = None
         self.h2_present = False
@@ -20721,7 +20752,7 @@ def parse_markdown_extended(md_text):
                     slide.slug = strip_ws(slug_match.group(1)) or None
                     continue
                 presentation_match = re.match(
-                    r'^(slide-layout|slide-header|slide-footer):[ \t]*(.*)',
+                    r'^(' + '|'.join(_PRESENTATION_SLIDE_FIELDS) + r'):[ \t]*(.*)',
                     stripped)
                 if presentation_match:
                     _set_presentation_slide_field(
@@ -21182,6 +21213,13 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
             if field not in slide.raw_meta:
                 continue
             raw = slide.raw_meta[field]
+            if field == 'kicker-position':
+                try:
+                    _parse_kicker_position(raw, f'{filename}: slide {i}: {field}')
+                except PropertyError as exc:
+                    log('error', str(exc))
+                    sys.exit(1)
+                continue
             if not raw:
                 log('error', f'{filename}: slide {i} has an empty {field}: '
                     'value. Omit the field to inherit, or write "" to '
@@ -21760,7 +21798,8 @@ def _resolve_presentation_chrome(slide, preset, chrome_layers, typo_engine,
 
 
 def _wrap_presentation_slide(default_html, slide, preset, layout_variants,
-                              chrome_layers, typo_engine, disabled, inline_images):
+                              chrome_layers, typo_engine, disabled, inline_images,
+                              kicker_position='before-title'):
     """Keep LWP's section shell and replace only the Identity Kit interior."""
     identity_kit = preset.identity_kit
     requested_layout = (slide.slide_layout
@@ -21773,7 +21812,7 @@ def _wrap_presentation_slide(default_html, slide, preset, layout_variants,
             raise PropertyError(
                 f'slide {slide.slug or slide.slide_type}: slide-layout '
                 'requires an identity kit layout')
-        if not chrome_fields:
+        if not chrome_fields and kicker_position == 'before-title':
             opening, separator, remainder = default_html.partition('\n')
             if not separator:
                 raise PropertyError(
@@ -21793,9 +21832,21 @@ def _wrap_presentation_slide(default_html, slide, preset, layout_variants,
     content = remainder[:-len(closing)]
     chrome = _resolve_presentation_chrome(
         slide, preset, chrome_layers, typo_engine, disabled, inline_images)
+    header = chrome.get('header', '')
+    if kicker_position == 'after-header':
+        # Move only the native renderer's leading kicker, never an authored
+        # span in the body. Its existing markup (including i18n) stays intact.
+        lines = content.split('\n')
+        index = 1 if lines[0].startswith('  <span class="slide-num"') else 0
+        if index < len(lines) and lines[index].startswith('  <span class="slide-kicker"'):
+            kicker = lines.pop(index)
+            content = '\n'.join(lines)
+            header = ('<div class="slide-header-region">\n'
+                      + (header + '\n' if header else '')
+                      + kicker + '\n</div>')
     inner = fill_placeholders(fragment, {
         'content': content,
-        'slide_header': chrome.get('header', ''),
+        'slide_header': header,
         'slide_footer': chrome.get('footer', ''),
     })
     opening = _presentation_slide_opening(
@@ -21808,7 +21859,8 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
                   disabled=None, notes=None, absorb_punct=False,
                   inline_images=False, sources_dir=None, show_slide_num=False,
                   slide_id=None, presentation_preset=None,
-                  slide_layouts=None, slide_chrome_layers=()):
+                  slide_layouts=None, slide_chrome_layers=(),
+                  kicker_position_declarations=()):
     """Render LWP's semantic slide, then optionally wrap it in a preset."""
     rendered = _render_slide_default(
         slide, slide_num, total_slides, typo_engine, strings, disabled=disabled,
@@ -21817,9 +21869,11 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
     if not rendered:
         return rendered
     preset = presentation_preset or BUILTIN_STANDARD_PRESET
+    kicker_position = resolve_kicker_position(
+        preset, kicker_position_declarations, slide)['value']
     return _wrap_presentation_slide(
         rendered, slide, preset, slide_layouts or {}, slide_chrome_layers,
-        typo_engine, disabled, inline_images)
+        typo_engine, disabled, inline_images, kicker_position)
 
 
 # ============================================================================
@@ -22819,6 +22873,8 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     article_chrome = _article_chrome_layer(meta, source_path.name)
     if article_chrome:
         slide_chrome_layers = (*slide_chrome_layers, article_chrome)
+    kicker_declarations = kicker_position_declarations(
+        meta, series_meta_of(series_data), source_path.name)
     slides = _prepare_unit_slides(
         slides, meta, series_meta_of(series_data), source_path.name, args)
     for number, slide in enumerate(slides, 1):
@@ -22938,7 +22994,8 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
                                  slide_id=identities[i - 1],
                                   presentation_preset=presentation_preset,
                                  slide_layouts=slide_layouts,
-                                 slide_chrome_layers=slide_chrome_layers)
+                                 slide_chrome_layers=slide_chrome_layers,
+                                 kicker_position_declarations=kicker_declarations)
             slide_htmls.append(html)
     except PropertyError as exc:
         log('error', f'{source_path.name}: {exc}')
@@ -23080,6 +23137,8 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
         series_fields = {field: value for field, value in series_meta_of(series_data).items()
                          if field in _SERIES_META_FIELDS}
         records, targets = [], {}
+        selector_fallbacks = [{'source': 'preset', 'values': {
+            'kicker_position': (presentation_preset or BUILTIN_STANDARD_PRESET).kicker_position}}]
         for number, (slide, identity) in enumerate(zip(visible_slides, identities), 1):
             engine = typo_engine_for_slide(
                 slide, article_typo_engine, article_lang_tag_engines)
@@ -23101,16 +23160,18 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
             fields.update(type=slide.slide_type, title=source_title, slug=slide.slug,
                           id=identity, tags=list(slide.tags))
             record = make_selector_record(series_fields, unit_sources, fields,
-                                          field_policies=_article_selector_field_policies())
+                                          field_policies=_article_selector_field_policies(),
+                                          fallbacks=selector_fallbacks)
             records.append(record)
             targets[id(record)] = (number, identity, title, slide.tags)
         if has_endnotes:
             title = plain_label(strings.get('notes_section_title', 'Notes'))
             record = make_selector_record(series_fields, unit_sources,
                                           {'type': 'notes', 'title': title,
-                                           'slug': 'notes', 'id': 'notes',
-                                           'tags': ['default']},
-                                          field_policies=_article_selector_field_policies())
+                                            'slug': 'notes', 'id': 'notes',
+                                            'tags': ['default']},
+                                          field_policies=_article_selector_field_policies(),
+                                          fallbacks=selector_fallbacks)
             records.append(record)
             targets[id(record)] = (len(records), 'notes', title, ['default'])
         for number, slide in enumerate(visible_slides, 1):
@@ -23872,7 +23933,7 @@ _PRESENTATION_MANIFEST_FIELDS = ('slide_layouts', 'slide_chrome')
 # series_meta string leaves used by build_index / resolve_article_fields.
 _SERIES_META_STRING_FIELDS = (
     'title', 'subtitle', 'version', 'intro', 'author', 'license',
-    'default_tag', 'slug_prefix',
+    'default_tag', 'slug_prefix', 'kicker_position',
 )
 _SERIES_META_INTEGER_FIELDS = ('scroll_duration',)
 _SERIES_META_OBJECT_FIELDS = ('reading', 'selectors')
@@ -24035,6 +24096,14 @@ def series_meta_of(series_data, tolerate_invalid=False, errors=None):
             invalid(str(exc))
             if tolerate_invalid:
                 meta.pop('reading', None)
+    if 'kicker_position' in meta:
+        try:
+            _parse_kicker_position(meta['kicker_position'],
+                                   'series.json: series_meta.kicker_position')
+        except PropertyError as exc:
+            invalid(str(exc))
+            if tolerate_invalid:
+                meta.pop('kicker_position', None)
     for field in _PRESENTATION_MANIFEST_FIELDS:
         if field not in meta:
             continue
@@ -24346,6 +24415,45 @@ def _resolve_article_presentation(entry, meta, series_meta, source_name):
             if field in source:
                 raise PropertyError(
                     f'{origin}: {field} belongs in a kit preset, not an article.')
+    if 'kicker_position' in entry:
+        raise PropertyError(
+            f'series.json: entry for {source_name}: kicker_position belongs '
+            'in series_meta or the article lwp:meta block, not articles[].')
+    kicker_position_declarations(meta, series_meta, source_name)
+
+
+def kicker_position_declarations(meta, series_meta, source_name):
+    """Keep source ownership and presence, and reject masked invalid values."""
+    candidates = []
+    spec = field_spec('kicker-position')
+    for scope, source, values, origin in (
+            (LogicalScope.UNIT, 'article', meta or {}, source_name + ': kicker_position'),
+            (LogicalScope.SERIES, 'series', series_meta or {}, 'series.json: series_meta.kicker_position')):
+        present = 'kicker_position' in values
+        value = values.get('kicker_position')
+        if present:
+            value = _parse_kicker_position(value, origin)
+        candidate = spec.declaration(scope, source, value, present=present).as_candidate()
+        candidate['origin'] = origin
+        candidates.append(candidate)
+    return candidates
+
+
+def resolve_kicker_position(preset, declarations=(), slide=None,
+                             policy='specific-first'):
+    """Specific slide, unit and series declarations override the preset fallback."""
+    candidates = list(declarations)
+    if slide is not None:
+        present = 'kicker-position' in slide.raw_meta
+        value = slide.raw_meta.get('kicker-position')
+        if present:
+            value = _parse_kicker_position(
+                value, f'slide {slide.slug or slide.slide_type}: kicker-position')
+        candidates.append(field_spec('kicker-position').declaration(
+            LogicalScope.SLIDE, 'slide', value, present=present).as_candidate())
+    candidates.append({'scope': None, 'source': 'preset', 'fallback': True,
+                       'value': preset.kicker_position, 'origin': preset.selector})
+    return resolve_scoped(candidates, policy, default='before-title')
 
 
 def _article_chrome_layer(meta, origin):
@@ -29406,6 +29514,7 @@ def _presentation_preset_report(preset):
         'slide_layouts': dict(preset.slide_layouts),
         'slide_chrome': dict(preset.slide_chrome),
         'slide_chrome_placement': preset.slide_chrome_placement,
+        'kicker_position': preset.kicker_position,
         'starter': (None if starter is None else {
             'id': starter.id,
             'label': starter.label,
@@ -29482,6 +29591,7 @@ def _identity_kit_report(identity_kit):
                 'slide_layouts': dict(preset.slide_layouts),
                 'slide_chrome': json.loads(json.dumps(preset.slide_chrome)),
                 'slide_chrome_placement': preset.slide_chrome_placement,
+                'kicker_position': preset.kicker_position,
                 'starter': preset.starter.id if preset.starter is not None else None,
             }
             for _name, preset in sorted(identity_kit.presets.items())
@@ -30860,7 +30970,7 @@ _NOTES_FIELD_DEFAULTS = {'notes_placement': 'local', 'notes_tooltip': 'off'}
 # else. A one-level cascade is still a cascade worth reporting — the
 # answer "you can only set this in the meta block" is the useful half.
 _TYPO_FIELD_NAMES = ('typo', 'typo_units', 'typo_thousands')
-_PRESENTATION_ARTICLE_FIELDS = ('slide-header', 'slide-footer')
+_PRESENTATION_ARTICLE_FIELDS = ('slide-header', 'slide-footer', 'kicker_position')
 
 # Every name that resolves per article, whatever its own cascade — the
 # display fields, the editorial three, the notes settings, the typography
@@ -30929,6 +31039,12 @@ def _build_field_registry():
         registry[name].configure(handler='typo')
     for name in ('author', 'license', 'slug_prefix'):
         registry[name].configure(handler='article-or-series')
+    registry['kicker-position'].add_scopes((LogicalScope.UNIT, LogicalScope.SERIES))
+    registry['kicker-position'].configure(
+        policy='specific-first', composition='scalar', handler='kicker-position')
+    registry['kicker-position'].internal_name = 'kicker_position'
+    registry['kicker_position'].configure(handler='kicker-position')
+    registry['kicker_position'].add_scopes((LogicalScope.SLIDE,))
     return registry
 
 
@@ -31214,6 +31330,42 @@ def survey_slide_field(name, articles, sources_dir, only):
     return {'sites': sites}, unread
 
 
+def _kicker_position_report(resolved):
+    """Expose the same deciding candidate used by rendering, including fallback."""
+    chain, crowned = [], False
+    for candidate in resolved['candidates']:
+        link = _chain_link(candidate['source'], candidate['value'])
+        link['present'] = candidate['contributes']
+        link['winner'] = candidate['contributes'] and not crowned
+        crowned = crowned or link['winner']
+        if 'origin' in candidate:
+            link['origin'] = candidate['origin']
+        chain.append(link)
+    return {'value': resolved['value'], 'source': resolved['source'], 'chain': chain}
+
+
+def survey_kicker_positions(articles, sources_dir, only, preset, series_meta):
+    """A position resolves per slide, even when that slide has no kicker."""
+    sites, unread = [], []
+    for entry in articles:
+        source = entry['page_source']
+        if only and source != only:
+            continue
+        path = _resolve_contained(sources_dir, source)
+        text = _read_article_source(path) if path is not None else None
+        if text is None:
+            unread.append(source)
+            continue
+        meta, slides, _, _ = parse_markdown_extended(text)
+        declarations = kicker_position_declarations(meta, series_meta, source)
+        for number, slide in enumerate(slides, 1):
+            site = _kicker_position_report(resolve_kicker_position(preset, declarations, slide))
+            site.update(article=source, slide=number, slide_type=slide.slide_type,
+                        slide_title=slide.h1 or slide.h2 or None)
+            sites.append(site)
+    return {'sites': sites}, unread
+
+
 def print_resolve_text(report):
     """The human format. Strongest level first in both cascades, although
     the two are written in opposite directions elsewhere in the spec:
@@ -31230,13 +31382,16 @@ def print_resolve_text(report):
         if not sites:
             print('  set nowhere in this series.')
             return
-        print(f"  set on {len(sites)} slide(s):")
+        action = 'resolved for' if any('chain' in site for site in sites) else 'set on'
+        print(f"  {action} {len(sites)} slide(s):")
         for site in sites:
             title = f' "{site["slide_title"]}"' if site['slide_title'] else ''
             print(f"    {site['article']}  slide {site['slide']}"
                   f" ({site['slide_type']}){title}")
             for line in textwrap.wrap(str(site['value']), width=_TERM_WIDTH - 4) or ['(empty)']:
                 print(f"        {line}")
+            if 'source' in site:
+                print(f'        from {site["source"]}')
         return
 
     value = resolution['value']
@@ -31342,6 +31497,15 @@ def cmd_resolve(series_dir, name, args):
                 catalog=theme_catalog,
                 presentation_preset=presentation_preset,
                 appearance=appearance)
+        elif handler == 'kicker-position':
+            if name == 'kicker-position':
+                resolution, unread = survey_kicker_positions(
+                    articles, sources_dir, only, presentation_preset, series_meta)
+            else:
+                declarations = kicker_position_declarations(
+                    article_meta or {}, series_meta, only or 'article')
+                resolution = _kicker_position_report(
+                    resolve_kicker_position(presentation_preset, declarations))
         elif handler == 'slide' or kind == 'slide-field':
             if name not in _SLIDE_FIELD_ATTRS:
                 # `comment` is a slide field and is refused above, so it

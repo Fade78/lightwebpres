@@ -16077,7 +16077,7 @@ class H1H2FieldFormRemoved(unittest.TestCase):
             self.assertIn('unrecognized field "tag:"', result.stderr)
             self.assertIn(
                 'kicker:, tags:, summary:, slide-layout:, slide-header:, '
-                'slide-footer:, comment:, note:', result.stderr)
+                'slide-footer:, kicker-position:, comment:, note:', result.stderr)
             self.assertIn(
                  'Use "kicker:" for a visible label or "tags:" for tag filtering.',
                 result.stderr,
@@ -16097,7 +16097,7 @@ class H1H2FieldFormRemoved(unittest.TestCase):
             self.assertIn('unrecognized field "mystery:"', result.stderr)
             self.assertIn(
                 'kicker:, tags:, summary:, slide-layout:, slide-header:, '
-                'slide-footer:, comment:, note:', result.stderr)
+                'slide-footer:, kicker-position:, comment:, note:', result.stderr)
             self.assertNotIn('Use "kicker:" for a visible label', result.stderr)
 
 
@@ -19884,8 +19884,9 @@ class TestNamingConvention(unittest.TestCase):
         for name in sorted(self._article_level_names()):
             with self.subTest(name):
                 spec = self.lwp.field_spec(name)
-                if spec is not None and self.lwp.LogicalScope.SLIDE in spec.scopes:
-                    self.assertEqual(spec.handler, 'slide')
+                if spec is not None and name in self.lwp._SLIDE_FIELD_ATTRS:
+                    self.assertEqual(spec.kind, 'slide-field')
+                    self.assertIn(self.lwp.LogicalScope.SLIDE, spec.scopes)
                     continue
                 self.assertRegex(name, self.SNAKE, f'{name!r} is not snake_case')
 
@@ -20242,12 +20243,13 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                             'license', 'default_tag', 'scroll_duration',
                              'lang_tags', 'notes_placement', 'notes_tooltip',
                               'slide_page_numbers', 'slug_prefix',
+                             'kicker_position',
                              'reading', 'selectors',
                              'unit_index', 'unit_index_max_columns', 'unit_index_selector'})
         self.assertEqual(set(report['presentation']),
                          {'schema', 'selector', 'id', 'label', 'description',
                            'native_renderer', 'identity', 'theme', 'slide_layouts',
-                          'slide_chrome', 'slide_chrome_placement', 'starter',
+                           'slide_chrome', 'slide_chrome_placement', 'kicker_position', 'starter',
                            'resource_collection', 'scope'})
         self.assertEqual(report['presentation']['schema'], 'lightwebpres.presentation-preset/4')
         self.assertTrue(report['presentation']['native_renderer'])

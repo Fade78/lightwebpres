@@ -126,6 +126,7 @@ Once per series, in `series.json`'s `series_meta` object.
 | `license` | `''` — nothing shown | Series-wide default license; same display as `author`; raw HTML allowed (a link) |
 | `default_tag` | `default` | Tag selected when a page has no valid persisted reader choice; must occur on an article or non-excluded slide selected for the build, and warns when the effective article/slide intersection is empty. `series tags` and `status --format json` expose the resulting `default_output` too |
 | `scroll_duration` | `200` ms | Duration of the deck's own slide glide. It must be a non-negative integer; `0` jumps instantly. `--scroll-duration` overrides it for one `build`, `verify` or `watch` invocation, and the presenter menu or **I** toggles between this configured value and `0` |
+| `kicker_position` | selected preset's default, otherwise `before-title` | Series-wide placement: `before-title` or `after-header`; article metadata and slide `kicker-position` override it (§4.3) |
 | `reading` | `{}` resolves to the defaults below | Strict object of initial reader choices and reduction limits, only in `series_meta`; not a theme property or article cascade (§9.3.9) |
 | `lang_tags` | `{}` — no tag selects a typography pack | Object mapping a slide tag to a typography pack name, e.g. `{"fr": "fr", "en": "en"}`; the first mapped tag on a slide selects its engine (§20.5) |
 | `selectors` | `{}` | Named expression strings used by `selector:name`; validates mapping shape, then only reachable expression syntax/cycles/budgets. Compact and bounded JSONPath filter profiles, not full RFC 9535 (§3.4) |
@@ -252,6 +253,7 @@ taking priority when both are set (§20.3.1).
 | `unit_index` | meta block, `series_meta`, or `--unit-index` | `off` (§20.5.5) | Opt-in automatic contents after the first non-excluded cover, or at the start; any explicit index, even excluded, suppresses it. Meta > CLI > series > default; no source writes |
 | `unit_index_max_columns` | meta block, `series_meta`, or `--unit-index-max-columns` | `1` (§20.5.5) | Positive integer responsive ceiling for an automatic index; same cascade, Boolean invalid |
 | `unit_index_selector` | meta block, `series_meta`, or `--unit-index-selector` | `*` (§20.5.5) | Automatic index's entry expression; same cascade, not a global publication predicate |
+| `kicker_position` | meta block, `series_meta` | selected preset's default | Article-wide kicker placement, `before-title` or `after-header`; slide `kicker-position` wins last (§4.3). Not an `articles[]` field |
 
 A preset cannot be selected in an `articles[]` entry or an `lwp:meta` block:
 only `appearance.presets` selects it for the whole series.
@@ -279,7 +281,7 @@ after these fields is a fatal error (§22.12).
 | Field | Default | Description |
 |---|---|---|
 | `slug` | None — required on every slide; a slide without one is a fatal build error naming `series slug set` | The slide's own name in a URL, and its whole identity (§12.1.1): never its rank, never its title, so it does not move when the deck is reordered or the heading rewritten. A build error if it is not `[A-Za-z0-9][A-Za-z0-9._-]*`, since it becomes an `id`, a URL fragment and the tail of a shared QR code, and a build error if two slides on a page take the same one |
-| `kicker` | `''` — omitted from the render if absent | Small editorial label above the slide's own heading |
+| `kicker` | `''` — omitted from the render if absent | Small editorial label, above the slide's own heading by default; position controlled independently by `kicker-position` |
 | `tags` | `default` when absent or empty | Space-separated slide tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
 | `note` | `''` — nothing shown | Speaker note, multi-line; never rendered, surfaced by the presenter panel |
 | `slide_title` — written `# Heading`, no literal field form | None. Only the first `#` before any content sets it; a bare `#` is an accepted empty title (§22.2) | The slide's own heading, rendered `<h1>` |
@@ -292,7 +294,7 @@ A standard slide's own header (default, or explicit `<!-- lwp:slide -->`).
 | Field | Default | Description |
 |---|---|---|
 | `slug` | None — required on every slide; a slide without one is a fatal build error naming `series slug set` | The slide's own name in a URL, and its whole identity (§12.1.1): never its rank, never its title, so it does not move when the deck is reordered or the heading rewritten. A build error if it is not `[A-Za-z0-9][A-Za-z0-9._-]*`, since it becomes an `id`, a URL fragment and the tail of a shared QR code, and a build error if two slides on a page take the same one |
-| `kicker` | `''` — omitted from the render if absent | Small editorial label above the slide's own heading |
+| `kicker` | `''` — omitted from the render if absent | Small editorial label, above the slide's own heading by default; position controlled independently by `kicker-position` |
 | `tags` | `default` when absent or empty | Space-separated slide tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
 | `note` | `''` — nothing shown | Speaker note, multi-line; never rendered, surfaced by the presenter panel |
 | `slide_title` — written `## Heading`, no literal field form | None. Only the first `##` before any content sets it; a bare `##` is an accepted empty title (§22.2) | The slide's own heading, rendered `<h2>` when non-empty |
@@ -310,7 +312,7 @@ A `<!-- lwp:slide:full-article -->` slide's own header.
 | Field | Default | Description |
 |---|---|---|
 | `slug` | None — required on every slide; a slide without one is a fatal build error naming `series slug set` | The slide's own name in a URL, and its whole identity (§12.1.1): never its rank, never its title, so it does not move when the deck is reordered or the heading rewritten. A build error if it is not `[A-Za-z0-9][A-Za-z0-9._-]*`, since it becomes an `id`, a URL fragment and the tail of a shared QR code, and a build error if two slides on a page take the same one |
-| `kicker` | the localized `full_article_kicker` string when absent | Editorial label above the included long-form article, such as `Glossary` or `Appendices` |
+| `kicker` | the localized `full_article_kicker` string when absent | Editorial label, such as `Glossary` or `Appendices`, above the included text by default; position controlled independently by `kicker-position` |
 | `tags` | `default` when absent or empty | Optional slide tags; `excluded` removes the generated slide before rendering |
 | `article` | None — required for publication; an explicit empty value warns and omits the draft slide | External `.md` file included as the article's long-form body |
 
@@ -332,7 +334,7 @@ other indexes, covers, full-article slides and generated endnotes (§3.3.6).
 |---|---|---|
 | `slug` | Required | Stable authored identity, ordinary prefix/collision rules; automatic insertion uses `lwp-index` |
 | `slide_title` - written `## Heading` | Localized Contents | Optional index heading; no literal `slide_title:` field |
-| `kicker` | `''` | Optional label above the title |
+| `kicker` | `''` | Optional label above the title by default; position controlled independently by `kicker-position` |
 | `summary` | `''` | Optional summary below the title |
 | `tags` | `default` | Controls this slide's reader visibility, not its entry selector |
 | `note` | `''` | Speaker cue, including indented continuations; hidden but public HTML |
@@ -380,6 +382,7 @@ They do not define the page shell or navigation.
 | `slide-layout` | preset-owned layout default | Variant name using lowercase letters, digits and hyphens. An empty value is an error; `default` keeps the preset's default |
 | `slide-header` | preset-owned chrome default | Text, a JSON model object, or exactly `""` to remove the inherited header. An unquoted empty value is an error |
 | `slide-footer` | preset-owned chrome default | Same contract as `slide-header`, for the slide footer |
+| `kicker-position` | article `kicker_position` > series `kicker_position` > preset default > `before-title` | Positions an existing kicker immediately before the title or after the header. Blank/unknown values are invalid; omit to inherit |
 
 The preset owns the defaults; root series chrome, article metadata and slide
 fields override them in that order. Textual chrome works with
@@ -389,6 +392,16 @@ is invalid. See `specifications.md` §9.9 and §20.5.3 for fragments, assets and
 validation rules. A kit may omit the `unit-index` layout: it then uses the
 standard layout with chrome, without rewriting the kit manifest. The series
 `index.html` is not wrapped by this cascade.
+
+Kicker placement is independent of the header text/model and its alignment.
+`before-title` keeps the kicker with the content heading; `after-header` puts it
+in `.slide-header-region`, as a sibling following `.slide-chrome-header`, not
+inside that chrome element. Without a header it starts the same region, whose
+edge/content position still belongs to the preset. The text `kicker:` does not
+cascade. A type with no kicker does not gain one from a placement declaration.
+Selection records use the logical name `kicker_position` for all three owned
+scopes and for `effective`, `specific`, `general` and `origin`; the source-level
+slide spelling remains `kicker-position`.
 
 The historical `tag:` field is not an alias for either current field. Use
 `kicker:` for the visible label above a slide title, and `tags:` for tag

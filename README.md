@@ -129,6 +129,11 @@ article author can override them with `style.slide-header.align` and
 `style.slide-footer.align`. Named chrome models still come from the selected
 Identity Kits; `""` or JSON `null` clears an inherited slot.
 
+Kickers can stay above the title (`before-title`, the default) or sit beneath
+the header (`after-header`). Set `kicker_position` in a kit preset, series
+metadata or article metadata; `kicker-position` on a slide overrides them.
+See [kicker placement](GUIDE.md#3-design-and-compose-identities) for the cascade.
+
 Browse the [interactive theme gallery](generated/themes-gallery.html) or its
 [compact catalogue](generated/themes-gallery.png). The compact catalogue is a
 colour-first cover overview; the featured comparison below shows three actual

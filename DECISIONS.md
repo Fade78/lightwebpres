@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 12 · **à faire** 0 · **en cours** 3 · **terminé** 64 · **abandonné** 1 · **sans objet** 3
+**à étudier** 12 · **à faire** 0 · **en cours** 3 · **terminé** 65 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -190,6 +190,7 @@ gets its own entry and its own state**, however small.
 - **B76** — Make reader view transitions explicit without splitting the executable
 - **B77** — Mouse buttons follow reading screens and plain table images
 - **B79** — Include table-cell images in vertical slide fitting
+- **B80** — Cascade kicker placement independently from header content
 
 ### abandonné
 
@@ -3927,3 +3928,34 @@ bounded distance; only slide-to-slide targets follow layout changes.
 cover mixed orientations in the standard and docs presets, two viewport ratios,
 150% reader zoom, print and disabled fitting. They establish this general
 table-image defect but do not establish the physical Firefox case in B78.
+
+## B80 — Cascade kicker placement independently from header content
+
+**État :** terminé · **Depuis :** 2026-10-14 · **Version :** 0.69.0
+
+**Requirement.** The owner requested a field choosing between a kicker attached
+to the slide title and one beneath the slide header, with the normal
+preset/series/article/slide cascade. Kicker text itself stays slide-owned.
+
+**Contract.** Kit presets, `series_meta` and article `lwp:meta` use
+`kicker_position`; slide headers use `kicker-position`. Values are exactly
+`before-title` and `after-header`, with the former preserving existing output
+by default. Omit to inherit; blank, null and invalid declarations fail even
+when masked by a stronger value. It is not an `articles[]` field or a typed
+Theme property. Selection records normalize the source spellings to logical
+`kicker_position` and preserve owned scopes and provenance, with preset defaults
+remaining fallback candidates in both traversal directions.
+
+**Structure.** Reuse the existing `{{slide_header}}` slot. Only in `after-header`
+mode, move the renderer's own leading kicker out of `{{content}}`, retaining
+its markup and localization. A `.slide-header-region` groups the header and
+kicker as siblings; the kicker is not header-model content. With no header,
+it starts the same region. The region follows preset edge/content positioning.
+No new mandatory kit placeholder, manifest rewrite or JavaScript reordering is
+needed; pre-rendered alternatives preserve the semantic reading order.
+
+**Verification.** Source/CLI guards cover every cascade level, invalid masked
+declarations before writes, all five slide types, absent/cleared headers,
+default markup, resolution reports and logical selector views. Chromium and
+Firefox checks cover desktop/mobile geometry, both chrome placements, runtime
+preset switching, combined HTML, printing and manual zoom.

@@ -112,7 +112,8 @@ lightwebpres resolve <series-dir> page_title --article apple-pie.md
 
 The report shows the deciding level and losing levels. A dotted name selects
 a theme property, an underscore an article field, a hyphen a slide field.
-Slide fields have no cascade: their report lists where they are set.
+Ordinary slide fields have no cascade: their report lists where they are set.
+`kicker-position` instead reports the effective position and origin per slide.
 `--format json` is available for this report.
 
 Presentation chrome is the exception. `series.json.chrome` is the series-wide
@@ -120,6 +121,15 @@ layer; `slide-header` and `slide-footer` in this article's meta block apply to
 all its slides, and the same fields in a slide header are strongest. The order
 is preset < series < article < slide. Text works with the native preset;
 models and asset bindings must be available in each selected Identity Kit.
+
+Kicker placement also follows preset < series < article < slide, independently
+of kicker text and header content. Use optional `kicker_position` in a kit
+preset, `series_meta` or this article's meta, and `kicker-position` on a slide.
+The exact values are `before-title` (existing default) and `after-header`.
+The latter puts the kicker below the header, outside the chrome model; if the
+header is absent it starts the same header region. That region follows the
+preset's edge/content placement. Omit to inherit; blank, `""`, JSON `null` and
+unknown values are invalid. This field is not accepted in `articles[]`.
 
 Editorial fields can be set in meta or in the series article entry:
 
@@ -160,15 +170,15 @@ layer and the `typo`, `typo_units`, `typo_thousands` opt-outs.
 
 | Type | Fields | Cardinality |
 |---|---|---|
-| `cover` | `slug`, `kicker`, `tags`, `# Title`, `summary`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note` | Any number, anywhere; a layout style, not a structural marker. No free body: text after its fields is fatal. |
-| standard (default, or explicit `<!-- lwp:slide -->`) | `slug`, `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note`, then free Markdown text | As many as you want |
-| `series-nav` | `slug`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `comment` | 0 or 1 per article; navigation generated from `series.json` |
-| `full-article` | `slug`, `kicker`, `article: filename.md`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `comment` | Any number, each with its own file; `article` is required for publication. `kicker` labels the included long-form piece and defaults to the localized `full_article_kicker` string. Explicit empty `article:` warns and omits the unfinished slide. |
-| `unit-index` | `slug`, `kicker`, `tags`, `## Title`, `summary`, `index-max-columns`, `index-selector`, `slide-layout`, `slide-header`, `slide-footer`, `comment`, `note` | Any number, anywhere; generated contents for this logical unit, no free body |
+| `cover` | `slug`, `kicker`, `tags`, `# Title`, `summary`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `comment`, `note` | Any number, anywhere; a layout style, not a structural marker. No free body: text after its fields is fatal. |
+| standard (default, or explicit `<!-- lwp:slide -->`) | `slug`, `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `comment`, `note`, then free Markdown text | As many as you want |
+| `series-nav` | `slug`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `comment` | 0 or 1 per article; navigation generated from `series.json` |
+| `full-article` | `slug`, `kicker`, `article: filename.md`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `comment` | Any number, each with its own file; `article` is required for publication. `kicker` labels the included long-form piece and defaults to the localized `full_article_kicker` string. Explicit empty `article:` warns and omits the unfinished slide. |
+| `unit-index` | `slug`, `kicker`, `tags`, `## Title`, `summary`, `index-max-columns`, `index-selector`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `comment`, `note` | Any number, anywhere; generated contents for this logical unit, no free body |
 
 All fields other than `slug` and `full-article`'s `article` are optional.
 Ordinary empty scalars behave as absent; empty `tags:` receives `default`.
-The three presentation fields have stricter empty-value rules in Series and
+The presentation fields have stricter empty-value rules in Series and
 Appearance. An empty `article:` is an omitted draft slide; an absent line is
 fatal. Several `full-article` slides are valid; under local placement each
 numbers its own notes from 1. A second `series-nav` is fatal, never an override.

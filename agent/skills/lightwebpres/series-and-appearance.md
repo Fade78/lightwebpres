@@ -391,6 +391,15 @@ article meta < slide. The typed style order is
 base preset theme < `settings.conf` pins < article `style.*` < instance styles,
 then advanced final CSS in `templates/custom.css`.
 
+`kicker-position: before-title | after-header` is a separate presentation field
+accepted on all five types. Its default is optional `kicker_position` in a kit
+preset, overridden by `series_meta.kicker_position`, article meta
+`kicker_position`, then the slide field. Omit to inherit; declared blank/null
+or unknown values fail. Kicker text does not cascade. `after-header` places an
+existing kicker in the header region, outside the chrome model, including when
+the header is absent; the preset's edge/content choice still positions that
+region. No new kit placeholder is required.
+
 Slide chrome alignment is a typed visual axis, separate from the chrome content
 cascade. `slide-header.align` and `slide-footer.align` accept `left`, `center`
 or `right` in a theme or `settings.conf`; an article can override them with
