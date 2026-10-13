@@ -1604,7 +1604,7 @@ and themed.
 | Uniform fit scope | Combined-HTML output only, while text size is `uniform`: **Current article** (default) or **Entire series**. |
 | Reduce tables as needed | Independently allow bounded table shrinking; off by default. |
 | Reduce images to fit width | Independently allow bounded shrinking of supported images/figures to their available content width; on by default, not a control for arbitrary embedded widgets. |
-| Reduce images to fit height | Shrink images as far as needed to fit the whole slide, reserving room for titles, captions, headers, footers and other content even as you change presentation zoom; on by default. If non-image content alone is too tall, the slide still scrolls. This control can shrink below the authored image minimum, unlike width-only fitting. |
+| Reduce images to fit height | Shrink images, including those inside table cells, as far as needed to fit the whole slide, reserving room for titles, captions, headers, footers and table text even as you change presentation zoom; on by default. If non-image content alone is too tall, the slide still scrolls. This control can shrink below the authored image minimum, unlike width-only fitting. |
 
 The author can choose different starting settings and reduction limits.
 Your table mode, text fitting, table/image shrink switches and presentation

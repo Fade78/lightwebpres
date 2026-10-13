@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.68.2"
+VERSION = "0.68.3"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -11226,7 +11226,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (item.line !== null) remember(item.node, 'line-height');
           });
         }
-        // Tables have a separate scale; never shrink embedded controls.
+        // Tables have a separate scale; only their images may participate in
+        // image fitting, never their text or embedded controls.
         var objects = [];
         function addObject(node, minimum, kind) {
           objects.push({node: node, minimum: minimum, kind: kind});
@@ -11243,7 +11244,7 @@ document.addEventListener('DOMContentLoaded', function() {
                          || readingSettings.object_shrink_vertical)) {
           Array.prototype.forEach.call(slide.querySelectorAll('figure, .figure, img'), function (node) {
             if (node.closest('.slide-chrome')
-                || node.parentElement.closest('figure, .figure, table')
+                || node.parentElement.closest('figure, .figure')
                 || node.querySelector('iframe, video, audio, object, embed')) return;
             addObject(node, readingSettings.min_object_scale, 'image');
           });
@@ -13755,7 +13756,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.scrollTo({ left: targetX === undefined ? 0 : targetX,
       top: targetY, behavior: 'instant' });
   }
-  function animateScrollTo(targetY, duration) {
+  function animateScrollTo(targetY, duration, currentTarget) {
     var startY = window.pageYOffset || document.documentElement.scrollTop;
     var startT = null;
     if (scrollRAF) cancelAnimationFrame(scrollRAF);
@@ -13765,7 +13766,10 @@ document.addEventListener('DOMContentLoaded', function() {
       // easeOutCubic: fast at first, so the reader lands quickly and
       // the tail settles — the motion a presenter expects.
       var e = 1 - Math.pow(1 - t, 3);
-      setScrollTop(startY + (targetY - startY) * e);
+      // Fitting images or fonts can change preceding slides while this glide
+      // is in flight. Resolve a slide target against its current geometry.
+      var destination = currentTarget ? currentTarget() : targetY;
+      setScrollTop(startY + (destination - startY) * e);
       if (t < 1) scrollRAF = requestAnimationFrame(frame);
       else {
         scrollRAF = null;
@@ -13862,7 +13866,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (idx === current && isScrolling) return;
     current = idx;
     clearNavigableCardFocus();
-    var rect = slides[idx].getBoundingClientRect();
+    var slide = slides[idx];
+    var rect = slide.getBoundingClientRect();
     var bottomOffset = enterAtBottom ? Math.max(0, rect.height - window.innerHeight) : 0;
     if (readingRuntime) readingRuntime.navigate(slides[idx], bottomOffset
       ? {slide: slides[idx], ratio: bottomOffset / rect.height} : null);
@@ -13876,7 +13881,11 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       isScrolling = true;
       enteringBottomGlide = !!enterAtBottom;
-      animateScrollTo(targetY, duration);
+      animateScrollTo(targetY, duration, function () {
+        var currentRect = slide.getBoundingClientRect();
+        return currentRect.top + (window.pageYOffset || document.documentElement.scrollTop)
+          + (enterAtBottom ? Math.max(0, currentRect.height - window.innerHeight) : 0);
+      });
       // The safety net: a frame dropped by the compositor must not leave
       // the deck locked forever. An earlier glide must not unlock this one.
       var generation = seriesGeneration;

@@ -81,6 +81,12 @@ catch (error) { console.error('Playwright is unavailable in the supplied environ
 
       const mediumBaseline = await page.locator('#medium figure img').evaluate(image =>
         image.getBoundingClientRect().height);
+      const mixedImageStyles = await page.locator('#mixed-image-table img').evaluateAll(images =>
+        images.map(image => image.getAttribute('style')));
+      const mixedBaseline = await slideHeight('mixed-table');
+      const tableTextSize = await page.locator('#mixed-image-table td').first().evaluate(cell =>
+        getComputedStyle(cell).fontSize);
+      assert.ok(mixedBaseline.rendered > 700, `${name}: the mixed-orientation table must overflow before fitting`);
       const captionBaseline = await page.locator('#medium figcaption').evaluate(caption =>
         caption.getBoundingClientRect().height);
       const giantBaseline = await page.locator('#giant figure img').evaluate(image =>
@@ -99,6 +105,38 @@ catch (error) { console.error('Playwright is unavailable in the supplied environ
       `${name}: medium image must leave room for header, title, summary and footer: ${JSON.stringify(mediumFit)}`);
       near(await page.locator('#medium figcaption').evaluate(caption =>
         caption.getBoundingClientRect().height), captionBaseline, 'image fitting keeps caption readable');
+      const mixedFit = await slideHeight('mixed-table');
+      const fittedImages = await page.locator('#mixed-image-table img').evaluateAll(images =>
+        images.map(image => ({width: image.getBoundingClientRect().width,
+          height: image.getBoundingClientRect().height})));
+      assert.ok(mixedFit.rendered <= mixedFit.viewport + 1
+        && mixedFit.scroll <= mixedFit.viewport + 1
+        && fittedImages[1].height > fittedImages[0].height
+        && Math.abs(fittedImages[0].width / fittedImages[0].height - 3840 / 2160) < .03
+        && Math.abs(fittedImages[1].width / fittedImages[1].height - 900 / 1600) < .03,
+      `${name}: portrait and landscape inside a table must fit the whole slide: `
+        + JSON.stringify({mixedFit, fittedImages}));
+      near(await page.locator('#mixed-image-table td').first().evaluate(cell =>
+        parseFloat(getComputedStyle(cell).fontSize)), parseFloat(tableTextSize),
+      'image fitting leaves table text unchanged');
+      await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+      assert.deepEqual(await page.locator('#mixed-image-table img').evaluateAll(images =>
+        images.map(image => image.getAttribute('style'))), mixedImageStyles,
+      `${name}: print restores authored dimensions in the table`);
+      await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+      await settle();
+      const returnedMixed = await slideHeight('mixed-table');
+      assert.ok(returnedMixed.rendered <= returnedMixed.viewport + 1
+        && returnedMixed.scroll <= returnedMixed.viewport + 1,
+      `${name}: the fitted table images return after print: ${JSON.stringify(returnedMixed)}`);
+      await page.setViewportSize({width: 1280, height: 720});
+      await settle();
+      const wideMixed = await slideHeight('mixed-table');
+      assert.ok(wideMixed.rendered <= wideMixed.viewport + 1
+        && wideMixed.scroll <= wideMixed.viewport + 1,
+      `${name}: mixed table images also fit a wider viewport: ${JSON.stringify(wideMixed)}`);
+      await page.setViewportSize({width: 900, height: 700});
+      await settle();
       const chromeFit = await slideHeight('chrome-tall');
       const chromeVisible = await page.locator('#chrome-tall').evaluate(slide => {
         const origin = slide.getBoundingClientRect().top;
@@ -137,7 +175,20 @@ catch (error) { console.error('Playwright is unavailable in the supplied environ
         && zoomedImage > 0 && zoomedImage < chromeImageAt100 * 1.5 - 2,
       `${name}: at 150% the image stops growing before pushing title/header/footer out: `
         + JSON.stringify({zoomedChrome, zoomedImage, chromeImageAt100}));
+      const zoomedMixed = await slideHeight('mixed-table');
+      assert.ok(zoomedMixed.rendered <= zoomedMixed.viewport + 1
+        && zoomedMixed.scroll <= zoomedMixed.viewport + 1,
+      `${name}: zoomed landscape/portrait table images leave room for the slide: ${JSON.stringify(zoomedMixed)}`);
       await page.locator('#readingMenu [data-menu-action="zoom-reset"]').click();
+      await settle();
+      await page.locator('[data-reading-option="object_shrink_vertical"]').uncheck();
+      await settle();
+      near((await slideHeight('mixed-table')).rendered, mixedBaseline.rendered,
+        'disabling height fit restores the original table geometry');
+      assert.deepEqual(await page.locator('#mixed-image-table img').evaluateAll(images =>
+        images.map(image => image.getAttribute('style'))), mixedImageStyles,
+      `${name}: disabling fit restores the authored table image styles`);
+      await page.locator('[data-reading-option="object_shrink_vertical"]').check();
       await settle();
       const giantFit = await page.locator('#giant figure img').evaluate(image =>
         image.getBoundingClientRect().height);
@@ -233,7 +284,7 @@ catch (error) { console.error('Playwright is unavailable in the supplied environ
           await ratioPage.keyboard.press('Escape');
           await ratioPage.keyboard.press('Escape');
           await ratioPage.locator('#ratio .figure img').click();
-          await ratioPage.waitForFunction(() => Math.abs(document.getElementById('giant').getBoundingClientRect().top) < 2,
+          await ratioPage.waitForFunction(() => Math.abs(document.getElementById('mixed-table').getBoundingClientRect().top) < 2,
             null, {timeout: 5000});
         } finally { await ratioPage.close(); }
       }

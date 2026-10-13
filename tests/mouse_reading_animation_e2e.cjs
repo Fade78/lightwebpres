@@ -15,10 +15,20 @@ const {chromium, firefox} = require('playwright');
         await page.goto(url + (combined ? '#lwp/a/a.html/after' : '#after'));
         // The initial hash can start a real slide glide. Wait for that route
         // to land instead of racing it with a synthetic scrollIntoView.
-        await page.waitForFunction(() => {
-          const after = document.getElementById('after');
-          return after && Math.abs(after.getBoundingClientRect().top) < 2;
-        }, null, {timeout: 5000});
+        try {
+          await page.waitForFunction(() => {
+            const after = document.getElementById('after');
+            return after && Math.abs(after.getBoundingClientRect().top) < 2;
+          }, null, {timeout: 5000});
+        } catch (error) {
+          throw new Error(`${name} ${combined ? 'combined' : 'article'} initial route failed: `
+            + JSON.stringify(await page.evaluate(() => ({
+              hash: location.hash, scrollY, viewport: innerHeight,
+              tall: document.getElementById('tall')?.getBoundingClientRect().toJSON(),
+              after: document.getElementById('after')?.getBoundingClientRect().toJSON(),
+              fitOverflow: document.getElementById('tall')?.dataset.lwpFitOverflow,
+            }))), {cause: error});
+        }
         const geometry = () => page.evaluate(() => ({
           tallTop: document.getElementById('tall').getBoundingClientRect().top,
           tallBottom: document.getElementById('tall').getBoundingClientRect().bottom,
@@ -64,6 +74,26 @@ const {chromium, firefox} = require('playwright');
         assert.ok(calls.filter(call => call.behavior === 'instant').length >= 2
           && calls.every(call => call.behavior !== 'smooth'),
         `${name}: internal steps use the deck glide, not native smooth scrolling: ${JSON.stringify(calls)}`);
+
+        await page.evaluate(hash => { location.hash = hash; },
+          combined ? '#lwp/a/a.html/tall' : '#tall');
+        await page.waitForFunction(() => Math.abs(document.getElementById('tall').getBoundingClientRect().top) < 2);
+        const shifted = await page.evaluate(() => new Promise(resolve => {
+          const next = document.getElementById('after');
+          const table = document.getElementById('image-table');
+          const before = next.getBoundingClientRect().top + scrollY;
+          document.getElementById('navNext').click();
+          // Change the preceding slide between animation frames, as image
+          // fitting can do when a table image finishes loading.
+          requestAnimationFrame(() => {
+            table.style.marginBottom = '80px';
+            resolve({before, after: next.getBoundingClientRect().top + scrollY});
+          });
+        }));
+        assert.ok(shifted.after > shifted.before + 40,
+          `${name}: the preceding slide actually grew during the glide: ${JSON.stringify(shifted)}`);
+        await page.waitForFunction(() => Math.abs(document.getElementById('after').getBoundingClientRect().top) < 2,
+          null, {timeout: 3000});
         assert.deepEqual(errors, [], `${name}: browser errors`);
         await page.close();
       }

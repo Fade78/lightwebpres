@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 12 · **à faire** 0 · **en cours** 3 · **terminé** 63 · **abandonné** 1 · **sans objet** 3
+**à étudier** 12 · **à faire** 0 · **en cours** 3 · **terminé** 64 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -189,6 +189,7 @@ gets its own entry and its own state**, however small.
 - **B75** — Plain slide images should not swallow navigation clicks
 - **B76** — Make reader view transitions explicit without splitting the executable
 - **B77** — Mouse buttons follow reading screens and plain table images
+- **B79** — Include table-cell images in vertical slide fitting
 
 ### abandonné
 
@@ -3893,3 +3894,36 @@ change reader sizing or claim the physical transition verified in this lot.
 opens directly in a normal window, and reloading there does not correct it.
 A missed `fullscreenchange` after exit cannot by itself explain that state;
 do not ship an event-only fix as a claimed resolution.
+
+**Related correction in 0.68.3.** Table-cell images were excluded from automatic
+height fitting, which produces a similar wide-window symptom with a landscape
+and portrait image side by side in both Chromium and Firefox (B79). The owner
+has not verified the physical Firefox report against that correction. Keep this
+entry open until the affected presentation/browser confirms or refutes it.
+
+## B79 — Include table-cell images in vertical slide fitting
+
+**État :** terminé · **Depuis :** 2026-10-13 · **Version :** 0.68.3
+
+**Reproduced defect.** A fact box with landscape and portrait images in one
+table row grows beyond a viewport. The vertical image switch has no effect:
+`collectCandidates()` excludes any image beneath a table, while the independent
+table-shrink switch is off by default and has its own author floor.
+
+**Correction.** Collect figures and images inside cells as image objects while
+still avoiding duplicate nested figures, slide-chrome images and unsupported
+embedded controls. Fit the content images to the measured height of the entire
+slide; do not zoom table text or its controls as a side effect. Keep the table's
+independent width bound, sourced dimensions and aspect ratios, with the same
+reset/print style restoration as ordinary responsive figures.
+
+An initial hash glide can begin before fitted table images change the height of
+an earlier slide. Its destination must follow the target slide's current
+geometry during the animation, or the selected slide lands a few pixels above
+the viewport even after the glide finishes. Internal screen steps retain their
+bounded distance; only slide-to-slide targets follow layout changes.
+
+**Validation and limit.** Real builds and native Chromium/Firefox browser checks
+cover mixed orientations in the standard and docs presets, two viewport ratios,
+150% reader zoom, print and disabled fitting. They establish this general
+table-image defect but do not establish the physical Firefox case in B78.

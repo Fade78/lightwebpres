@@ -259,7 +259,8 @@ authored text is not enlarged. An unfit slide remains available to scroll at
 the floor, not hidden.
 
 `object_shrink_horizontal` and `object_shrink_vertical` support images/figures,
-not arbitrary iframes, players or buttons. The horizontal switch bounds an
+including images inside table cells, not arbitrary iframes, players or buttons.
+Table text and controls retain their independent sizing. The horizontal switch bounds an
 object by its available content width, down to `min_object_scale`. The vertical
 switch shrinks the images further if needed to fit the entire slide, including
 its title, captions, footer and padding; it is not limited by that minimum.

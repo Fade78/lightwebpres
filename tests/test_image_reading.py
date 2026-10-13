@@ -43,6 +43,10 @@ class ImageReadingRuntime(unittest.TestCase):
                 '<svg xmlns="http://www.w3.org/2000/svg" width="3840" '
                 'height="2160"><rect width="3840" height="2160"/></svg>',
                 encoding='utf-8')
+            (root / 'sources' / 'img' / 'portrait.svg').write_text(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="900" '
+                'height="1600"><rect width="900" height="1600"/></svg>',
+                encoding='utf-8')
             (root / 'sources' / 'images.md').write_text(
                 '<!-- lwp:meta -->\npage_title: Responsive images\n---\n\n'
                 '<!-- lwp:slide -->\nslug: image\n## Image\n\n'
@@ -66,6 +70,17 @@ class ImageReadingRuntime(unittest.TestCase):
                 'fact-label: A fact box around the image.\n\n'
                 'One paragraph in the box.\n\n'
                 '![Wide image](img/wide.svg)\n\n---\n\n'
+                '<!-- lwp:slide -->\nslug: mixed-table\n'
+                'slide-header: Header above two images.\n'
+                'slide-footer: Footer beneath the table.\n'
+                '## Landscape and portrait side by side\n'
+                'summary: Both images must leave room for the fact box and chrome.\n'
+                'fact-label: Two orientations.\n\n'
+                '<table id="mixed-image-table" style="width:100%;table-layout:fixed">'
+                '<tbody><tr><td><img id="landscape" alt="Landscape" src="img/wide.svg" '
+                'style="width:100%;height:auto"></td>'
+                '<td><img id="portrait" alt="Portrait" src="img/portrait.svg" '
+                'style="width:100%;height:auto"></td></tr></tbody></table>\n\n---\n\n'
                 '<!-- lwp:slide -->\nslug: giant\n## Giant image\n\n'
                 '![Giant image](img/giant.svg)\n\n---\n\n'
                 '<!-- lwp:slide -->\nslug: impossible\n## Long text and an image\n\n'

@@ -33,6 +33,18 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.68.3
+
+Height fitting now includes ordinary images and figures **inside table cells**.
+A two-column fact with landscape and portrait images can therefore fit the
+whole slide without shrinking its table text or controls. Both image ratios
+remain intact; resizing, manual presentation zoom, printing and turning fitting
+off restore the authored responsive dimensions. Slide glides also follow their
+destination when image fitting changes a preceding slide's height during motion.
+This is verified in Chromium
+and Firefox, but the separate physical Firefox windowed-fit report still needs
+confirmation on the affected device.
+
 ## v0.68.2
 
 Browser regressions now wait for actual fullscreen entry instead of sampling

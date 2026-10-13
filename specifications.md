@@ -3619,8 +3619,10 @@ uses the author's `min_object_scale` floor.
 Vertical image fitting has no author floor: it can shrink images below 10% if
 necessary to fit the rendered slide in one viewport. The browser measures its
 actual slide height, including titles, prose, figure captions, slide chrome and
-padding, and shrinks the content images together to leave those elements room
-without reducing their type or treating chrome logos as content images. When
+padding, and shrinks the content images together, including those in table cells,
+to leave those elements and table text room without reducing their type or
+treating chrome logos as content images. Tables retain their independent width
+scale; images inside them do not give up their own width or height fitting. When
 both image controls are active, the width limit is applied first, then the
 extra height reduction if needed; image ratios remain intact. If non-image
 content alone cannot fit, the browser retains the width-fitted, zoomed image
