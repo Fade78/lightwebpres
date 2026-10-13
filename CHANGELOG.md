@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.69.0
+## v0.69.0
 
 Kickers can stay immediately above the slide title (`before-title`, the existing
 default), or sit beneath the slide header (`after-header`). The optional
