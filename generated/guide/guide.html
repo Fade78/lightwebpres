@@ -2871,7 +2871,7 @@ button.share-action:hover:not(:disabled) {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.68.0</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.68.1</div>
   </div>
 </div>
 
@@ -4374,7 +4374,7 @@ note: Mention the 2020 study — the audience asked for it last time.
       </tr>
       <tr>
         <td>Right-click on article background</td>
-        <td>Previous reading screen within a tall slide, then previous slide at its top</td>
+        <td>Previous reading screen within a tall slide; from the next slide, enter a tall predecessor at its last screen</td>
       </tr>
       <tr>
         <td>Vertical wheel over an index, series-navigation or unit-index list</td>
@@ -4415,7 +4415,7 @@ note: Mention the 2020 study — the audience asked for it last time.
     </tbody>
   </table>
   </div>
-  <p>Linked images, images with their own click action, buttons and the share popover retain their actions. A plain image inside a table follows the same mouse click as a plain cell; touch gestures do not change. A direct left click on a card follows its link; an index-background click still moves through the card journey. The right-click to go back is the remote-mouse use case: with a wireless mouse in hand, left advances and right reverses, with no aiming. R reverses those directions. The native context menu is suppressed on slide content, except inside a locally scrolling table. Each click within a tall slide scrolls a bounded portion of the viewport. At its edge, the click moves to the adjacent slide with the configured glide (200 ms by default). A click during that slide-to-slide glide jumps immediately to its next target; a click in the other direction returns to the slide just left.</p>
+  <p>Linked images, images with their own click action, buttons and the share popover retain their actions. A plain image inside a table follows the same mouse click as a plain cell; touch gestures do not change. A direct left click on a card follows its link; an index-background click still moves through the card journey. The right-click to go back is the remote-mouse use case: with a wireless mouse in hand, left advances and right reverses, with no aiming. R reverses those directions. The native context menu is suppressed on slide content, except inside a locally scrolling table. Each click within a tall slide scrolls a bounded portion of the viewport using the same configured glide duration as a slide transition (200 ms by default), not the browser's variable smooth scroll. At its edge, the click moves to the adjacent slide. Going backward into a tall slide enters at its last screen; the next click continues upward. A click during a slide-to-slide glide jumps immediately to its next target; a click in the other direction returns to the slide just left.</p>
   <p>Each middle press renews a <strong>900 ms</strong> sequence window. A lone middle press has no action; an expired prefix returns to normal clicks. Keyboard input (including modifiers and editable fields), wheel commands, extra buttons, touch/pen input, cancellation, a menu opening or focus loss cancels the pending sequence before its usual action. Mouse movement does not cancel it.</p>
   <p>Mouse locking uses the browser's <strong>Pointer Lock</strong> API: the cursor stays hidden, movement cannot take clicks to a second screen, and clicks navigate without activating content links. The menu's <strong>Lock mouse</strong> action and <strong>P</strong> use the same command. Opening menus/help/notes releases the mouse; use the command again to capture it. Escape releases capture, and fullscreen exit also releases it. The browser may refuse capture; LWP reports failure instead of claiming that CSS hiding immobilized the mouse. Capture survives article switches within one combined HTML; a full page navigation starts a fresh session.</p>
   <p>On a tablet or phone with a mouse connected, LWP uses the actual input event, so the mouse commands work even when the browser still reports touch as its primary pointer. Switching back to a finger releases mouse capture and retains tap, double tap, swipe, selection and pinch behavior. Touch-generated mouse compatibility events do not arm sequences or reveal mouse chrome. Pointer Lock availability still depends on the browser.</p>
@@ -8595,6 +8595,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // duration varies with the distance and cannot be promised.
   var scrollRAF = null;
   var scrollUnlockTimer = null;
+  var enteringBottomGlide = false;
   function navigationScrollBehavior() {
     return scrollDuration === 0 ? 'instant' : 'smooth';
   }
@@ -8617,12 +8618,19 @@ document.addEventListener('DOMContentLoaded', function() {
       var e = 1 - Math.pow(1 - t, 3);
       setScrollTop(startY + (targetY - startY) * e);
       if (t < 1) scrollRAF = requestAnimationFrame(frame);
-      else scrollRAF = null;
+      else {
+        scrollRAF = null;
+        enteringBottomGlide = false;
+        // The slide glide has landed. The duration+60ms timer is only a
+        // fallback for dropped frames, not a mandatory dead zone for input.
+        isScrolling = false;
+      }
     }
     scrollRAF = requestAnimationFrame(frame);
   }
   function jumpScrollTo(targetY, targetX) {
     if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
+    enteringBottomGlide = false;
     setScrollTop(targetY, targetX);
   }
 
@@ -8685,7 +8693,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  function goTo(idx, instant, preserveTarget) {
+  function goTo(idx, instant, preserveTarget, enterAtBottom) {
     if (seriesViews && seriesPrinting) return;
     if (seriesViews && !preserveTarget) seriesTarget = null;
     if (isIndex) {
@@ -8705,16 +8713,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (idx === current && isScrolling) return;
     current = idx;
     clearNavigableCardFocus();
-    if (readingRuntime) readingRuntime.navigate(slides[idx]);
+    var rect = slides[idx].getBoundingClientRect();
+    var bottomOffset = enterAtBottom ? Math.max(0, rect.height - window.innerHeight) : 0;
+    if (readingRuntime) readingRuntime.navigate(slides[idx], bottomOffset
+      ? {slide: slides[idx], ratio: bottomOffset / rect.height} : null);
     recordSlideInUrl(idx);
-    var targetY = slides[idx].getBoundingClientRect().top
-                  + (window.pageYOffset || document.documentElement.scrollTop);
+    var targetY = rect.top + (window.pageYOffset || document.documentElement.scrollTop)
+      + bottomOffset;
     var duration = scrollDuration;
     if (instant || duration === 0) {
       jumpScrollTo(targetY);
       isScrolling = false;
     } else {
       isScrolling = true;
+      enteringBottomGlide = !!enterAtBottom;
       animateScrollTo(targetY, duration);
       // The safety net: a frame dropped by the compositor must not leave
       // the deck locked forever. An earlier glide must not unlock this one.
@@ -8902,7 +8914,7 @@ document.addEventListener('DOMContentLoaded', function() {
     goTo(idx, true);
     return true;
   }
-  function scrollWithinSlide(direction, slide) {
+  function scrollWithinSlide(direction, slide, useDeckGlide) {
     var scrollY = window.pageYOffset || document.documentElement.scrollTop;
     var rect = slide.getBoundingClientRect();
     var slideTop = rect.top + scrollY;
@@ -8911,7 +8923,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var upperBound = Math.max(lowerBound, slideBottom - window.innerHeight);
     var targetY = Math.max(lowerBound, Math.min(upperBound,
       scrollY + direction * window.innerHeight * 0.9));
-    window.scrollTo({ top: targetY, behavior: navigationScrollBehavior() });
+    if (useDeckGlide) {
+      if (scrollDuration === 0) jumpScrollTo(targetY);
+      else animateScrollTo(targetY, scrollDuration);
+    } else window.scrollTo({ top: targetY, behavior: navigationScrollBehavior() });
   }
   // The top of the page — the index's Home and Ctrl/Cmd+Home, and the
   // beginning of the card journey.
@@ -9006,7 +9021,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return true;
   }
 
-  function changeSlide(direction, instant) {
+  function changeSlide(direction, instant, enterPreviousAtBottom) {
     closePause();
     if (isIndex) {
       // The index has no slides: its buttons and page keys move through
@@ -9016,7 +9031,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!slides.length) return false;
     var target = syncCurrentToViewport() + direction;
     if (target < 0 || target >= slides.length) return false;
-    goTo(target, instant);
+    goTo(target, instant, false, enterPreviousAtBottom && direction < 0
+      && overflowsViewport(slides[target]));
     return true;
   }
 
@@ -9025,20 +9041,29 @@ document.addEventListener('DOMContentLoaded', function() {
   // in a navigation list; a second click during a glide still skips instantly.
   function mouseClickStep(direction) {
     closePause();
+    if (isScrolling && enteringBottomGlide && direction < 0 && slides[current]) {
+      // A second reverse click during entry into a tall slide first lands
+      // at its last screen, then moves one bounded screen back. Do not skip
+      // the whole slide just because its incoming glide is still active.
+      var incoming = slides[current].getBoundingClientRect();
+      jumpScrollTo(Math.max(0, incoming.bottom
+        + (window.pageYOffset || document.documentElement.scrollTop) - window.innerHeight));
+      isScrolling = false;
+    }
     if (!isIndex && slides.length && !isScrolling) {
       var slide = slides[syncCurrentToViewport()];
       if (slide && overflowsViewport(slide)) {
         if (direction > 0 && !atSlideBottom(slide)) {
-          scrollWithinSlide(1, slide);
+          scrollWithinSlide(1, slide, true);
           return true;
         }
         if (direction < 0 && !atSlideTop(slide)) {
-          scrollWithinSlide(-1, slide);
+          scrollWithinSlide(-1, slide, true);
           return true;
         }
       }
     }
-    return changeSlide(direction, isScrolling);
+    return changeSlide(direction, isScrolling, true);
   }
 
   function setNavDisabled(button, disabled) {
@@ -10952,6 +10977,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function prepareSeriesViewReplacement() {
     if (scrollRAF) cancelAnimationFrame(scrollRAF);
     scrollRAF = null;
+    enteringBottomGlide = false;
     if (presentationReanchorFrame) cancelAnimationFrame(presentationReanchorFrame);
     presentationReanchorFrame = null;
     if (scrollTimer) clearTimeout(scrollTimer);

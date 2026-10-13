@@ -65,3 +65,20 @@ class MouseReadingSteps(unittest.TestCase):
             self.assertEqual(browser.returncode, 0, browser.stdout + browser.stderr)
             for name in ('chromium', 'firefox'):
                 self.assertIn(name + ': bounded mouse reading checks passed', browser.stdout)
+
+            series = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            series['series_meta']['scroll_duration'] = 200
+            (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
+            for output, extra in (('animated', ()),
+                                  ('animated-combined', ('--single-html', 'series.html'))):
+                built = run('build', root, '--output', root / output, *extra,
+                            env=env, cwd=ROOT)
+                self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+            animated = subprocess.run(
+                ['node', str(ROOT / 'tests' / 'mouse_reading_animation_e2e.cjs'),
+                 (root / 'animated' / 'a.html').as_uri(),
+                 (root / 'animated-combined' / 'series.html').as_uri()],
+                cwd=ROOT, env=env, capture_output=True, text=True, timeout=120)
+            self.assertEqual(animated.returncode, 0, animated.stdout + animated.stderr)
+            for name in ('chromium', 'firefox'):
+                self.assertIn(name + ': timed mouse reading checks passed', animated.stdout)

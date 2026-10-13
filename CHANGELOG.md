@@ -33,6 +33,16 @@ link to the originals. They are at
 
 ---
 
+## v0.68.1
+
+Mouse clicks now use the presentation's configured glide duration when moving
+between screens of an oversized slide, rather than the browser's variable
+smooth scroll. A backward click from the next slide enters the preceding tall
+slide at its last screen, then steps upward. A rapid second backward click can
+continue reading that slide without skipping it. Keyboard and touch gestures
+keep their existing behavior. The separate Firefox windowed image-height
+report remains open.
+
 ## v0.68.0
 
 Make the reader's combined-document view transition explicit: restore the

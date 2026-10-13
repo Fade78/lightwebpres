@@ -3860,6 +3860,14 @@ but honors authored interactive ancestors. Pointerdown classifies a physical
 mouse press on a plain table image before its later click event can use the
 table's drag, duration and scroll guards.
 
+**Follow-up in 0.68.1.** Mouse-only reading steps inside tall slides use the
+same configured deck glide duration as slide changes, instead of native smooth
+scrolling with browser-dependent timing. Reverse entry into a tall previous
+slide targets its last visible screen. A second quick reverse command finishes
+that arrival before stepping upward; it must not skip the entire slide. The
+keyboard/touch journey and right-click's local table context menu remain
+independent.
+
 ## B78 — Firefox windowed image-height fitting differs from fullscreen
 
 **État :** à étudier · **Depuis :** 2026-10-13
@@ -3880,3 +3888,8 @@ Headless Playwright Firefox 157 on this host does not reproduce the persistent
 failure, so it cannot validate a fix. Keep this distinct from B74's physical
 Windows 4K scaling report until evidence supports a common cause. Do not
 change reader sizing or claim the physical transition verified in this lot.
+
+**Later clarification.** The owner also sees the oversized image when Firefox
+opens directly in a normal window, and reloading there does not correct it.
+A missed `fullscreenchange` after exit cannot by itself explain that state;
+do not ship an event-only fix as a claimed resolution.

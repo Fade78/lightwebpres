@@ -2497,7 +2497,11 @@ quand le menu est ouvert, comme les autres actions qu'il affiche.
 **Mouse:** a left click on article ground or a plain image moves forward one
 reading screen; a right-click on ground moves backward one screen. On an
 overlong slide, each step scrolls a bounded portion of that slide; only at its
-edge does the next step change slides. On the index, clicks step among article
+edge does the next step change slides. Mouse steps inside an overlong slide use
+the configured deck glide duration, not the browser's variable smooth-scroll
+timing. A backward click from the next slide enters an overlong predecessor at
+its last visible screen; further clicks move upward from there, including a
+second click before the incoming glide settles. On the index, clicks step among article
 cards. **R** reverses the two mouse directions, not keyboard, wheel, touch,
 links or controls. A direct left click on a card still follows its link.
 Slide-to-slide clicks have no artificial latency: they glide over the configured

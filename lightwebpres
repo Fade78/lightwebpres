@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.68.0"
+VERSION = "0.68.1"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -13744,6 +13744,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // duration varies with the distance and cannot be promised.
   var scrollRAF = null;
   var scrollUnlockTimer = null;
+  var enteringBottomGlide = false;
   function navigationScrollBehavior() {
     return scrollDuration === 0 ? 'instant' : 'smooth';
   }
@@ -13766,12 +13767,19 @@ document.addEventListener('DOMContentLoaded', function() {
       var e = 1 - Math.pow(1 - t, 3);
       setScrollTop(startY + (targetY - startY) * e);
       if (t < 1) scrollRAF = requestAnimationFrame(frame);
-      else scrollRAF = null;
+      else {
+        scrollRAF = null;
+        enteringBottomGlide = false;
+        // The slide glide has landed. The duration+60ms timer is only a
+        // fallback for dropped frames, not a mandatory dead zone for input.
+        isScrolling = false;
+      }
     }
     scrollRAF = requestAnimationFrame(frame);
   }
   function jumpScrollTo(targetY, targetX) {
     if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
+    enteringBottomGlide = false;
     setScrollTop(targetY, targetX);
   }
 
@@ -13834,7 +13842,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  function goTo(idx, instant, preserveTarget) {
+  function goTo(idx, instant, preserveTarget, enterAtBottom) {
     if (seriesViews && seriesPrinting) return;
     if (seriesViews && !preserveTarget) seriesTarget = null;
     if (isIndex) {
@@ -13854,16 +13862,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (idx === current && isScrolling) return;
     current = idx;
     clearNavigableCardFocus();
-    if (readingRuntime) readingRuntime.navigate(slides[idx]);
+    var rect = slides[idx].getBoundingClientRect();
+    var bottomOffset = enterAtBottom ? Math.max(0, rect.height - window.innerHeight) : 0;
+    if (readingRuntime) readingRuntime.navigate(slides[idx], bottomOffset
+      ? {slide: slides[idx], ratio: bottomOffset / rect.height} : null);
     recordSlideInUrl(idx);
-    var targetY = slides[idx].getBoundingClientRect().top
-                  + (window.pageYOffset || document.documentElement.scrollTop);
+    var targetY = rect.top + (window.pageYOffset || document.documentElement.scrollTop)
+      + bottomOffset;
     var duration = scrollDuration;
     if (instant || duration === 0) {
       jumpScrollTo(targetY);
       isScrolling = false;
     } else {
       isScrolling = true;
+      enteringBottomGlide = !!enterAtBottom;
       animateScrollTo(targetY, duration);
       // The safety net: a frame dropped by the compositor must not leave
       // the deck locked forever. An earlier glide must not unlock this one.
@@ -14051,7 +14063,7 @@ document.addEventListener('DOMContentLoaded', function() {
     goTo(idx, true);
     return true;
   }
-  function scrollWithinSlide(direction, slide) {
+  function scrollWithinSlide(direction, slide, useDeckGlide) {
     var scrollY = window.pageYOffset || document.documentElement.scrollTop;
     var rect = slide.getBoundingClientRect();
     var slideTop = rect.top + scrollY;
@@ -14060,7 +14072,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var upperBound = Math.max(lowerBound, slideBottom - window.innerHeight);
     var targetY = Math.max(lowerBound, Math.min(upperBound,
       scrollY + direction * window.innerHeight * 0.9));
-    window.scrollTo({ top: targetY, behavior: navigationScrollBehavior() });
+    if (useDeckGlide) {
+      if (scrollDuration === 0) jumpScrollTo(targetY);
+      else animateScrollTo(targetY, scrollDuration);
+    } else window.scrollTo({ top: targetY, behavior: navigationScrollBehavior() });
   }
   // The top of the page — the index's Home and Ctrl/Cmd+Home, and the
   // beginning of the card journey.
@@ -14155,7 +14170,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return true;
   }
 
-  function changeSlide(direction, instant) {
+  function changeSlide(direction, instant, enterPreviousAtBottom) {
     closePause();
     if (isIndex) {
       // The index has no slides: its buttons and page keys move through
@@ -14165,7 +14180,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!slides.length) return false;
     var target = syncCurrentToViewport() + direction;
     if (target < 0 || target >= slides.length) return false;
-    goTo(target, instant);
+    goTo(target, instant, false, enterPreviousAtBottom && direction < 0
+      && overflowsViewport(slides[target]));
     return true;
   }
 
@@ -14174,20 +14190,29 @@ document.addEventListener('DOMContentLoaded', function() {
   // in a navigation list; a second click during a glide still skips instantly.
   function mouseClickStep(direction) {
     closePause();
+    if (isScrolling && enteringBottomGlide && direction < 0 && slides[current]) {
+      // A second reverse click during entry into a tall slide first lands
+      // at its last screen, then moves one bounded screen back. Do not skip
+      // the whole slide just because its incoming glide is still active.
+      var incoming = slides[current].getBoundingClientRect();
+      jumpScrollTo(Math.max(0, incoming.bottom
+        + (window.pageYOffset || document.documentElement.scrollTop) - window.innerHeight));
+      isScrolling = false;
+    }
     if (!isIndex && slides.length && !isScrolling) {
       var slide = slides[syncCurrentToViewport()];
       if (slide && overflowsViewport(slide)) {
         if (direction > 0 && !atSlideBottom(slide)) {
-          scrollWithinSlide(1, slide);
+          scrollWithinSlide(1, slide, true);
           return true;
         }
         if (direction < 0 && !atSlideTop(slide)) {
-          scrollWithinSlide(-1, slide);
+          scrollWithinSlide(-1, slide, true);
           return true;
         }
       }
     }
-    return changeSlide(direction, isScrolling);
+    return changeSlide(direction, isScrolling, true);
   }
 
   function setNavDisabled(button, disabled) {
@@ -16101,6 +16126,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function prepareSeriesViewReplacement() {
     if (scrollRAF) cancelAnimationFrame(scrollRAF);
     scrollRAF = null;
+    enteringBottomGlide = false;
     if (presentationReanchorFrame) cancelAnimationFrame(presentationReanchorFrame);
     presentationReanchorFrame = null;
     if (scrollTimer) clearTimeout(scrollTimer);

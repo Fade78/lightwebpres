@@ -168,7 +168,8 @@ controls. **C** opens Appearance when a real kit is published, otherwise Theme
 when theme alternatives are available; **L** selects tags when available,
 **N** toggles the speaker panel, **I** toggles scrolling duration and **R**
 reverses the left/right mouse reading direction. Clicks move a bounded screen
-within a tall slide before changing slides; plain images, including table
+within a tall slide with the configured glide duration; going back into a tall
+slide starts at its last screen. Plain images, including table
 images, follow that mouse reading step unless they have their own action.
 For a mouse used as a presenter remote, middle then left toggles fullscreen,
 middle then right toggles Pointer Lock, two middles then left return to the

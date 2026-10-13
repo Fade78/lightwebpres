@@ -1799,7 +1799,7 @@ continuation lines are never captured as slide content.
 | Gesture | Action |
 |---|---|
 | Single left click on article background or a plain, non-interactive image | Next reading screen within a tall slide, then next slide at its bottom |
-| Right-click on article background | Previous reading screen within a tall slide, then previous slide at its top |
+| Right-click on article background | Previous reading screen within a tall slide; from the next slide, enter a tall predecessor at its last screen |
 | Vertical wheel over an index, series-navigation or unit-index list | Select the adjacent card without opening it; native scrolling resumes at either edge |
 | 500 ms left press on a card list after wheel selection | Follow the selected card; movement, text selection, modifiers, tables, competing help/fullscreen gestures, touch and pointer cancellation cancel it |
 | Click during the glide | Jump straight to that click's target |
@@ -1818,10 +1818,12 @@ card journey. The right-click to go back is the remote-mouse use case: with a
 wireless mouse in hand, left advances and right reverses, with no aiming.
 R reverses those directions. The native context menu is suppressed on slide
 content, except inside a locally scrolling table. Each click within a tall
-slide scrolls a bounded portion of the viewport. At its edge, the click moves
-to the adjacent slide with the configured glide (200 ms by default). A click
-during that slide-to-slide glide jumps immediately to its next target; a click
-in the other direction returns to the slide just left.
+slide scrolls a bounded portion of the viewport using the same configured
+glide duration as a slide transition (200 ms by default), not the browser's
+variable smooth scroll. At its edge, the click moves to the adjacent slide.
+Going backward into a tall slide enters at its last screen; the next click
+continues upward. A click during a slide-to-slide glide jumps immediately to
+its next target; a click in the other direction returns to the slide just left.
 
 Each middle press renews a **900 ms** sequence window. A lone middle press
 has no action; an expired prefix returns to normal clicks. Keyboard input
