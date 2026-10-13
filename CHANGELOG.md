@@ -33,6 +33,17 @@ link to the originals. They are at
 
 ---
 
+## v0.68.2
+
+Browser regressions now wait for actual fullscreen entry instead of sampling
+immediately after the key press. A mouse-capture regression also reports the
+confirmed lock and cursor state if release does not arrive, instead of waiting
+silently for the default browser timeout. The combined-document MMG test waits
+for confirmed capture and the actual beginning of a long slide before expecting
+the index, and reports both positions if that transition fails. No reader
+gesture or output format changes; the separate Firefox windowed image-height
+investigation remains open.
+
 ## v0.68.1
 
 Mouse clicks now use the presentation's configured glide duration when moving

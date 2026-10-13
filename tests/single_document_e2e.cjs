@@ -443,6 +443,8 @@ ${name === 'b' ? '<table id="scroll-table" style="min-width: 1600px"><tr><td>Wid
 
     // Exercise the actual fullscreen API when this supplied browser supports it.
     await page.keyboard.press('f');
+    await page.waitForFunction(() => document.fullscreenElement === document.documentElement,
+      null, {timeout: 5000});
     const fullscreen = await page.evaluate(() => document.fullscreenElement === document.documentElement);
     assert.equal(fullscreen, true, 'real fullscreen entry, not a stub');
     await page.locator('#lwp-series-view a.article-card').first().click();

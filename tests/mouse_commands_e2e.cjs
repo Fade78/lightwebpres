@@ -172,16 +172,53 @@ const playwright = require('playwright');
       await page.keyboard.press('t');
       await sequence('MD');
       await page.waitForFunction(() => !!document.pointerLockElement);
+      await page.waitForFunction(() => document.getElementById('menuPointerLock')
+        .getAttribute('aria-pressed') === 'true', null, {timeout: 5000});
       if (combined) {
+        const beforeMMG = await page.evaluate(() => ({
+          scrollY, firstTop: document.querySelector('.slide:not([hidden])')?.getBoundingClientRect().top,
+          active: document.querySelector('.nav-dots a.active')?.getAttribute('href'),
+          captured: !!document.pointerLockElement, fullscreen: !!document.fullscreenElement,
+        }));
+        // The first command finishes a position still a pixel or two into
+        // the tall first slide; only a command *from its actual top* goes home.
+        if (beforeMMG.firstTop < -1) {
+          await sequence('MMG');
+          await page.waitForFunction(() => {
+            const first = document.querySelector('.slide:not([hidden])');
+            return first && first.getBoundingClientRect().top >= -1
+              && !document.body.classList.contains('index-page');
+          }, null, {timeout: 5000});
+        }
         await sequence('MMG');
-        await page.waitForFunction(() => document.body.classList.contains('index-page'),
-          null, {timeout: 5000});
+        try {
+          await page.waitForFunction(() => document.body.classList.contains('index-page'),
+            null, {timeout: 5000});
+        } catch (error) {
+          throw new Error('MMG did not reach the combined index: '
+            + JSON.stringify({beforeMMG, after: await page.evaluate(() => ({
+              scrollY, firstTop: document.querySelector('.slide:not([hidden])')?.getBoundingClientRect().top,
+              active: document.querySelector('.nav-dots a.active')?.getAttribute('href'),
+              captured: !!document.pointerLockElement, fullscreen: !!document.fullscreenElement,
+            }))}), {cause: error});
+        }
         assert.equal(await page.evaluate(() => document.pointerLockElement === document.documentElement), true,
           'the stable combined-document root retains capture across view replacement');
       }
       await sequence('MD');
-      await page.waitForFunction(() => !document.pointerLockElement
-        && document.body.style.cursor !== 'none');
+      try {
+        await page.waitForFunction(() => !document.pointerLockElement
+          && document.body.style.cursor !== 'none', null, {timeout: 5000});
+      } catch (error) {
+        throw new Error('MD did not release capture and reveal the cursor: '
+          + JSON.stringify(await page.evaluate(() => ({
+            locked: !!document.pointerLockElement,
+            cursor: document.body.style.cursor,
+            mouseInput: document.documentElement.classList.contains('mouse-input'),
+            fullscreen: !!document.fullscreenElement,
+            status: document.getElementById('pointerLockStatus')?.textContent,
+          }))), {cause: error});
+      }
       assert.equal(await page.evaluate(() => document.body.style.cursor), '', 'unlock reveals immediately');
       await sequence('MD');
       await page.waitForFunction(() => !!document.pointerLockElement);
