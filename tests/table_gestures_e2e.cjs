@@ -188,7 +188,7 @@ const {chromium} = require('playwright');
           await unchanged(stable, 'wheel remains local');
           assert(await viewport.evaluate(el => el.scrollLeft > 0));
           await reset();
-          for (const selector of ['a', 'button', 'label span', 'input', 'img']) {
+          for (const selector of ['a', 'button', 'label span', 'input', ...(mobile ? ['img'] : [])]) {
             const control = viewport.locator(selector).first();
             await control.scrollIntoViewIfNeeded();
             await settle();
@@ -211,6 +211,19 @@ const {chromium} = require('playwright');
                 `${selector} must retain native input focus`);
             }
             await unchanged(controlBefore, `native table ${selector}`);
+          }
+          if (!mobile) {
+            await reset();
+            const image = viewport.locator('img').first();
+            await image.scrollIntoViewIfNeeded();
+            await settle();
+            const imageBefore = await state();
+            await image.click();
+            await settle();
+            const imageAfter = await state();
+            assert(imageAfter.active !== imageBefore.active
+              || (imageAfter.y > imageBefore.y + 100 && imageAfter.y - imageBefore.y <= 844),
+            `plain table image follows a bounded mouse reading step: ${JSON.stringify({imageBefore, imageAfter})}`);
           }
           if (id === 'tall' && !combined) {
             for (const role of ['button', 'checkbox', 'switch', 'slider', 'textbox']) {

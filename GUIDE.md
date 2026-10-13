@@ -1798,8 +1798,8 @@ continuation lines are never captured as slide content.
 
 | Gesture | Action |
 |---|---|
-| Single left click on article background or a plain, non-interactive image | Next slide (configured glide, 200ms default) |
-| Right-click on article background | Previous slide (configured glide, 200ms default) |
+| Single left click on article background or a plain, non-interactive image | Next reading screen within a tall slide, then next slide at its bottom |
+| Right-click on article background | Previous reading screen within a tall slide, then previous slide at its top |
 | Vertical wheel over an index, series-navigation or unit-index list | Select the adjacent card without opening it; native scrolling resumes at either edge |
 | 500 ms left press on a card list after wheel selection | Follow the selected card; movement, text selection, modifiers, tables, competing help/fullscreen gestures, touch and pointer cancellation cancel it |
 | Click during the glide | Jump straight to that click's target |
@@ -1810,20 +1810,18 @@ continuation lines are never captured as slide content.
 | Three middle presses | Cancel the pending sequence |
 | Click in the bottom-right corner | Toggle the navigation buttons (hide/show) |
 
-Linked images, images with their own click action, buttons, and the share
-popover retain their actions; a plain slide image follows the background-click
-navigation, without changing native touch gestures. A direct left click on a card follows its
-link; an index-background click still moves through the card journey. The
-right-click to go back is the
-remote-mouse use case: the speaker with a wireless mouse in hand
-left-clicks to advance, right-clicks to go back — two distinct buttons,
-no aiming. The native context menu is suppressed on slide content so
-right-click is a clean back gesture. A click lands instantly on the
-next slide and glides to it over the configured duration (200 ms by default);
-a click that arrives while the
-deck is still gliding does not wait — it jumps straight to its target,
-so two clicks in quick succession land two pages on, and a right-click
-during the glide returns you to the card you left.
+Linked images, images with their own click action, buttons and the share
+popover retain their actions. A plain image inside a table follows the same
+mouse click as a plain cell; touch gestures do not change. A direct left click
+on a card follows its link; an index-background click still moves through the
+card journey. The right-click to go back is the remote-mouse use case: with a
+wireless mouse in hand, left advances and right reverses, with no aiming.
+R reverses those directions. The native context menu is suppressed on slide
+content, except inside a locally scrolling table. Each click within a tall
+slide scrolls a bounded portion of the viewport. At its edge, the click moves
+to the adjacent slide with the configured glide (200 ms by default). A click
+during that slide-to-slide glide jumps immediately to its next target; a click
+in the other direction returns to the slide just left.
 
 Each middle press renews a **900 ms** sequence window. A lone middle press
 has no action; an expired prefix returns to normal clicks. Keyboard input
@@ -1902,13 +1900,14 @@ assume a long-form article fits on one physical sheet.
 | Press and hold | Select text and open the copy menu — the deck does not take it |
 | Pinch | Native browser zoom; not presentation zoom or slide navigation |
 
-In a table set to **Scroll inside the table**, a brief tap or left click on a
-plain cell advances just like ordinary content. On a table taller than the
+In a table set to **Scroll inside the table**, a brief tap on a plain cell or
+left mouse click on a plain cell **or image** follows a bounded reading step.
+On a table taller than the
 viewport, each step scrolls a bounded distance within the slide; only after its
 bottom is reached does the next step enter the next slide. No rows are removed.
 Drag to scroll the table instead: even a drag at a horizontal edge does not
-advance the deck. Long press, text selection, pinch, links, images and native
-controls keep their browser behavior. Focused-table keys and the wheel remain
+advance the deck. Long press, text selection, pinch, links, interactive images,
+image touches and native controls keep their browser behavior. Focused-table keys and the wheel remain
 local; right-click keeps the native context menu. Table taps do not participate
 in the navigation-visibility double-tap gesture.
 

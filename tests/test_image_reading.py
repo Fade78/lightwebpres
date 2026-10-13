@@ -39,6 +39,10 @@ class ImageReadingRuntime(unittest.TestCase):
                 '<svg xmlns="http://www.w3.org/2000/svg" width="1000" '
                 'height="20000"><rect width="1000" height="20000"/></svg>',
                 encoding='utf-8')
+            (root / 'sources' / 'img' / 'wide.svg').write_text(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="3840" '
+                'height="2160"><rect width="3840" height="2160"/></svg>',
+                encoding='utf-8')
             (root / 'sources' / 'images.md').write_text(
                 '<!-- lwp:meta -->\npage_title: Responsive images\n---\n\n'
                 '<!-- lwp:slide -->\nslug: image\n## Image\n\n'
@@ -54,6 +58,14 @@ class ImageReadingRuntime(unittest.TestCase):
                 '## A substantial title\n'
                 'summary: This description shares the image’s slide.\n\n'
                 '![Large image](img/image.svg "Its caption also needs space")\n\n---\n\n'
+                '<!-- lwp:slide -->\nslug: ratio\n'
+                'slide-header: A short header.\n'
+                'slide-footer: A short footer.\n'
+                '## Wide image on a slide\n'
+                'summary: The heading and summary need room above the image.\n'
+                'fact-label: A fact box around the image.\n\n'
+                'One paragraph in the box.\n\n'
+                '![Wide image](img/wide.svg)\n\n---\n\n'
                 '<!-- lwp:slide -->\nslug: giant\n## Giant image\n\n'
                 '![Giant image](img/giant.svg)\n\n---\n\n'
                 '<!-- lwp:slide -->\nslug: impossible\n## Long text and an image\n\n'

@@ -7,9 +7,9 @@ const vm = require('node:vm');
 const html = fs.readFileSync(process.argv[2], 'utf8');
 assert.match(html, /<figure class="figure"><img/);
 const script = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]
-  .map(match => match[1]).find(text => text.includes('var readingRuntime = (function'));
+  .map(match => match[1]).find(text => text.includes('function createReadingRuntime()'));
 assert.ok(script);
-const start = script.indexOf('  var readingRuntime = (function');
+const start = script.indexOf('  function createReadingRuntime() {');
 const end = script.indexOf('\n  function scheduleReadingLayout', start);
 assert.ok(start >= 0 && end > start);
 
@@ -144,6 +144,13 @@ near(responsive.image.getBoundingClientRect().height, 1200, 'print uses responsi
 responsive.callbacks.window.afterprint();
 responsive.settle();
 near(responsive.image.getBoundingClientRect().height, 700, 'screen height cap resumes after print');
+responsive.context.readingRuntime.beforeViewReplacement();
+assert.deepEqual(responsive.image.style.snapshot(), styles,
+  'view replacement restores authored styles before detaching the outgoing DOM');
+responsive.context.readingRuntime.afterViewMounted();
+responsive.settle();
+near(responsive.image.getBoundingClientRect().height, 700,
+  'mounted view recomputes fitting without losing reader preferences');
 responsive.zoom(1);
 responsive.settings.object_shrink_vertical = false;
 responsive.layout();

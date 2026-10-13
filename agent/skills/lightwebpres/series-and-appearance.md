@@ -238,9 +238,10 @@ item; clicking outside closes the submenu. **-**, **+**, **=** reduce, enlarge
 and reset presentation zoom;
 **O** cycles table modes and **A** text modes in the order above. `clip` hides
 overflow visually, not cells in HTML; `scroll` keeps drag gestures, wheel and
-focused keys local, while a brief plain-cell tap or left click advances through
-the ordinary bounded reading steps without truncating a tall table. Selection,
-long press, pinch, links, images, controls and right-click remain native.
+focused keys local, while a brief plain-cell tap or left mouse click on a plain
+cell or image advances through bounded reading steps without truncating a tall
+table. Selection, long press, pinch, links, interactive images, image touches,
+controls and right-click remain native.
 `fixed` keeps native responsive sizes without content fitting.
 `uniform` measures all tag-visible slides in the current article by default
 and applies one shared factor. Combined-HTML output shows **Uniform fit scope**

@@ -176,12 +176,20 @@ const {collectConsoleErrors} = require('./console_errors.cjs');
       assert.equal(await page.evaluate(() => document.activeElement.dataset.lwpIndexTarget), 'p-overview');
       await press('Shift+Space');
       assert.equal(await page.evaluate(() => document.activeElement.dataset.lwpIndexTarget), 'p-cover');
-      // A background click changes slides directly; a real link retains anchor behavior.
+      // The long index first uses bounded reading screens, not a jump to the
+      // next unit. A real link still retains its own anchor behavior.
+      const beforeMouseStep = await page.evaluate(() => scrollY);
       await page.mouse.click(12, 250);
       await settle();
-      assert.equal(new URL(page.url()).hash, route('p-french'));
+      const afterMouseStep = await page.evaluate(() => scrollY);
+      const viewportHeight = await page.evaluate(() => innerHeight);
+      assert.ok(afterMouseStep > beforeMouseStep + 100
+        && afterMouseStep - beforeMouseStep <= viewportHeight,
+      `index mouse step: ${beforeMouseStep} -> ${afterMouseStep}`);
+      assert.equal(new URL(page.url()).hash, route('p-overview'));
       await page.mouse.click(12, 250, {button: 'right'});
       await settle();
+      assert.ok(Math.abs(await page.evaluate(() => scrollY) - beforeMouseStep) < 2);
       assert.equal(new URL(page.url()).hash, route('p-overview'));
       await page.locator('#p-overview [data-lwp-index-target="p-cover"]').focus();
       await press('Tab');

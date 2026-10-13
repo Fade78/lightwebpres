@@ -644,10 +644,9 @@ async function main() {
   collectConsoleErrors(phone, errors);
   await phone.goto(articleUrl, { waitUntil: 'load' });
 
-  // Non-vacuity first, and it comes before anything else: the script
-  // branches on `(pointer: fine)`, so if this context reports a fine
-  // pointer then everything after it is a desktop test wearing a phone's
-  // viewport.
+  // Non-vacuity first: the CSS has a coarse-pointer branch, while the
+  // runtime follows the last actual input. A new Playwright touch context
+  // can still emit a trusted mouse pointermove before its first touch.
   const pointerKind = await phone.evaluate(() => ({
     coarse: matchMedia('(pointer: coarse)').matches,
     fine: matchMedia('(pointer: fine)').matches,
@@ -655,6 +654,11 @@ async function main() {
   if (!pointerKind.coarse || pointerKind.fine) {
     fail('this context is not a touch device, so nothing below is under '
          + 'test: ' + JSON.stringify(pointerKind));
+  }
+  await phone.touchscreen.tap(195, 400);
+  await phone.keyboard.press('Home');
+  if (await phone.evaluate(() => document.documentElement.classList.contains('mouse-input'))) {
+    fail('a real touch did not establish touch ownership before testing touch-only chrome');
   }
 
   // Read the class AND the computed style. The class alone would pass on

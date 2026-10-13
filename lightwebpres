@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.67.3"
+VERSION = "0.68.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1394,7 +1394,7 @@ LANG_FR = r'''{
     "help_jump_keys": "0&ndash;9 + Entr&eacute;e",
     "help_mouse_keys": "Souris / Molette",
     "help_jump": "Aller à la slide N (puis Entrée)",
-    "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · milieu puis gauche : plein écran · milieu puis droit : verrouillage souris · deux milieux puis gauche : début, puis index si déjà au début · deux milieux puis droit : écran du thème · trois milieux : annuler · délai de 900 ms après chaque milieu ; clavier, molette ou autre commande annule · molette verticale sur une carte disponible : sélectionner · appui gauche de 500 ms sur sa liste : ouvrir la carte sélectionnée · ailleurs et aux bornes : défiler",
+    "help_mouse": "Clic : écran suivant · clic droit : écran précédent · aux bornes : fiche adjacente · clic pendant un glissé : saut · milieu puis gauche : plein écran · milieu puis droit : verrouillage souris · deux milieux puis gauche : début, puis index si déjà au début · deux milieux puis droit : écran du thème · trois milieux : annuler · délai de 900 ms après chaque milieu ; clavier, molette ou autre commande annule · molette verticale sur une carte disponible : sélectionner · appui gauche de 500 ms sur sa liste : ouvrir la carte sélectionnée · ailleurs et aux bornes : défiler",
     "help_touch_home": "",
     "help_touch_index": "Menu : Retour à l'index",
     "help_touch_edges": "",
@@ -1613,7 +1613,7 @@ LANG_EN = r'''{
     "help_jump_keys": "0&ndash;9 + Enter",
     "help_mouse_keys": "Mouse / Wheel",
     "help_jump": "Jump to slide N (then Enter)",
-    "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle then left: fullscreen · middle then right: mouse lock · two middles then left: beginning, or index if already there · two middles then right: theme pause · three middles: cancel · 900 ms after each middle; keyboard, wheel or another command cancels · vertical wheel on an available card: select · 500 ms left press on its list: open the selected card · elsewhere and at boundaries: scroll",
+    "help_mouse": "Click: next reading screen · right-click: previous screen · at the slide edge: adjacent slide · click during a glide: jump · middle then left: fullscreen · middle then right: mouse lock · two middles then left: beginning, or index if already there · two middles then right: theme pause · three middles: cancel · 900 ms after each middle; keyboard, wheel or another command cancels · vertical wheel on an available card: select · 500 ms left press on its list: open the selected card · elsewhere and at boundaries: scroll",
     "help_touch_home": "",
     "help_touch_index": "Menu: Back to index",
     "help_touch_edges": "",
@@ -11070,7 +11070,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return true;
   }
 
-  var readingRuntime = (function () {
+  function createReadingRuntime() {
     var frame = null;
     var printing = false;
     var ready = false;
@@ -11761,7 +11761,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // Tag reveal may already have queued a layout against the old slide.
       // Explicit navigation wins over that saved reading position.
       if (frame !== null) pendingPosition = position || {slide: slide, ratio: 0};
-    }, reset: function () {
+    }, beforeViewReplacement: function () {
+      // The outgoing DOM still owns these styles. Restore them before the
+      // combined document replaces its view; keep cross-article fit caches.
       if (frame !== null) cancelAnimationFrame(frame);
       frame = null;
       pendingPosition = null;
@@ -11769,8 +11771,13 @@ document.addEventListener('DOMContentLoaded', function() {
       restore(changed);
       changed = [];
       originals = new WeakMap();
+    }, afterViewMounted: function () {
+      // Schedule only after seriesActivating is cleared and the new DOM,
+      // presentation pins and route have all been installed.
+      schedule('series');
     }};
-  })();
+  }
+  var readingRuntime = createReadingRuntime();
 
   function scheduleReadingLayout(reason) {
     if (readingRuntime) readingRuntime.schedule(reason);
@@ -14162,6 +14169,27 @@ document.addEventListener('DOMContentLoaded', function() {
     return true;
   }
 
+  // Mouse buttons move between reading screens on a tall slide, then between
+  // slides. Unlike Space, a background click does not focus individual cards
+  // in a navigation list; a second click during a glide still skips instantly.
+  function mouseClickStep(direction) {
+    closePause();
+    if (!isIndex && slides.length && !isScrolling) {
+      var slide = slides[syncCurrentToViewport()];
+      if (slide && overflowsViewport(slide)) {
+        if (direction > 0 && !atSlideBottom(slide)) {
+          scrollWithinSlide(1, slide);
+          return true;
+        }
+        if (direction < 0 && !atSlideTop(slide)) {
+          scrollWithinSlide(-1, slide);
+          return true;
+        }
+      }
+    }
+    return changeSlide(direction, isScrolling);
+  }
+
   function setNavDisabled(button, disabled) {
     if (!button) return;
     button.classList.toggle('disabled', disabled);
@@ -15346,12 +15374,16 @@ document.addEventListener('DOMContentLoaded', function() {
   function isInteractive(e, allowTableClick, allowPlainMouseImage) {
     var target = e.target;
     var image = target && target.closest && target.closest('img');
-    // Only a physical mouse click on a plain content image follows the slide
-    // ground. Linked images, authored click handlers, table images, chrome
-    // logos and every touch gesture retain their own behavior.
-    var plainMouseImage = !!(image && allowPlainMouseImage && e.detail > 0
+    // A plain image follows the reading step, including inside a table.
+    // Linked images, authored click handlers, chrome logos and touch gestures
+    // retain their own behavior. Pointerdown must also own the table gesture:
+    // its detail is zero before the eventual mouse click has detail > 0.
+    var plainMouseImage = !!(image && allowPlainMouseImage && e.button === 0
+      && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey
+      && (e.detail > 0 || (e.type === 'pointerdown' && e.button === 0))
       && isMouseInputEvent(e) && !target.closest(
-        'table, .slide-chrome, [onclick], [tabindex], [role~="button"], [role~="link"], '
+        '.slide-chrome, [onclick], [tabindex]:not(.slide):not(.lwp-table-viewport), '
+        + '[role~="button"], [role~="link"], '
         + '[role~="checkbox"], [role~="switch"], [role~="slider"], [role~="textbox"]'));
     if (plainMouseImage) {
       for (var owner = image; owner && !owner.classList.contains('slide'); owner = owner.parentElement) {
@@ -15384,7 +15416,7 @@ document.addEventListener('DOMContentLoaded', function() {
       left: viewport.scrollLeft, top: viewport.scrollTop,
       pageX: window.scrollX, pageY: window.scrollY, start: Date.now(), end: 0,
       slop: e.pointerType === 'touch' ? TAP_SLOP_PX : 4,
-      blocked: e.button !== 0 || isInteractive(e, true)
+      blocked: e.button !== 0 || isInteractive(e, true, true)
         || !e.target.closest('td, th') || !!String(window.getSelection())
         || (e.pointerType === 'touch' && window.visualViewport && window.visualViewport.scale > 1),
       used: false
@@ -15656,7 +15688,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (Date.now() < swallowClicksUntil) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) {
       if (pauseOverlay.dataset.pauseKind === 't' && e.button === 0) {
-        changeSlide(clickNavigationDirection(1), isScrolling);
+          mouseClickStep(clickNavigationDirection(1));
       } else if (pauseOverlay.dataset.pauseKind !== 't') closePause();
       return;
     }
@@ -15685,7 +15717,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Table cells retain their bounded reading journey; only the surrounding
     // article background changes slides directly.
     if (tableClick) stepForward(true);
-    else changeSlide(clickNavigationDirection(1), isScrolling);
+    else mouseClickStep(clickNavigationDirection(1));
     // The second click of a quick pair is also the platform's own
     // double-click, which selects the word under the pointer — on the
     // card the deck has just left. That selection is a ghost: the
@@ -15732,7 +15764,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (pauseOverlay && pauseOverlay.contains(e.target)) {
       if (pauseOverlay.dataset.pauseKind === 't') {
         e.preventDefault();
-        changeSlide(clickNavigationDirection(-1), isScrolling);
+        mouseClickStep(clickNavigationDirection(-1));
       }
       return;
     }
@@ -15744,9 +15776,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // right-click keeps its deck meaning: go back one card.
     if (String(window.getSelection())) return;
     e.preventDefault();
-    // The mirror of the left button: article background goes straight to the
-    // preceding slide by default; R may exchange the two directions.
-    changeSlide(clickNavigationDirection(-1), isScrolling);
+    // The mirror of the left button: go back one reading screen, or to the
+    // preceding slide at its top. R may exchange the two directions.
+    mouseClickStep(clickNavigationDirection(-1));
   });
   // One physical mouse command owns its release and native follow-up events.
   // contextmenu can precede OR follow mouseup; keep ownership until the next
@@ -15799,7 +15831,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Drive the existing navigation action directly, without aiming.
       consumedMouseButtons[2] = true;
       consumeMouseEvent(e);
-      changeSlide(clickNavigationDirection(-1), isScrolling);
+      mouseClickStep(clickNavigationDirection(-1));
     }
   }, true);
   ['mouseup', 'click', 'dblclick', 'auxclick', 'contextmenu'].forEach(function (type) {
@@ -16066,29 +16098,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.addEventListener('scroll', keepAwakeOnTouch, { passive: true });
   scheduleHide();
 
-  function activateSeriesView(route, push) {
-    if (!seriesViews || !seriesViews.has(route.key)) return false;
-    if (seriesPrinting) {
-      seriesPendingRoute = {route: route, push: push};
-      return false;
-    }
-    // A route replacement invalidates both the outgoing card cursor and any
-    // hold whose target belongs to the outgoing DOM. Keep the separate click
-    // quarantine intact: a successful long press may be replacing the view.
-    clearCardLongPress();
-    clearNavigableCardSelection();
-    var view = seriesViews.get(route.key);
-    var changing = view !== seriesActiveView;
-    var marker = document.getElementById('lwp-series-css-marker');
-    var css = null;
-    if (changing) {
-      if (!marker || marker.parentNode !== document.head) return false;
-      css = document.createElement('template');
-      css.innerHTML = view.pageCss;
-      if (!css.content.querySelector('style')) return false;
-    }
-    seriesActivating = true;
-    seriesGeneration++;
+  function prepareSeriesViewReplacement() {
     if (scrollRAF) cancelAnimationFrame(scrollRAF);
     scrollRAF = null;
     if (presentationReanchorFrame) cancelAnimationFrame(presentationReanchorFrame);
@@ -16115,7 +16125,33 @@ document.addEventListener('DOMContentLoaded', function() {
     closeHelp(false);
     closeAbout(false);
     closePause();
-    readingRuntime.reset();
+    readingRuntime.beforeViewReplacement();
+  }
+
+  function activateSeriesView(route, push) {
+    if (!seriesViews || !seriesViews.has(route.key)) return false;
+    if (seriesPrinting) {
+      seriesPendingRoute = {route: route, push: push};
+      return false;
+    }
+    // A route replacement invalidates both the outgoing card cursor and any
+    // hold whose target belongs to the outgoing DOM. Keep the separate click
+    // quarantine intact: a successful long press may be replacing the view.
+    clearCardLongPress();
+    clearNavigableCardSelection();
+    var view = seriesViews.get(route.key);
+    var changing = view !== seriesActiveView;
+    var marker = document.getElementById('lwp-series-css-marker');
+    var css = null;
+    if (changing) {
+      if (!marker || marker.parentNode !== document.head) return false;
+      css = document.createElement('template');
+      css.innerHTML = view.pageCss;
+      if (!css.content.querySelector('style')) return false;
+    }
+    seriesActivating = true;
+    seriesGeneration++;
+    prepareSeriesViewReplacement();
     if (changing) {
       // Clear patches against the outgoing catalogue before installing the
       // incoming page's baseline and pins. Unrelated root styles stay intact.
@@ -16169,7 +16205,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isIndex || !slides.length) jumpScrollTo(0);
     else if (route.target) applyHashTarget(route.target);
     else goTo(0, true);
-    scheduleReadingLayout('series');
+    readingRuntime.afterViewMounted();
     updateUI();
     // A replaced link must not strand keyboard focus on the document body.
     var destination = route.target && document.getElementById(route.target);

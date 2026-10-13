@@ -167,7 +167,9 @@ not public hosting. The page's presenter menu and built-in help document
 controls. **C** opens Appearance when a real kit is published, otherwise Theme
 when theme alternatives are available; **L** selects tags when available,
 **N** toggles the speaker panel, **I** toggles scrolling duration and **R**
-reverses only the left/right background-click navigation direction.
+reverses the left/right mouse reading direction. Clicks move a bounded screen
+within a tall slide before changing slides; plain images, including table
+images, follow that mouse reading step unless they have their own action.
 For a mouse used as a presenter remote, middle then left toggles fullscreen,
 middle then right toggles Pointer Lock, two middles then left return to the
 beginning (then series contents), two middles then right toggle theme pause,
@@ -184,9 +186,10 @@ an outside click closes the submenu. **D** opens or closes this submenu
 directly. **O** cycles
 `clip`, `overflow`, `scroll`; **A** cycles `fixed`, `uniform`, `per-slide`.
 Drag to scroll a table and reach clipped columns without navigating the deck.
-A brief tap or left click on plain cells instead follows bounded reading steps
-through the tall slide before entering the next one; links, controls and text
-selection stay native. `fixed` keeps responsive theme sizes without content fitting; uniform
+A brief tap on plain cells or left mouse click on plain cells or images follows
+bounded reading steps through the tall slide before entering the next one;
+linked images, controls, text selection and image touches keep their action.
+`fixed` keeps responsive theme sizes without content fitting; uniform
 reduction measures all tag-visible slides in the current article by default.
 Series-wide measurement supports static content. Executable HTML, media, frames
 or custom widgets in an eligible article return the control to article scope

@@ -1,12 +1,12 @@
 {
   "inputs": {
-    "lightwebpres": "b3ce5b4703c41ffa63020584a92ddfacdfbd9e60309a4e5811b52eb90e60d491",
+    "lightwebpres": "a2d467dd6b040b215c4844ab2e18d19799c78eefbd712a0b977361e1f79506f5",
     "tools/screenshot-product.cjs": "cd24ed3d7e56e916781ead59ed36ef2dc8369e0475cdb3de8cf0deba1815f82d",
     "examples/first-article/series.json": "1c7d8a162db17c57a1f32041596d148425685cb60a1c3b25be4f43f9f368809f",
     "examples/first-article/sources/first-page.md": "2a426775d0e718abb98baa31272a101e1dce074442a5f739b7f67a55c2ebfa66",
     "examples/first-article/templates/settings.conf": "00dcebcf92ea9c9e4de7102c7e7b817bd8b94791d38b3ea1caa14200b5278a58"
   },
-  "browser": "145.0.7632.6",
+  "browser": "156.0.8078.4",
   "captures": [
     {
       "name": "responsive",
@@ -31,7 +31,7 @@
           "deviceScaleFactor": 1
         }
       ],
-      "sha256": "ac0c37608f80442bf3e0cc575fc4e9c79cbcc19f2d399f820471ba1c68047ef0"
+      "sha256": "00fa4d6db24f4a771f4f583377fb88cff4b64f565538e51ee71a737be0a2cab5"
     }
   ]
 }

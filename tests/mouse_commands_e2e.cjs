@@ -43,6 +43,14 @@ const playwright = require('playwright');
       const pauseOpen = () => page.locator('#pauseOverlay').evaluate(node => node.classList.contains('open'));
       const current = () => page.evaluate(() => [...document.querySelectorAll('.nav-dots a')]
         .findIndex(node => node.classList.contains('active')));
+      const advanceOneScreen = async label => {
+        const before = await page.evaluate(() => scrollY);
+        await press('left');
+        const after = await page.evaluate(() => scrollY);
+        assert.equal(await current(), 0, label + ': the tall first slide stays current');
+        assert.ok(after > before + 100 && after - before <= 800,
+          label + ': mouse click advances one reading screen: ' + before + ' -> ' + after);
+      };
       const openArticle = async () => {
         await page.goto(url);
         if (combined) await page.locator('.article-card').first().click();
@@ -51,29 +59,26 @@ const playwright = require('playwright');
       };
       await openArticle();
       await sequence('MMM');
-      await press('left');
-      assert.equal(await current(), 1, '3M cancels without a new pending prefix');
+      await advanceOneScreen('3M cancels without a new pending prefix');
       await page.keyboard.press('Home');
       await sequence('M');
       await page.waitForTimeout(950);
-      await press('left');
-      assert.equal(await current(), 1, 'an expired M leaves normal click navigation');
+      await advanceOneScreen('an expired M leaves normal click navigation');
       await page.keyboard.press('Home');
       await sequence('M');
       await page.keyboard.press('Shift');
-      await press('left');
-      assert.equal(await current(), 1, 'a modifier cancels pending M');
+      await advanceOneScreen('a modifier cancels pending M');
       await page.keyboard.press('Home');
       await sequence('M');
       await page.mouse.wheel(0, 60);
-      await press('left');
+      await advanceOneScreen('wheel cancels M without consuming the next click');
       assert.equal(await page.evaluate(() => !!document.fullscreenElement), false, 'wheel cancels M');
       await page.keyboard.press('Home');
       await sequence('M');
       await page.locator('input').first().evaluate(node => node.focus());
       await page.keyboard.press('q');
       await page.locator('input').first().evaluate(node => node.blur());
-      await press('left');
+      await advanceOneScreen('editable keyboard input cancels M');
       assert.equal(await page.evaluate(() => !!document.fullscreenElement), false,
         'input-owned keyboard events still cancel M');
       await page.keyboard.press('Home');
@@ -146,10 +151,16 @@ const playwright = require('playwright');
       assert.equal(await page.evaluate(() => document.documentElement.classList.contains('nav-idle')), true,
         'sustained captured movement never reveals chrome');
       const before = await current();
+      const beforeScroll = await page.evaluate(() => scrollY);
       await press('left');
-      assert.equal(await current(), before + 1, 'captured left clicks navigate');
+      const afterScroll = await page.evaluate(() => scrollY);
+      assert.equal(await current(), before, 'captured left click reads within a tall slide');
+      assert.ok(afterScroll > beforeScroll + 100 && afterScroll - beforeScroll <= 800,
+        'captured left click advances one reading screen');
       await press('right');
-      assert.equal(await current(), before, 'captured right clicks navigate exactly once');
+      assert.equal(await current(), before, 'captured right click remains on the same slide');
+      assert.ok(Math.abs(await page.evaluate(() => scrollY) - beforeScroll) < 2,
+        'captured right click reverses exactly one reading screen');
       await sequence('MMD');
       assert.equal(await pauseOpen(), true);
       assert.equal(await page.evaluate(() => !!document.pointerLockElement), true,
@@ -163,8 +174,8 @@ const playwright = require('playwright');
       await page.waitForFunction(() => !!document.pointerLockElement);
       if (combined) {
         await sequence('MMG');
-        await sequence('MMG');
-        await page.waitForFunction(() => document.body.classList.contains('index-page'));
+        await page.waitForFunction(() => document.body.classList.contains('index-page'),
+          null, {timeout: 5000});
         assert.equal(await page.evaluate(() => document.pointerLockElement === document.documentElement), true,
           'the stable combined-document root retains capture across view replacement');
       }
@@ -182,7 +193,8 @@ const playwright = require('playwright');
       await transition;
       try {
         await page.waitForFunction(before =>
-          !!document.fullscreenElement !== before && !document.pointerLockElement,
+          !!document.fullscreenElement !== before
+            && (!before || !document.pointerLockElement),
           fullscreenBefore, {timeout: 5000});
       } catch (error) {
         const state = await page.evaluate(() => ({
@@ -191,14 +203,15 @@ const playwright = require('playwright');
           menuOpen: !!document.querySelector('.presenter-menu.open'),
           activeView: document.body.className,
         }));
-        throw new Error('MG did not toggle fullscreen and release capture: '
+        throw new Error('MG did not toggle fullscreen or release capture on exit: '
           + JSON.stringify({state, combined, fullscreenBefore}));
       }
       if (!fullscreenBefore) {
         transition = fullscreenTransition();
         await sequence('MG');
         await transition;
-        await page.waitForFunction(() => !document.fullscreenElement);
+        await page.waitForFunction(() => !document.fullscreenElement
+          && !document.pointerLockElement);
       }
       assert.deepEqual(errors, []);
       await page.close();
@@ -244,12 +257,34 @@ const playwright = require('playwright');
     await middle();
     await page.mouse.click(8, 8, {button: 'right'});
     await page.waitForFunction(() => !!document.pointerLockElement);
+    await page.evaluate(() => {
+      window.touchOwnershipTrace = [];
+      for (const type of ['pointerdown', 'pointermove', 'touchstart', 'touchend', 'pointerlockchange']) {
+        window.addEventListener(type, event => touchOwnershipTrace.push({
+          type: event.type, pointerType: event.pointerType || '',
+          mouseInput: document.documentElement.classList.contains('mouse-input'),
+          noSelect: document.body.classList.contains('fs-noselect'),
+        }), {capture: true, passive: true});
+      }
+    });
     await page.touchscreen.tap(8, 8);
     await page.waitForFunction(() => !document.pointerLockElement);
-    assert.equal(await page.evaluate(() => document.documentElement.classList.contains('mouse-input')), false,
-      'switching back to touch releases capture');
-    assert.equal(await page.evaluate(() => document.body.classList.contains('fs-noselect')), false,
-      'fullscreen retains native touch selection');
+    const ownership = await page.evaluate(() => ({
+      trace: touchOwnershipTrace.slice(-12),
+      mouseInput: document.documentElement.classList.contains('mouse-input'),
+      noSelect: document.body.classList.contains('fs-noselect'),
+      fullscreen: !!document.fullscreenElement,
+    }));
+    const touchStart = ownership.trace.find(event => event.type === 'touchstart');
+    assert.ok(touchStart && !touchStart.mouseInput && !touchStart.noSelect,
+      'touch owns the gesture and keeps selection native: ' + JSON.stringify(ownership));
+    // Firefox may report a new, trusted mouse pointermove *after* that touch.
+    // The last input then owns the cursor; the touch has already released capture.
+    const movedMouse = ownership.trace.some(event => event.type === 'pointermove'
+      && event.pointerType === 'mouse');
+    assert.equal(ownership.mouseInput, movedMouse, JSON.stringify(ownership));
+    assert.equal(ownership.noSelect, ownership.fullscreen && ownership.mouseInput,
+      'selection suppression follows the actual last input: ' + JSON.stringify(ownership));
     await context.close();
     console.log('Mouse command browser checks passed (' + engineName + ')');
   } finally { await browser.close(); }

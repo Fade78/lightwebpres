@@ -2494,23 +2494,18 @@ affiche la durée active en millisecondes et l'action alterne entre la valeur
 configurée et `0`; elle ne modifie pas les sources. La touche reste active
 quand le menu est ouvert, comme les autres actions qu'il affiche.
 
-**Souris** : clic gauche sur le fond d'une page d'article = slide suivante,
-clic droit = slide précédente (deux boutons distincts, sans visée) — sur
-l'index, un pas de plus ou de moins dans le parcours des cartes. **R** inverse
-ces deux directions pour les clics de fond uniquement ; les touches, la
-molette, le tactile, les liens et les contrôles gardent leur sens propre.
-Un clic gauche
-direct sur une carte suit son lien. Le clic gauche
-est **instantané** — il n'a jamais de latence artificielle. Le pas
-d'une fiche à l'autre est un **glissé de la durée configurée** (200 ms par
-défaut ; animation propre au deck, jamais le `scroll-behavior` du navigateur,
-dont la durée varie avec la distance) — **sauf qu'un clic pendant le glissé saute
-directement à sa cible** : un clic dans le même sens pendant le
-glissé arrive sur la fiche après celle du glissé (deux pages en deux
-clics), un clic dans l'autre sens revient instantanément sur la fiche
-que le lecteur vient de quitter. C'est le même modèle en mode
-présentation et en lecture — il n'y a pas de geste « double-clic » :
-il y a un clic hors défilement et un clic pendant le défilement.
+**Mouse:** a left click on article ground or a plain image moves forward one
+reading screen; a right-click on ground moves backward one screen. On an
+overlong slide, each step scrolls a bounded portion of that slide; only at its
+edge does the next step change slides. On the index, clicks step among article
+cards. **R** reverses the two mouse directions, not keyboard, wheel, touch,
+links or controls. A direct left click on a card still follows its link.
+Slide-to-slide clicks have no artificial latency: they glide over the configured
+duration (200 ms by default), using deck animation rather than the browser's
+variable-duration `scroll-behavior`. Another click during that glide jumps
+straight to its next target: two forward clicks can reach two slides ahead,
+and a reverse click returns to the slide just left. No native `dblclick`
+recognizer is involved; the second press is another reading command.
 
 **Middle-button command sequences** share one recognizer on articles and the
 series index. In the table, M means the mouse's middle button, G the left
@@ -2594,9 +2589,8 @@ l'enfoncement (le navigateur l'efface avant le `click`), et un clic qui
 a enfoncé sur une sélection existante est un geste de désélection, pas
 un coup.
 An ordinary left mouse click on a plain slide image follows the slide-ground
-navigation. Linked images, explicit image click handlers, buttons, table images
-and touch gestures keep their actions; drags and text selection still do not
-advance the slide.
+reading step, including inside a table. A linked image or explicit image click
+handler retains its action. Touch, drags and text selection remain distinct.
 Un clic dans le coin bas-droite (la zone des boutons) qui ne vise pas
 un bouton bascule leur visibilité. Esc quitte le plein écran.
 
@@ -3569,8 +3563,9 @@ author's minimum scales.
 truncate data during build. `overflow` (**Allow overflow**) removes that local
 clipping. `scroll` (**Scroll inside the table**) provides a focusable local
 scrolling region. Its navigation keys, wheel and drag gestures stay local,
-including at horizontal edges. A brief unmodified left click or tap on a plain
-cell follows the ordinary forward reading step: bounded scrolling within an
+including at horizontal edges. A brief unmodified left mouse click on a plain
+cell or image, or a tap on a plain cell, follows the forward reading step:
+bounded scrolling within an
 oversized slide, then the next slide only after reaching the bottom. Touch taps
 use the existing under-500 ms duration and 20 CSS-pixel per-axis slop; mouse and
 pen clicks retain the 4 CSS-pixel drag guard. Maximum displacement, scrolling
@@ -3578,8 +3573,9 @@ during the gesture, selection, long holds, cancellation and multiple contacts
 disqualify the click, including delayed compatibility clicks. Table touches do
 not enter the deck swipe or navigation-visibility double-tap recognizer. A
 coordinate-free assistive or programmatic click may advance, except during the
-450 ms compatibility-click quarantine after a pointer gesture. Links, images,
-native controls, modified clicks, text selection and pinch retain their own
+450 ms compatibility-click quarantine after a pointer gesture. Links, images
+with explicit actions, image touches, native controls, modified clicks, text
+selection and pinch retain their own
 actions; right-click keeps the native context menu. Print expands the viewport
 without screen clipping or local scroll limits; it does not promise that every
 table fits a sheet of paper.

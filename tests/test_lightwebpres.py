@@ -21250,8 +21250,9 @@ class RegressionFixes(unittest.TestCase):
         200 ms animation of the deck's own, and a click during the
         glide jumps straight to its target), so the contextmenu
         handler has nothing left to cancel. What it must still do is
-        apply the backward click contract — direct article slide or index
-        card journey, glide included: the guard pins that, and the absence of any
+        apply the backward mouse reading step — bounded inside a tall slide,
+        then a previous slide, or the index-card journey. The guard pins that,
+        and the absence of any
         `clearTimeout` is asserted as part of it: a timer that comes
         back must come back with its own guard, not inside this one."""
         with tempfile.TemporaryDirectory() as tmp:
@@ -21261,7 +21262,7 @@ class RegressionFixes(unittest.TestCase):
             end = html.find('\n  });', i)
             self.assertNotEqual(end, -1, 'the contextmenu handler has no end')
             handler = html[i:end]
-            self.assertIn('changeSlide(clickNavigationDirection(-1), isScrolling)', handler)
+            self.assertIn('mouseClickStep(clickNavigationDirection(-1))', handler)
             self.assertNotIn('clearTimeout', handler)
 
     # --- B9: audit must not false-positive a retired name as a prefix ---

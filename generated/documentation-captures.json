@@ -27,10 +27,10 @@
     "examples/kits/lightwebpres-docs/0.1.0/starters/blank/starter.json": "9c9556978e90cd4bd1f3a2dc1dd422a5f172e9c65d4187d84d004df10c5d424a",
     "examples/kits/lightwebpres-docs/0.1.0/structure.css": "4501d6bff633ce1e06facf5fd2c9d0c811236e6cd20447a4e761182e0e8a3b08",
     "examples/kits/lightwebpres-docs/0.1.0/themes/docs.conf": "2cbd0dc8e133e8042e75150392f0ce50be6c42fa46f67fa4a3729beef2ad588b",
-    "lightwebpres": "b3ce5b4703c41ffa63020584a92ddfacdfbd9e60309a4e5811b52eb90e60d491",
+    "lightwebpres": "a2d467dd6b040b215c4844ab2e18d19799c78eefbd712a0b977361e1f79506f5",
     "tools/screenshot-documentation.cjs": "0d76b86a5e4513e5c86bf40656102a12fae1d00187e63cf3cea785c3018ac623"
   },
-  "browser": "145.0.7632.6",
+  "browser": "156.0.8078.4",
   "source": "examples/first-article/sources/first-page.md",
   "slide": "travels-with-the-page",
   "viewport": {
@@ -100,13 +100,13 @@
       "file": "generated/appearance-choices.png",
       "width": 1600,
       "height": 1440,
-      "sha256": "9ce3f1b0804a656bbb243adda1059161518f4329e3cc93a3d4c83190841aa34e"
+      "sha256": "56bdd37a6165a13fc40ad34450a81a8b50d6a21373922e189be3fd0eba6eca90"
     },
     {
       "file": "generated/identity-composition.png",
       "width": 1600,
       "height": 1080,
-      "sha256": "cb1b973e7332f30bf011f316eaecd4fea8a8fb34370be9d022b000cca3bbdd37"
+      "sha256": "770004a32c452d13b4f5134e86db659ae6f0e4668f80e7e135fbc4f13f02632f"
     }
   ],
   "assetPreviews": [

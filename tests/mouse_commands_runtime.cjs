@@ -65,6 +65,7 @@ function harness(primaryFine = true) {
     clickNavigationDirection: direction => direction, isScrolling: false,
     isIndex: false, slides, current: 1, currentVisible: () => 0, jumpBuffer: '',
     syncCurrentToViewport: () => context.current,
+    overflowsViewport: () => false, scrollWithinSlide: () => {},
     goTo: (index, instant) => { calls.push(['slide', index, instant]); context.current = index; },
     stepIndexCards: direction => { calls.push(['card', direction]); return true; },
     goHome: () => calls.push('home'), goToFirstSlide: () => calls.push('beginning'),
@@ -82,7 +83,7 @@ function harness(primaryFine = true) {
     between('  function setNavIdle(', '  function rememberTouchPosition('),
     between('  var idleTimer = null;', '  function activateSeriesView('),
     fn('toggleFullscreen'), fn('closePause'), fn('isPauseNavigationKey'), fn('togglePause'),
-    fn('changeSlide'), fn('atSlideTop'), fn('goToBeginningOrHome'),
+    fn('changeSlide'), fn('mouseClickStep'), fn('atSlideTop'), fn('goToBeginningOrHome'),
     between("  // A modal's own overlay may scroll", '  function slideTitle('),
     between('  var consumedMouseButtons = {};', '  // --- Touch swipe and double tap'),
   ].join('\n'), context);

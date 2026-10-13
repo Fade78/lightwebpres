@@ -191,6 +191,52 @@ catch (error) { console.error('Playwright is unavailable in the supplied environ
       assert.ok(Math.abs(await touch.locator('#image').evaluate(slide => slide.getBoundingClientRect().top)) < 2,
         `${name}: native touch on an image must not become a mouse navigation click`);
       await touch.close();
+
+      // A 16:9 photo nested inside a fact box resembles a real landscape
+      // article. Its intrinsic ratio must not make the wide viewport spill.
+      for (const [width, height, dpr] of [[1096, 1214, 1], [1800, 1214, 1], [1800, 1214, 2]]) {
+        const ratioPage = await browser.newPage({viewport: {width, height}, deviceScaleFactor: dpr});
+        try {
+          await ratioPage.goto(url + '#ratio');
+          await ratioPage.locator('#ratio .figure img').evaluate(image => image.decode());
+          await ratioPage.evaluate(() => new Promise(resolve =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve))));
+          const geometry = () => ratioPage.locator('#ratio').evaluate(slide => {
+            const origin = slide.getBoundingClientRect().top;
+            const image = slide.querySelector('.figure img');
+            return {viewport: document.documentElement.clientHeight,
+              slide: slide.getBoundingClientRect().height, scroll: slide.scrollHeight,
+              naturalWidth: image.naturalWidth, naturalHeight: image.naturalHeight,
+              elements: ['.slide-chrome-header', 'h2', '.summary', '.fact-box',
+                '.figure img', '.slide-chrome-footer'].map(selector => {
+                const rect = slide.querySelector(selector).getBoundingClientRect();
+                return {selector, top: rect.top - origin, bottom: rect.bottom - origin};
+              })};
+          });
+          await ratioPage.keyboard.press('d');
+          await ratioPage.waitForSelector('#readingMenu.open');
+          for (const zoom of [1, .8, 1.5]) {
+            await ratioPage.locator('#readingMenu [data-menu-action="zoom-reset"]').click();
+            for (let n = 0; n < Math.round(Math.abs(zoom - 1) * 10); n++) {
+              await ratioPage.locator(`#readingMenu [data-menu-action="zoom-${zoom < 1 ? 'out' : 'in'}"]`).click();
+            }
+            await ratioPage.evaluate(() => new Promise(resolve =>
+              requestAnimationFrame(() => requestAnimationFrame(resolve))));
+            const actual = await geometry();
+            assert.equal(actual.naturalWidth, 3840, `${name}: real 16:9 image width`);
+            assert.equal(actual.naturalHeight, 2160, `${name}: real 16:9 image height`);
+            assert.ok(actual.slide <= actual.viewport + 1 && actual.scroll <= actual.viewport + 1
+              && actual.elements.every(rect => rect.top >= -1 && rect.bottom <= actual.viewport + 1),
+            `${name} ${width}x${height} @${dpr} zoom ${zoom}: entire fact-box slide must fit: `
+              + JSON.stringify(actual));
+          }
+          await ratioPage.keyboard.press('Escape');
+          await ratioPage.keyboard.press('Escape');
+          await ratioPage.locator('#ratio .figure img').click();
+          await ratioPage.waitForFunction(() => Math.abs(document.getElementById('giant').getBoundingClientRect().top) < 2,
+            null, {timeout: 5000});
+        } finally { await ratioPage.close(); }
+      }
       console.log(`${name}: responsive image controls passed`);
     } finally { await browser.close(); }
   }

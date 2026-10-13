@@ -315,7 +315,13 @@ ${name === 'b' ? '<table id="scroll-table" style="min-width: 1600px"><tr><td>Wid
       scale: slide.getAttribute('data-lwp-text-scale'), height: slide.getBoundingClientRect().height,
       viewport: innerHeight, mode: document.getElementById('menuTextFit').value,
     }));
+    await page.evaluate(() => { window.outgoingImage = document.querySelector('#detail #static-svg'); });
+    assert.notEqual(await page.evaluate(() => outgoingImage.getAttribute('style')), null,
+      'the outgoing image has a reader-owned zoom to restore');
     await navigate('b.html');
+    assert.equal(await page.evaluate(() => !outgoingImage.isConnected
+      && outgoingImage.getAttribute('style') === null), true,
+    'view replacement restores authored image styles before detaching the old article');
     assert.equal(await page.locator('#menuZoomValue').textContent(), '110%');
     assert.equal(await page.locator('#menuTextFit').inputValue(), 'uniform');
     assert(Number(denseState.scale) < 1, 'the dense article exercises automatic fitting: ' + JSON.stringify(denseState));

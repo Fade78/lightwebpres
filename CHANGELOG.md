@@ -33,6 +33,23 @@ link to the originals. They are at
 
 ---
 
+## v0.68.0
+
+Make the reader's combined-document view transition explicit: restore the
+outgoing view before replacement, then schedule fitting after the new view is
+mounted. The same single-file reader remains embedded in each page; this
+refactoring alone changes no reading behavior, source format or public URL.
+Controlled runtime tests now
+target a named reader factory instead of an incidental declaration, and a
+local guard protects the internal symbols documented as GUI dependencies.
+
+Left and right mouse clicks now move one reading screen at a time within an
+oversized slide before changing slides; R still reverses their directions and
+rapid clicks during a slide glide still jump. A plain image inside a table
+follows that mouse journey too: in locally scrolling-table mode it follows
+the table cell's existing bounded step. Linked or explicitly interactive
+images, touch, selection, drags and the table's native right-click stay intact.
+
 ## v0.67.3
 
 Height-fitted images now follow the reader's presentation zoom only while the

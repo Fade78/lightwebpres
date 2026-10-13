@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 11 · **à faire** 0 · **en cours** 3 · **terminé** 61 · **abandonné** 1 · **sans objet** 3
+**à étudier** 12 · **à faire** 0 · **en cours** 3 · **terminé** 63 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -116,6 +116,7 @@ gets its own entry and its own state**, however small.
 - **B65** — The historical pop-rose proposal has no recorded disposition
 - **B66** — Unreconciled archive design options remain deferred
 - **B74** — Windows 4K display scaling loses presentation geometry
+- **B78** — Firefox windowed image-height fitting differs from fullscreen
 
 ### en cours
 
@@ -186,6 +187,8 @@ gets its own entry and its own state**, however small.
 - **B71** — Author chrome independent of Identity Kits
 - **B73** — Responsive images obey Display settings
 - **B75** — Plain slide images should not swallow navigation clicks
+- **B76** — Make reader view transitions explicit without splitting the executable
+- **B77** — Mouse buttons follow reading screens and plain table images
 
 ### abandonné
 
@@ -3799,3 +3802,81 @@ Native Chromium and Firefox checks cover plain, linked and authored-action
 images and touch; the separate image-height regression covers zoomed title,
 summary, header, caption and footer in both the standard and documentation
 presets. This does not claim a physical Windows 4K or mobile-device test.
+
+**Follow-up in 0.68.0.** The exclusion of plain table images from mouse
+navigation was superseded by B77. This entry records the 0.67.3 behavior;
+linked and explicitly interactive images still keep their own actions.
+
+## B76 — Make reader view transitions explicit without splitting the executable
+
+**État :** terminé · **Depuis :** 2026-10-12 · **Version :** 0.68.0
+
+**Reason.** The combined-document view replacement restores runtime-owned
+styles before discarding the old DOM, then recomputes fitting only after the
+new content, CSS, pins and route are installed. Those two halves were separated
+by a long orchestration function, while the controlled image test located its
+runtime by an incidental declaration. The private JS reader also owns printing,
+series-wide measurements and browser event listeners; splitting the shipped
+single-file executable or inventing a general lifecycle manager is not needed
+to make this boundary more visible.
+
+**Decision.** Keep the reader embedded in `lightwebpres`. Name its factory and
+expose only `beforeViewReplacement()` and `afterViewMounted()` to the combined
+view orchestrator. Keep navigation timers, input gestures and foreground
+surfaces with their existing owner, grouped at the replacement boundary.
+Recompute after the new view is mounted; do not invalidate the cross-article
+fit cache merely because another article with the same tag was mounted.
+The controlled image regression extracts the named factory and exercises both
+halves of that contract. A local smoke guard protects the internal symbols the
+separate GUI is documented to consume; it cannot replace the GUI's own tests.
+
+**Preserve.** Fitting styles are restored before the outgoing view detaches;
+printing defers route changes, and returning from print restores styles, focus
+and position. Root Pointer Lock persists through a combined view replacement;
+foreground menus, pending mouse sequences and touch positions do not. The
+wire format, `articles[]` fields, selector semantics and authored appearance
+remain untouched. Any broader environment injection or B67 record redesign
+needs its own evidence and independent regression checks.
+
+## B77 — Mouse buttons follow reading screens and plain table images
+
+**État :** terminé · **Depuis :** 2026-10-13 · **Version :** 0.68.0
+
+**Owner decision.** Left and right mouse buttons take one bounded reading step
+within a slide taller than the viewport, then change slides at its edge. R
+reverses those directions. This supersedes the former direct slide-to-slide
+mouse click, without changing the two-click jump during a slide glide or the
+index-card journey. A plain image inside a table must behave like the plain
+cell under it: in `clip`/`overflow`, the mouse reading step applies; in `scroll`,
+it uses the table's existing gesture guard and bounded forward step. Linked or
+authored-action images, touch/pen, selection and drags retain their actions;
+right-click inside a locally scrolling table keeps the native context menu.
+
+**Implementation boundary.** One mouse reading-step function owns the
+long-slide scroll versus slide transition decision. It keeps card focus in
+navigation lists separate from the keyboard Space journey. The image click
+classifier ignores reader-managed `tabindex` on slides and table viewports,
+but honors authored interactive ancestors. Pointerdown classifies a physical
+mouse press on a plain table image before its later click event can use the
+table's drag, duration and scroll guards.
+
+## B78 — Firefox windowed image-height fitting differs from fullscreen
+
+**État :** à étudier · **Depuis :** 2026-10-13
+
+**Owner report, deferred.** On the owner's work machine with Firefox 157,
+height fitting keeps the image on screen in fullscreen but lets it grow too
+large after leaving fullscreen. Edge fits the same presentation in both
+modes. This is a browser-specific observation, not proof that slide headers,
+footers, the image ratio or Windows display scaling causes it. A previous
+report on Firefox 156 described the same fullscreen/windowed difference; a
+Reset in the D menu did not correct that report.
+
+**Investigation needed later.** Compare the actual built-reader version,
+vertical-fit setting, browser/presentation zoom, CSS and visual viewport sizes,
+device pixel ratio, slide `getBoundingClientRect()`/`scrollHeight`, image bounds
+and computed `zoom`, before and after fullscreen exit on the affected device.
+Headless Playwright Firefox 157 on this host does not reproduce the persistent
+failure, so it cannot validate a fix. Keep this distinct from B74's physical
+Windows 4K scaling report until evidence supports a common cause. Do not
+change reader sizing or claim the physical transition verified in this lot.
