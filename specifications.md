@@ -1498,14 +1498,27 @@ sortait en trois listes d'un item entrecoupées de paragraphes — l'ordre de
 lecture cassé, la structure annoncée par un lecteur d'écran fausse, et
 toute emphase à cheval sur les deux lignes publiée en clair (B28).
 
-**Un champ structurel n'est pas du Markdown.** Un champ est une valeur
-d'une seule ligne physique, reprise telle quelle : `summary: un **gras**`
-publie les astérisques. La frontière n'est pas là où l'auteur la
-suppose, parce qu'un champ laisse passer le **HTML brut** — d'où
-`page_title: A<br>B` — donc constater qu'un balisage « marche » dans un
-champ ne dit rien du Markdown. `audit` nomme tout champ portant une paire
-`**gras**`, une paire `*italique*`, une paire d'apostrophes inverses ou un
-lien `[texte](url)` ; le build, lui, ne dit rien (B29, §11.5).
+**Slide headings and summaries support inline Markdown.** The slide's own
+`#`/`##` heading and `summary:` automatically use the inline converter: bold,
+italic, code, HTTP(S) links and existing instance tags (including `{u}…{/u}`).
+They remain single-line source values, not block Markdown. Note calls in these
+fields stay literal; note scopes still belong to free body text. There is no
+opt-in or legacy interpretation mode. Backslash-escaped ASCII punctuation,
+such as `\*literal\*` or `\[not a link](https://example.org)`, stays literal;
+code spans and raw HTML attributes remain protected from those substitutions.
+Derived metadata and generated index labels use the rendered words.
+
+Other structural fields remain literal values. For example, `kicker:` and
+`source:` do not convert Markdown; raw HTML still passes through in these
+trusted author fields. `audit` reports paired Markdown markers in fields that
+do not render them, not in the newly supported headings/summaries (B29, §11.5).
+
+A Markdown table whose header cells are all empty omits `<thead>`, preserving
+the body, column count and width estimates. A partially populated header stays
+intact, including its empty cells. The reader also hides an authored HTML
+table's genuinely empty header; text, media, controls, accessible labels and
+pseudo-element labels prevent suppression. This is not a new table type or an
+automatic change to the table's remaining appearance or interaction mode.
 
 **Liens.** Seules les URL **http(s)** sont converties : `[texte](url)`
 devient `<a href="url" target="_blank" rel="noopener">texte</a>` — tout
@@ -1761,22 +1774,12 @@ continue de recevoir la typographie automatique normalement — c'est une
 vraie citation en prose, pas un extrait technique à préserver au
 caractère près.
 
-**Échappement.** Un `\` immédiatement avant un `>` en tout début de
-ligne, ou avant une ligne de trois backticks isolée, rend ce délimiteur
-littéral (le backslash est retiré, le caractère qui suit s'affiche tel
-quel) plutôt que d'ouvrir une citation ou un bloc de code — c'est le
-seul mécanisme d'échappement que ce convertisseur reconnaît, ciblé
-précisément sur ces deux nouveaux délimiteurs, pas un échappement
-générique façon CommonMark pour toute la ponctuation. Un backtick isolé
-ailleurs dans le texte, précédé d'un `\`, s'affiche de la même façon
-sans ouvrir de span de code. Un `>` ou un backtick qui n'est de toute
-façon pas en position de déclencher l'une de ces deux constructions (un
-`>` au milieu d'une phrase, par exemple) n'a jamais eu besoin d'être
-échappé et continue de s'afficher tel quel sans backslash. Précision :
-la séquence `\>` (comme `` \` ``) est nettoyée **où qu'elle apparaisse**
-dans la ligne — le backslash est retiré, le caractère reste — pas
-seulement en début de ligne ; un `\>` écrit au milieu d'une phrase rend
-donc `>` et non `\>`.
+**Escaping.** A backslash before ASCII punctuation makes that character literal
+in inline Markdown, outside protected code and raw HTML attributes. For example,
+`\*text\*` does not become italic, and `\[text](https://example.org)` does not
+become a link. `\>` at the start of a line prevents a blockquote; an escaped
+fence opener stays ordinary text. A `>` elsewhere needs no escape. This extends
+inline escaping, not the documented block/table grammar to full CommonMark.
 
 ### 6.4 Espacement et indentation
 
@@ -3634,12 +3637,18 @@ uses the author's `min_object_scale` floor.
 Vertical image fitting has no author floor: it can shrink images below 10% if
 necessary to fit the rendered slide in one viewport. The browser measures its
 actual slide height, including titles, prose, figure captions, slide chrome and
-padding, and shrinks the content images together, including those in table cells,
+padding, and fits content images independently, including those in table cells,
 to leave those elements and table text room without reducing their type or
 treating chrome logos as content images. Tables retain their independent width
 scale; images inside them do not give up their own width or height fitting. When
 both image controls are active, the width limit is applied first, then the
-extra height reduction if needed; image ratios remain intact. If non-image
+extra reduction if needed; image ratios remain intact. With vertical fitting
+enabled, an image row is also bounded to its actual table viewport when
+horizontal fitting is on, even below the width-only author floor. A feasible
+common factor is only the starting point; each image then uses as much of its
+own available space as the complete slide and row permit. A portrait/square
+image does not impose its unnecessary height factor on a landscape neighbour.
+If non-image
 content alone cannot fit, the browser retains the width-fitted, zoomed image
 size and lets the slide scroll instead of hiding the image. Supported objects
 are images/figures, not a general fitting contract for iframes, media players
@@ -3655,11 +3664,16 @@ Responsive and percentage-sized images must follow the requested factor rather
 than retaining their former displayed size because of CSS auto/percentage
 bounds. The runtime compares the scaled geometry with its measured baseline
 and temporarily pins image dimensions only when needed. Horizontal fitting
-includes image overflow beyond the figure's own box. Each subsequent fit trial
-or layout restores authored dimensions and constraints before measuring again;
+includes image overflow beyond the figure's own box. One solver run keeps a
+stable measured baseline rather than remeasuring responsive table cells after
+each sibling's trial. Each new layout restores authored dimensions and
+constraints before measuring all images again;
 image loading, viewport changes and relative font sizing therefore use a fresh
 baseline. Original declarations and priorities also return when fitting is
 disabled at 100% and during print.
+Fullscreen changes explicitly request another layout, in addition to ordinary
+resize/image/font events. This does not establish the physical Firefox case
+recorded separately in DECISIONS.md, B78.
 
 **Zoom and print.** Presentation zoom changes content font sizes, line heights
 and images, not root CSS zoom. Vertical image fitting runs after manual zoom:

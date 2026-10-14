@@ -284,8 +284,8 @@ after these fields is a fatal error (§22.12).
 | `kicker` | `''` — omitted from the render if absent | Small editorial label, above the slide's own heading by default; position controlled independently by `kicker-position` |
 | `tags` | `default` when absent or empty | Space-separated slide tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
 | `note` | `''` — nothing shown | Speaker note, multi-line; never rendered, surfaced by the presenter panel |
-| `slide_title` — written `# Heading`, no literal field form | None. Only the first `#` before any content sets it; a bare `#` is an accepted empty title (§22.2) | The slide's own heading, rendered `<h1>` |
-| `summary` | `''` — omitted from the render if absent | One-line summary paragraph under the heading |
+| `slide_title` — written `# Heading`, no literal field form | None. Only the first `#` before any content sets it; a bare `#` is an accepted empty title (§22.2) | The slide's own heading, rendered `<h1>` with supported inline Markdown |
+| `summary` | `''` — omitted from the render if absent | One-line summary paragraph under the heading, with supported inline Markdown |
 
 ## Standard slide fields
 
@@ -297,8 +297,8 @@ A standard slide's own header (default, or explicit `<!-- lwp:slide -->`).
 | `kicker` | `''` — omitted from the render if absent | Small editorial label, above the slide's own heading by default; position controlled independently by `kicker-position` |
 | `tags` | `default` when absent or empty | Space-separated slide tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
 | `note` | `''` — nothing shown | Speaker note, multi-line; never rendered, surfaced by the presenter panel |
-| `slide_title` — written `## Heading`, no literal field form | None. Only the first `##` before any content sets it; a bare `##` is an accepted empty title (§22.2) | The slide's own heading, rendered `<h2>` when non-empty |
-| `summary` | `''` — omitted from the render if absent | One-line summary paragraph under the heading |
+| `slide_title` — written `## Heading`, no literal field form | None. Only the first `##` before any content sets it; a bare `##` is an accepted empty title (§22.2) | The slide's own heading, rendered `<h2>` with supported inline Markdown when non-empty |
+| `summary` | `''` — omitted from the render if absent | One-line summary paragraph under the heading, with supported inline Markdown |
 | `highlight` | None — the whole highlight block is omitted if absent | Large standalone figure (a number, a stat, a quote) |
 | `highlight-caption` | `''` | Caption under the `highlight` figure |
 | `fact-label` | None — without it, the trailing free text renders as a bare paragraph instead of a labeled fact-box (§4.3) | Label on the fact-box wrapping the slide's trailing free text |

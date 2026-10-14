@@ -248,11 +248,12 @@ Keep these parser boundaries in mind:
   `highlight: 3 000 W`. Fields first, prose after.
 - Structural fields occupy one physical line, except `note:` and `comment:`:
   an indented continuation line belongs to the preceding note/review field.
-- **A field is a value, not Markdown.** `summary: un **gras**` publishes
-  the asterisks. The border is not where you would guess, either: a field
-  passes raw HTML straight through, so finding that `<br>` works there
-  says nothing about `**`. `audit` names fields carrying Markdown markup
-  that they will not render.
+- **Slide headings and summaries render inline Markdown automatically.**
+  `## A **bold** title` and `summary: A *short* explanation` render their
+  emphasis. Code, HTTP(S) links and existing tags such as `{u}underlined{/u}`
+  also work. Escape a delimiter with `\` to keep it literal. Other structural
+  fields (for example `kicker:` and `source:`) remain values, not Markdown;
+  `audit` names unsupported markup in those fields.
 - **A fact box appears only with `fact-label:`.** Free text without it
   renders as plain paragraphs — which is often what you want.
 - A cover accepts no free body text. Standard-only fields such as `highlight`
@@ -1631,7 +1632,7 @@ and themed.
 | Uniform fit scope | Combined-HTML output only, while text size is `uniform`: **Current article** (default) or **Entire series**. |
 | Reduce tables as needed | Independently allow bounded table shrinking; off by default. |
 | Reduce images to fit width | Independently allow bounded shrinking of supported images/figures to their available content width; on by default, not a control for arbitrary embedded widgets. |
-| Reduce images to fit height | Shrink images, including those inside table cells, as far as needed to fit the whole slide, reserving room for titles, captions, headers, footers and table text even as you change presentation zoom; on by default. If non-image content alone is too tall, the slide still scrolls. This control can shrink below the authored image minimum, unlike width-only fitting. |
+| Reduce images to fit height | Fit images independently, including those inside table cells, reserving room for titles, captions, headers, footers and table text even as you change presentation zoom; on by default. A portrait or square neighbour does not unnecessarily shrink a landscape image. With width fitting on, the row must also stay inside its table viewport. If non-image content alone is too tall, the slide still scrolls. This control can shrink below the authored image minimum, unlike width-only fitting. |
 
 The author can choose different starting settings and reduction limits.
 Your table mode, text fitting, table/image shrink switches and presentation

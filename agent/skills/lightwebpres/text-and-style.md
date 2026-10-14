@@ -43,10 +43,16 @@ bypasses inline conversion and preserves entities. Write the actual character
 (`→`) in ordinary text; the format is UTF-8.
 
 Code spans and fences fully HTML-escape their contents and display them
-as written, even tags. At the start of a line, a `>` or backtick not intended
-to start a blockquote/code construct can be prefixed with `\` (`` \> ``,
-`` \` ``). These are the only supported escapes. A `>` elsewhere does not
-start a blockquote and needs no escape.
+as written, even tags. Backslash-escaped ASCII punctuation stays literal
+outside code and raw HTML attributes: `\*not italic\*`, `\[not a link]`,
+`` \` `` and `\>` do not activate those delimiters. A `>` elsewhere does not
+start a blockquote and needs no escape. Slide headings and summaries share
+this inline formatting; other structural fields retain their value grammar.
+
+Tables whose header cells are entirely empty omit the header band, retaining
+their body and column count. If any heading is populated, all header cells
+remain. Authored HTML headers with text, media, controls or accessible labels
+are not hidden merely because another cell is empty.
 
 ## Converter Limits
 

@@ -134,6 +134,11 @@ the header (`after-header`). Set `kicker_position` in a kit preset, series
 metadata or article metadata; `kicker-position` on a slide overrides them.
 See [kicker placement](GUIDE.md#3-design-and-compose-identities) for the cascade.
 
+Slide headings and summaries support inline bold, italic, code and links;
+escaped delimiters remain literal. Image fitting treats mixed-ratio table
+images independently, including through fullscreen changes, and entirely blank
+table headers no longer consume a band of space.
+
 Browse the [interactive theme gallery](generated/themes-gallery.html) or its
 [compact catalogue](generated/themes-gallery.png). The compact catalogue is a
 colour-first cover overview; the featured comparison below shows three actual

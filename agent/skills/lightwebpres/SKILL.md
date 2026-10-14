@@ -117,7 +117,7 @@ Human walkthrough: [Integrate and automate](https://github.com/Fade78/lightwebpr
 ## Guardrails Before Editing
 
 - The field-to-prose switch is **one-way** within a slide. Put all fields first; scalar values occupy one physical line. Only slide `comment:` and `note:` support indented continuation.
-- Fields are values, not Markdown. Raw HTML is trusted and passed through, including scripts. Sanitize untrusted input upstream; the build is not a security filter.
+- Slide headings and summaries support inline Markdown automatically, including escaped literal delimiters. Other fields remain values, not Markdown. Raw HTML is trusted and passed through, including scripts. Sanitize untrusted input upstream; the build is not a security filter.
 - Free text uses the documented LWP subset, **not generic CommonMark**. Markdown links require HTTP(S); `---` splits a deck, not a visual rule.
 - Every card needs a stable `slug:`. Only standard slides accept a free body; `full-article` references a separate file without LWP markers. `unit-index` generates a list, not prose.
 - Index `*` includes every supplied published slide, including itself. Literal tags have no reader shared-default magic; selectors do not replace global publication filters.

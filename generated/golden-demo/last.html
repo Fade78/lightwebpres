@@ -1376,6 +1376,7 @@ sup { vertical-align: super; line-height: 0; }
   flex-shrink: 0;
   overflow: clip;
 }
+.lwp-table-viewport table[data-lwp-empty-head] > thead { display: none; }
 html[data-lwp-table-mode="overflow"] .lwp-table-viewport,
 html:not([data-lwp-table-mode]) body[data-lwp-table-mode="overflow"] .lwp-table-viewport { overflow: visible; }
 html[data-lwp-table-mode="scroll"] .lwp-table-viewport,
@@ -2600,7 +2601,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.69.0</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.70.0</div>
   </div>
 </div>
 
@@ -3858,6 +3859,25 @@ document.addEventListener('DOMContentLoaded', function() {
     function enhanceTables(slideList, root) {
       slideList.forEach(function (slide) {
         Array.prototype.forEach.call(slide.querySelectorAll('table'), function (table) {
+          var header = table.tHead;
+          var cells = header ? Array.prototype.slice.call(header.querySelectorAll('th, td')) : [];
+          var emptyHeader = cells.length > 0 && cells.every(function (cell) {
+            if (cell.textContent.trim() || cell.getAttribute('aria-label')
+                || cell.getAttribute('aria-labelledby') || cell.querySelector(
+                  'img, svg, math, canvas, iframe, video, audio, object, embed, '
+                  + 'input, button, select, textarea, [role], [aria-label], [aria-labelledby]')) return false;
+            if (Array.prototype.some.call(cell.querySelectorAll('*'), function (node) {
+              return node.localName.indexOf('-') !== -1 || node.hasAttribute('is');
+            })) return false;
+            var view = cell.ownerDocument.defaultView;
+            return ['::before', '::after'].every(function (pseudo) {
+              var content = view.getComputedStyle(cell, pseudo).content;
+              return !content || content === 'none' || content === 'normal'
+                || content === '""' || content === "''";
+            });
+          });
+          if (emptyHeader) table.setAttribute('data-lwp-empty-head', '');
+          else table.removeAttribute('data-lwp-empty-head');
           var viewport = table.parentElement;
           if (!viewport.classList.contains('lwp-table-viewport')) {
             viewport = table.ownerDocument.createElement('div');
@@ -4139,13 +4159,16 @@ document.addEventListener('DOMContentLoaded', function() {
         return low;
       }
       function refreshObjectBounds(candidate) {
+        // Restore every image before measuring any: responsive images sharing
+        // an auto-layout table must not measure against a sibling's old pins.
+        candidate.objects.forEach(function (item) {
+          if (item.kind !== 'image') return;
+          restore([item.original].concat(item.imageStyles));
+          item.imageStyles = [];
+        });
         candidate.objects.forEach(function (item) {
           var node = item.node;
           if (item.kind === 'image') {
-            // Remeasure responsive/relative sizes in the current fitted text
-            // context, without retaining pins from a previous solver trial.
-            restore([item.original].concat(item.imageStyles));
-            item.imageStyles = [];
             item.images = item.images.map(function (image) { return imageSize(image.node); });
           }
           var rect = node.getBoundingClientRect();
@@ -4165,62 +4188,7 @@ document.addEventListener('DOMContentLoaded', function() {
           item.maximum = Math.max(item.minimum, Math.min(1, maximum));
         });
       }
-      function solveImageHeight(candidate, test) {
-        function heightFits() {
-          return candidate.slide.getBoundingClientRect().height <= height
-            && candidate.slide.scrollHeight <= height;
-        }
-        if (heightFits()) return;
-        var low = 0.000001;
-        if (!test(low, heightFits)) {
-          // Non-image content already exceeds the viewport: keep the image
-          // legible and leave the existing overflow/scroll contract intact.
-          test(1, heightFits);
-          return;
-        }
-        var high = 1;
-        for (var i = 0; i < 14; i++) {
-          var middle = (low + high) / 2;
-          if (test(middle, heightFits)) low = middle;
-          else high = middle;
-        }
-        test(low, heightFits);
-      }
-      function fitObjects(group, widthOnly) {
-        group.forEach(function (candidate) {
-          refreshObjectBounds(candidate);
-          // Width keeps the author's image floor. Height, when enabled, fits
-          // the complete rendered slide (chrome, text, caption and padding).
-          applyObjects(candidate, 1, 'image');
-          // Tables keep their independent width bound; a tall slide must not
-          // shrink a small table just because it contains an image.
-          applyObjects(candidate, 1, 'table');
-          if (widthOnly || !readingSettings.object_shrink_vertical
-              || !candidate.objects.some(function (item) {
-                return item.kind === 'image' && item.images.length;
-              })) return;
-          solveImageHeight(candidate, function (scale, heightFits) {
-            // Release responsive image pins from the previous trial before
-            // measuring and applying the next factor. Shrink image elements,
-            // not their figures: a caption must retain its readable font.
-            refreshObjectBounds(candidate);
-            applyObjects(candidate, 1, 'image');
-            if (scale !== 1) candidate.objects.forEach(function (item) {
-              if (item.kind !== 'image') return;
-              item.images.forEach(function (image) {
-                var measured = imageSize(image.node);
-                var zoom = parseFloat(image.node.ownerDocument.defaultView.getComputedStyle(image.node).zoom) || 1;
-                item.imageStyles.push(remember(image.node, 'zoom'));
-                image.node.style.setProperty('zoom', String(zoom * scale), 'important');
-                item.imageStyles = item.imageStyles.concat(preserveImageScale(measured, scale));
-              });
-            });
-            return heightFits();
-          });
-        });
-      }
-      function capZoomedImages(candidate) {
-        if (!readingSettings.object_shrink_vertical) return;
+      function fitImageSizes(candidate) {
         var properties = ['zoom', 'width', 'height', 'min-width', 'min-height',
           'max-width', 'max-height'];
         var images = [];
@@ -4228,32 +4196,106 @@ document.addEventListener('DOMContentLoaded', function() {
           if (item.kind !== 'image') return;
           item.images.forEach(function (image) {
             var node = image.node;
-            images.push({node: node,
-              hadStyle: !!(node.hasAttribute && node.hasAttribute('style')),
+            images.push({node: node, owner: item, remembered: {},
               styles: properties.map(function (property) {
-                return {property: property, value: node.style.getPropertyValue(property),
-                  priority: node.style.getPropertyPriority(property)};
+                return {node: node, property: property, value: node.style.getPropertyValue(property),
+                  priority: node.style.getPropertyPriority(property),
+                  hadStyleAttribute: !!(node.hasAttribute && node.hasAttribute('style'))};
               }),
               zoom: parseFloat(node.ownerDocument.defaultView.getComputedStyle(node).zoom) || 1,
               size: imageSize(node)});
           });
         });
         if (!images.length) return;
-        solveImageHeight(candidate, function (scale, heightFits) {
-          images.forEach(function (image) {
-            image.styles.forEach(function (style) {
-              if (style.value) image.node.style.setProperty(style.property, style.value, style.priority);
-              else image.node.style.removeProperty(style.property);
-            });
-            if (!image.hadStyle && image.node.getAttribute
-                && image.node.getAttribute('style') === '') image.node.removeAttribute('style');
-            if (scale === 1) return;
-            remember(image.node, 'zoom');
-            image.node.style.setProperty('zoom', String(image.zoom * scale), 'important');
-            preserveImageScale(image.size, scale);
+        function fitsImages() {
+          if (candidate.slide.getBoundingClientRect().height > height
+              || candidate.slide.scrollHeight > height) return false;
+          return !readingSettings.object_shrink_horizontal || images.every(function (image) {
+            var viewport = image.node.closest('.lwp-table-viewport');
+            if (!viewport) return true;
+            var rect = image.node.getBoundingClientRect();
+            var bounds = viewport.getBoundingClientRect();
+            return rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1;
           });
-          return heightFits();
+        }
+        function write(image, property, value) {
+          if (!image.remembered[property]) {
+            image.remembered[property] = true;
+            image.owner.imageStyles.push(remember(image.node, property));
+          }
+          image.node.style.setProperty(property, value, 'important');
+        }
+        function apply(factors) {
+          images.forEach(function (image) { restore(image.styles); });
+          if (!factors.every(function (factor) { return factor === 1; })) {
+            images.forEach(function (image, index) {
+              write(image, 'zoom', String(image.zoom * factors[index]));
+            });
+            // Pin only responsive images whose geometry changed. Fixed pixel
+            // declarations must remain author-owned, including later edits.
+            // Measure every mismatch before writing pins; changing one cell
+            // may change a percentage sibling, so finish in bounded passes.
+            for (var pass = 0; pass < images.length; pass++) {
+              var drifting = images.filter(function (image, index) {
+                var rect = image.node.getBoundingClientRect();
+                return Math.abs(rect.width - image.size.renderedWidth * factors[index]) >= 0.5
+                  || Math.abs(rect.height - image.size.renderedHeight * factors[index]) >= 0.5;
+              });
+              if (!drifting.length) break;
+              drifting.forEach(function (image) {
+                var sizes = {width: image.size.width, height: image.size.height,
+                  'min-width': '0px', 'min-height': '0px',
+                  'max-width': 'none', 'max-height': 'none'};
+                Object.keys(sizes).forEach(function (property) {
+                  write(image, property, sizes[property]);
+                });
+              });
+            }
+          }
+          return fitsImages();
+        }
+        if (fitsImages()) return;
+        var low = 0.000001, high = 1;
+        var best = images.map(function () { return low; });
+        if (!apply(best)) {
+          // Non-image content cannot fit: restore legible width-fitted sizes.
+          apply(images.map(function () { return 1; }));
+          return;
+        }
+        for (var pass = 0; pass < 14; pass++) {
+          var middle = (low + high) / 2;
+          var trial = images.map(function () { return middle; });
+          if (apply(trial)) { low = middle; best = trial; }
+          else high = middle;
+        }
+        // A feasible common factor is only a starting point. A landscape image
+        // must not inherit a portrait sibling's unnecessary height reduction.
+        images.forEach(function (image, index) {
+          var trial = best.slice();
+          trial[index] = 1;
+          if (apply(trial)) { best = trial; return; }
+          low = best[index]; high = 1;
+          for (var pass = 0; pass < 14; pass++) {
+            var middle = (low + high) / 2;
+            trial = best.slice(); trial[index] = middle;
+            if (apply(trial)) low = middle;
+            else high = middle;
+          }
+          best[index] = low;
         });
+        apply(best);
+      }
+      function fitObjects(group, widthOnly) {
+        group.forEach(function (candidate) {
+          refreshObjectBounds(candidate);
+          applyObjects(candidate, 1, 'image');
+          // Table text and controls keep their independent width scale.
+          applyObjects(candidate, 1, 'table');
+          if (!widthOnly && readingSettings.object_shrink_vertical) fitImageSizes(candidate);
+        });
+      }
+      function capZoomedImages(candidate) {
+        if (readingSettings.object_shrink_vertical) fitImageSizes(candidate);
       }
       function measureSeriesView(view) {
         var cached = seriesSnapshot(view);
@@ -8079,6 +8121,7 @@ document.addEventListener('DOMContentLoaded', function() {
       releaseWakeLock();
     }
     syncDisplayState();
+    scheduleReadingLayout('fullscreen');
   }
   document.addEventListener('fullscreenchange', handleFullscreenChange);
   document.addEventListener('webkitfullscreenchange', handleFullscreenChange);

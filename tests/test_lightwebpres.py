@@ -21919,13 +21919,15 @@ class AFieldSaysWhenItIsCarryingMarkupItWillNotRender(unittest.TestCase):
                 'source: Voir [la source](https://example.org)\n\n'
                 'Le corps, lui, rend **le gras** correctement.\n'))
             report = run('audit', root).stderr
-            for field in ('## title', 'summary', 'highlight-caption', 'source'):
+            for field in ('highlight-caption', 'source'):
                 self.assertIn(f'`{field}` contains', report,
                               f'{field} ships its markup unnamed:\n' + report)
+            for field in ('## title', 'summary'):
+                self.assertNotIn(f'`{field}` contains', report)
             # And the page really does carry it, which is the whole point.
             self.assertEqual(run('build', root).returncode, 0)
             page = (Path(root) / 'public' / 't.html').read_text(encoding='utf-8')
-            self.assertIn('<h2>Un **gras** dans un titre</h2>', page)
+            self.assertIn('<h2>Un <strong>gras</strong> dans un titre</h2>', page)
 
     def test_free_text_beside_the_field_is_not_touched(self):
         """The guard has to know which side of the border an occurrence

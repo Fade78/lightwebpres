@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.69.0"
+VERSION = "0.70.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -8981,6 +8981,7 @@ sup { vertical-align: super; line-height: 0; }
   flex-shrink: 0;
   overflow: clip;
 }
+.lwp-table-viewport table[data-lwp-empty-head] > thead { display: none; }
 html[data-lwp-table-mode="overflow"] .lwp-table-viewport,
 html:not([data-lwp-table-mode]) body[data-lwp-table-mode="overflow"] .lwp-table-viewport { overflow: visible; }
 html[data-lwp-table-mode="scroll"] .lwp-table-viewport,
@@ -11159,6 +11160,25 @@ document.addEventListener('DOMContentLoaded', function() {
     function enhanceTables(slideList, root) {
       slideList.forEach(function (slide) {
         Array.prototype.forEach.call(slide.querySelectorAll('table'), function (table) {
+          var header = table.tHead;
+          var cells = header ? Array.prototype.slice.call(header.querySelectorAll('th, td')) : [];
+          var emptyHeader = cells.length > 0 && cells.every(function (cell) {
+            if (cell.textContent.trim() || cell.getAttribute('aria-label')
+                || cell.getAttribute('aria-labelledby') || cell.querySelector(
+                  'img, svg, math, canvas, iframe, video, audio, object, embed, '
+                  + 'input, button, select, textarea, [role], [aria-label], [aria-labelledby]')) return false;
+            if (Array.prototype.some.call(cell.querySelectorAll('*'), function (node) {
+              return node.localName.indexOf('-') !== -1 || node.hasAttribute('is');
+            })) return false;
+            var view = cell.ownerDocument.defaultView;
+            return ['::before', '::after'].every(function (pseudo) {
+              var content = view.getComputedStyle(cell, pseudo).content;
+              return !content || content === 'none' || content === 'normal'
+                || content === '""' || content === "''";
+            });
+          });
+          if (emptyHeader) table.setAttribute('data-lwp-empty-head', '');
+          else table.removeAttribute('data-lwp-empty-head');
           var viewport = table.parentElement;
           if (!viewport.classList.contains('lwp-table-viewport')) {
             viewport = table.ownerDocument.createElement('div');
@@ -11440,13 +11460,16 @@ document.addEventListener('DOMContentLoaded', function() {
         return low;
       }
       function refreshObjectBounds(candidate) {
+        // Restore every image before measuring any: responsive images sharing
+        // an auto-layout table must not measure against a sibling's old pins.
+        candidate.objects.forEach(function (item) {
+          if (item.kind !== 'image') return;
+          restore([item.original].concat(item.imageStyles));
+          item.imageStyles = [];
+        });
         candidate.objects.forEach(function (item) {
           var node = item.node;
           if (item.kind === 'image') {
-            // Remeasure responsive/relative sizes in the current fitted text
-            // context, without retaining pins from a previous solver trial.
-            restore([item.original].concat(item.imageStyles));
-            item.imageStyles = [];
             item.images = item.images.map(function (image) { return imageSize(image.node); });
           }
           var rect = node.getBoundingClientRect();
@@ -11466,62 +11489,7 @@ document.addEventListener('DOMContentLoaded', function() {
           item.maximum = Math.max(item.minimum, Math.min(1, maximum));
         });
       }
-      function solveImageHeight(candidate, test) {
-        function heightFits() {
-          return candidate.slide.getBoundingClientRect().height <= height
-            && candidate.slide.scrollHeight <= height;
-        }
-        if (heightFits()) return;
-        var low = 0.000001;
-        if (!test(low, heightFits)) {
-          // Non-image content already exceeds the viewport: keep the image
-          // legible and leave the existing overflow/scroll contract intact.
-          test(1, heightFits);
-          return;
-        }
-        var high = 1;
-        for (var i = 0; i < 14; i++) {
-          var middle = (low + high) / 2;
-          if (test(middle, heightFits)) low = middle;
-          else high = middle;
-        }
-        test(low, heightFits);
-      }
-      function fitObjects(group, widthOnly) {
-        group.forEach(function (candidate) {
-          refreshObjectBounds(candidate);
-          // Width keeps the author's image floor. Height, when enabled, fits
-          // the complete rendered slide (chrome, text, caption and padding).
-          applyObjects(candidate, 1, 'image');
-          // Tables keep their independent width bound; a tall slide must not
-          // shrink a small table just because it contains an image.
-          applyObjects(candidate, 1, 'table');
-          if (widthOnly || !readingSettings.object_shrink_vertical
-              || !candidate.objects.some(function (item) {
-                return item.kind === 'image' && item.images.length;
-              })) return;
-          solveImageHeight(candidate, function (scale, heightFits) {
-            // Release responsive image pins from the previous trial before
-            // measuring and applying the next factor. Shrink image elements,
-            // not their figures: a caption must retain its readable font.
-            refreshObjectBounds(candidate);
-            applyObjects(candidate, 1, 'image');
-            if (scale !== 1) candidate.objects.forEach(function (item) {
-              if (item.kind !== 'image') return;
-              item.images.forEach(function (image) {
-                var measured = imageSize(image.node);
-                var zoom = parseFloat(image.node.ownerDocument.defaultView.getComputedStyle(image.node).zoom) || 1;
-                item.imageStyles.push(remember(image.node, 'zoom'));
-                image.node.style.setProperty('zoom', String(zoom * scale), 'important');
-                item.imageStyles = item.imageStyles.concat(preserveImageScale(measured, scale));
-              });
-            });
-            return heightFits();
-          });
-        });
-      }
-      function capZoomedImages(candidate) {
-        if (!readingSettings.object_shrink_vertical) return;
+      function fitImageSizes(candidate) {
         var properties = ['zoom', 'width', 'height', 'min-width', 'min-height',
           'max-width', 'max-height'];
         var images = [];
@@ -11529,32 +11497,106 @@ document.addEventListener('DOMContentLoaded', function() {
           if (item.kind !== 'image') return;
           item.images.forEach(function (image) {
             var node = image.node;
-            images.push({node: node,
-              hadStyle: !!(node.hasAttribute && node.hasAttribute('style')),
+            images.push({node: node, owner: item, remembered: {},
               styles: properties.map(function (property) {
-                return {property: property, value: node.style.getPropertyValue(property),
-                  priority: node.style.getPropertyPriority(property)};
+                return {node: node, property: property, value: node.style.getPropertyValue(property),
+                  priority: node.style.getPropertyPriority(property),
+                  hadStyleAttribute: !!(node.hasAttribute && node.hasAttribute('style'))};
               }),
               zoom: parseFloat(node.ownerDocument.defaultView.getComputedStyle(node).zoom) || 1,
               size: imageSize(node)});
           });
         });
         if (!images.length) return;
-        solveImageHeight(candidate, function (scale, heightFits) {
-          images.forEach(function (image) {
-            image.styles.forEach(function (style) {
-              if (style.value) image.node.style.setProperty(style.property, style.value, style.priority);
-              else image.node.style.removeProperty(style.property);
-            });
-            if (!image.hadStyle && image.node.getAttribute
-                && image.node.getAttribute('style') === '') image.node.removeAttribute('style');
-            if (scale === 1) return;
-            remember(image.node, 'zoom');
-            image.node.style.setProperty('zoom', String(image.zoom * scale), 'important');
-            preserveImageScale(image.size, scale);
+        function fitsImages() {
+          if (candidate.slide.getBoundingClientRect().height > height
+              || candidate.slide.scrollHeight > height) return false;
+          return !readingSettings.object_shrink_horizontal || images.every(function (image) {
+            var viewport = image.node.closest('.lwp-table-viewport');
+            if (!viewport) return true;
+            var rect = image.node.getBoundingClientRect();
+            var bounds = viewport.getBoundingClientRect();
+            return rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1;
           });
-          return heightFits();
+        }
+        function write(image, property, value) {
+          if (!image.remembered[property]) {
+            image.remembered[property] = true;
+            image.owner.imageStyles.push(remember(image.node, property));
+          }
+          image.node.style.setProperty(property, value, 'important');
+        }
+        function apply(factors) {
+          images.forEach(function (image) { restore(image.styles); });
+          if (!factors.every(function (factor) { return factor === 1; })) {
+            images.forEach(function (image, index) {
+              write(image, 'zoom', String(image.zoom * factors[index]));
+            });
+            // Pin only responsive images whose geometry changed. Fixed pixel
+            // declarations must remain author-owned, including later edits.
+            // Measure every mismatch before writing pins; changing one cell
+            // may change a percentage sibling, so finish in bounded passes.
+            for (var pass = 0; pass < images.length; pass++) {
+              var drifting = images.filter(function (image, index) {
+                var rect = image.node.getBoundingClientRect();
+                return Math.abs(rect.width - image.size.renderedWidth * factors[index]) >= 0.5
+                  || Math.abs(rect.height - image.size.renderedHeight * factors[index]) >= 0.5;
+              });
+              if (!drifting.length) break;
+              drifting.forEach(function (image) {
+                var sizes = {width: image.size.width, height: image.size.height,
+                  'min-width': '0px', 'min-height': '0px',
+                  'max-width': 'none', 'max-height': 'none'};
+                Object.keys(sizes).forEach(function (property) {
+                  write(image, property, sizes[property]);
+                });
+              });
+            }
+          }
+          return fitsImages();
+        }
+        if (fitsImages()) return;
+        var low = 0.000001, high = 1;
+        var best = images.map(function () { return low; });
+        if (!apply(best)) {
+          // Non-image content cannot fit: restore legible width-fitted sizes.
+          apply(images.map(function () { return 1; }));
+          return;
+        }
+        for (var pass = 0; pass < 14; pass++) {
+          var middle = (low + high) / 2;
+          var trial = images.map(function () { return middle; });
+          if (apply(trial)) { low = middle; best = trial; }
+          else high = middle;
+        }
+        // A feasible common factor is only a starting point. A landscape image
+        // must not inherit a portrait sibling's unnecessary height reduction.
+        images.forEach(function (image, index) {
+          var trial = best.slice();
+          trial[index] = 1;
+          if (apply(trial)) { best = trial; return; }
+          low = best[index]; high = 1;
+          for (var pass = 0; pass < 14; pass++) {
+            var middle = (low + high) / 2;
+            trial = best.slice(); trial[index] = middle;
+            if (apply(trial)) low = middle;
+            else high = middle;
+          }
+          best[index] = low;
         });
+        apply(best);
+      }
+      function fitObjects(group, widthOnly) {
+        group.forEach(function (candidate) {
+          refreshObjectBounds(candidate);
+          applyObjects(candidate, 1, 'image');
+          // Table text and controls keep their independent width scale.
+          applyObjects(candidate, 1, 'table');
+          if (!widthOnly && readingSettings.object_shrink_vertical) fitImageSizes(candidate);
+        });
+      }
+      function capZoomedImages(candidate) {
+        if (readingSettings.object_shrink_vertical) fitImageSizes(candidate);
       }
       function measureSeriesView(view) {
         var cached = seriesSnapshot(view);
@@ -15380,6 +15422,7 @@ document.addEventListener('DOMContentLoaded', function() {
       releaseWakeLock();
     }
     syncDisplayState();
+    scheduleReadingLayout('fullscreen');
   }
   document.addEventListener('fullscreenchange', handleFullscreenChange);
   document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
@@ -17993,7 +18036,7 @@ def _raw_html_tag_end(html, start):
 _RAW_HTML_TAG_START_RE = re.compile(r'</?[a-zA-Z]')
 
 
-def _split_raw_html_tokens(text):
+def _split_raw_html_tokens(text, markdown_escapes=False):
     """Splits raw HTML comments and tag tokens from ordinary text.
 
     The returned pairs are ``(is_raw_html, text)``. Only the tag token is
@@ -18007,6 +18050,13 @@ def _split_raw_html_tokens(text):
     position = 0
     length = len(text)
     while position < length:
+        if markdown_escapes and text[position] == '<':
+            cursor = position - 1
+            while cursor >= 0 and text[cursor] == '\\':
+                cursor -= 1
+            if (position - cursor - 1) % 2:
+                position += 1
+                continue
         if text.startswith('<!--', position):
             end = text.find('-->', position + 4)
             end = length if end < 0 else end + 3
@@ -18034,11 +18084,11 @@ def _split_raw_html_tokens(text):
     return parts
 
 
-def _protect_raw_html_tokens(text):
+def _protect_raw_html_tokens(text, markdown_escapes=False):
     """Replaces raw HTML tokens with private placeholders for Markdown passes."""
     tokens = []
     parts = []
-    for is_raw, part in _split_raw_html_tokens(text):
+    for is_raw, part in _split_raw_html_tokens(text, markdown_escapes):
         if is_raw:
             tokens.append(part)
             parts.append(f'\x01{len(tokens) - 1}\x01')
@@ -18531,7 +18581,8 @@ def escape_amps(text):
         for is_raw, part in _split_raw_html_tokens(text))
 
 
-def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
+def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None,
+               allow_notes=True):
     """Converts inline Markdown formatting to HTML."""
     # This function owns three control characters as internal placeholders
     # (U+0000 for code spans, U+0001 for raw HTML, U+0002 for note calls).
@@ -18540,7 +18591,7 @@ def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
     # before anything else can look at the text.
     text = text.replace('\x00', '').replace('\x02', '')
     text = text.replace('\x01', '')
-    text, raw_html_tokens = _protect_raw_html_tokens(text)
+    text, raw_html_tokens = _protect_raw_html_tokens(text, markdown_escapes=True)
     # Inline code spans (§6.3) come first, before any other substitution
     # below, for two reasons: their content must never be reinterpreted
     # as further Markdown (`` `**not bold**` `` stays literal), and —
@@ -18565,6 +18616,24 @@ def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
 
     text = re.sub(r'(?<!\\)`([^`]+?)(?<!\\)`', _code_span, text)
 
+    # Escaped delimiters are literal outside code and raw HTML attributes.
+    # Reuse protected inline tokens so later emphasis/link/instance passes
+    # cannot reinterpret them. Non-punctuation backslashes remain untouched.
+    literal_spans = {}
+
+    def _literal_escape(match):
+        literal = match.group(1).replace('&', '&amp;').replace('<', '&lt;')
+        literal_spans[len(code_spans)] = literal
+        code_spans.append(literal)
+        return f'\x00{len(code_spans) - 1}\x00'
+
+    text = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])',
+                  _literal_escape, text)
+
+    def _attribute_literals(value):
+        return re.sub(r'\x00(\d+)\x00',
+                      lambda match: literal_spans.get(int(match.group(1)), match.group(0)), value)
+
     # Escape ampersands before inserting our own tags -- outside the
     # author's own raw HTML, which is the whole of escape_amps's rule.
     text = escape_amps(text)
@@ -18576,8 +18645,8 @@ def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
     # reach this point: convert_markdown() turns them into <figure>
     # blocks (with optional caption) first.
     def _inline_img(m):
-        alt = m.group(1).replace('"', '&quot;')
-        src = m.group(2).replace('"', '&quot;')
+        alt = _attribute_literals(m.group(1)).replace('"', '&quot;')
+        src = _attribute_literals(m.group(2)).replace('"', '&quot;')
         # --inline-images: replace the path with a base64 data URI so the
         # page is fully self-contained. If the file cannot be read, the
         # original src stays — a broken link is better than a silent
@@ -18594,7 +18663,7 @@ def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
         # and non-breaking spaces, which have no business inside an
         # attribute value. Escaping " is what makes it safe there; & is
         # already escaped globally further up.
-        title = m.group(3)
+        title = _attribute_literals(m.group(3)) if m.group(3) is not None else None
         title_attr = ' title="{}"'.format(title.replace('"', '&quot;')) if title else ''
         code_spans.append(f'<img src="{src}" alt="{alt}"{title_attr}{image_style}>')
         return f'\x00{len(code_spans) - 1}\x00'
@@ -18638,7 +18707,7 @@ def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
     # above, so only " < > remain to handle here (matching _inline_img).
     def _md_link(m):
         label = m.group(1)
-        href = m.group(2).replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+        href = _attribute_literals(m.group(2)).replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
         # The opening tag goes into a placeholder so nothing that runs
         # after this — the instance tags — can rewrite the inside of the
         # href attribute (the audit showed a tag in a URL truncating it).
@@ -18661,7 +18730,8 @@ def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
     # locality and turns each marker into its real markup. Placed after
     # the code-span extraction above, so `[^1]` inside backticks stays
     # literal, as every other construct does.
-    text = re.sub(r'\[\^(\w+)\]', lambda m: f'\x02{m.group(1)}\x02', text)
+    if allow_notes:
+        text = re.sub(r'\[\^(\w+)\]', lambda m: f'\x02{m.group(1)}\x02', text)
     # A backslash-escaped backtick that never became part of a span
     # (either unpaired, or both delimiters were escaped) is just a
     # literal backtick. Likewise \> (only meaningful at the very start of
@@ -19181,12 +19251,13 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             candidate = [header_cells] if table_candidates is not None else None
             out.append('  <div class="lwp-table-viewport">')
             out.append('  <table class="comparison-table">')
-            out.append('    <thead>')
-            out.append('      <tr>')
-            for cell in header_cells:
-                out.append(f'        <th>{md_inline(cell, absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</th>')
-            out.append('      </tr>')
-            out.append('    </thead>')
+            if any(cell.strip() for cell in header_cells):
+                out.append('    <thead>')
+                out.append('      <tr>')
+                for cell in header_cells:
+                    out.append(f'        <th>{md_inline(cell, absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</th>')
+                out.append('      </tr>')
+                out.append('    </thead>')
             out.append('    <tbody>')
             i += 2
             while i < n and lines[i].strip().startswith('|'):
@@ -21023,7 +21094,10 @@ def _slide_preview_title(slide, number, strings=None):
     if slide.slide_type == 'unit-index' and not slide.h2:
         return (strings or {}).get('unit_index_title', 'Contents')
     title = slide.h1 if slide.slide_type == 'cover' else slide.h2
-    title = title or slide.h1 or slide.h2 or slide.kicker or slide.slug
+    title = title or slide.h1 or slide.h2
+    if title:
+        return _inline_field_text(title) or slide.slug or f'Slide {number}'
+    title = slide.kicker or slide.slug
     title = strip_ws(re.sub(r'<[^<>]+>', ' ', str(title or '')))
     return title or f'Slide {number}'
 
@@ -21481,6 +21555,29 @@ def _prepare_unit_slides(slides, meta, series_meta, source_name, args=None):
     return slides[:position] + [index] + slides[position:]
 
 
+def _inline_field_html(value, typo_engine=None, disabled=None,
+                       inline_images=False, sources_dir=None):
+    """Headings and summaries share body inline formatting, not note scopes."""
+    markup = md_inline(value or '', inline_images=inline_images,
+                       sources_dir=sources_dir, allow_notes=False)
+    return apply_typo(typo_engine, markup, disabled)
+
+
+def _inline_field_text(value):
+    """Plain rendered words for derived metadata, labels and title queries."""
+    markup = _inline_field_html(value)
+    text = ''.join(part if not is_raw else ' ' if re.match(r'<br\b', part, re.I) else ''
+                   for is_raw, part in _split_raw_html_tokens(markup))
+    return strip_ws(re.sub(r'[ \t\r\n]+', ' ', html_unescape(text)))
+
+
+def _resolved_field_html(entry, name):
+    """Escape derived plain words without reinterpreting literal code as HTML."""
+    value = entry.get(name, '')
+    return (html_escape(value, quote=False) if name in entry.get('_lwp_plain_fields', ())
+            else escape_amps(value))
+
+
 def _render_slide_default(slide, slide_num, total_slides, typo_engine, strings,
                           disabled=None, notes=None, absorb_punct=False,
                           inline_images=False, sources_dir=None, show_slide_num=False,
@@ -21512,8 +21609,8 @@ def _render_slide_default(slide, slide_num, total_slides, typo_engine, strings,
 
     if slide.slide_type == 'cover':
         kicker = apply_typo(typo_engine, escape_amps(slide.kicker or ''), disabled)
-        h1 = apply_typo(typo_engine, escape_amps(slide.h1 or ''), disabled)
-        summary = apply_typo(typo_engine, escape_amps(slide.summary or ''), disabled)
+        h1 = _inline_field_html(slide.h1, typo_engine, disabled, inline_images, sources_dir)
+        summary = _inline_field_html(slide.summary, typo_engine, disabled, inline_images, sources_dir)
 
         parts = [f'<section class="slide slide-cover" id="{ident}" '
                  f'data-tags="{data_tags}">']
@@ -21567,8 +21664,8 @@ def _render_slide_default(slide, slide_num, total_slides, typo_engine, strings,
         kicker = apply_typo(typo_engine, escape_amps(slide.kicker or ''), disabled)
         index_title = (strings.get('unit_index_title', 'Contents')
                        if slide.slide_type == 'unit-index' else '')
-        h2 = apply_typo(typo_engine, escape_amps(slide.h2 or index_title), disabled)
-        summary = apply_typo(typo_engine, escape_amps(slide.summary or ''), disabled)
+        h2 = _inline_field_html(slide.h2 or index_title, typo_engine, disabled, inline_images, sources_dir)
+        summary = _inline_field_html(slide.summary, typo_engine, disabled, inline_images, sources_dir)
 
         classes = 'slide slide-unit-index' if slide.slide_type == 'unit-index' else 'slide'
         parts = [f'<section class="{classes}" id="{ident}" '
@@ -22098,7 +22195,9 @@ def tag_preview_data(series_data):
     for number, entry in enumerate(_series_entries(series_data), 1):
         fallback = entry.get('page_dest') or f'Article {number}'
         title = entry.get('card_title') or entry.get('nav_title') or fallback
-        title = strip_ws(re.sub(r'<[^<>]+>', ' ', str(title))) or fallback
+        field = 'card_title' if entry.get('card_title') else 'nav_title'
+        title = (strip_ws(str(title)) if field in entry.get('_lwp_plain_fields', ())
+                 else strip_ws(re.sub(r'<[^<>]+>', ' ', str(title)))) or fallback
         slides = []
         for slide in entry.get('_lwp_tag_slides', ()):
             slides.append({
@@ -22135,8 +22234,8 @@ def build_series_nav(current_file, series_data, strings, typo_engine, contents_h
         label = apply_typo(typo_engine, escape_amps(entry.get('card_label', '')))
         # No empty <div class="series-label"> when there is no label
         label_html = f'      <div class="series-label">{label}</div>\n' if label else ''
-        title = apply_typo(typo_engine, escape_amps(entry['nav_title']))
-        desc = apply_typo(typo_engine, escape_amps(entry['nav_desc']))
+        title = apply_typo(typo_engine, _resolved_field_html(entry, 'nav_title'))
+        desc = apply_typo(typo_engine, _resolved_field_html(entry, 'nav_desc'))
         if entry['page_dest'] == current_file:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_CURRENT.format(
                 tag_attrs=_entry_tag_attributes(entry),
@@ -22221,8 +22320,8 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         # resolve_article_fields() (series.json > article meta > fallback,
         # §20.3.1) — no fallback logic needed here.
         label = apply_typo(typo_engine, escape_amps(entry.get('card_label', '')))
-        card_title = apply_typo(typo_engine, escape_amps(entry.get('card_title', '')))
-        card_desc = apply_typo(typo_engine, escape_amps(entry.get('card_desc', '')))
+        card_title = apply_typo(typo_engine, _resolved_field_html(entry, 'card_title'))
+        card_desc = apply_typo(typo_engine, _resolved_field_html(entry, 'card_desc'))
         # href is an attribute context: entry['page_dest'] is validated to be a
         # plain filename (validate_series), but it's escaped here too as
         # defense in depth against a future validation gap.
@@ -23147,7 +23246,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
                            if slide.slide_type == 'series-nav' else None),
                           (strings.get('unit_index_title', 'Contents')
                            if slide.slide_type == 'unit-index' and not slide.h2 else None),
-                          slide.h1 if slide.slide_type == 'cover' else slide.h2,
+                          _inline_field_html(slide.h1 if slide.slide_type == 'cover' else slide.h2),
                           slide.kicker, slide.slug, f'Slide {number}')
             source_title = next(label for label in map(plain_label, candidates) if label)
             title_html = apply_typo(engine, html_escape(source_title), disabled_for(engine))
@@ -23183,7 +23282,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
             except SelectorError as exc:
                 log('error', f'{source_path.name}: slide {number}: index-selector: {exc}')
                 sys.exit(1)
-            label = plain_label(slide.h2) or strings.get('unit_index_title', 'Contents')
+            label = _inline_field_text(slide.h2) or strings.get('unit_index_title', 'Contents')
             columns = slide.index_max_columns
             parts = [f'<nav class="lwp-unit-index" data-lwp-index-columns="{columns}" '
                      f'style="--lwp-index-columns:{columns}" aria-label="{html_escape(label, quote=True)}">',
@@ -23219,9 +23318,11 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # and every `&` in the title is an `&` the author typed -- which is
     # what <title> needs, being RCDATA: a bare `&copy` there is read as
     # an entity exactly as it is in the body.
-    title_clean = strip_ws(re.sub(r'<[^<>]+>', ' ', title))
-    title_clean = apply_typo(article_typo_engine, escape_amps(title_clean),
-                             disabled_rules)
+    plain_fields = own_entry.get('_lwp_plain_fields', ()) if own_entry else ()
+    title_clean = title if 'page_title' in plain_fields else strip_ws(re.sub(r'<[^<>]+>', ' ', title))
+    title_markup = html_escape(title_clean, quote=False) if 'page_title' in plain_fields else escape_amps(title_clean)
+    title_clean = apply_typo(article_typo_engine, title_markup,
+                              disabled_rules)
 
     # <head> metadata — author and description, both attribute contexts:
     # tag-stripped (they may legitimately carry inline HTML for the
@@ -23229,10 +23330,10 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # Omitted entirely when empty, never an empty content="".
     meta_head = ''
     if own_entry:
-        for name, value in (('author', own_entry.get('author', '')),
-                            ('description', own_entry.get('page_desc', ''))):
+        for name, field in (('author', 'author'), ('description', 'page_desc')):
+            value = own_entry.get(field, '')
             if value:
-                clean = strip_ws(re.sub(r'<[^<>]+>', ' ', value))
+                clean = value if field in plain_fields else strip_ws(re.sub(r'<[^<>]+>', ' ', value))
                 clean = apply_typo(article_typo_engine, clean, disabled_rules)
                 meta_head += f'<meta name="{name}" content="{html_escape(clean, quote=True)}">\n'
 
@@ -24613,7 +24714,7 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
                     slides, meta, series_meta, sources_dir)))
         entry['_lwp_default_tag'] = series_meta.get('default_tag', 'default')
         cover = _find_cover_slide(slides)
-        cover_summary = cover.summary if cover and cover.summary else ''
+        cover_summary = _inline_field_text(cover.summary) if cover and cover.summary else ''
         origins = {}
         candidates = {}
 
@@ -24672,7 +24773,7 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
                 sys.exit(1)
 
         entry['page_title'] = take('page_title',
-                                   content=(cover.h1 if cover and cover.h1 else ''),
+                                   content=(_inline_field_text(cover.h1) if cover and cover.h1 else ''),
                                    derived=entry['page_dest'])
         entry['page_desc'] = take('page_desc', content=cover_summary)
 
@@ -24682,6 +24783,13 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
 
         entry['nav_title'] = take('nav_title', derived=entry['card_title'])
         entry['nav_desc'] = take('nav_desc', derived=entry['card_desc'])
+        plain_fields = {field for field in ('page_title', 'page_desc', 'card_desc')
+                        if origins[field] == 'content'}
+        for field, parent in (('card_title', 'page_title'),
+                              ('nav_title', 'card_title'), ('nav_desc', 'card_desc')):
+            if origins[field] == 'derived' and parent in plain_fields:
+                plain_fields.add(field)
+        entry['_lwp_plain_fields'] = sorted(plain_fields)
 
         # `slug_prefix` has a field-specific normalizer and provenance result:
         # the build, reports and slug inventory must use the same winner.
@@ -26861,10 +26969,9 @@ _FIELD_MARKUP_RES = (
 # Which named field each slide attribute is, so the warning names what the
 # author typed rather than what the parser calls it.
 _FIELD_ATTRS = (
-    ('kicker', 'kicker'), ('summary', 'summary'),
+    ('kicker', 'kicker'),
     ('fact-label', 'fact_label'), ('source', 'source'),
     ('highlight', 'highlight'), ('highlight-caption', 'highlight_caption'),
-    ('# title', 'h1'), ('## title', 'h2'),
 )
 
 

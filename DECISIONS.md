@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 12 · **à faire** 0 · **en cours** 3 · **terminé** 65 · **abandonné** 1 · **sans objet** 3
+**à étudier** 13 · **à faire** 1 · **en cours** 3 · **terminé** 67 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -117,6 +117,11 @@ gets its own entry and its own state**, however small.
 - **B66** — Unreconciled archive design options remain deferred
 - **B74** — Windows 4K display scaling loses presentation geometry
 - **B78** — Firefox windowed image-height fitting differs from fullscreen
+- **B82** — Diagnose errors caused by spaces in filenames
+
+### à faire
+
+- **B81** — Let an authored image open a zoom view instead of advancing
 
 ### en cours
 
@@ -191,6 +196,8 @@ gets its own entry and its own state**, however small.
 - **B77** — Mouse buttons follow reading screens and plain table images
 - **B79** — Include table-cell images in vertical slide fitting
 - **B80** — Cascade kicker placement independently from header content
+- **B83** — Fit paired table images independently and omit empty headers
+- **B84** — Render inline Markdown in slide headings and summaries
 
 ### abandonné
 
@@ -1993,6 +2000,11 @@ defect. Only PAIRED markers count — `2 ** 8` is arithmetic and `**kwargs`
 is Python, and warning on those is the noise that gets a check switched
 off. It reads the parsed slide rather than the source, because only the
 parse says which side of the border a given `**` fell on.
+
+**Follow-up in 0.70.0.** The owner requested automatic inline formatting in
+slide headings and summaries (B84). Those fields now render their markup and
+leave this warning's scope. The measured historical report above remains the
+evidence for the original guard; other literal structural fields still need it.
 
 ## B30 — Nested emphasis, and a net for whatever the checks do not name
 
@@ -3959,3 +3971,82 @@ declarations before writes, all five slide types, absent/cleared headers,
 default markup, resolution reports and logical selector views. Chromium and
 Firefox checks cover desktop/mobile geometry, both chrome placements, runtime
 preset switching, combined HTML, printing and manual zoom.
+
+## B81 — Let an authored image open a zoom view instead of advancing
+
+**État :** à faire · **Depuis :** 2026-10-14
+
+**Owner request, deferred.** Add an explicit authoring marker for an individual
+image: clicking that image opens an enlarged view instead of performing the
+normal mouse reading step. Do not change the default action of ordinary images.
+The marker syntax and zoom-view presentation are not decided or implemented.
+
+**Boundaries to settle when implementing.** Preserve linked images and authored
+actions, keyboard/touch access, closing and focus restoration, and the
+distinction between a click, a drag and a local table gesture. Do not infer
+permission for an automatic zoom action on every image. Keep this outside the
+current table-image fitting correction, as explicitly requested by the owner.
+
+## B82 — Diagnose errors caused by spaces in filenames
+
+**État :** à étudier · **Depuis :** 2026-10-14
+
+**Owner report, deferred.** A filename containing a space produces errors;
+replacing its spaces with hyphens avoids the errors in the reported case.
+No exact filename, affected resource type, command or error trace has yet been
+captured. The report is not proof that every filename context rejects spaces.
+
+**Next investigation.** Retain a reproducing source before renaming it, then
+distinguish Markdown destination parsing, URL escaping, shell argument quoting
+and source/manifest validation. The hyphen substitution is an observed
+workaround, not a new naming restriction or authorization to rename files.
+Do not claim this fixed or alter filename handling in the current fitting lot.
+
+## B83 — Fit paired table images independently and omit empty headers
+
+**État :** terminé · **Depuis :** 2026-10-14 · **Version :** 0.70.0
+
+**Reproduced.** Collecting table images in 0.68.3 did not make the shared height
+factor efficient: a landscape image still inherited a portrait's reduction.
+Auto-layout percentage images also changed their baseline during the solver's
+trials, and table-cell bounds could ignore the actual table viewport. Native
+Firefox fullscreen supplies a real viewport transition in the regression;
+ordinary resizes reproduce the related geometry defects in both engines.
+
+**Correction.** Restore all image pins before measuring any image. Keep one
+baseline per solve, then maximize image factors independently after finding a
+feasible common factor. Check table-image bounds as well as total slide height,
+without shrinking table text or controls. Pin only responsive dimensions that
+drift, preserving fixed authored dimensions and later edits. Reuse the same
+solver after manual zoom and explicitly schedule a fullscreen layout.
+
+**Empty headers.** Omit the Markdown header only when all its cells are empty.
+For authored HTML, hide only a genuinely empty header; media, controls,
+accessible labels and pseudo-element labels remain meaningful. Preserve body
+rows, column estimates and partial headers.
+
+**Evidence and limit.** Chromium/Firefox browser regressions cover differing
+ratios, fixed/auto/percentage tables, native fullscreen entry/exit, resizing,
+150% zoom, print and disabled-fitting restoration. Existing responsive-image
+and independent table/image-scale checks also pass. This does not prove that
+the owner's physical Firefox report in B78 is the same defect; B78 stays open.
+
+## B84 — Render inline Markdown in slide headings and summaries
+
+**État :** terminé · **Depuis :** 2026-10-14 · **Version :** 0.70.0
+
+**Owner decision.** Render inline formatting automatically, as Markdown headings
+normally do. The owner explicitly ruled out an opt-in or legacy layer. Summary
+fields remain single-line source values; only their inline interpretation changes.
+
+**Scope.** Reuse the supported inline converter for authored headings and
+summaries: emphasis, code, HTTP(S) links and instance tags such as underline.
+Protect backslash-escaped punctuation, code contents and raw HTML attributes.
+Do not broaden every other structural field or create note scopes in a title.
+Derived metadata and generated contents labels use rendered words rather than
+publishing formatting markers. Audit retains warnings only where markup is
+still unsupported. Source slugs and cascade policies do not change.
+
+**Verification.** CLI output guards and native browser checks cover formatted
+headings/summaries, literal escapes, code, unchanged literal fields and combined
+HTML. Empty-header and image-fitting changes have separate assertions.

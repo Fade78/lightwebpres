@@ -264,6 +264,10 @@ Table text and controls retain their independent sizing. The horizontal switch b
 object by its available content width, down to `min_object_scale`. The vertical
 switch shrinks the images further if needed to fit the entire slide, including
 its title, captions, footer and padding; it is not limited by that minimum.
+Images then use independent factors: a portrait/square neighbour must not
+unnecessarily shrink a landscape image. When both controls are enabled, table
+images also stay within the actual table viewport. A solver run holds one
+responsive baseline; new viewport/fullscreen/zoom layouts remeasure it.
 Captions retain their type size. Height fitting runs again after presentation
 zoom, so images grow only while the enlarged heading, body and chrome still fit.
 If text alone cannot fit, the image keeps its width-fitted size and the slide

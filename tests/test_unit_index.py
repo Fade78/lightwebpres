@@ -506,7 +506,7 @@ class UnitIndexBuild(unittest.TestCase):
                     self.assertNotIn('Traceback', result.stderr)
 
     def test_plain_link_labels_and_speaker_notes_preserve_editorial_footer(self):
-        self.fixture([COVER.replace('Opening', '<a href="https://example.test">A &amp; B</a>'),
+        self.fixture([COVER.replace('Opening', '<a href="https://example.test">A & B</a>'),
                       INDEX.format(fields='kicker: Read\nsummary: Choose a slide.\n'
                                           'note: Speak softly.\ncomment: Private review.\n')],
                      meta='author: Writer\nlicense: CC0\n')

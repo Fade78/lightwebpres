@@ -33,6 +33,24 @@ link to the originals. They are at
 
 ---
 
+## v0.70.0
+
+Mixed-ratio images now fit independently inside a table: a portrait or square
+image no longer imposes its unnecessary reduction on a landscape neighbour.
+The solver keeps one responsive baseline per run, bounds table images to their
+actual viewport, and recomputes on fullscreen changes, resizing and reader zoom.
+Printing and disabled fitting restore authored image dimensions.
+
+Slide headings and summaries now render supported inline Markdown automatically:
+bold, italic, code and HTTP(S) links, plus existing inline instance tags such as
+`{u}…{/u}`. Backslash-escaped punctuation stays literal. Other structural fields
+retain their value grammar; no compatibility mode or opt-in switch is added.
+Derived metadata and unit-index labels use the rendered words.
+
+Markdown tables with entirely empty header cells omit the header band. Authored
+HTML tables also hide genuinely empty headers in the reader, while headers with
+text, media, controls or accessible labels are not suppressed.
+
 ## v0.69.0
 
 Kickers can stay immediately above the slide title (`before-title`, the existing

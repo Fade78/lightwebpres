@@ -21,10 +21,13 @@ Only the first `#` on a cover or `##` on a standard/unit-index slide captures it
 and only before the body begins. A second heading, or the wrong level, becomes
 content. A bare `#` or `##` still declares an empty title.
 
-A field is a value, not Markdown: `summary: some **bold**` publishes literal
-markup. Raw HTML in field values passes through, which can disguise that
-distinction. `audit` names paired bold, italic, backticks and Markdown links
-in fields; `build` says nothing. Put Markdown emphasis in the body instead.
+Slide headings and `summary:` support inline Markdown automatically: bold,
+italic, code and HTTP(S) links, plus existing instance tags such as `{u}…{/u}`.
+Use `\*literal\*` or `\[not a link](https://example.org)` to keep delimiters
+literal. These are single-line values, not block Markdown; note calls stay
+literal here. Other fields, including `kicker:`, `source:` and metadata fields,
+remain values rather than Markdown. Raw HTML in trusted field values still
+passes through. `audit` names unsupported paired markup in the literal fields.
 A duplicate field in the same header silently takes the last value; headings
 do not share that override rule.
 
