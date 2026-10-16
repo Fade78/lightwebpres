@@ -99,10 +99,18 @@ async function main() {
     for (const [name, selector] of selections) {
       const series = path.join(tmp, name);
       cli('init', series, '--preset', selector);
-      fs.copyFileSync(path.join(root, 'examples/first-article/series.json'),
-        path.join(series, 'series.json'));
+      const config = JSON.parse(fs.readFileSync(path.join(root, 'examples/first-article/series.json'), 'utf8'));
+      // Reuse the article, not its tutorial's explicit Nebula override: these
+      // comparisons promise the selected presets' own themes and typography.
+      if (config.appearance) delete config.appearance.themes;
+      fs.writeFileSync(path.join(series, 'series.json'), JSON.stringify(config, null, 2) + '\n');
       fs.copyFileSync(path.join(root, manifest.source), path.join(series, 'sources/first-page.md'));
       cli('series', 'preset', 'set', series, '--preset', selector);
+      const theme = JSON.parse(cli('series', 'theme', series, '--format', 'json').toString('utf8'));
+      const preset = JSON.parse(cli('preset', 'show', selector, '--format', 'json').toString('utf8'));
+      if (theme.target.theme !== null || theme.label !== preset.theme.label) {
+        throw new Error(`${name}: comparison must follow the preset theme, not a series override`);
+      }
       cli('build', series, '--lang', 'en');
       cli('verify', series, '--lang', 'en');
       const page = await browser.newPage({ viewport, deviceScaleFactor: 1,
@@ -124,7 +132,7 @@ async function main() {
         { waitUntil: 'load' });
       await page.evaluate(() => document.fonts.ready);
       await page.waitForTimeout(3600);
-      const measured = await page.locator(`#${slideId}`).evaluate((slide) => {
+      const measured = await page.locator(`#${slideId}`).evaluate((slide, expected) => {
         const failures = [];
         const text = [];
         let textRects = 0;
@@ -163,9 +171,16 @@ async function main() {
           }
         }
         if (document.documentElement.scrollWidth > innerWidth) failures.push('Horizontal overflow');
+        const pageBackground = getComputedStyle(document.body).backgroundColor;
+        const headingFont = getComputedStyle(slide.querySelector('h1, h2')).fontFamily;
+        const probe = document.createElement('span');
+        probe.style.backgroundColor = expected.pageBackground;
+        probe.style.fontFamily = expected.headingFont;
+        if (pageBackground !== probe.style.backgroundColor) failures.push('Rendered background differs from the preset theme');
+        if (headingFont !== probe.style.fontFamily) failures.push('Rendered heading type differs from the preset theme');
         return { failures, text: text.join(' '), textRects, visibleImages: images.length,
-          headingFont: getComputedStyle(slide.querySelector('h1, h2')).fontFamily };
-      });
+          headingFont, pageBackground };
+      }, { pageBackground: theme.properties['page.bg'], headingFont: theme.properties['title2.font'] });
       for (const expected of ['The runtime travels with the page', '1 HTML', 'Keep the assets too',
         'Local images stay beside the page', 'directory, not just its index.']) {
         if (!measured.text.includes(expected)) measured.failures.push(`Missing text: ${expected}`);
@@ -177,7 +192,7 @@ async function main() {
         throw new Error(`${name}: ${[...errors, ...measured.failures].join('\n')}`);
       }
       frames[name] = (await page.screenshot()).toString('base64');
-      manifest.pages.push({ name, selector, ...measured });
+      manifest.pages.push({ name, selector, theme: { label: theme.label, override: theme.target.theme }, ...measured });
       await page.close();
       console.log(`Captured ${name}: ${viewport.width}x${viewport.height}, complete content and marks`);
     }

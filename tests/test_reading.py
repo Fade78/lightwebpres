@@ -251,7 +251,13 @@ class TableEstimates(unittest.TestCase):
             '```\n' + NORMAL_TABLE + '\n```\n\n' + raw + '\n\n' + NORMAL_TABLE,
             table_candidates=candidates)
         self.assertEqual(len(candidates), 1)
-        self.assertEqual(candidates[0], [['Name', 'Result'], ['Alpha', 'Works']])
+        table = candidates[0]
+        self.assertEqual(table.columns, 2)
+        self.assertTrue(table.has_header)
+        self.assertEqual([[cell.text for cell in row] for row in table.rows],
+                         [['Name', 'Result'], ['Alpha', 'Works']])
+        self.assertTrue(all(cell.colspan == cell.rowspan == 1
+                            for row in table.rows for cell in row))
         self.assertEqual(html.count('<div class="lwp-table-viewport">'), 1)
         self.assertIn(raw, html)
 

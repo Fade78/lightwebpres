@@ -6778,7 +6778,7 @@ class IncrementalBuild(unittest.TestCase):
             self.assertNotIn('img/old.svg', manifest['files'])
             image_cache = json.loads(
                 (root / '.lwp-cache' / 'images.json').read_text(encoding='utf-8'))
-            self.assertEqual(image_cache['schema'], 'lightwebpres.image-cache/1')
+            self.assertEqual(image_cache['schema'], 'lightwebpres.image-cache/2')
             self.assertEqual(image_cache['output_dir'], str(output.resolve()))
             self.assertIn('b.html', image_cache['pages'])
 
@@ -9880,6 +9880,53 @@ class IdentityKitFixtures(unittest.TestCase):
                 result = run('build', str(root), '--output', str(root / 'public'))
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(expected, result.stderr)
+
+    def test_layout_fragments_reject_nested_documents_and_document_controls(self):
+        # These fragments have no executable payload and are never opened in
+        # a browser. The kit contract itself excludes nested document/resource
+        # surfaces, independently of whether an exploit can be demonstrated.
+        for markup in ('<iframe srcdoc="Plain nested document"></iframe>',
+                       '<frame>', '<frameset></frameset>', '<object></object>',
+                       '<embed>', '<applet></applet>', '<base>',
+                       '<meta name="fixture" content="inert">'):
+            with self.subTest(markup=markup), tempfile.TemporaryDirectory() as tmp:
+                root, identity_kit = self._selected_series(tmp)
+                (identity_kit / 'layouts/cover.html').write_text(
+                    markup + '{{slide_header}}{{content}}{{slide_footer}}', encoding='utf-8')
+                result = run('build', str(root))
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn('layout fragment cannot contain', result.stderr)
+                self.assertFalse((root / 'public').exists())
+
+    def test_layout_url_restrictions_use_decoded_attribute_values(self):
+        # Empty forbidden-scheme URLs: validation only, no JavaScript code and
+        # no browser execution or network. HTMLParser owns entity decoding.
+        for markup in ('<a href="java&#115;cript:">Link</a>',
+                       '<a href="java&#x09;script:">Link</a>',
+                       '<button formaction="&#10;JaVaScRiPt:">Button</button>'):
+            with self.subTest(markup=markup), tempfile.TemporaryDirectory() as tmp:
+                root, identity_kit = self._selected_series(tmp)
+                (identity_kit / 'layouts/cover.html').write_text(
+                    markup + '{{slide_header}}{{content}}{{slide_footer}}', encoding='utf-8')
+                result = run('build', str(root))
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn('layout fragment cannot contain javascript: URLs', result.stderr)
+                self.assertFalse((root / 'public').exists())
+
+    def test_layout_checks_preserve_passive_links_and_author_owned_raw_html(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, identity_kit = self._selected_series(tmp)
+            (identity_kit / 'layouts/cover-hero.html').write_text(
+                '<a href="https://example.invalid/reference?x=1&amp;y=2">Reference</a>'
+                '{{slide_header}}{{content}}{{slide_footer}}', encoding='utf-8')
+            source = root / 'sources/a.md'
+            source.write_text(source.read_text(encoding='utf-8')
+                              + '\n<iframe title="Author-owned"></iframe>\n', encoding='utf-8')
+            result = run('build', str(root))
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            html = (root / 'public/a.html').read_text(encoding='utf-8')
+            self.assertIn('<iframe title="Author-owned">', html)
+            self.assertIn('href="https://example.invalid/reference?x=1&amp;y=2"', html)
 
     def test_structure_css_cannot_escape_its_identity_kit_scope(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -15780,7 +15827,7 @@ class HrefAttributeEscaping(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
-            self.assertIn('href="a&quot;.html"', index_html)
+            self.assertIn('href="a%22.html"', index_html)
             self.assertNotIn('href="a".html"', index_html)
 
 
@@ -17138,7 +17185,8 @@ class I18nParity(unittest.TestCase):
 class NativeUtf8EndToEnd(unittest.TestCase):
     """Native UTF-8, end to end: accents, CJK, emoji, Cyrillic and RTL
     Arabic through every field AND in the page_source/page_dest filenames
-    themselves — content, hrefs, README links and <meta> tags all intact."""
+    themselves — content and <meta> stay UTF-8, while URL-encoded hrefs and
+    README links still name the unchanged Unicode output file."""
 
     def test_full_unicode_pipeline_including_accented_filenames(self):
         md = (
@@ -17160,9 +17208,10 @@ class NativeUtf8EndToEnd(unittest.TestCase):
                            'name="author" content="Zoë Müller"'):
                 self.assertIn(needle, html)
             index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
-            self.assertIn('href="café-日本.html"', index_html)
+            encoded_name = 'caf%C3%A9-%E6%97%A5%E6%9C%AC.html'
+            self.assertIn(f'href="{encoded_name}"', index_html)
             readme = (root / 'README.md').read_text(encoding='utf-8')
-            self.assertIn('café-日本.html', readme)
+            self.assertIn(f'(public/{encoded_name})', readme)
 
 
 

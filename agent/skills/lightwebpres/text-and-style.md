@@ -32,6 +32,12 @@ Inline images accept size keys but not `align`. Relative images live under
 `sources/img/`; only images referenced by rendered pages are copied into
 `public/img/` by the normal build.
 
+Use `%20` for a space in an image URL: `![Photo](img/my%20photo.svg)` reads
+`sources/img/my photo.svg`. Paths are decoded once for copying, inlining and
+inventory diagnostics; queries and fragments remain URL decoration. Encode a
+literal filename `%`, `#` or `?` as `%25`, `%23` or `%3F`, without renaming the
+source. Decoded traversal and unsafe paths are still refused.
+
 Inline code uses backticks (`` `code` ``). Fenced code uses ` ```lang `,
 body lines and a matching ` ``` `; the language is optional and informational,
 not syntax highlighting. Raw HTML passes through unchanged, permitting a
@@ -59,11 +65,35 @@ are not hidden merely because another cell is empty.
 - Markdown links must use `http://` or `https://`. `[text](page.html)` or a `mailto:` link stays literal without warning. Use raw `<a href="...">` for other targets.
 - Headings extend to level 6: `#` through `###` are headings; `####` is a bold-font paragraph, not `<strong>` emphasis; `#####` and `######` are plain paragraphs.
 - Consecutive `>` lines merge into one paragraph inside a blockquote. Nested and multi-paragraph blockquotes are unsupported.
-- Table alignment colons (`|:---|---:|`) parse but do nothing. Ragged rows are emitted as written without a cell-count check.
+- Table alignment colons (`|:---|---:|`) parse but do nothing. Unmerged ragged rows are emitted as written; merged tables require the separator's logical column count on every row.
 - A bare `---` in a full-article file is silently dropped, not rendered as `<hr>`. In an LWP deck it splits slides. Use `<hr>` for a rule in either file.
 - An unclosed code fence swallows following lines as code and leads to a fatal unclosed-tag build error. Close fences explicitly; a deck's `---` still splits slides even inside an example.
 
 ## Tables And Reader Sizing
+
+Only two DokuWiki-style operators are supported, not its whole table grammar:
+
+```text
+| Group || Result |
+| --- | --- | --- |
+| Shared || First |
+| ::: || Second |
+| Left | | Last |
+```
+
+`||` extends the preceding cell horizontally; each additional adjacent pipe
+adds another column. `| |` preserves a separate empty cell, and an empty first
+cell has no predecessor to merge into. A standalone `:::` continues the body
+cell above, never a header cell. Shared above spans two columns and two rows;
+its continuation can also be written `| ::: | ::: | Second |`. Continuations
+must cover complete rectangular footprints, not part of a span or multiple
+distinct origins. Every row in a merged table must cover the separator's column
+count, whose fields require dashes with optional alignment colons. Invalid
+merges are build errors. Native HTML limits are 1,000 columns and 65,534 rows
+per cell. Code (`` `:::` ``), escaped colons (`\:\:\:`) and escaped pipes
+(`\|`) keep literal text; ordinary inline Markdown and images work in cells.
+No `^` header markers or space-based alignment are imported. Entirely empty
+headers are still omitted; raw HTML tables and fenced examples stay unchanged.
 
 The build keeps every table cell in HTML. Wide tables are visually clipped by
 default, not shortened or summarized. Readers can use

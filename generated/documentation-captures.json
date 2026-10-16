@@ -27,8 +27,8 @@
     "examples/kits/lightwebpres-docs/0.1.0/starters/blank/starter.json": "9c9556978e90cd4bd1f3a2dc1dd422a5f172e9c65d4187d84d004df10c5d424a",
     "examples/kits/lightwebpres-docs/0.1.0/structure.css": "4501d6bff633ce1e06facf5fd2c9d0c811236e6cd20447a4e761182e0e8a3b08",
     "examples/kits/lightwebpres-docs/0.1.0/themes/docs.conf": "2cbd0dc8e133e8042e75150392f0ce50be6c42fa46f67fa4a3729beef2ad588b",
-    "lightwebpres": "03a4b89958e1f6e1f3690bc65171e42b5a9287ccb5b1def1214eb3bf5464a1dd",
-    "tools/screenshot-documentation.cjs": "0d76b86a5e4513e5c86bf40656102a12fae1d00187e63cf3cea785c3018ac623"
+    "lightwebpres": "d915b0b89f26cbf8e6d73e4a4fd120152e5e7515466bd35d25e6025ea42f5b46",
+    "tools/screenshot-documentation.cjs": "fbe07c0800049ce9871592b713a13b200a8fbf54dbf3796d28e3af59661c848b"
   },
   "browser": "156.0.8078.4",
   "source": "examples/first-article/sources/first-page.md",
@@ -43,56 +43,86 @@
     {
       "name": "native",
       "selector": "builtin/standard",
+      "theme": {
+        "label": "Light",
+        "override": null
+      },
       "failures": [],
       "text": "Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/. Publish the whole public/ directory, not just its index.",
       "textRects": 11,
       "visibleImages": 0,
-      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif"
+      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif",
+      "pageBackground": "rgb(248, 248, 245)"
     },
     {
       "name": "official",
       "selector": "lightwebpres-docs@0.1.0/docs",
+      "theme": {
+        "label": "LightWebPres documentation",
+        "override": null
+      },
       "failures": [],
       "text": "LWP DOCS Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/. Publish the whole public/ directory, not just its index. LIGHTWEBPRES / OFFICIAL DOCUMENTATION",
       "textRects": 14,
       "visibleImages": 1,
-      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif"
+      "headingFont": "Seravek, \"Gill Sans Nova\", Ubuntu, Calibri, \"DejaVu Sans\", sans-serif",
+      "pageBackground": "rgb(238, 242, 247)"
     },
     {
       "name": "composed",
       "selector": "field-notes@1.0.0/brief",
+      "theme": {
+        "label": "Field Notes Paper",
+        "override": null
+      },
       "failures": [],
-      "text": "FIELD NOTES Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/. Publish the whole public/ directory, not just its index. OBSERVE / RECORD / SHARE",
+      "text": "FIELD NOTES Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/ . Publish the whole public/ directory, not just its index. OBSERVE / RECORD / SHARE",
       "textRects": 13,
       "visibleImages": 1,
-      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif"
+      "headingFont": "\"Nimbus Mono PS\", \"Courier New\", \"Liberation Mono\", \"DejaVu Sans Mono\", monospace",
+      "pageBackground": "rgb(255, 255, 255)"
     },
     {
       "name": "frames",
       "selector": "field-frames@1.0.0/sheet",
+      "theme": {
+        "label": "Light",
+        "override": null
+      },
       "failures": [],
       "text": "Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/. Publish the whole public/ directory, not just its index.",
       "textRects": 11,
       "visibleImages": 0,
-      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif"
+      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif",
+      "pageBackground": "rgb(248, 248, 245)"
     },
     {
       "name": "marks",
       "selector": "field-marks@1.0.0/compass",
+      "theme": {
+        "label": "Light",
+        "override": null
+      },
       "failures": [],
       "text": "Compass rose FIELD MARKS Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/. Publish the whole public/ directory, not just its index.",
       "textRects": 13,
       "visibleImages": 1,
-      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif"
+      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif",
+      "pageBackground": "rgb(248, 248, 245)"
     },
     {
       "name": "ink",
       "selector": "field-ink@1.0.0/paper",
+      "theme": {
+        "label": "Field Notes Paper",
+        "override": null
+      },
       "failures": [],
-      "text": "Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/. Publish the whole public/ directory, not just its index.",
+      "text": "Portable output The runtime travels with the page Open the HTML without installing LightWebPres. 1 HTML per article, with CSS and JavaScript inside Keep the assets too Local images stay beside the page in img/ . Publish the whole public/ directory, not just its index.",
       "textRects": 11,
       "visibleImages": 0,
-      "headingFont": "Charter, \"Bitstream Charter\", \"Sitka Text\", Cambria, Georgia, serif"
+      "headingFont": "\"Nimbus Mono PS\", \"Courier New\", \"Liberation Mono\", \"DejaVu Sans Mono\", monospace",
+      "pageBackground": "rgb(255, 255, 255)"
     }
   ],
   "captures": [
@@ -100,13 +130,13 @@
       "file": "generated/appearance-choices.png",
       "width": 1600,
       "height": 1440,
-      "sha256": "56bdd37a6165a13fc40ad34450a81a8b50d6a21373922e189be3fd0eba6eca90"
+      "sha256": "08eec1b2407414eeacedba169b4369305e81bec8ea2a61b5faf828c9487308c8"
     },
     {
       "file": "generated/identity-composition.png",
       "width": 1600,
       "height": 1080,
-      "sha256": "770004a32c452d13b4f5134e86db659ae6f0e4668f80e7e135fbc4f13f02632f"
+      "sha256": "256139ec2c10520e2afd63d7705d7ee52d4b664d71c33f99ae15888c121f4b27"
     }
   ],
   "assetPreviews": [

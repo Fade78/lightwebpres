@@ -23,7 +23,7 @@ class Style {
   snapshot() { return [...this.values].sort().map(([key, value]) => [key, value, this.getPropertyPriority(key)]); }
 }
 
-function fixture({percent = false, pixels = false, caption = false} = {}) {
+function fixture({percent = false, pixels = false, caption = false, frameFraction = 0} = {}) {
   const callbacks = {window: {}, document: {}};
   const frames = new Map();
   let nextFrame = 0;
@@ -67,7 +67,7 @@ function fixture({percent = false, pixels = false, caption = false} = {}) {
   image.getBoundingClientRect = imageRect;
   wrapper.getBoundingClientRect = () => ({width,
     height: imageRect().height + (caption ? 400 * ancestorZoom() : 0)});
-  slide.getBoundingClientRect = () => ({width, height: Math.max(700, imageRect().height), left: 0, right: width});
+  slide.getBoundingClientRect = () => ({width, height: Math.max(700 + frameFraction, imageRect().height), left: 0, right: width});
   Object.defineProperty(slide, 'scrollHeight', {get: () => slide.getBoundingClientRect().height});
   Object.defineProperty(slide, 'clientWidth', {get: () => width});
   if (figure) Object.defineProperty(wrapper, 'clientWidth', {get: () => width / ancestorZoom()});
@@ -97,6 +97,7 @@ function fixture({percent = false, pixels = false, caption = false} = {}) {
     display: element === image ? 'inline' : 'block', visibility: 'visible',
     content: 'none', paddingLeft: '0px', paddingRight: '0px',
     fontSize: '20px', lineHeight: 'normal', zoom: String(ownZoom(element)),
+    minHeight: (element === slide ? 700 + frameFraction : 0) + 'px',
     width: (element === image ? dimension('width', ownZoom(image)) : width) + 'px',
     height: (element === image ? dimension('height', ownZoom(image)) : 100) + 'px',
   });
@@ -185,6 +186,17 @@ bounded.settings.object_shrink_horizontal = false;
 bounded.layout();
 assert.equal(bounded.image.style.getPropertyValue('max-width'), 'none');
 assert.equal(bounded.image.style.getPropertyPriority('max-width'), 'important');
+
+for (const fraction of [1 / 3, .2, .75]) {
+  const sample = fixture({frameFraction: fraction});
+  sample.settings.object_shrink_vertical = true;
+  sample.layout();
+  assert.ok(sample.image.getBoundingClientRect().height <= 701,
+    'a fractional viewport minimum must not disable image fitting');
+  sample.zoom(2);
+  assert.ok(sample.image.getBoundingClientRect().height <= 701,
+    'fractional viewports retain their image cap through manual zoom');
+}
 
 for (const options of [{percent: true}, {pixels: true}]) {
   const sample = fixture(options);

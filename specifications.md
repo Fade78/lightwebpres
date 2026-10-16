@@ -1534,12 +1534,52 @@ mais pas un `<h4>` — le document s'arrête à trois niveaux de plan.
 `#####` et `######` perdent leur marqueur et rendent un paragraphe nu.
 Seul un `####` sans espace après les dièses reste littéral.
 
-**Tableaux.** Chaque `<table>` généré porte `class="comparison-table"`
-— c'est le crochet de style du CSS par défaut (et donc un point de
-personnalisation documenté). La ligne séparatrice accepte les deux-points
-d'alignement CommonMark (`|:---|---:|`) mais ils sont **ignorés** (aucun
-alignement émis). Le nombre de cellules par ligne n'est pas validé : une
-ligne plus courte ou plus longue que l'en-tête est émise telle quelle.
+**Tables.** Each generated `<table>` has `class="comparison-table"`, the
+documented styling hook. Recognition still requires a pipe-prefixed header
+line followed by a separator line. CommonMark separator alignment colons
+(`|:---|---:|`) are accepted but **ignored**; spaces do not select alignment.
+
+Only two DokuWiki-style operators extend that grammar:
+
+- A strictly empty field between adjacent pipes extends the cell to its left:
+  `| Group || Result |` has a two-column cell followed by a one-column cell.
+  Each additional adjacent pipe adds one column. A whitespace-only field,
+  as in `| Left | | Right |`, remains a separate empty cell. An empty first
+  field has no left neighbour and remains an origin of its own.
+- A cell containing only `:::` after trimming continues the cell above it in
+  the body. Repeat it on subsequent rows to extend the same origin. For a
+  two-column origin, both `| ::: || Next |` and `| ::: | ::: | Next |` continue
+  its full width. Partial continuations, a continuation across distinct
+  origins, and continuations from the header into the body are errors.
+
+```text
+| Group || Result |
+| --- | --- | --- |
+| Shared || First |
+| ::: || Second |
+| Left | | Last |
+```
+
+The header's Group spans two columns; Shared spans two columns and two body
+rows. The final row keeps an actual empty middle cell. Native `colspan` and
+`rowspan` attributes are emitted only when greater than one; continuation
+markers do not render. Merges must be complete rectangles within one row group.
+HTML's limits are enforced: at most 1,000 columns per cell and 65,534 rows per
+cell. Headers may merge horizontally; an all-empty header is still omitted.
+
+A table using either operator must give every source row the separator's
+logical column count, including covered positions, and each separator field
+must contain dashes with optional alignment colons. Invalid merges fail before
+publication. Tables **without merges** retain their existing tolerance of
+shorter or longer rows. The audit estimates widths from the renderer's resolved
+grid: each origin contributes one content/padding constraint over its columns,
+not one copy per covered column or continued row.
+
+Inline code or escaped punctuation keeps `:::` literal (`` `:::` `` or
+`\:\:\:`); `\|` places a literal pipe inside a cell. Existing inline Markdown,
+images and trusted raw HTML remain available in cells. No DokuWiki `^` header
+syntax or space-based alignment is added. Raw HTML tables and fenced examples
+are not reinterpreted by these operators.
 
 **Verdicts colorés dans un tableau comparatif.** Le Markdown n'a pas de
 syntaxe pour qualifier une cellule, et il n'est pas prévu qu'il en ait
@@ -1593,6 +1633,16 @@ restreints à http(s) — car les images vivent dans `sources/img/`,
 copié vers `public/img/` au build (§11.3). Une ligne-image n'est jamais
 fusionnée dans le paragraphe qui la précède : c'est un démarreur de
 bloc, comme un titre ou une liste.
+
+**Image URLs and filenames.** Encode spaces in an image destination:
+`![Photo](img/my%20photo.svg)` refers to `sources/img/my photo.svg`. Copying,
+inlining and image-inventory diagnostics decode URL paths once, after removing
+the URL's query and fragment. Encode a literal filename `#`, `?` or `%` as
+`%23`, `%3F` or `%25`; those decoded characters remain part of the filename,
+not another URL to parse. The authored URL stays unchanged in non-inline output.
+Decoded traversal, absolute paths, backslashes, control characters and invalid
+UTF-8 escapes cannot enter the local image copy inventory. Symlink composition
+retains its separate policy (§13.7).
 
 **Figure cliquable.** La même ligne enveloppée d'un lien Markdown —
 `[![alt](src "Légende")](https://…)`, seule sur sa ligne — reste une
@@ -2579,6 +2629,16 @@ exit and focus loss release capture, including a late acknowledgement of a
 cancelled request. Capture survives in-document article/index switches; a full
 page navigation or reload creates a fresh browser session.
 
+An acknowledgement of a requested capture/release or fullscreen entry/exit,
+or an unchanged duplicate notification, is not a new input and must not erase
+a newer middle-button prefix. Native `pointerLockElement` and
+`fullscreenElement` can change before their corresponding change events are
+dispatched. An old release notification must not clear a newer acquisition's
+pending state, and a failed older fullscreen request must not discard a newer
+request's intent. Unrequested state changes and cancelled late acquisitions
+keep their cancellation/release behavior. This intent bookkeeping never replaces
+the browser's actual state as the source of fullscreen/capture truth.
+
 **Hybrid touch and mouse input** is classified per gesture, not by the device's
 primary `(pointer: fine)` capability. Pointer Events identify mouse, touch and
 pen input; secondary mouse-button presses also establish mouse ownership on
@@ -2689,6 +2749,14 @@ le geste avancerait aussi de deux fiches — de deux cartes sur l'index,
 où le même clic avance d'une carte. Le plein écran reste le bouton
 ⛶ de cette barre — un même geste qui voudrait dire deux choses selon un
 état que le lecteur ne voit pas venir n'en est pas un.
+
+Touch duration and the interval between tap ends use native event timestamps,
+not handler execution times. Main-thread work must not misclassify queued
+input: the pair window remains 350ms and each tap/swipe remains shorter than
+500ms. Zero is a valid input timestamp. Compatibility-click quarantine starts
+when the recognized pair is handled, since those clicks may still be pending
+even when the input itself is old. Movement, control and cancellation guards
+continue to apply independently of these clocks.
 
 **Le deck ne touche pas à la sélection.** Sur téléphone, la sélection se
 fait par appui long, et un deck n'a pas à réapprendre à un téléphone ce que
@@ -3648,6 +3716,10 @@ horizontal fitting is on, even below the width-only author floor. A feasible
 common factor is only the starting point; each image then uses as much of its
 own available space as the complete slide and row permit. A portrait/square
 image does not impose its unnecessary height factor on a landscape neighbour.
+When native display scaling makes the slide's minimum height fractionally
+larger than the integer `clientHeight`, image-height feasibility uses the final
+slide-fit check's one-CSS-pixel tolerance. That rounding is not evidence that no
+image reduction can fit. Integer viewport minima retain their exact height bound.
 If non-image
 content alone cannot fit, the browser retains the width-fitted, zoomed image
 size and lets the slide scroll instead of hiding the image. Supported objects
@@ -5010,6 +5082,30 @@ d'événement, les URL `javascript:` et tout asset de layout (`img`, `picture`,
 `source`, média, SVG ou `src`) sont interdits. Les assets passent exclusivement
 par le chrome déclaré.
 
+Layout envelopes also reject nested browsing/plugin documents (`iframe`,
+`frame`, `frameset`, `object`, `embed`, `applet`) and document-wide controls
+(`base`, `meta`). URL restrictions inspect HTML-decoded attribute values,
+including URL-ignored ASCII whitespace, rather than only raw source spelling.
+This kit-specific validation does not sanitize the author's raw article HTML.
+
+Slots are raw HTML insertion tokens. Each required occurrence must be in normal
+HTML element content, not in a tag, attribute, comment, declaration or processing
+instruction. Slots cannot be placed inside `template`, `textarea`, `title`,
+`xmp`, `noembed`, `noframes`, `noscript`, `plaintext`, `select`, `option`,
+`optgroup` or `datalist`: these are not arbitrary-HTML insertion contexts.
+Such containers must not remain open at the fragment boundary; a slash on a
+non-void HTML element does not close it. In particular, `plaintext` has no HTML
+end tag and cannot be used in a layout fragment. Incomplete tags/comments are
+refused before slot expansion, not left for the generated-page check.
+
+Decorative comments and fully closed inert/text-only elements remain allowed
+when they do not consume a slot. To show a literal marker in an example, encode
+its braces, for example `&#123;&#123;content&#125;&#125;`. Those character
+references are not compiler slots. The same load-time checks cover every
+declared variant and index fragment, including unused runtime alternatives and
+composition sources/results. Authored article content is still inserted once,
+without rescanning it for layout markers.
+
 The preset's `slide_layouts` and `slide_chrome` are the selection defaults.
 `slide_layouts` names variants per type. Existing kits may omit `unit-index`:
 without its own layout map, the index uses the kit's standard layout and
@@ -5559,6 +5655,11 @@ that record only when the bytes on disk still have the recorded hash. A cache
 miss, invalid record or changed page causes that page to be parsed normally;
 it never makes an incomplete inventory authoritative.
 
+Image cache schema `lightwebpres.image-cache/2` stores decoded filesystem names,
+not URL spellings. Percent signs, `#` and `?` in those names are literal;
+validation never decodes the cached names again. Older cache schemas are
+discarded and retained pages are reparsed with the current URL handling.
+
 For a build system, `--incremental` is the public CLI integration boundary:
 pass an article's `page_source` or `page_dest` and let the executable perform
 these checks. Do not import the internal fast-path helpers; invoking a normal
@@ -5720,6 +5821,13 @@ générateur, ou parce que d'autres articles y vivent déjà ; l'auteur laisse
 alors le nom par défaut et ne réclame rien. Ou elle est seule chez elle,
 et `index.html` est le nom qui a du sens. **Le nom choisi est la
 déclaration d'intention**, et l'outil n'a pas à la deviner autrement.
+
+Collision comparison is case-insensitive, but filesystem identity is not
+rewritten. If the emitted home article is named `Index.html`, navigation,
+series sharing, Home and build/watch browser opening use that exact spelling.
+No lowercase alias is generated. This does not configure a web server's
+directory-index policy. Combined HTML keeps its contents route distinct from
+an article key with either spelling.
 
 #### 11.3.4 `--no-nav`, `--no-index`, `--no-readme`
 
@@ -7898,6 +8006,18 @@ attributs `on…=`, les URL `javascript:` et les assets de layout. Les ressource
 visuelles passent par les assets déclarés et le chrome (§9.9), jamais par une
 URL arbitraire injectée dans la feuille inline.
 
+Nested-document and document-control elements are rejected in the fragment
+itself, before any authored content is inserted. URL-bearing attributes are
+checked after HTML entity decoding and URL whitespace normalization. Static
+acceptance/rejection tests establish these validation rules; they are not a
+claim of a dynamically demonstrated exploit or a general HTML sanitizer.
+
+Required slots are checked as HTML insertions in ordinary element content,
+not merely counted in raw source. Comments, attributes and parser-inert/text-only
+contexts do not satisfy a required slot. Incomplete markup or an unclosed
+insertion context is refused at kit load, before an existing publication or its
+bookkeeping can be changed. The fragment rules are in §9.9.3.
+
 `structure_css` ne sort pas du scope `.lwp-presentation--<id>` et ne peut viser
 le shell LWP, ses slides, sa navigation ou leurs frères. Seuls `@media` et des
 déclarations structurelles sont admis ; couleurs littérales, variables
@@ -7970,6 +8090,10 @@ with pre-beta versions or between prereleases is not promised. Breaking
 report changes still receive new schema identifiers so consumers can detect
 and adapt to them. Final 1.0.0 starts the stability commitment above; a beta
 version number does not start it early.
+
+For `0.x` releases, a minor increment may deliberately change an existing
+contract incompatibly; the changelog must explain the change. Such work does
+not itself trigger `1.0.0`, which remains the first final stability milestone.
 
 ---
 
@@ -9008,6 +9132,14 @@ champs `slide-header`/`slide-footer` du bloc meta fournissent les couches
 d'auteur décrites en §9.9.3 et §20.5.3.
 
 ### 20.3 Règles de validation
+
+Output destinations remain filesystem names, not pre-encoded URLs. Generated
+index, series-navigation and README links URL-encode each filename/path at the
+link boundary; spaces, literal `%` and reserved punctuation are not silently
+reinterpreted as URL syntax. Combined HTML retains the raw `page_dest` as its
+article key and encodes route components separately. Source filenames and
+long-form `article:` references may contain spaces without percent-encoding;
+image destinations follow the separate URL grammar in §6.1.
 
 - Le tableau `articles` est **ordonné** : l'ordre des entrées définit l'ordre
   des articles dans la navigation et l'index.

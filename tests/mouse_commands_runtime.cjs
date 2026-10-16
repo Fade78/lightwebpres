@@ -62,6 +62,7 @@ function harness(primaryFine = true) {
     modalWheelCanScroll: () => true,
     clearCardLongPress: () => {}, clearCardLongPressClick: () => {},
     currentFullscreenElement: () => null,
+    requestWakeLock: () => {}, releaseWakeLock: () => {}, scheduleReadingLayout: () => {},
     clickNavigationDirection: direction => direction, isScrolling: false,
     isIndex: false, slides, current: 1, currentVisible: () => 0, jumpBuffer: '',
     syncCurrentToViewport: () => context.current,
@@ -72,6 +73,7 @@ function harness(primaryFine = true) {
     jumpScrollTo: y => calls.push(['jump', y]),
   };
   root.requestFullscreen = () => calls.push('fullscreen');
+  document.exitFullscreen = () => calls.push('exit-fullscreen');
   root.requestPointerLock = () => calls.push('lock-request');
   document.exitPointerLock = () => {
     calls.push('unlock'); document.pointerLockElement = null; document.fire('pointerlockchange');
@@ -82,7 +84,8 @@ function harness(primaryFine = true) {
     between('  var fsMoveStart = 0;', '  // Wake lock:'),
     between('  function setNavIdle(', '  function rememberTouchPosition('),
     between('  var idleTimer = null;', '  function activateSeriesView('),
-    fn('toggleFullscreen'), fn('closePause'), fn('isPauseNavigationKey'), fn('togglePause'),
+    between('  // F, the presenter menu,', '  // Mouse command grammar.'),
+    fn('handleFullscreenChange'), fn('closePause'), fn('isPauseNavigationKey'), fn('togglePause'),
     fn('changeSlide'), fn('mouseClickStep'), fn('atSlideTop'), fn('goToBeginningOrHome'),
     between("  // A modal's own overlay may scroll", '  function slideTitle('),
     between('  var consumedMouseButtons = {};', '  // --- Touch swipe and double tap'),
@@ -182,6 +185,55 @@ function harness(primaryFine = true) {
     h.context.togglePause('t'); h.context.preparePointerSurface();
     assert.equal(h.pause.classList.contains('open'), true, 'foreground surfaces preserve pause');
   }
+  {
+    const h = harness(); [1, 2].forEach(h.press);
+    h.document.pointerLockElement = h.root;
+    h.press(1); // Native state is available before its queued notification.
+    h.document.fire('pointerlockchange'); h.press(0);
+    assert.ok(h.calls.includes('fullscreen'), 'a requested acquisition must preserve a newer M prefix');
+  }
+  {
+    const h = harness(); [1, 2].forEach(h.press); h.acknowledge();
+    h.document.exitPointerLock = () => { h.calls.push('unlock'); h.document.pointerLockElement = null; };
+    [1, 2].forEach(h.press);
+    h.press(1); h.document.fire('pointerlockchange'); h.press(0);
+    assert.ok(h.calls.includes('fullscreen'), 'a requested release must preserve a newer M prefix');
+  }
+  {
+    const h = harness(); [1, 2].forEach(h.press); h.acknowledge();
+    h.document.exitPointerLock = () => { h.calls.push('unlock'); h.document.pointerLockElement = null; };
+    [1, 2].forEach(h.press); // Release, with its notification still pending.
+    [1, 2].forEach(h.press); // Start a new acquisition before that old notice.
+    h.document.fire('pointerlockchange');
+    h.document.pointerLockElement = h.root;
+    h.press(1); h.document.fire('pointerlockchange'); h.press(0);
+    assert.ok(h.calls.includes('fullscreen'), 'an old release notice cannot clear a newer acquisition');
+  }
+  {
+    const h = harness(); [1, 2].forEach(h.press); h.acknowledge();
+    h.press(1); h.document.fire('pointerlockchange'); h.press(0);
+    assert.ok(h.calls.includes('fullscreen'), 'an unchanged duplicate notice must not cancel a new command');
+  }
+  {
+    const h = harness(); [1, 2].forEach(h.press); h.acknowledge();
+    h.press(1); h.document.pointerLockElement = null;
+    h.document.fire('pointerlockchange'); h.press(0);
+    assert.ok(!h.calls.includes('fullscreen'), 'an external release still cancels a pending prefix');
+  }
+  {
+    const h = harness(); h.press(1); h.acknowledge(); h.press(0);
+    assert.ok(!h.calls.includes('fullscreen'), 'an unrequested capture still cancels a pending prefix');
+  }
+  {
+    const h = harness(); [1, 2].forEach(h.press);
+    h.document.pointerLockElement = h.root;
+    h.document.exitPointerLock = () => { h.calls.push('unlock'); h.document.pointerLockElement = null; };
+    h.context.releasePointerLock();
+    h.document.fire('pointerlockchange');
+    [1, 2].forEach(h.press);
+    assert.equal(h.calls.filter(call => call === 'lock-request').length, 2,
+      'a capture released before either notice cannot leave acquisition stuck pending');
+  }
   for (const failure of ['legacy', 'throw', 'promise', 'unavailable']) {
     const h = harness();
     if (failure === 'unavailable') delete h.root.requestPointerLock;
@@ -193,6 +245,84 @@ function harness(primaryFine = true) {
     assert.equal(h.document.pointerLockElement, null);
     assert.equal(h.menu.attrs['aria-pressed'], 'false');
     assert.equal(h.status.hidden, false, failure + ' failure is visible');
+  }
+  {
+    const h = harness(); [1, 0].forEach(h.press);
+    h.context.currentFullscreenElement = () => h.root;
+    h.press(1); h.context.handleFullscreenChange(); h.press(2);
+    assert.ok(h.calls.includes('lock-request'), 'a requested fullscreen acknowledgement preserves a newer prefix');
+  }
+  {
+    const h = harness(); h.context.currentFullscreenElement = () => h.root;
+    h.context.handleFullscreenChange(); [1, 0].forEach(h.press);
+    h.context.currentFullscreenElement = () => null;
+    h.press(1); h.context.handleFullscreenChange(); h.press(2);
+    assert.ok(h.calls.includes('lock-request'), 'a requested fullscreen exit preserves a newer prefix');
+  }
+  {
+    const h = harness(); [1, 0].forEach(h.press);
+    h.context.currentFullscreenElement = () => h.root; h.context.handleFullscreenChange();
+    h.press(1); h.context.handleFullscreenChange(); h.press(2);
+    assert.ok(h.calls.includes('lock-request'), 'duplicate fullscreen notifications do not erase a prefix');
+  }
+  for (const entering of [true, false]) {
+    const h = harness();
+    h.context.currentFullscreenElement = () => entering ? null : h.root;
+    h.context.handleFullscreenChange(); h.press(1);
+    h.context.currentFullscreenElement = () => entering ? h.root : null;
+    h.context.handleFullscreenChange(); h.press(2);
+    assert.ok(!h.calls.includes('lock-request'), 'an unrequested fullscreen transition still cancels');
+  }
+  {
+    const h = harness(); [1, 0].forEach(h.press);
+    h.context.currentFullscreenElement = () => h.root; [1, 0].forEach(h.press);
+    h.context.currentFullscreenElement = () => null; [1, 0].forEach(h.press);
+    h.context.currentFullscreenElement = () => h.root; h.context.handleFullscreenChange();
+    h.press(1); h.context.currentFullscreenElement = () => null;
+    h.context.handleFullscreenChange(); h.press(2);
+    assert.ok(!h.calls.includes('lock-request'), 'a newer entry retires older exit intent before an external loss');
+  }
+  {
+    const h = harness(); h.root.requestFullscreen = () => Promise.reject(Error('refused'));
+    [1, 0].forEach(h.press); await Promise.resolve();
+    h.context.currentFullscreenElement = () => h.root;
+    h.press(1); h.context.handleFullscreenChange(); h.press(2);
+    assert.ok(!h.calls.includes('lock-request'), 'a refused fullscreen request cannot authorize a later external entry');
+  }
+  {
+    const h = harness(); let reject;
+    h.root.requestFullscreen = () => new Promise((resolve, fail) => { reject = fail; });
+    [1, 0].forEach(h.press);
+    h.root.requestFullscreen = () => h.calls.push('fullscreen');
+    [1, 0].forEach(h.press); reject(Error('old request')); await Promise.resolve();
+    h.context.currentFullscreenElement = () => h.root;
+    h.press(1); h.context.handleFullscreenChange(); h.press(2);
+    assert.ok(h.calls.includes('lock-request'), 'an old rejection cannot discard a newer fullscreen request');
+  }
+  for (const unavailable of [false, true]) {
+    const h = harness();
+    if (unavailable) delete h.root.requestFullscreen;
+    else h.root.requestFullscreen = () => { throw Error('refused'); };
+    assert.doesNotThrow(() => [1, 0].forEach(h.press));
+    h.context.currentFullscreenElement = () => h.root;
+    h.press(1); h.context.handleFullscreenChange(); h.press(2);
+    assert.ok(!h.calls.includes('lock-request'), 'unavailable/throwing APIs cannot leave an entry intent');
+  }
+  {
+    const h = harness(); delete h.root.requestFullscreen; delete h.document.exitFullscreen;
+    h.root.webkitRequestFullscreen = () => h.calls.push('webkit-fullscreen');
+    h.document.webkitExitFullscreen = () => h.calls.push('webkit-exit-fullscreen');
+    [1, 0].forEach(h.press);
+    h.context.currentFullscreenElement = () => h.root;
+    h.press(1); h.context.handleFullscreenChange(); h.press(2);
+    assert.ok(h.calls.includes('lock-request'), 'event-only WebKit entry preserves the newer prefix');
+    h.acknowledge();
+    [1, 0].forEach(h.press);
+    h.context.currentFullscreenElement = () => null;
+    h.press(1); h.context.handleFullscreenChange(); h.press(2);
+    assert.ok(h.calls.includes('webkit-fullscreen') && h.calls.includes('webkit-exit-fullscreen'));
+    assert.equal(h.calls.filter(call => call === 'lock-request').length, 2,
+      'event-only WebKit exit preserves the newer prefix');
   }
   {
     const h = harness(); h.moveTop(-120); [1, 1, 0].forEach(h.press);

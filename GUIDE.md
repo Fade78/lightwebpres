@@ -347,6 +347,40 @@ title is a tooltip. Relative Markdown links are not converted: use raw
 render as paragraphs, not semantic headings. See the format reference for
 converter limits; this is not a general CommonMark implementation.
 
+For an image filename containing spaces, encode them in the destination:
+`![Photo](img/my%20photo.svg)` reads `sources/img/my photo.svg` and publishes
+`public/img/my photo.svg`. The normal build, `--inline-images`, `verify` and
+image-inventory diagnostics use the same single-decoded path. Encode literal
+filename `%`, `#` and `?` as `%25`, `%23` and `%3F`; an ordinary URL query or
+fragment is not part of the filename. No source renaming is needed.
+
+`page_source`, `page_dest` and a long-form `article:` value are filenames, not
+image URLs: write their actual spaces or percent signs. Generated index,
+navigation and README links encode the output name for you, including the path
+to a combined HTML file whose name contains spaces.
+
+**Merge table cells.** Use adjacent pipes (`||`) to extend the preceding cell
+one column to the right, and a cell containing only `:::` to continue the body
+cell above:
+
+```text
+| Group || Result |
+| --- | --- | --- |
+| Shared || First |
+| ::: || Second |
+| Left | | Last |
+```
+
+Group spans two header columns. Shared spans two columns and two body rows;
+the last row has a genuine empty middle cell because its delimiters contain a
+space (`| |`), not `||`. Use `` `:::` `` or `\:\:\:` for a literal marker and
+`\|` for a pipe within cell text. Images and inline formatting work in merged
+cells. Each row of a merged table must cover the separator's full column count;
+vertical continuations must cover the complete cell and cannot cross from the
+header into the body. Invalid merges are refused, not repaired. Ordinary
+unmerged tables still tolerate uneven row lengths. DokuWiki's `^` headers and
+space-based alignment are not supported; separator alignment colons stay ignored.
+
 For comparison tables, wrap a cell value in `<span class="yes">Yes</span>`,
 `no` or `partial` to add a verdict treatment with a shape marker, not color
 alone. A `col-signal` class on a header emphasizes its column; that requires
@@ -906,6 +940,12 @@ receives only `{{content}}`. A kit can use local files or native references
 inside a kit keeps that kit's chrome. Kits cannot depend on Commons or other
 kits, extend them, or declare provenance, parentage or authenticity. Resource
 origins are computed by the loaders.
+
+Put layout slots in normal HTML element content, never in attributes, comments
+or text-only/inert containers such as `textarea` or `template`. Close those
+containers within the fragment; `<template/>` is not a closed HTML template.
+For a literal example marker, write `&#123;&#123;content&#125;&#125;` rather
+than a raw slot. These checks apply to kit layouts, not to your article's HTML.
 
 The persisted appearance declaration is the root `appearance` object. Its
 `presets` list uses `builtin/standard`, `commons/<id>` or
@@ -1623,6 +1663,10 @@ fullscreen and appearance, the previous/index/next navigation trio, reading
 tools, sharing/help, and the three pause screens. On a wide menu, hidden
 actions do not shift another group; the pause actions are visibly black, white
 and themed.
+Rows reflow into fewer columns when the card is narrow or the interface type
+grows on a high-resolution screen. Labels and shortcuts remain visible rather
+than collapsing into a column of single letters; resizing preserves keyboard
+focus and action order.
 
 | Control | What it changes |
 |---|---|
@@ -1868,6 +1912,10 @@ The browser may refuse capture; LWP reports failure instead of claiming that
 CSS hiding immobilized the mouse. Capture survives article switches within one
 combined HTML; a full page navigation starts a fresh session.
 
+You can start another mouse sequence while the browser acknowledges a requested
+capture, release or fullscreen transition. That acknowledgement does not cancel
+the newer sequence; external state changes still return the recognizer to neutral.
+
 On a tablet or phone with a mouse connected, LWP uses the actual input event,
 so the mouse commands work even when the browser still reports touch as its
 primary pointer. Switching back to a finger releases mouse capture and retains
@@ -1976,6 +2024,9 @@ only the fine-pointer mouse gesture on a wheel-selected card list is intercepted
 navigation double tap is recognized from touch events themselves, not from
 the delayed clicks a browser synthesizes, so those clicks cannot advance the
 deck after the first tap has been restored.
+Gesture timing uses when the input occurred, not when a busy browser eventually
+handles it. Delayed processing does not turn a short swipe or double tap into
+a different gesture; long presses and native selection keep their own behavior.
 
 ### Share a series, an article or a slide
 
@@ -1992,7 +2043,10 @@ the hosted address. No QR service receives the link.
 
 Fullscreen is a deliberate **F**/button gesture, not a consequence of
 rotating a phone. It requests a screen wake lock where supported; otherwise
-the operating system may still dim the display. The scrollbar fades with
+the operating system may still dim the display. It releases that lock on exit
+or when the tab is hidden, including a delayed browser reply; returning to a
+visible fullscreen tab requests it again. Ordinary reading never acquires one.
+The scrollbar fades with
 the navigation without changing layout. Entering/leaving fullscreen and
 clicking in the button corner reveal the controls immediately.
 

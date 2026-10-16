@@ -247,8 +247,11 @@ holding directory or mistake a historical measurement for a current guarantee
   dépôt. Le vrai critère n'est pas l'import, c'est **ce qu'on affirme** :
   un comportement visible se vérifie par la sortie, une propriété interne
   se mesure par le module.
-- **Versionnage sémantique** (spec §13.9) : MAJOR = incompatible, MINOR =
-  rétrocompatible. La constante `VERSION` est dans `lightwebpres`.
+- **Semantic versioning** (spec §13.9): from final 1.0.0, MAJOR means
+  incompatible changes and MINOR means backward-compatible features. Before
+  1.0, minor releases may deliberately break existing contracts; document those
+  changes rather than treating them as the final 1.0 milestone. The `VERSION`
+  constant is in `lightwebpres`.
 - **Bumper `VERSION`, c'est ouvrir une section du `CHANGELOG.md`** dans le
   même commit, sous le titre `## Unreleased — X.Y.Z`. Une garde
   (`test_the_version_it_announces_has_a_changelog_entry`) refuse la suite

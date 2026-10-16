@@ -230,6 +230,32 @@ class KitCompositionExample(unittest.TestCase):
             self.assertEqual(dimensions, (capture['width'], capture['height']))
             self.assertEqual(hashlib.sha256(data).hexdigest(), capture['sha256'])
 
+    def test_documentation_captures_show_preset_themes_not_the_tutorial_override(self):
+        manifest = json.loads((ROOT / 'generated/documentation-captures.json').read_text())
+        native = json.loads(self.cli('theme', 'show', 'light', '--format', 'json'))['properties']
+
+        def properties(path):
+            return dict(line.split(': ', 1) for line in path.read_text(encoding='utf-8').splitlines()
+                        if line and not line.startswith('#'))
+
+        official = properties(ROOT / 'examples/kits/lightwebpres-docs/0.1.0/themes/docs.conf')
+        paper = properties(EXAMPLE / 'sources/field-ink/1.0.0/themes/paper.conf')
+        expected = {'native': native, 'official': official, 'composed': paper,
+                    'frames': native, 'marks': native, 'ink': paper}
+        self.assertEqual([page['name'] for page in manifest['pages']], list(expected))
+        for page in manifest['pages']:
+            with self.subTest(capture=page['name']):
+                theme = expected[page['name']]
+                normalize_fonts = lambda text: [part.strip(" '\"") for part in text.split(',')]
+                self.assertEqual(normalize_fonts(page['headingFont']),
+                                 normalize_fonts(theme['title2.font']))
+                color = theme['page.bg'].lstrip('#')
+                expected_rgb = 'rgb(' + ', '.join(str(int(color[i:i + 2], 16))
+                                                 for i in (0, 2, 4)) + ')'
+                self.assertEqual(page['pageBackground'], expected_rgb)
+                self.assertIsNone(page['theme']['override'])
+                self.assertEqual(page['theme']['label'], theme.get('label', 'Light'))
+
 
 if __name__ == '__main__':
     unittest.main()

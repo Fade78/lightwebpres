@@ -2077,7 +2077,10 @@ body.fs-noselect {
 }
 .presenter-menu-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* A card is width-capped while UI type grows with vmin. Fixed thirds
+     squeeze labels to zero on phones and at 4K native scale. Fit whole
+     controls in ems, keeping the ordinary three-column desktop arrangement. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13em), 1fr));
   gap: 8px;
 }
 .reading-controls {
@@ -2568,7 +2571,8 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
       data-lwp-article-tags=""
       data-lwp-tag-preview="{&quot;articles&quot;:[{&quot;title&quot;:&quot;First article (card)&quot;,&quot;tags&quot;:[],&quot;slides&quot;:[{&quot;title&quot;:&quot;First article&quot;,&quot;type&quot;:&quot;cover&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;First fact&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;&quot;,&quot;type&quot;:&quot;series-nav&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;article-complet&quot;,&quot;type&quot;:&quot;full-article&quot;,&quot;tags&quot;:[&quot;default&quot;]}]},{&quot;title&quot;:&quot;Middle article&quot;,&quot;tags&quot;:[],&quot;slides&quot;:[{&quot;title&quot;:&quot;Middle article&quot;,&quot;type&quot;:&quot;cover&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;A slide with a highlight&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;&quot;,&quot;type&quot;:&quot;series-nav&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;article-complet&quot;,&quot;type&quot;:&quot;full-article&quot;,&quot;tags&quot;:[&quot;default&quot;]}]},{&quot;title&quot;:&quot;Last article&quot;,&quot;tags&quot;:[],&quot;slides&quot;:[{&quot;title&quot;:&quot;Last article&quot;,&quot;type&quot;:&quot;cover&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Inline HTML test&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;&quot;,&quot;type&quot;:&quot;series-nav&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;article-complet&quot;,&quot;type&quot;:&quot;full-article&quot;,&quot;tags&quot;:[&quot;default&quot;]}]}]}"
       data-lwp-table-mode="clip"
-      data-lwp-scroll-duration="200">
+      data-lwp-scroll-duration="200"
+      data-lwp-series-home="index.html">
 
 
 <nav class="nav-dots"></nav>
@@ -2601,7 +2605,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.70.0</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.71.0</div>
   </div>
 </div>
 
@@ -3674,11 +3678,15 @@ document.addEventListener('DOMContentLoaded', function() {
       try {
         var url = new URL(href, location.href);
         if (url.search) return;
+        var path = decodeURIComponent(url.pathname);
         var key = null;
         seriesViews.forEach(function (_view, candidate) {
-          if (candidate && new URL(candidate, location.href).pathname === url.pathname) key = candidate;
+          // A view key is a filesystem name, not an already-escaped URL.
+          // Decode each pathname once so equivalent URL spellings match,
+          // without aliasing a literal percent escape with its decoded name.
+          if (candidate && decodeURIComponent(new URL(encodeURIComponent(candidate), location.href).pathname) === path) key = candidate;
         });
-        if (key === null && new URL('index.html', location.href).pathname === url.pathname) key = seriesHomeKey;
+        if (key === null && decodeURIComponent(new URL('index.html', location.href).pathname) === path) key = seriesHomeKey;
         if (key !== null) link.setAttribute('href', seriesFragment(key, decodeURIComponent(url.hash.slice(1))));
       } catch (e) {}
     });
@@ -4215,9 +4223,14 @@ document.addEventListener('DOMContentLoaded', function() {
           });
         });
         if (!images.length) return;
+        // Preserve exact fitting on integer viewports. Only a fractionally
+        // rounded minimum may use the final fit check's one-pixel tolerance.
+        var minimum = parseFloat(candidate.slide.ownerDocument.defaultView
+          .getComputedStyle(candidate.slide).minHeight);
+        var heightLimit = minimum > height && minimum <= height + 1 ? height + 1 : height;
         function fitsImages() {
-          if (candidate.slide.getBoundingClientRect().height > height
-              || candidate.slide.scrollHeight > height) return false;
+          if (candidate.slide.getBoundingClientRect().height > heightLimit
+              || candidate.slide.scrollHeight > heightLimit) return false;
           return !readingSettings.object_shrink_horizontal || images.every(function (image) {
             var viewport = image.node.closest('.lwp-table-viewport');
             if (!viewport) return true;
@@ -4959,7 +4972,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function tagList() {
-    var seen = {};
+    var seen = Object.create(null);
     var tags = [];
     addTagList(tags, seen, seriesTags);
     addTagList(tags, seen, articleTags(document.body));
@@ -5079,7 +5092,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function firstPublishableTag() {
     var candidates = [defaultTag].concat(tagList());
-    var seen = {};
+    var seen = Object.create(null);
     for (var i = 0; i < candidates.length; i++) {
       var candidate = candidates[i];
       if (seen[candidate]) continue;
@@ -7034,11 +7047,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   // Series home is the contents view, or the first unit when contents are omitted.
   // On the index itself, this action returns to the top of the page.
+  var seriesHomeHref = document.body.getAttribute('data-lwp-series-home') || 'index.html';
   function goHome() {
     closePause();
     if (!isIndex) {
       if (seriesViews) activateSeriesView({key: seriesHomeKey, target: ''}, true);
-      else window.location.href = 'index.html';
+      else window.location.href = seriesHomeHref;
     } else {
       clearIndexFocus();
       scrollToTop();
@@ -7682,7 +7696,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return slideId ? base + seriesFragment(seriesCurrentKey, slideId) : null;
     }
     if (scope === 'series') {
-      return location.origin + location.pathname.replace(/[^\/]*$/, '') + 'index.html';
+      return location.origin + location.pathname.replace(/[^\/]*$/, '') + seriesHomeHref;
     }
     if (scope === 'article') {
       return location.origin + location.pathname;
@@ -7898,15 +7912,26 @@ document.addEventListener('DOMContentLoaded', function() {
   // F, the presenter menu, the navigation button and the mouse gesture all
   // come here. The browser's current fullscreen element is the state: no
   // local flag can drift from an Esc press or another browser exit.
+  var fullscreenObservedElement = currentFullscreenElement();
+  var fullscreenRequest = null;
   function toggleFullscreen() {
     var current = currentFullscreenElement();
-    if (current) {
-      var exit = document.exitFullscreen || document.webkitExitFullscreen;
-      return exit ? exit.call(document) : null;
+    var owner = current ? document : document.documentElement;
+    var method = current ? (document.exitFullscreen || document.webkitExitFullscreen)
+      : (owner.requestFullscreen || owner.webkitRequestFullscreen);
+    if (typeof method !== 'function') return null;
+    var pending = {element: current ? null : owner};
+    fullscreenRequest = pending;
+    try {
+      var result = method.call(owner);
+      if (result && typeof result.catch === 'function') result.catch(function () {
+        if (fullscreenRequest === pending) fullscreenRequest = null;
+      });
+      return result;
+    } catch (error) {
+      if (fullscreenRequest === pending) fullscreenRequest = null;
+      return null;
     }
-    var el = document.documentElement;
-    var request = el.requestFullscreen || el.webkitRequestFullscreen;
-    return request ? request.call(el) : null;
   }
 
   // Mouse command grammar. Recognition has no DOM or navigation side effects;
@@ -7977,6 +8002,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // outstanding/refused request as a locked mouse. The root survives view swaps.
   var pointerRequestPending = false;
   var pointerRequestCancelled = false;
+  var pointerReleasePending = false;
+  var pointerObservedElement = document.pointerLockElement || null;
   var pointerErrorReported = false;
   var pointerStatusTimer = null;
   function pointerIsLocked() {
@@ -8002,6 +8029,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function releasePointerLock() {
     pointerRequestCancelled = true;
     if (pointerIsLocked() && typeof document.exitPointerLock === 'function') {
+      pointerReleasePending = true;
       document.exitPointerLock();
     }
   }
@@ -8054,8 +8082,19 @@ document.addEventListener('DOMContentLoaded', function() {
     scheduleHide();
   }
   document.addEventListener('pointerlockchange', function () {
-    pointerRequestPending = false;
-    cancelMouseSequence();
+    var element = document.pointerLockElement || null;
+    var acquisition = element === document.documentElement
+      && pointerRequestPending && !pointerRequestCancelled;
+    var release = element === null && pointerReleasePending;
+    var changed = element !== pointerObservedElement;
+    // Native state may change before its notification: a fresh M can already
+    // be in flight. Our own acknowledgement, or a duplicate notice, is not a
+    // new user command. An old release also cannot clear a newer request.
+    if (element === document.documentElement || (element === null && pointerRequestCancelled)
+        || (changed && !release)) pointerRequestPending = false;
+    if (acquisition || element !== document.documentElement) pointerReleasePending = false;
+    pointerObservedElement = element;
+    if (changed && !acquisition && !release) cancelMouseSequence();
     syncDisplayState();
     // A menu, blur or fullscreen exit may have cancelled a request before
     // the browser acknowledged it. Release that late capture immediately.
@@ -8108,20 +8147,56 @@ document.addEventListener('DOMContentLoaded', function() {
   // Wake lock: prevents the screen from dimming/sleeping while the
   // speaker presents. Released when fullscreen exits.
   var wakeLock = null;
+  var wakeLockGeneration = 0;
+  var wakeLockPending = false;
   function requestWakeLock() {
-    if ('wakeLock' in navigator) {
+    if (!navigator.wakeLock || typeof navigator.wakeLock.request !== 'function'
+        || !currentFullscreenElement() || document.visibilityState === 'hidden'
+        || wakeLockPending || (wakeLock && !wakeLock.released)) return;
+    var generation = ++wakeLockGeneration;
+    wakeLockPending = true;
+    try {
       navigator.wakeLock.request('screen').then(function (lock) {
+        if (generation === wakeLockGeneration) wakeLockPending = false;
+        // Exit, hiding or a newer fullscreen session may precede the reply.
+        // Every acquired sentinel still needs an owner, including a late one.
+        if (generation !== wakeLockGeneration || !currentFullscreenElement()
+            || document.visibilityState === 'hidden') {
+          lock.release().catch(function () {});
+          return;
+        }
         wakeLock = lock;
-      }).catch(function () {});
+        lock.addEventListener('release', function () {
+          if (wakeLock === lock) wakeLock = null;
+        }, {once: true});
+      }).catch(function () {
+        if (generation === wakeLockGeneration) wakeLockPending = false;
+      });
+    } catch (error) {
+      if (generation === wakeLockGeneration) wakeLockPending = false;
     }
   }
   function releaseWakeLock() {
-    if (wakeLock) { wakeLock.release().catch(function(){}); wakeLock = null; }
+    wakeLockGeneration++;
+    wakeLockPending = false;
+    var previous = wakeLock;
+    wakeLock = null;
+    if (previous) previous.release().catch(function () {});
   }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && currentFullscreenElement()) requestWakeLock();
+    else releaseWakeLock();
+  });
 
   function handleFullscreenChange() {
-    cancelMouseSequence();
     var fs = currentFullscreenElement();
+    var changed = fs !== fullscreenObservedElement;
+    var requested = fullscreenRequest && fullscreenRequest.element === fs;
+    // As with Pointer Lock, native state can precede its notification. A
+    // requested acknowledgement must not erase the next mouse command.
+    if (changed && !requested) cancelMouseSequence();
+    if (changed || requested) fullscreenRequest = null;
+    fullscreenObservedElement = fs;
     if (fs) {
       requestWakeLock();
     } else {
@@ -8685,7 +8760,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // --- Touch swipe and double tap (mobile / tablet) ---
   var touchStartX = null, touchStartY = null, touchStartT = 0;
-  var lastTapT = 0;
+  var lastTapT = null;
   var multiTouchActive = false, multiTouchClicksUntil = 0;
   var touchNavigationBlocked = false;
   // Two taps close together, each of them short and still. The window is
@@ -8707,7 +8782,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (tableGesture) tableGesture.blocked = true;
     multiTouchActive = e.touches.length > 0;
     touchStartX = touchStartY = null;
-    touchStartT = lastTapT = 0;
+    touchStartT = 0;
+    lastTapT = null;
     touchNavigationBlocked = true;
     cancelMouseSequence();
     multiTouchClicksUntil = Date.now() + 450;
@@ -8722,18 +8798,20 @@ document.addEventListener('DOMContentLoaded', function() {
       || !!(window.visualViewport && window.visualViewport.scale > 1);
     if (touchNavigationBlocked || e.touches.length !== 1) {
       touchStartX = touchStartY = null;
-      lastTapT = 0;
+      lastTapT = null;
       return;
     }
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
-    touchStartT = Date.now();
+    // Native input time survives a busy main thread. Handler execution time
+    // can turn two short taps into a false long press or two unrelated taps.
+    touchStartT = e.timeStamp;
   }, { passive: true });
   document.addEventListener('touchmove', function (e) {
     if (discardMultiTouch(e)) return;
     if (e.touches.length !== 1) {
       touchStartX = touchStartY = null;
-      lastTapT = 0;
+      lastTapT = null;
     }
   }, { passive: true });
   document.addEventListener('touchcancel', discardMultiTouch, { passive: true });
@@ -8742,20 +8820,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (helpIsOpen() || touchNavigationBlocked || isInteractive(e)
         || e.touches.length || e.changedTouches.length !== 1) {
       touchStartX = touchStartY = null;
-      lastTapT = 0;
+      lastTapT = null;
       return;
     }
     if (touchStartX === null) return;
     var dx = e.changedTouches[0].clientX - touchStartX;
     var dy = e.changedTouches[0].clientY - touchStartY;
-    var dt = Date.now() - touchStartT;
+    var dt = e.timeStamp - touchStartT;
     touchStartX = null;
     // Horizontal swipe dominates: 50px threshold, < 500ms, horizontal >
     // vertical. Left = next, right = previous (convention: swipe the way
     // the next slide comes FROM).
-    if (dt < 500 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    if (dt >= 0 && dt < 500 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
       if (dx < 0) runStepped(stepForward); else runStepped(stepBackward);
-      lastTapT = 0;
+      lastTapT = null;
       return;
     }
     // A double tap toggles the navigation chrome. The first tap is not an
@@ -8765,19 +8843,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fullscreen keeps the button in that chrome rather than this
     // gesture. One gesture that means two things depending on a state
     // the reader cannot see coming is not a gesture, it is a lottery.
-    if (isInteractive(e)) { lastTapT = 0; return; }
-    if (dt >= TAP_MAX_MS || Math.abs(dx) > TAP_SLOP_PX || Math.abs(dy) > TAP_SLOP_PX) {
-      lastTapT = 0;
+    if (isInteractive(e)) { lastTapT = null; return; }
+    if (dt < 0 || dt >= TAP_MAX_MS || Math.abs(dx) > TAP_SLOP_PX || Math.abs(dy) > TAP_SLOP_PX) {
+      lastTapT = null;
       return;
     }
-    var now = Date.now();
-    if (lastTapT && now - lastTapT < DOUBLE_TAP_MS) {
-      lastTapT = 0;
+    var now = e.timeStamp;
+    if (lastTapT !== null && now >= lastTapT && now - lastTapT < DOUBLE_TAP_MS) {
+      lastTapT = null;
       // The first tap has already advanced the deck, and the
       // synthesised clicks for both taps may still be in flight.
       // Suppress the ones that remain, or the gesture that put the
       // chrome away would also have moved the reader two cards on.
-      swallowClicksUntil = now + 450;
+      // Compatibility clicks are still pending now, even for old input.
+      // Their quarantine belongs to the delivery clock used by click handlers.
+      swallowClicksUntil = Date.now() + 450;
       restoreTouchPosition();
       toggleNavVisibility();
       return;
@@ -8922,7 +9002,7 @@ document.addEventListener('DOMContentLoaded', function() {
     seriesTarget = null;
     focusedCard = -1;
     touchStartX = touchStartY = null;
-    lastTapT = 0;
+    lastTapT = null;
     cancelMouseSequence();
     closeReadingMenu(false);
     closePresenterMenu(false);

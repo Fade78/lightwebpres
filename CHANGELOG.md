@@ -33,6 +33,85 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.71.0
+
+Markdown tables now support two DokuWiki-style merge operators: adjacent pipes
+(`||`) extend the preceding cell horizontally, and a cell containing only `:::`
+continues the body cell above. Combined horizontal/vertical merges must form
+complete rectangles. The renderer emits native `colspan`/`rowspan`; images,
+inline formatting, long-form articles and combined HTML use the same grammar.
+
+This is an intentional pre-1.0 syntax change: `||` no longer means a separate
+empty cell. Write `| |` to retain a real empty cell. Header markers (`^`) and
+space-based alignment from DokuWiki are not imported; separator alignment colons
+remain ignored. Invalid merges fail before replacing publications or caches,
+while tables without merges retain their tolerance of uneven row lengths.
+Static width advice consumes the same logical grid and counts each merged
+cell's content and padding once.
+
+## Unreleased — 0.70.1
+
+Local images with URL-encoded filenames, including spaces, are now copied in
+ordinary multipage and combined-HTML builds as well as embedded by
+`--inline-images`. `verify` checks those copied files and `audit` reports their
+actual source names. URLs are decoded once, without losing literal percent
+signs, encoded filename characters such as `#` and `?`, query strings or SVG
+fragments. Unsafe decoded paths remain excluded. Old disposable image caches
+are recalculated automatically; no source files need renaming.
+
+Generated index, series-navigation and README links now URL-encode output
+filenames instead of treating them as URL syntax. Spaces, literal percent
+escapes and reserved punctuation keep their filesystem identity. Combined HTML
+also distinguishes a filename containing `%20` from one containing an actual
+space, while preserving raw `page_dest` values as its article keys.
+
+Image height fitting now tolerates native viewport rounding at fractional
+display scales. A fractionally sized `100vh` no longer makes the solver give up
+and restore oversized images. Native Chromium/Firefox window and fullscreen
+checks cover the correction; text that cannot fit by itself still scrolls.
+
+Presenter controls now reflow by available width and font size. Phone-sized
+menus and enlarged 4K interface text no longer squeeze labels to zero width;
+ordinary desktop menus retain three columns and keyboard focus survives resizing.
+
+Screen wake locks now release late acknowledgements after fullscreen exit or
+tab hiding, deduplicate pending requests, and reacquire after returning to a
+visible fullscreen tab. An earlier fullscreen session cannot replace a newer
+session's lock, and unsupported/refused requests remain optional.
+
+Rapid mouse commands no longer disappear when delayed fullscreen or Pointer
+Lock acknowledgements arrive between their prefix and suffix. Requested
+transitions and duplicate notifications preserve newer commands; external state
+changes and cancelled late captures retain their cancellation/release behavior.
+
+The documentation's appearance comparison and kit-composition diagram now show
+each preset's actual palette and typography, instead of carrying the first
+article tutorial's explicit Nebula override into every example. Capture guards
+check the rendered background and heading font as well as geometry and files.
+
+Touch gestures now use native event timestamps, so a busy main thread no
+longer turns a valid double tap or short swipe into unrelated taps or a long
+press. The gesture thresholds are unchanged; delayed compatibility clicks
+remain quarantined after restoring the reader's position.
+
+The valid tag `constructor` no longer disappears from the reader's menu or
+first-readable fallback. Tag names remain ordinary author vocabulary.
+
+A mixed-case index-name article such as `Index.html` now keeps that exact
+physical-home spelling in navigation, series sharing, the Home shortcut and
+build/watch browser opening. Case-insensitive multi-article collision checks
+and combined HTML's separate contents route remain unchanged.
+
+Identity Kit layout validation now rejects nested-document and document-control
+elements and checks URL schemes after HTML attribute decoding. These checks
+apply to kit fragments, not to the author's deliberately trusted raw article HTML.
+
+Kit slots must also be real HTML insertions, not tokens hidden in comments,
+attributes or inert/text-only containers. Incomplete fragments and unclosed
+insertion contexts are refused before publication, including when composing
+kits or loading unused alternatives. Decorative comments and encoded literal
+marker examples remain valid; rejected builds preserve existing output and caches.
+
 ## v0.70.0
 
 Mixed-ratio images now fit independently inside a table: a portrait or square

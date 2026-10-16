@@ -52,6 +52,7 @@ from pathlib import Path, PurePosixPath
 from types import SimpleNamespace
 from html import escape as html_escape, unescape as html_unescape
 from html.parser import HTMLParser
+from urllib.parse import quote
 
 # Enforced at import: the source itself parses down to Python 3.6, so on
 # an older interpreter this check runs and explains, instead of some
@@ -69,7 +70,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.70.0"
+VERSION = "0.71.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -4497,7 +4498,8 @@ _PRESENTATION_LAYOUT_SLOTS = frozenset({
     'content', 'slide_header', 'slide_footer',
 })
 _PRESENTATION_FORBIDDEN_TAG_RE = re.compile(
-    r'<\s*/?\s*(?:html|head|body|section|script|style)\b', re.IGNORECASE)
+    r'<\s*/?\s*(?:html|head|body|section|script|style|iframe|frame|frameset|'
+    r'object|embed|applet|base|meta)\b', re.IGNORECASE)
 _PRESENTATION_LINK_TAG_RE = re.compile(r'<\s*link\b', re.IGNORECASE)
 _PRESENTATION_STYLE_ATTR_RE = re.compile(r'\bstyle\s*=', re.IGNORECASE)
 _PRESENTATION_EVENT_ATTR_RE = re.compile(r'\bon[a-z][a-z0-9_-]*\s*=',
@@ -4744,7 +4746,7 @@ def _validate_presentation_layout(path, text, label, index=False):
     if _PRESENTATION_FORBIDDEN_TAG_RE.search(text):
         _presentation_error(
             path, 'a layout fragment cannot contain html, head, body, '
-            'section, script or style tags')
+            'section, script, style, nested-document or document-control tags')
     if _PRESENTATION_EVENT_ATTR_RE.search(text):
         _presentation_error(path, 'a layout fragment cannot contain event-handler attributes')
     if _PRESENTATION_LINK_TAG_RE.search(text):
@@ -4753,6 +4755,65 @@ def _validate_presentation_layout(path, text, label, index=False):
         _presentation_error(path, 'a layout fragment cannot contain inline styles')
     if _PRESENTATION_JS_URL_RE.search(text):
         _presentation_error(path, 'a layout fragment cannot contain javascript: URLs')
+    # The kit, unlike authored article HTML, is a constrained structural layer.
+    # Inspect browser-facing attribute values after HTML entity decoding; raw
+    # source matching alone misses encoded schemes and URL-ignored whitespace.
+    non_html_containers = frozenset((
+        'template', 'textarea', 'title', 'xmp', 'noembed', 'noframes',
+        'noscript', 'plaintext', 'select', 'option', 'optgroup', 'datalist',
+    ))
+
+    class LayoutMarkup(HTMLParser):
+        def __init__(self):
+            # Data must retain entity-spelled literal marker examples. Attribute
+            # values are still decoded by HTMLParser, independently of this flag.
+            super().__init__(convert_charrefs=False)
+            self.content_slots = dict.fromkeys(_PRESENTATION_LAYOUT_SLOTS, 0)
+            self.non_content = []
+            self.plaintext = False
+
+        def handle_starttag(self, tag, attrs):
+            if not self.plaintext and tag in non_html_containers:
+                self.non_content.append(tag)
+                self.plaintext = tag == 'plaintext'
+            for name, value in attrs:
+                if value is None or name not in (
+                        'href', 'src', 'xlink:href', 'action', 'formaction'):
+                    continue
+                normalized = re.sub(r'[\t\r\n]', '', value).lstrip(
+                    ''.join(chr(code) for code in range(33)))
+                if normalized.lower().startswith('javascript:'):
+                    _presentation_error(
+                        path, 'a layout fragment cannot contain javascript: URLs')
+
+        def handle_startendtag(self, tag, attrs):
+            # A slash does not close a non-void HTML container: <template/>
+            # must not make its following slots look like ordinary content.
+            self.handle_starttag(tag, attrs)
+
+        def handle_endtag(self, tag):
+            if self.plaintext or tag not in non_html_containers:
+                return
+            if not self.non_content or self.non_content[-1] != tag:
+                _presentation_error(
+                    path, f'{label}: mismatched HTML insertion context </{tag}>')
+            self.non_content.pop()
+
+        def handle_data(self, data):
+            if self.non_content:
+                return
+            for match in _PRESENTATION_SLOT_RE.finditer(data):
+                slot = match.group(1)
+                if slot in self.content_slots:
+                    self.content_slots[slot] += 1
+
+    markup = LayoutMarkup()
+    markup.feed(text)
+    # close() may turn an unfinished tag into data. Refuse it while its
+    # original lexical context is still available, before any slot expansion.
+    if markup.rawdata.lstrip().startswith('<'):
+        _presentation_error(path, f'{label}: layout fragment has incomplete markup')
+    markup.close()
     if re.search(r'<\s*(?:img|picture|source|video|audio|svg)\b|\bsrc\s*=',
                  text, re.IGNORECASE):
         _presentation_error(
@@ -4768,6 +4829,14 @@ def _validate_presentation_layout(path, text, label, index=False):
         if slots.count(slot) != 1:
             _presentation_error(
                 path, f'{label} must contain {{' + '{' + slot + '}} exactly once')
+        if markup.content_slots[slot] != 1:
+            _presentation_error(
+                path, f'{label}: layout slots must occur in normal HTML content, '
+                'not markup, comments or text-only/inert containers')
+    if markup.non_content:
+        _presentation_error(
+            path, f'{label}: layout fragment leaves an unclosed HTML insertion '
+            f'context <{markup.non_content[-1]}>')
 
 
 def _parse_chrome_value(value, origin, null_is_clear=False,
@@ -9682,7 +9751,10 @@ body.fs-noselect {
 }
 .presenter-menu-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* A card is width-capped while UI type grows with vmin. Fixed thirds
+     squeeze labels to zero on phones and at 4K native scale. Fit whole
+     controls in ems, keeping the ordinary three-column desktop arrangement. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13em), 1fr));
   gap: 8px;
 }
 .reading-controls {
@@ -10967,11 +11039,15 @@ document.addEventListener('DOMContentLoaded', function() {
       try {
         var url = new URL(href, location.href);
         if (url.search) return;
+        var path = decodeURIComponent(url.pathname);
         var key = null;
         seriesViews.forEach(function (_view, candidate) {
-          if (candidate && new URL(candidate, location.href).pathname === url.pathname) key = candidate;
+          // A view key is a filesystem name, not an already-escaped URL.
+          // Decode each pathname once so equivalent URL spellings match,
+          // without aliasing a literal percent escape with its decoded name.
+          if (candidate && decodeURIComponent(new URL(encodeURIComponent(candidate), location.href).pathname) === path) key = candidate;
         });
-        if (key === null && new URL('index.html', location.href).pathname === url.pathname) key = seriesHomeKey;
+        if (key === null && decodeURIComponent(new URL('index.html', location.href).pathname) === path) key = seriesHomeKey;
         if (key !== null) link.setAttribute('href', seriesFragment(key, decodeURIComponent(url.hash.slice(1))));
       } catch (e) {}
     });
@@ -11508,9 +11584,14 @@ document.addEventListener('DOMContentLoaded', function() {
           });
         });
         if (!images.length) return;
+        // Preserve exact fitting on integer viewports. Only a fractionally
+        // rounded minimum may use the final fit check's one-pixel tolerance.
+        var minimum = parseFloat(candidate.slide.ownerDocument.defaultView
+          .getComputedStyle(candidate.slide).minHeight);
+        var heightLimit = minimum > height && minimum <= height + 1 ? height + 1 : height;
         function fitsImages() {
-          if (candidate.slide.getBoundingClientRect().height > height
-              || candidate.slide.scrollHeight > height) return false;
+          if (candidate.slide.getBoundingClientRect().height > heightLimit
+              || candidate.slide.scrollHeight > heightLimit) return false;
           return !readingSettings.object_shrink_horizontal || images.every(function (image) {
             var viewport = image.node.closest('.lwp-table-viewport');
             if (!viewport) return true;
@@ -12252,7 +12333,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function tagList() {
-    var seen = {};
+    var seen = Object.create(null);
     var tags = [];
     addTagList(tags, seen, seriesTags);
     addTagList(tags, seen, articleTags(document.body));
@@ -12372,7 +12453,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function firstPublishableTag() {
     var candidates = [defaultTag].concat(tagList());
-    var seen = {};
+    var seen = Object.create(null);
     for (var i = 0; i < candidates.length; i++) {
       var candidate = candidates[i];
       if (seen[candidate]) continue;
@@ -14327,11 +14408,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   // Series home is the contents view, or the first unit when contents are omitted.
   // On the index itself, this action returns to the top of the page.
+  var seriesHomeHref = document.body.getAttribute('data-lwp-series-home') || 'index.html';
   function goHome() {
     closePause();
     if (!isIndex) {
       if (seriesViews) activateSeriesView({key: seriesHomeKey, target: ''}, true);
-      else window.location.href = 'index.html';
+      else window.location.href = seriesHomeHref;
     } else {
       clearIndexFocus();
       scrollToTop();
@@ -14975,7 +15057,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return slideId ? base + seriesFragment(seriesCurrentKey, slideId) : null;
     }
     if (scope === 'series') {
-      return location.origin + location.pathname.replace(/[^\/]*$/, '') + 'index.html';
+      return location.origin + location.pathname.replace(/[^\/]*$/, '') + seriesHomeHref;
     }
     if (scope === 'article') {
       return location.origin + location.pathname;
@@ -15191,15 +15273,26 @@ document.addEventListener('DOMContentLoaded', function() {
   // F, the presenter menu, the navigation button and the mouse gesture all
   // come here. The browser's current fullscreen element is the state: no
   // local flag can drift from an Esc press or another browser exit.
+  var fullscreenObservedElement = currentFullscreenElement();
+  var fullscreenRequest = null;
   function toggleFullscreen() {
     var current = currentFullscreenElement();
-    if (current) {
-      var exit = document.exitFullscreen || document.webkitExitFullscreen;
-      return exit ? exit.call(document) : null;
+    var owner = current ? document : document.documentElement;
+    var method = current ? (document.exitFullscreen || document.webkitExitFullscreen)
+      : (owner.requestFullscreen || owner.webkitRequestFullscreen);
+    if (typeof method !== 'function') return null;
+    var pending = {element: current ? null : owner};
+    fullscreenRequest = pending;
+    try {
+      var result = method.call(owner);
+      if (result && typeof result.catch === 'function') result.catch(function () {
+        if (fullscreenRequest === pending) fullscreenRequest = null;
+      });
+      return result;
+    } catch (error) {
+      if (fullscreenRequest === pending) fullscreenRequest = null;
+      return null;
     }
-    var el = document.documentElement;
-    var request = el.requestFullscreen || el.webkitRequestFullscreen;
-    return request ? request.call(el) : null;
   }
 
   // Mouse command grammar. Recognition has no DOM or navigation side effects;
@@ -15270,6 +15363,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // outstanding/refused request as a locked mouse. The root survives view swaps.
   var pointerRequestPending = false;
   var pointerRequestCancelled = false;
+  var pointerReleasePending = false;
+  var pointerObservedElement = document.pointerLockElement || null;
   var pointerErrorReported = false;
   var pointerStatusTimer = null;
   function pointerIsLocked() {
@@ -15295,6 +15390,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function releasePointerLock() {
     pointerRequestCancelled = true;
     if (pointerIsLocked() && typeof document.exitPointerLock === 'function') {
+      pointerReleasePending = true;
       document.exitPointerLock();
     }
   }
@@ -15347,8 +15443,19 @@ document.addEventListener('DOMContentLoaded', function() {
     scheduleHide();
   }
   document.addEventListener('pointerlockchange', function () {
-    pointerRequestPending = false;
-    cancelMouseSequence();
+    var element = document.pointerLockElement || null;
+    var acquisition = element === document.documentElement
+      && pointerRequestPending && !pointerRequestCancelled;
+    var release = element === null && pointerReleasePending;
+    var changed = element !== pointerObservedElement;
+    // Native state may change before its notification: a fresh M can already
+    // be in flight. Our own acknowledgement, or a duplicate notice, is not a
+    // new user command. An old release also cannot clear a newer request.
+    if (element === document.documentElement || (element === null && pointerRequestCancelled)
+        || (changed && !release)) pointerRequestPending = false;
+    if (acquisition || element !== document.documentElement) pointerReleasePending = false;
+    pointerObservedElement = element;
+    if (changed && !acquisition && !release) cancelMouseSequence();
     syncDisplayState();
     // A menu, blur or fullscreen exit may have cancelled a request before
     // the browser acknowledged it. Release that late capture immediately.
@@ -15401,20 +15508,56 @@ document.addEventListener('DOMContentLoaded', function() {
   // Wake lock: prevents the screen from dimming/sleeping while the
   // speaker presents. Released when fullscreen exits.
   var wakeLock = null;
+  var wakeLockGeneration = 0;
+  var wakeLockPending = false;
   function requestWakeLock() {
-    if ('wakeLock' in navigator) {
+    if (!navigator.wakeLock || typeof navigator.wakeLock.request !== 'function'
+        || !currentFullscreenElement() || document.visibilityState === 'hidden'
+        || wakeLockPending || (wakeLock && !wakeLock.released)) return;
+    var generation = ++wakeLockGeneration;
+    wakeLockPending = true;
+    try {
       navigator.wakeLock.request('screen').then(function (lock) {
+        if (generation === wakeLockGeneration) wakeLockPending = false;
+        // Exit, hiding or a newer fullscreen session may precede the reply.
+        // Every acquired sentinel still needs an owner, including a late one.
+        if (generation !== wakeLockGeneration || !currentFullscreenElement()
+            || document.visibilityState === 'hidden') {
+          lock.release().catch(function () {});
+          return;
+        }
         wakeLock = lock;
-      }).catch(function () {});
+        lock.addEventListener('release', function () {
+          if (wakeLock === lock) wakeLock = null;
+        }, {once: true});
+      }).catch(function () {
+        if (generation === wakeLockGeneration) wakeLockPending = false;
+      });
+    } catch (error) {
+      if (generation === wakeLockGeneration) wakeLockPending = false;
     }
   }
   function releaseWakeLock() {
-    if (wakeLock) { wakeLock.release().catch(function(){}); wakeLock = null; }
+    wakeLockGeneration++;
+    wakeLockPending = false;
+    var previous = wakeLock;
+    wakeLock = null;
+    if (previous) previous.release().catch(function () {});
   }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && currentFullscreenElement()) requestWakeLock();
+    else releaseWakeLock();
+  });
 
   function handleFullscreenChange() {
-    cancelMouseSequence();
     var fs = currentFullscreenElement();
+    var changed = fs !== fullscreenObservedElement;
+    var requested = fullscreenRequest && fullscreenRequest.element === fs;
+    // As with Pointer Lock, native state can precede its notification. A
+    // requested acknowledgement must not erase the next mouse command.
+    if (changed && !requested) cancelMouseSequence();
+    if (changed || requested) fullscreenRequest = null;
+    fullscreenObservedElement = fs;
     if (fs) {
       requestWakeLock();
     } else {
@@ -15978,7 +16121,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // --- Touch swipe and double tap (mobile / tablet) ---
   var touchStartX = null, touchStartY = null, touchStartT = 0;
-  var lastTapT = 0;
+  var lastTapT = null;
   var multiTouchActive = false, multiTouchClicksUntil = 0;
   var touchNavigationBlocked = false;
   // Two taps close together, each of them short and still. The window is
@@ -16000,7 +16143,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (tableGesture) tableGesture.blocked = true;
     multiTouchActive = e.touches.length > 0;
     touchStartX = touchStartY = null;
-    touchStartT = lastTapT = 0;
+    touchStartT = 0;
+    lastTapT = null;
     touchNavigationBlocked = true;
     cancelMouseSequence();
     multiTouchClicksUntil = Date.now() + 450;
@@ -16015,18 +16159,20 @@ document.addEventListener('DOMContentLoaded', function() {
       || !!(window.visualViewport && window.visualViewport.scale > 1);
     if (touchNavigationBlocked || e.touches.length !== 1) {
       touchStartX = touchStartY = null;
-      lastTapT = 0;
+      lastTapT = null;
       return;
     }
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
-    touchStartT = Date.now();
+    // Native input time survives a busy main thread. Handler execution time
+    // can turn two short taps into a false long press or two unrelated taps.
+    touchStartT = e.timeStamp;
   }, { passive: true });
   document.addEventListener('touchmove', function (e) {
     if (discardMultiTouch(e)) return;
     if (e.touches.length !== 1) {
       touchStartX = touchStartY = null;
-      lastTapT = 0;
+      lastTapT = null;
     }
   }, { passive: true });
   document.addEventListener('touchcancel', discardMultiTouch, { passive: true });
@@ -16035,20 +16181,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (helpIsOpen() || touchNavigationBlocked || isInteractive(e)
         || e.touches.length || e.changedTouches.length !== 1) {
       touchStartX = touchStartY = null;
-      lastTapT = 0;
+      lastTapT = null;
       return;
     }
     if (touchStartX === null) return;
     var dx = e.changedTouches[0].clientX - touchStartX;
     var dy = e.changedTouches[0].clientY - touchStartY;
-    var dt = Date.now() - touchStartT;
+    var dt = e.timeStamp - touchStartT;
     touchStartX = null;
     // Horizontal swipe dominates: 50px threshold, < 500ms, horizontal >
     // vertical. Left = next, right = previous (convention: swipe the way
     // the next slide comes FROM).
-    if (dt < 500 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    if (dt >= 0 && dt < 500 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
       if (dx < 0) runStepped(stepForward); else runStepped(stepBackward);
-      lastTapT = 0;
+      lastTapT = null;
       return;
     }
     // A double tap toggles the navigation chrome. The first tap is not an
@@ -16058,19 +16204,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fullscreen keeps the button in that chrome rather than this
     // gesture. One gesture that means two things depending on a state
     // the reader cannot see coming is not a gesture, it is a lottery.
-    if (isInteractive(e)) { lastTapT = 0; return; }
-    if (dt >= TAP_MAX_MS || Math.abs(dx) > TAP_SLOP_PX || Math.abs(dy) > TAP_SLOP_PX) {
-      lastTapT = 0;
+    if (isInteractive(e)) { lastTapT = null; return; }
+    if (dt < 0 || dt >= TAP_MAX_MS || Math.abs(dx) > TAP_SLOP_PX || Math.abs(dy) > TAP_SLOP_PX) {
+      lastTapT = null;
       return;
     }
-    var now = Date.now();
-    if (lastTapT && now - lastTapT < DOUBLE_TAP_MS) {
-      lastTapT = 0;
+    var now = e.timeStamp;
+    if (lastTapT !== null && now >= lastTapT && now - lastTapT < DOUBLE_TAP_MS) {
+      lastTapT = null;
       // The first tap has already advanced the deck, and the
       // synthesised clicks for both taps may still be in flight.
       // Suppress the ones that remain, or the gesture that put the
       // chrome away would also have moved the reader two cards on.
-      swallowClicksUntil = now + 450;
+      // Compatibility clicks are still pending now, even for old input.
+      // Their quarantine belongs to the delivery clock used by click handlers.
+      swallowClicksUntil = Date.now() + 450;
       restoreTouchPosition();
       toggleNavVisibility();
       return;
@@ -16215,7 +16363,7 @@ document.addEventListener('DOMContentLoaded', function() {
     seriesTarget = null;
     focusedCard = -1;
     touchStartX = touchStartY = null;
-    lastTapT = 0;
+    lastTapT = null;
     cancelMouseSequence();
     closeReadingMenu(false);
     closePresenterMenu(false);
@@ -16397,7 +16545,8 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
       data-lwp-article-tags="{{article_tags}}"
       data-lwp-tag-preview="{{tag_preview}}"
       data-lwp-table-mode="{{table_mode}}"
-      data-lwp-scroll-duration="{{scroll_duration}}">
+      data-lwp-scroll-duration="{{scroll_duration}}"
+      data-lwp-series-home="{{series_home}}">
 
 {{build_stamp}}{{draft_banner}}
 <nav class="nav-dots"></nav>
@@ -18831,20 +18980,101 @@ def _apply_instance_tags(text):
     return text
 
 
-def parse_table_row(line):
-    """Splits a Markdown table row '| a | b | c |' into cells."""
+def _markdown_table_fields(line):
+    """Split unescaped pipes, retaining whitespace for the merge grammar."""
     line = line.strip()
+    fields, start, escaped = [], 0, False
+    for index, char in enumerate(line):
+        if char == '|' and not escaped:
+            fields.append(line[start:index])
+            start = index + 1
+        escaped = not escaped if char == '\\' else False
+    fields.append(line[start:])
     if line.startswith('|'):
-        line = line[1:]
-    if line.endswith('|'):
-        line = line[:-1]
-    return [strip_ws(cell) for cell in line.split('|')]
+        fields.pop(0)
+    if start == len(line) and fields:
+        fields.pop()
+    return fields or ['']
+
+
+def parse_table_row(line):
+    """Return trimmed source cells without interpreting merge operators."""
+    return [strip_ws(cell) for cell in _markdown_table_fields(line)]
 
 
 def is_table_separator(line):
     """True if the line is a table separator."""
     line = line.strip()
     return bool(line) and bool(re.match(r'^\|?[\s\-:|]+\|?$', line)) and '-' in line
+
+
+class _MarkdownTableCell:
+    """One origin in a logical table grid; continuations share this object."""
+    __slots__ = ('text', 'column', 'colspan', 'rowspan')
+
+    def __init__(self, text, column):
+        self.text, self.column = text, column
+        self.colspan = self.rowspan = 1
+
+
+class _MarkdownTable:
+    def __init__(self, rows, columns, has_header):
+        self.rows, self.columns, self.has_header = rows, columns, has_header
+
+
+def _compile_markdown_table(header_line, separator_line, body_lines):
+    """Resolve only rectangular merges, before rendering or estimating widths.
+
+    A strictly empty field extends its left neighbour; whitespace-only fields
+    remain cells. A standalone ::: continues the previous body's cell. Check
+    complete footprints so compact and repeated vertical markers agree, and
+    never let the header become a continuation source for the body.
+    """
+    fields = [_markdown_table_fields(line) for line in [header_line, *body_lines]]
+    separator = parse_table_row(separator_line)
+    merged = any((column and text == '') or strip_ws(text) == ':::'
+                 for row in fields for column, text in enumerate(row))
+    columns = len(separator) if merged else max(len(row) for row in fields)
+    if merged and any(not re.fullmatch(r':?-+:?', cell) for cell in separator):
+        raise PropertyError('Markdown table: each separator column requires dashes')
+    rows, previous = [], None
+    for row_index, raw_cells in enumerate(fields):
+        row_number = 1 if row_index == 0 else row_index + 2
+        origin = f'Markdown table row {row_number}'
+        if merged and len(raw_cells) != columns:
+            raise PropertyError(f'{origin}: expected {columns} columns, got {len(raw_cells)}')
+        tokens = []
+        for column, text in enumerate(raw_cells):
+            if text == '' and tokens:
+                tokens[-1].colspan += 1
+                if tokens[-1].colspan > 1000:
+                    raise PropertyError(f'{origin}: colspan exceeds HTML limit 1000')
+            else:
+                tokens.append(_MarkdownTableCell(strip_ws(text), column))
+        cells, current, continued = [], [None] * columns, set()
+        for cell in tokens:
+            start, end = cell.column, cell.column + cell.colspan
+            if cell.text == ':::':
+                if previous is None:
+                    raise PropertyError(f'{origin}: vertical table merge has no preceding body cell')
+                owner = previous[start]
+                if owner is None or any(previous[col] is not owner for col in range(start, end)):
+                    raise PropertyError(f'{origin}: vertical table merge crosses distinct cells')
+                continued.add(owner)
+            else:
+                owner = cell
+                cells.append(cell)
+            current[start:end] = [owner] * cell.colspan
+        for owner in continued:
+            if any(current[col] is not owner
+                   for col in range(owner.column, owner.column + owner.colspan)):
+                raise PropertyError(f'{origin}: vertical table merge must cover the complete colspan')
+            owner.rowspan += 1
+            if owner.rowspan > 65534:
+                raise PropertyError(f'{origin}: rowspan exceeds HTML limit 65534')
+        rows.append(cells)
+        previous = current if row_index else None
+    return _MarkdownTable(rows, columns, any(cell.text for cell in rows[0]))
 
 
 # Void HTML elements: never contribute an unclosed "open" to raw-HTML
@@ -19074,9 +19304,9 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
     paths are replaced with base64 data URIs (--inline-images). The
     `sources_dir` is needed to resolve the `img/...` path.
 
-    `table_candidates`, when supplied, collects each Markdown table's rows
-    (header first) for static audit, using this parser rather than a second
-    approximation of Markdown table recognition."""
+    `table_candidates`, when supplied, collects each compiled Markdown table
+    (header row first, origins only) for static audit, sharing both recognition
+    and the resolved cell grid with the renderer."""
     lines = md_text.split('\n')
     out = []
     in_list = None
@@ -19247,33 +19477,35 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
         # Table
         if line.strip().startswith('|') and i + 1 < n and is_table_separator(lines[i + 1]):
             close_list()
-            header_cells = parse_table_row(line)
-            candidate = [header_cells] if table_candidates is not None else None
+            end = i + 2
+            while end < n and lines[end].strip().startswith('|'):
+                end += 1
+            table = _compile_markdown_table(lines[i], lines[i + 1], lines[i + 2:end])
             out.append('  <div class="lwp-table-viewport">')
             out.append('  <table class="comparison-table">')
-            if any(cell.strip() for cell in header_cells):
+            if table.has_header:
                 out.append('    <thead>')
                 out.append('      <tr>')
-                for cell in header_cells:
-                    out.append(f'        <th>{md_inline(cell, absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</th>')
+                for cell in table.rows[0]:
+                    span = f' colspan="{cell.colspan}"' if cell.colspan > 1 else ''
+                    out.append(f'        <th{span}>{md_inline(cell.text, absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</th>')
                 out.append('      </tr>')
                 out.append('    </thead>')
             out.append('    <tbody>')
-            i += 2
-            while i < n and lines[i].strip().startswith('|'):
-                row_cells = parse_table_row(lines[i])
-                if candidate is not None:
-                    candidate.append(row_cells)
+            for cells in table.rows[1:]:
                 out.append('      <tr>')
-                for cell in row_cells:
-                    out.append(f'        <td>{md_inline(cell, absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</td>')
+                for cell in cells:
+                    spans = ''.join(f' {name}="{value}"' for name, value in
+                                    (('colspan', cell.colspan), ('rowspan', cell.rowspan))
+                                    if value > 1)
+                    out.append(f'        <td{spans}>{md_inline(cell.text, absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</td>')
                 out.append('      </tr>')
-                i += 1
             out.append('    </tbody>')
             out.append('  </table>')
             out.append('  </div>')
-            if candidate is not None:
-                table_candidates.append(candidate)
+            if table_candidates is not None:
+                table_candidates.append(table)
+            i = end
             continue
 
         # Raw HTML (line starting with a block-level tag, or an inline
@@ -22214,6 +22446,17 @@ def tag_preview_data(series_data):
                       separators=(',', ':'))
 
 
+def _series_home_filename(series_data):
+    """Preserve the exact spelling of an emitted index-name article.
+
+    Collision policy is enforced separately by resolve_index_claim(). This
+    helper only chooses a physical home target from resolved navigation members;
+    it neither renames destinations nor creates a combined-document route.
+    """
+    return next((entry['page_dest'] for entry in _series_entries(series_data)
+                 if entry.get('page_dest', '').lower() == 'index.html'), 'index.html')
+
+
 def build_series_nav(current_file, series_data, strings, typo_engine, contents_href='index.html'):
     """Generates the navigation block HTML for the current article.
 
@@ -22245,12 +22488,14 @@ def build_series_nav(current_file, series_data, strings, typo_engine, contents_h
                 status=current_status))
         else:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_LINK.format(
-                file=html_escape(entry['page_dest'], quote=True),
+                file=html_escape(quote(entry['page_dest'], safe=''), quote=True),
                 tag_attrs=_entry_tag_attributes(entry),
                 label_html=label_html,
                 title=title,
                 desc=desc,
                 read=read))
+    if contents_href == 'index.html':
+        contents_href = quote(_series_home_filename(series_data), safe='')
     if contents_href is not None:
         parts.append(TEMPLATE_SERIES_NAV_BACK.format(back=back, file=html_escape(contents_href, quote=True)))
     return '\n'.join(parts)
@@ -22323,10 +22568,10 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         card_title = apply_typo(typo_engine, _resolved_field_html(entry, 'card_title'))
         card_desc = apply_typo(typo_engine, _resolved_field_html(entry, 'card_desc'))
         # href is an attribute context: entry['page_dest'] is validated to be a
-        # plain filename (validate_series), but it's escaped here too as
-        # defense in depth against a future validation gap.
+        # plain filename (validate_series). URL-encode that name before HTML
+        # escaping it: %, # and ? are filename characters, not URL syntax.
         label_html = f'\n  <div class="article-number">{label}</div>' if label else ''
-        card = f'''<a href="{html_escape(entry['page_dest'], quote=True)}" class="article-card"{_entry_tag_attributes(entry)}>{label_html}
+        card = f'''<a href="{html_escape(quote(entry['page_dest'], safe=''), quote=True)}" class="article-card"{_entry_tag_attributes(entry)}>{label_html}
   <div class="article-title">{card_title}</div>
   <div class="article-desc">{card_desc}</div>
   <div class="article-cta">→ <span data-lwp-i18n="series_read">{read}</span></div>
@@ -22391,6 +22636,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         'default_tag': html_escape(meta.get('default_tag', 'default'), quote=True),
         'series_tags': html_escape(' '.join(series_tag_values), quote=True),
         'article_tags': '',
+        'series_home': html_escape(quote(_series_home_filename(series_data), safe=''), quote=True),
         'tag_preview': html_escape(tag_preview_data(series_data), quote=True),
         'meta_head': '', 'draft_banner': '',
         'content': content, 'page_footer': index_footer,
@@ -22444,8 +22690,8 @@ def build_readme(series_data, sd, output_dir, strings, single_html=None):
         # as_posix(): os.path.relpath yields backslashes on Windows,
         # which are broken Markdown link separators.
         link = Path(os.path.relpath(output_dir / (single_html or entry['page_dest']), start=sd)).as_posix()
+        link = quote(link, safe='/')
         if single_html:
-            from urllib.parse import quote
             link += '#lwp/a/' + quote(entry['page_dest'], safe='')
         if article_desc:
             lines.append(f'{i}. [{article_title}]({link}) — {article_desc}')
@@ -22680,23 +22926,61 @@ class _ImageReferenceParser(HTMLParser):
             break
 
 
-def _local_image_path(src):
-    """Returns a safe ``sources/``-relative image path, or ``None``.
+def _image_url_parts(src):
+    """Decode a local image URL once; HTML escaping belongs to the caller.
 
-    Generated pages use ``img/...`` for local assets. Query strings and
-    fragments are URL decoration, not filesystem names; traversal, absolute
-    paths, and external URLs are deliberately excluded from the copy list.
+    Both copying and inlining use this URL-to-filesystem boundary. Query and
+    fragment separators are parsed before decoding, so an encoded ``#`` or
+    ``?`` remains part of the filename. Unsafe decoded paths are checked by
+    each consumer before filesystem access.
     """
-    if not src or _ABSOLUTE_SRC_RE.match(src):
+    from urllib.parse import unquote, urlsplit
+
+    if not src:
         return None
-    path = src.split('?', 1)[0].split('#', 1)[0]
+    # urlsplit strips some controls before parsing. Refuse them first rather
+    # than silently turning a different authored URL into a local filename.
+    if any(ord(char) < 32 or ord(char) == 127 for char in src):
+        raise ValueError('control character in image URL')
+    url = urlsplit(src)
+    if url.scheme or url.netloc or not url.path:
+        return None
+    filename = unquote(url.path, errors='strict')
+    fragment = unquote(url.fragment, errors='strict')
+    if any(ord(char) < 32 or ord(char) == 127 for char in filename + fragment):
+        raise ValueError('decoded control character in image URL')
+    if '\\' in filename or ':' in filename.split('/', 1)[0]:
+        raise ValueError('nonlocal image filename')
+    return filename, fragment
+
+
+def _is_safe_image_filename(path):
+    """Validate an already-decoded inventory/cache path, never another URL."""
+    if (not isinstance(path, str) or '\\' in path
+            or any(ord(char) < 32 or ord(char) == 127 for char in path)):
+        return False
+    parts = path.split('/')
+    return (len(parts) > 1 and parts[0] == 'img'
+            and all(part not in ('', '.', '..') for part in parts))
+
+
+def _local_image_path(src):
+    """Return the safe decoded ``img/...`` filesystem name for a rendered URL.
+
+    HTMLParser already decoded HTML entities in ``src``. Do not decode them
+    again: a literal ``&copy;`` in a filename is not a copyright character.
+    Percent escapes, unlike HTML entities, are owned by the URL boundary.
+    """
+    try:
+        parts = _image_url_parts(src)
+    except (ValueError, UnicodeError):
+        return None
+    if parts is None:
+        return None
+    path, _fragment = parts
     while path.startswith('./'):
         path = path[2:]
-    parts = path.split('/')
-    if (not parts or parts[0] != 'img'
-            or any(part in ('', '.', '..') for part in parts)):
-        return None
-    return '/'.join(parts)
+    return path if _is_safe_image_filename(path) else None
 
 
 def image_inventory_from_html(html_pages):
@@ -23441,6 +23725,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
         'article_tags': html_escape(
             ' '.join(own_entry.get('_lwp_article_tags', ())
                      if own_entry else ()), quote=True),
+        'series_home': html_escape(quote(_series_home_filename(series_data), safe=''), quote=True),
         'tag_preview': html_escape(tag_preview_data(series_data), quote=True),
         'content': slides_html, 'page_footer': page_footer,
          'js_nav': nav_js, 'build_stamp': stamp_in_body,
@@ -23633,23 +23918,13 @@ def _encode_inline_image(src, sources_dir, inspect_only=False):
     `inspect_only` lets non-inline renderers diagnose referenced local SVGs
     without encoding other image formats or changing their URLs.
     """
-    from urllib.parse import quote, unquote, urlsplit
+    from urllib.parse import quote
 
     try:
-        raw = html_unescape(src)
-        # urlsplit silently strips some controls; do not let that turn an
-        # invalid or nonlocal URL into a filename we would read.
-        if any(ord(char) < 32 or ord(char) == 127 for char in raw):
-            raise ValueError('control character in image URL')
-        url = urlsplit(raw)
-        if url.scheme or url.netloc or not url.path:
+        parts = _image_url_parts(html_unescape(src))
+        if parts is None:
             return None
-        filename = unquote(url.path, errors='strict')
-        fragment = unquote(url.fragment, errors='strict')
-        if any(ord(char) < 32 or ord(char) == 127 for char in filename + fragment):
-            raise ValueError('decoded control character in image URL')
-        if '\\' in filename or ':' in filename.split('/', 1)[0]:
-            raise ValueError('nonlocal image filename')
+        filename, fragment = parts
         fragment = '#' + quote(fragment, safe='()/:,;=') if fragment else ''
     except (ValueError, UnicodeError) as exc:
         log('warn', f'skipped invalid image URL {src!r}: {exc}')
@@ -24920,7 +25195,9 @@ def load_nav_cache(path):
         return None
 
 
-_IMAGE_CACHE_SCHEMA = 'lightwebpres.image-cache/1'
+# Cached inventories contain filesystem names, not the former URL spellings.
+# Discard old records even when the retained HTML hash still matches.
+_IMAGE_CACHE_SCHEMA = 'lightwebpres.image-cache/2'
 
 
 def image_cache_path_for_nav_cache(nav_cache_path):
@@ -24966,8 +25243,7 @@ def load_image_cache(path, output_dir):
                 or not isinstance(entry.get('images'), list)):
             return None
         images = entry['images']
-        if any(not isinstance(image, str)
-               or _local_image_path(image) != image for image in images):
+        if any(not _is_safe_image_filename(image) for image in images):
             return None
         pages[name] = {
             'sha256': entry['sha256'],
@@ -25950,7 +26226,7 @@ def _execute_publication(ctx, articles_to_build, claimant, nav_cache_path,
             progress(f'Build complete: {len(articles_to_build)} articles{tail} -> {ctx.output_dir}')
     if ctx.args.get('--open') and not _LOG_STATE['dry_run']:
         import webbrowser
-        webbrowser.open((ctx.output_dir / (single_html or 'index.html')).resolve().as_uri())
+        webbrowser.open((ctx.output_dir / (single_html or _series_home_filename(ctx.series_data))).resolve().as_uri())
 
 
 def _identity_kits_for_output(ctx):
@@ -26699,7 +26975,7 @@ def cmd_build(series_dir, args):
                 _cmd_build_incremental(
                     ctx, incremental_file, nav_cache_path, fresh_fingerprint,
                     build_stamp, previous_image_cache=previous_image_cache)
-                return
+                return _series_home_filename(ctx.series_data)
             reason = 'retained pages/assets are missing or the output manifest is unusable'
         log('info', f'--incremental requested but not safe ({reason}) — doing a full build instead.')
 
@@ -26717,6 +26993,7 @@ def cmd_build(series_dir, args):
         sys.exit(1)
     _execute_publication(ctx, articles_to_build, claimant, nav_cache_path,
                          fresh_fingerprint, build_stamp=build_stamp)
+    return _series_home_filename(ctx.series_data)
 
 
 def cmd_check(series_dir, args):
@@ -27675,7 +27952,7 @@ def reading_length_px(value, width, height, base=16.0):
     return length_px(value, base)
 
 
-def estimate_table_widths(rows, resolved, full_article=False):
+def estimate_table_widths(table, resolved, full_article=False):
     """Likely min-content overflow, not a browser or font measurement.
 
     Longest tokens use a conservative half-em character advance. Wrappable
@@ -27683,10 +27960,17 @@ def estimate_table_widths(rows, resolved, full_article=False):
     and typed size/width pins are included; custom CSS, glyph metrics and
     browser hyphenation are not. Results describe the unshrunk default view.
     """
-    tokens = [[max((len(word) for word in re.split(
+    if not isinstance(table, _MarkdownTable):
+        rows = [[_MarkdownTableCell(text, column) for column, text in enumerate(row)]
+                for row in table]
+        table = _MarkdownTable(rows, max((len(row) for row in rows), default=0),
+                               bool(rows and any(cell.text for cell in rows[0])))
+    tokens = [(cell.column, cell.column + cell.colspan, row_index == 0,
+               max((len(word) for word in re.split(
         r'[ \t\r\n/\-\u00ad\u200b]+', html_unescape(re.sub(
-            r'<[^<>]*>', '', md_inline(cell))))), default=0)
-        for cell in row] for row in rows]
+            r'<[^<>]*>', '', md_inline(cell.text))))), default=0))
+        for row_index, row in enumerate(table.rows)
+        if row_index or table.has_header for cell in row]
     findings = []
     for name, width, height in READING_REFERENCE_VIEWPORTS:
         fallbacks = set()
@@ -27711,15 +27995,21 @@ def estimate_table_widths(rows, resolved, full_article=False):
             cell_padding = 32
         head_font = size('table.head.size', body_font)
         tracking = size('table.head.tracking', head_font)
-        columns = [0.0] * max((len(row) for row in tokens), default=0)
-        for row_index, row in enumerate(tokens):
-            font = body_font if row_index else head_font
-            for column, length in enumerate(row):
-                estimate = length * font * 0.5 + cell_padding
-                if not row_index:
-                    estimate += max(0, length - 1) * tracking
-                columns[column] = max(columns[column], estimate)
-        required = sum(columns)
+        edges = [[] for _ in range(table.columns)]
+        for start, end, header, length in tokens:
+            estimate = length * (head_font if header else body_font) * 0.5 + cell_padding
+            if header:
+                estimate += max(0, length - 1) * tracking
+            edges[start].append((end, estimate))
+        # Each origin constrains the sum of its column widths, with ONE padding
+        # allowance. Longest paths over prefix widths give the minimum total
+        # satisfying every interval, without order-dependent span allocation.
+        prefix = [0.0] * (table.columns + 1)
+        for start, constraints in enumerate(edges):
+            prefix[start + 1] = max(prefix[start + 1], prefix[start])
+            for end, estimate in constraints:
+                prefix[end] = max(prefix[end], prefix[start] + estimate)
+        required = prefix[-1]
         if required > max(0, available):
             findings.append((name, width, height, required, max(0, available),
                              sorted(fallbacks)))

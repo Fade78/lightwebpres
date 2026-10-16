@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 13 · **à faire** 1 · **en cours** 3 · **terminé** 67 · **abandonné** 1 · **sans objet** 3
+**à étudier** 14 · **à faire** 1 · **en cours** 3 · **terminé** 79 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -118,6 +118,7 @@ gets its own entry and its own state**, however small.
 - **B74** — Windows 4K display scaling loses presentation geometry
 - **B78** — Firefox windowed image-height fitting differs from fullscreen
 - **B82** — Diagnose errors caused by spaces in filenames
+- **B95** — Kit layout validation needs parsed attributes and document guards
 
 ### à faire
 
@@ -198,6 +199,18 @@ gets its own entry and its own state**, however small.
 - **B80** — Cascade kicker placement independently from header content
 - **B83** — Fit paired table images independently and omit empty headers
 - **B84** — Render inline Markdown in slide headings and summaries
+- **B85** — Decode local image URLs before publication inventory
+- **B86** — Encode output filenames at generated-link boundaries
+- **B87** — Fractional native viewports disable image height fitting
+- **B88** — Pending screen wake locks outlive fullscreen ownership
+- **B89** — Fixed presenter-menu thirds collapse labels on phones and 4K
+- **B90** — Display-state acknowledgements erase newer mouse commands
+- **B91** — Documentation captures override every preset with Nebula
+- **B92** — Delayed touch handlers mismeasure native gesture timing
+- **B93** — A legal prototype-name tag disappears from runtime selection
+- **B94** — Mixed-case index claimants leave physical home links broken
+- **B96** — Layout slot counts ignore their HTML insertion context
+- **B97** — Native Markdown table-cell merges
 
 ### abandonné
 
@@ -3736,6 +3749,23 @@ and documentation captures were regenerated and their input/image hashes
 match. Physical two-screen and real mobile-hardware behavior remain untested;
 this entry stays open for those checks.
 
+**Audit follow-up, 2026-10-15.** Five instrumented native Chromium 156 runs of
+the multipage/combined mouse scenario passed. The earlier single failure to
+observe fullscreen under an eight-worker suite was not reproduced, so no
+gesture deadline or runtime state was changed to hide it. Physical multi-screen
+and hybrid-input validation remain separate from these automated checks.
+
+**Reproduced under load later in the same audit.** Eight concurrent native
+Chromium runs produced traces with the next M arriving after native capture
+became active but before `pointerlockchange`. The handler erased that prefix,
+so its left suffix never reached fullscreen. B90 corrects this runtime race,
+not a test timeout or command deadline. Further stress isolated its fullscreen
+counterpart: the next M arrived between `requestFullscreen` resolution and
+`fullscreenchange`, which erased it before the right suffix could request
+capture. Both acknowledgements now preserve newer commands; deterministic
+event-order regressions and two batches of eight concurrent native runs pass
+after the combined correction, with and without instrumentation.
+
 ## B73 — Responsive images obey Display settings
 
 **État :** terminé · **Depuis :** 2026-10-12 · **Version :** 0.67.1
@@ -3795,6 +3825,21 @@ CSS dimensions, devicePixelRatio, visual viewport, slide and table geometry,
 menu widths and font/line heights at each scale and after moving displays.
 Neither a 4K viewport alone nor the responsive-image correction in B73 proves
 this case. No fix or physical-device check is claimed here.
+
+**Audit follow-up, 2026-10-15.** Chromium 156 and Firefox 157 passed 56 image-layout
+states in headless browsers: DPR 1, 1.25, 2 and 3, initial load, three viewport
+resizes, native fullscreen entry/exit and 150% reader zoom. Rendered/scroll
+heights and image aspect ratios fit in those cases. This is DPR/viewport
+emulation, not a Windows display-scaling transition or proof about the reported
+menu failure. The next useful evidence remains a geometry capture on the
+affected screen, including the menu and browser's actual visual viewport.
+
+**Further investigation and corrections.** B87 reproduces the fractional native
+viewport failure that integer viewport emulation concealed. B89 reproduces the
+zero-width presenter labels both at 390 CSS pixels and at 3840x2160 with enlarged
+UI type. Both causes are corrected and have Chromium/Firefox regressions. The
+original device's table-line overlap is not established by either reproduction;
+do not invent a table-typography correction or claim physical Windows acceptance.
 
 ## B75 — Plain slide images should not swallow navigation clicks
 
@@ -3914,6 +3959,22 @@ and portrait image side by side in both Chromium and Firefox (B79). The owner
 has not verified the physical Firefox report against that correction. Keep this
 entry open until the affected presentation/browser confirms or refutes it.
 
+**Audit follow-up, 2026-10-15.** The same 56-state check described in B74 also
+exercises initial windowed image fitting and fullscreen exit in Firefox 157,
+with ordinary figures and mixed-ratio fixed/auto tables. It did not reproduce
+the persistent physical failure. No event-only or device-specific correction
+is inferred from that non-reproduction; compare the affected presentation's
+compiled version, fit policy and measured geometry before changing the solver.
+
+**Native-scale reproduction.** B87 subsequently reproduces a concrete cause
+in Firefox 157 without an integer viewport override: at native scale 1.75,
+the slide's 350.2px minimum exceeds the integer 350px budget, so the old image
+solver incorrectly declares even near-zero images impossible. The correction
+uses the final fit check's existing one-pixel tolerance and passes initial,
+fullscreen and post-fullscreen checks. This closes the reproduced solver defect;
+the original physical presentation remains an acceptance case, not proof of a
+different unresolved root cause.
+
 ## B79 — Include table-cell images in vertical slide fitting
 
 **État :** terminé · **Depuis :** 2026-10-13 · **Version :** 0.68.3
@@ -4002,6 +4063,16 @@ and source/manifest validation. The hyphen substitution is an observed
 workaround, not a new naming restriction or authorization to rename files.
 Do not claim this fixed or alter filename handling in the current fitting lot.
 
+**Audit follow-up, 2026-10-15.** B85 reproduces and corrects one precise image
+case: a percent-encoded URL is not decoded by the non-inline copy inventory.
+It does not establish that this was the owner's original filename failure;
+this entry remains open until the original context is captured or matched.
+
+**Second bounded reproduction.** B86 fixes raw output filenames reused as URLs,
+including README links containing spaces. CLI probes confirm that deck sources
+and long-form includes with spaces load correctly. This resolves two concrete
+filename paths without proving the unspecified original report equivalent.
+
 ## B83 — Fit paired table images independently and omit empty headers
 
 **État :** terminé · **Depuis :** 2026-10-14 · **Version :** 0.70.0
@@ -4050,3 +4121,358 @@ still unsupported. Source slugs and cascade policies do not change.
 **Verification.** CLI output guards and native browser checks cover formatted
 headings/summaries, literal escapes, code, unchanged literal fields and combined
 HTML. Empty-header and image-fitting changes have separate assertions.
+
+## B85 — Decode local image URLs before publication inventory
+
+**État :** terminé · **Depuis :** 2026-10-15 · **Version :** 0.70.1
+
+**Reproduced.** With `sources/img/my photo.svg` and
+`![Photo](img/my%20photo.svg)`, a normal build exits successfully but omits the
+image. `verify` also passes because it plans the same incomplete inventory;
+`audit` calls the real source unused and the encoded spelling missing.
+Inlining already decodes the URL and works. This is a representation mismatch,
+not evidence that filenames with spaces are universally unsupported (B82).
+
+**Correction and boundary.** Copying and inlining share the URL parser. Parse
+query/fragment before decoding, decode percent escapes exactly once, and check
+the decoded path before filesystem access. The rendered-HTML parser owns HTML
+entity decoding; do not decode it again. The copy inventory and manifest keep
+filesystem names, while non-inline authored URLs remain unchanged.
+Symlink composition and the missing-image audit policy are unchanged.
+
+**Cache constraint.** An inventory's decoded filename is not another URL.
+Literal `%20`, `#` and `?` must survive cache validation. Disposable image cache
+schema 2 distinguishes these records from old URL-spelling inventories; old
+records are discarded and retained HTML is reparsed, never migrated in place.
+
+**Verification.** Focused regressions cover Markdown figures, inline images,
+raw HTML, long-form includes, multipage/combined publication, inline SVG
+fragments, source inventory diagnostics, missing/modified copied-image drift,
+incremental retained pages, old-cache fallback and unsafe decoded paths.
+
+## B86 — Encode output filenames at generated-link boundaries
+
+**État :** terminé · **Depuis :** 2026-10-15 · **Version :** 0.70.1
+
+**Reproduced.** Valid `page_dest` filenames with literal `%`, `#` or `?` are
+written successfully but index/navigation URLs address a different file.
+README destinations containing spaces are invalid Markdown links. Combined
+HTML compares raw keys as URLs, so `literal%20.html` and `literal .html` alias
+each other even though they are distinct files and article keys.
+
+**Correction and preservation.** Encode generated filename URLs before HTML
+escaping. Encode the README's relative path separately from any combined route.
+When remapping known local links, encode the raw view key and compare decoded
+pathnames once; external URLs and authored query links retain their behavior.
+Do not rename files, mutate persisted `page_dest`, or double-decode percent
+escapes. This is a link-serialization correction, not a B67 vocabulary change.
+
+**Evidence.** CLI regressions check actual output files, index/navigation hrefs,
+README links, source/include names with spaces and unchanged combined keys.
+Native Chromium/Firefox checks follow every index and inter-article link in
+multipage and combined output, including the percent/space alias pair.
+
+## B87 — Fractional native viewports disable image height fitting
+
+**État :** terminé · **Depuis :** 2026-10-15 · **Version :** 0.70.1
+
+**Reproduced.** Native Chromium display scaling and Firefox's native
+`layout.css.devPixelsPerPx` can make `100vh` fractional while `clientHeight`
+is an integer. At Chromium scale 1.5, 913.33px exceeds 913px; at Firefox native
+scale 1.75, 350.2px exceeds 350px. Even the smallest image trial cannot reduce
+the slide below its minimum, so the strict feasibility check restores full-size
+images. Forcing an integer Playwright viewport hides this failure (B74/B78).
+
+**Correction and invariant.** For a positive fractional minimum, image feasibility
+uses the final slide-fit check's existing one-CSS-pixel tolerance for rendered
+and scroll heights. Integer viewport minima keep their exact bound: a passive
+measurement regression exposed the unnecessary one-pixel enlargement caused by
+applying tolerance everywhere, and the final correction preserves that regression
+unchanged. The fractional minimum is not an impossible-content verdict. Images remain independently
+scaled, captions/chrome/table text remain readable, and genuinely unfit text
+still scrolls with width-fitted images rather than disappearing.
+
+**Evidence.** A native browser regression fails before the correction and passes
+after it in both Chromium and Firefox, with `viewport: null`, multiple display
+scales, ordinary figures and auto/fixed mixed tables, multipage/combined output,
+fullscreen entry/exit and reader zoom. It separately measures the non-image
+floor before allowing legitimate overflow in a small zoomed window. Controlled
+runtime cases cover positive fractional minima, repeated layout, zoom and print.
+
+## B88 — Pending screen wake locks outlive fullscreen ownership
+
+**État :** terminé · **Depuis :** 2026-10-15 · **Version :** 0.70.1
+
+**Reproduced.** Exit before `navigator.wakeLock.request('screen')` resolves:
+`releaseWakeLock()` sees no active sentinel, then the late reply stores a lock
+that nothing releases. Two fullscreen sessions can also adopt replies out of
+order. A browser-released sentinel can remain cached, while returning to a
+visible fullscreen tab does not reacquire the screen lock.
+
+**Correction.** Generation-bound requests own pending/active state. Exit or
+hiding invalidates pending replies; late acquired locks are released, never
+adopted. Duplicate notifications share a request. Release events clear only the
+sentinel that still owns the active slot. Visibility restoration reacquires only
+while fullscreen; unavailable/refused requests do not block reading or spin.
+
+**Evidence.** Controlled acknowledgements execute the actual emitted lifecycle:
+late exit/hide replies, reversed replies, duplicates, browser release, visibility
+restoration, failed/throwing/absent APIs and a stale rejection during a newer
+request. Native fullscreen, pointer-lock and reader-control checks remain separate.
+
+## B89 — Fixed presenter-menu thirds collapse labels on phones and 4K
+
+**État :** terminé · **Depuis :** 2026-10-15 · **Version :** 0.70.1
+
+**Reproduced.** The menu card is width-capped while its type grows with `vmin`.
+Fixed three-column rows leave label tracks at 0–6px on a 390px phone; at 3840x2160,
+navigation labels again reach 0px and buttons become hundreds of pixels tall.
+Icons and keyboard shortcuts consume the tracks before text can fit. This
+matches B74's reported menu symptom without depending on physical Windows.
+
+**Correction and preservation.** Rows fit controls with an em-based minimum,
+bounded by the card width. Three columns remain at ordinary desktop sizes;
+phones and enlarged 4K type reflow into readable single-column rows. DOM action
+order, shortcuts, group membership, localization and keyboard focus do not change.
+
+**Evidence.** Chromium/Firefox regressions measure the longest rendered word
+against each label's available width, in English/French at 320px, 390px, normal
+desktop and 4K viewports, then resize back without reloading. Keyboard traversal,
+focus preservation, closing, reading controls and accessibility checks pass.
+
+## B90 — Display-state acknowledgements erase newer mouse commands
+
+**État :** terminé · **Depuis :** 2026-10-15 · **Version :** 0.70.1
+
+**Reproduced, not merely flaky.** In native Chromium 156, capture state becomes
+visible before its notification. Under eight concurrent browser runs, M arrived
+between successful reacquisition and `pointerlockchange`; the unconditional
+sequence cancellation then removed M, and the following left suffix never
+toggled fullscreen. Requested release has the same notification window. An
+older release notice can also clear a newer acquisition's pending state.
+
+The first correction exposed the equivalent fullscreen race under further
+stress: after `requestFullscreen` resolved, M preceded `fullscreenchange`, and
+the right suffix no longer requested capture. Waiting for native state in a
+test does not imply that the reader has processed the queued notification.
+
+**Correction and preserved safety.** Track requested pointer release, the last
+observed native elements and the latest fullscreen intent. Requested
+acknowledgements and unchanged duplicates preserve newer prefixes. Old release
+notices do not clear newer requests; an old fullscreen rejection cannot clear
+a newer intent. Unrequested state changes still cancel, and a cancelled late
+capture still releases immediately. The 900ms deadline, input ownership,
+browser-confirmed state, native Escape, foreground surfaces and explicit
+reacquisition remain unchanged. Fullscreen intent affects cancellation only;
+it never pretends that a requested state has already been granted.
+
+**Evidence.** Generated-runtime cases cover pointer acquisition/release, an old
+release during a new acquisition, duplicates, external loss, unrequested capture
+and release before either notice. Fullscreen cases cover entry/exit, duplicates,
+external transitions, superseded intents/rejections, failed/unavailable APIs and
+event-only WebKit requests. Native traces establish both failing orderings before
+correction. Two batches of eight concurrent Chromium runs pass with and without
+instrumentation, alongside Firefox and existing lifecycle checks.
+
+## B91 — Documentation captures override every preset with Nebula
+
+**État :** terminé · **Depuis :** 2026-10-15 · **Version :** 0.70.1
+
+**Reproduced.** The capture generator copies the first-article tutorial's
+`series.json`, including `appearance.themes: ["nebula"]`, before choosing
+each example preset. The selector correctly preserves that explicit theme
+pin, but the resulting images contradict their Light, blue documentation and
+paper/typewriter labels. All six captures report the same Charter heading
+stack, including the official sans-serif and Field Notes monospace presets.
+Freshness and geometry guards do not establish that a picture shows the
+appearance it claims to illustrate. The guide already warns against copying
+this tutorial theme override when comparing presets.
+
+**Correction and preservation.** Only the disposable capture copies drop the
+tutorial theme selection. The article, registration and selected presets remain
+real; author-owned examples and the engine's theme/preset cascade are unchanged.
+Each capture checks that its resolved theme has no explicit override and matches
+the preset, then compares the actual browser background and heading font with
+the resolved properties. The manifest records those observations.
+
+**Evidence.** A regression fails against the old captures' official and paper
+font stacks. After regeneration, it verifies all six observed backgrounds and
+font stacks against the native theme report and tracked kit themes. The two
+images were visually inspected and republished into the generated guide; their
+input, image and dimension guards remain in place.
+
+## B92 — Delayed touch handlers mismeasure native gesture timing
+
+**État :** terminé · **Depuis :** 2026-10-15 · **Version :** 0.70.1
+
+**Reproduced.** A further intermittent mobile-chrome failure prompted timestamp
+tracing. Its original event intervals were not captured, and eight native runs,
+160 additional tap pairs and a traced full run did not reproduce that exact
+failure. A separate deterministic native-input case establishes a real defect:
+two trusted touch ends 73ms apart are delivered 457ms apart around a main-thread
+long task. The recognizer uses `Date.now()` at dispatch, misses the valid double
+tap and advances the deck instead of restoring its position and hiding chrome.
+Conversely, a long press or expired pair delivered close together can look short.
+
+**Correction and preservation.** Tap/swipe durations and the interval between
+tap ends use the events' input timestamps. Zero is valid, so an absent previous
+tap is represented separately. The 350ms pair window, 500ms tap/swipe limits,
+movement thresholds, native selection and control ownership are unchanged.
+Compatibility-click quarantine still starts on the delivery clock: a timestamp
+from before the long task must not expire that protection before queued clicks
+arrive. View replacement and cancelled/interactive gestures clear the pair.
+
+**Evidence.** Generated-handler regressions separate input and dispatch clocks:
+queued short taps, a queued long press, expired taps delivered together, short
+swipes, zero timestamps and intervening controls. A Chromium regression submits
+real native touch input while a deliberate 450ms long task delays delivery;
+it checks the native/dispatch interval distinction, position/hash restoration,
+hide/reveal and delayed-click suppression in multipage and combined output.
+Both checks fail before correction and pass after it. Existing Chromium/Firefox
+mouse and hybrid-input checks also pass. This does not establish physical mobile
+acceptance or retroactively identify the unmeasured intermittent case's timing.
+
+## B93 — A legal prototype-name tag disappears from runtime selection
+
+**État :** terminé · **Depuis :** 2026-10-16 · **Version :** 0.70.1
+
+**Independent finding and reproduction.** The system-review agent found that
+`constructor` is legal Python-normalized vocabulary but is already truthy on
+the prototype of the runtime's ordinary-object membership tables. Enumeration
+and first-publishable fallback both omit it. A two-article fixture builds and
+verifies successfully while the constructor-only article has no visible slides
+or available recovery choice in Chromium and Firefox.
+
+**Correction and preservation.** Both membership tables are prototype-free.
+Tag order, opaque author vocabulary, common/default slides, article gates and
+first-readable fallback are unchanged; no extra tag name is reserved.
+
+**Evidence.** The independent CLI/browser reproduction was converted into a
+failing browser regression, then passed after correction in Chromium/Firefox,
+multipage and combined output, including menu selection and reload persistence.
+Existing article-tag checks continue to pass.
+
+## B94 — Mixed-case index claimants leave physical home links broken
+
+**État :** terminé · **Depuis :** 2026-10-16 · **Version :** 0.70.1
+
+**Independent finding and reproduction.** A sole `Index.html` article is
+correctly accepted as claiming the case-insensitive index slot, but generated
+links, series sharing, Home and build/watch opening assumed `index.html`.
+Build and verify report success while the lowercase file does not exist on
+a case-sensitive filesystem. Both browser DOMs expose the wrong link, and the
+independent Chromium probe observed the failed navigation.
+
+**Correction and preservation.** A shared helper resolves the exact physical
+home spelling from emitted navigation membership. HTML serializes that value
+for the reader; navigation, sharing and browser opening use it. Build returns
+the actual entry filename to watch in either topology. No destination is renamed,
+no alias file is created, multi-article collision refusal remains case-insensitive,
+and combined contents keep their separate logical route.
+
+**Evidence.** Three initially failing home regressions now pass: native
+home/navigation/sharing in both browsers and topologies, CLI browser opening
+through a recording browser command, and watch opening after its real build.
+Existing lowercase-claimant, draft, collision and incremental tests pass unchanged.
+
+## B95 — Kit layout validation needs parsed attributes and document guards
+
+**État :** à étudier · **Depuis :** 2026-10-16 · **Version :** 0.70.1
+
+**Independent lead: potentially High impact, not a runtime-confirmed exploit.**
+The codebase review identified raw-source scheme checks and accepted nested
+document elements at the semi-trusted kit boundary. Its proposed dynamic probe
+was refused by the tool security layer before any concrete command/execution
+was attested. The parent did not retry that dynamic probe or evade the refusal.
+
+**Confirmed validation gaps and implemented hardening.** Inert CLI regressions
+established that nested document/control fragments and encoded empty forbidden
+URL schemes were accepted. They contain no code payload and are never opened
+in a browser. The loader now rejects nested browsing/plugin documents and
+document-wide controls, and inspects URL-bearing attribute values through
+HTMLParser after entity decoding and URL whitespace normalization.
+
+**Preservation and evidence.** The new negative fixtures fail before the change
+and pass after it, before output creation. A positive fixture preserves ordinary
+entity-bearing links and author-owned raw article HTML. Existing kit validation,
+composition and example-build checks pass; article HTML is not reclassified as
+a sanitizer boundary. The original dynamic impact assessment remains unverified
+and requires appropriately authorized tooling. This entry stays open for that
+assessment rather than claiming a fully demonstrated and closed vulnerability.
+
+**Execution follow-up, 2026-10-16.** The approved correction plan's static
+load-path and publication checks are complete. All file-backed variants/index
+fragments converge on the validator; composition validates source kits and the
+staged result. A separate inert insertion-context defect was reproduced and
+corrected as B96. Regressions cover local/catalogue resources, both output
+topologies, unused alternatives, ordinary/incremental builds, verify and
+composition dry/real runs. Failed validation preserves output, manual sidecars,
+README, source files and caches byte for byte. Literal marker examples and
+trusted authored HTML remain accepted. This does not satisfy the refused
+dynamic assessment: B95 stays open, without another execution attempt.
+
+## B96 — Layout slot counts ignore their HTML insertion context
+
+**État :** terminé · **Depuis :** 2026-10-16 · **Version :** 0.70.1
+
+**Reproduced with inert inputs.** Raw slot counting accepted a cover fragment
+whose content was inside a comment or template. Build and verify exited zero,
+but the parsed cover heading was absent or under the inert template. Text-only
+containers and unfinished opening markup also passed in concrete fixtures.
+An apparent self-closing template could leave later content inside an open
+HTML context. Complete attribute-context cases were already rejected by final
+page validation; those were a misplaced diagnostic, not an additional silent
+publication defect. No browser execution, executable payload or refused-probe
+retry was used to establish these cases.
+
+**Correction and preservation.** The existing fragment parser now counts
+required raw markers only in ordinary HTML content. It tracks non-insertion
+containers, respects non-void HTML self-closing semantics and refuses buffered
+incomplete markup before expansion. Required, duplicate and unknown-marker
+rules remain. Data character references are not compiler markers, while URL
+attributes remain decoded for the existing scheme guard. Decorative comments,
+closed inert/text-only elements, single-pass authored HTML and the independent
+kit/publication ownership boundaries are preserved. This is bounded fragment
+validation, not a complete HTML5 parser or a general sanitizer.
+
+**Evidence.** Seven new CLI regression methods fail on the old boundary where
+appropriate and pass after correction. They cover insertion contexts, incomplete
+markup, open inert state, literal examples, local/catalogue publication
+preservation, an unused alternate index, and source/final composition validation.
+The existing 112 targeted kit/composition/publication/home tests also pass.
+The complete pre-change baseline passed 1,580 tests. Python 3.8–3.13 syntax
+profiles parse; this is not a claim that those interpreter runtimes were executed.
+
+## B97 — Native Markdown table-cell merges
+
+**État :** terminé · **Depuis :** 2026-10-16 · **Version :** 0.71.0
+
+**Owner decision.** Import only DokuWiki's horizontal `||` and vertical `:::`
+merge operators, not its `^` headers or space-based alignment. A strictly empty
+field extends its predecessor; `| |` remains an actual empty cell. The owner
+selected 0.71.0: pre-1.0 minor versions may change contracts incompatibly, while
+final 1.0.0 remains the first stability milestone rather than an automatic bump
+for every early format change. The unreleased 0.70.1 corrections stay separately
+announced; no publication or release is implied.
+
+**Model and invariants.** The converter compiles one logical grid before
+rendering, retaining each origin's column, colspan and rowspan. Horizontal and
+vertical combinations must form complete rectangles; either compact or repeated
+vertical markers can cover a multi-column origin. Header and body continuation
+authority never mix. Merged rows use the separator's column count and HTML's
+native span limits. Invalid continuations are explicit errors, not speculative
+repairs. Unmerged ragged tables, empty-header suppression, raw HTML and code
+examples keep their existing behavior.
+
+The audit consumes that same grid. Each origin imposes one lower-bound width
+constraint across its column interval; longest paths over prefix widths solve
+the minimum total without duplicating spanning text/padding or making allocation
+depend on row order. This remains an explicitly approximate token estimate, not
+a browser/font measurement or an accessibility verdict.
+
+**Evidence.** CLI regressions cover ordinary and combined output, full articles,
+literal escapes, malformed merges and byte-preserved publication/cache state
+after refusal. Deterministic independently tiled rectangles exercise compact and
+repeated continuations. Native Chromium/Firefox checks build the new Markdown
+syntax with image cells and test automatic/fixed layouts, mobile/desktop resize,
+native fullscreen, 150% reader zoom and print restoration in both topologies.
