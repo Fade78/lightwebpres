@@ -70,7 +70,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.71.0"
+VERSION = "0.72.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -324,6 +324,8 @@ def _stage_file(path, content=None, source=None):
     """
     if source is not None:
         shutil.copy(source, path)
+    elif isinstance(content, bytes):
+        Path(path).write_bytes(content)
     else:
         Path(path).write_text(content, encoding='utf-8')
 
@@ -2707,7 +2709,9 @@ LENGTH_FUNCS = ('clamp', 'calc', 'min', 'max')
 # tight the day the catalogue's own `terminal` needed page.font ->
 # font.text -> font.mono: an ordinary theme sat exactly at the limit, leaving
 # a series no room to add one indirection of its own.
-MAX_REFERENCE_HOPS = 3
+# Inline field roles add two references above a previously valid parent chain.
+# Keep that composition possible without removing the finite budget.
+MAX_REFERENCE_HOPS = 5
 
 
 class PropertyError(Exception):
@@ -2903,9 +2907,9 @@ PROP_TEXT = FreeTextType()
 # Only normal and bold survive a generic family: asked for 600 a two-weight
 # font renders 700, and 500 renders 400 — three declared weights collapse
 # into two, and "partial" stops being distinguishable from "yes".
-PROP_WEIGHT = ChoiceType('normal', 'bold',
+PROP_WEIGHT = ChoiceType('normal', 'bold', 'inherit',
                          hint='Intermediate weights collapse on a generic family.')
-PROP_STYLE = ChoiceType('normal', 'italic')
+PROP_STYLE = ChoiceType('normal', 'italic', 'inherit')
 PROP_CASE = ChoiceType('none', 'uppercase', 'lowercase', 'small-caps')
 PROP_ALIGN = ChoiceType('left', 'center', 'right', 'justify')
 # Slide chrome is a flex row, not a prose block: `justify` has no equivalent
@@ -3852,31 +3856,53 @@ THEME_COMPONENTS = [
 ]
 
 # ---------------------------------------------------------------------------
+# Inline semantics in native fields. Body/chrome roles keep their own styles;
+# cover summaries have a different ink context even on the same article.
+INLINE_FIELD_CONTEXTS = {
+    'title1': {'selector': '.slide-cover h1', 'fg': 'title1.fg',
+               'font': 'title1.font', 'size': 'title1.size', 'weight': 'title1.weight'},
+    'title2': {'selector': '.slide h2', 'fg': 'page.fg',
+               'font': 'title2.font', 'size': 'title2.size', 'weight': 'title2.weight'},
+    'summary': {'selector': '.summary', 'fg': 'summary.fg',
+                'font': 'page.font', 'size': 'summary.size', 'weight': 'normal'},
+    'cover.summary': {'selector': '.slide-cover .summary', 'fg': 'cover.summary.fg',
+                      'font': 'page.font', 'size': 'summary.size', 'weight': 'normal'},
+}
+INLINE_FIELD_ROLES = {'strong': 'strong', 'em': 'em', 'code': 'code', 'link': 'a'}
+_INLINE_FIELD_EXCLUSIONS = (
+    '.fact-content *, .slide-body *, .full-article *, .notes-section *, '
+    '.slide-chrome *, .series-list *, .lwp-unit-index *')
+
+for _field, _context in INLINE_FIELD_CONTEXTS.items():
+    for _role, _tag in INLINE_FIELD_ROLES.items():
+        _key = f'{_field}.{_role}'
+        # Kit content can have arbitrary wrappers. Exclude body/chrome roles
+        # rather than assuming direct children or changing heading markup.
+        _selector = f'{_context["selector"]} {_tag}:not(:where({_INLINE_FIELD_EXCLUSIONS}))'
+        THEME_COMPONENTS.append(ThemeComponent(_key, _selector, [
+            ThemeProp(f'{_key}.fg', PROP_COLOR, _context['fg'], css='color'),
+            ThemeProp(f'{_key}.bg', PROP_COLOR, 'code.bg' if _role == 'code' else 'transparent', css='background-color'),
+            ThemeProp(f'{_key}.font', PROP_FONT, 'code.font' if _role == 'code' else _context['font'], css='font-family'),
+            ThemeProp(f'{_key}.size', PROP_LENGTH, 'calc(var(--code-size))' if _role == 'code' else '1em', css='font-size'),
+            ThemeProp(f'{_key}.weight', PROP_WEIGHT, 'bold' if _role == 'strong' else 'inherit', css='font-weight'),
+            ThemeProp(f'{_key}.style', PROP_STYLE, 'italic' if _role == 'em' else 'inherit', css='font-style'),
+            ThemeProp(f'{_key}.decoration', PROP_DECORATION, 'underline' if _role == 'link' else 'none', css='text-decoration'),
+            ThemeProp(f'{_key}.decoration-color', PROP_COLOR, f'{_key}.fg', css='text-decoration-color'),
+            ThemeProp(f'{_key}.pad-inline', PROP_LENGTH, '6px' if _role == 'code' else '0', css='padding-inline'),
+            ThemeProp(f'{_key}.pad-block', PROP_LENGTH, '2px' if _role == 'code' else '0', css='padding-block'),
+            ThemeProp(f'{_key}.radius', PROP_LENGTH, '3px' if _role == 'code' else '0', css='border-radius'),
+        ]))
+
+
 # The halo, on every component that paints glyphs (B20).
-#
-# `text-shadow` is inherited, so `page.shadow` tints the whole site at once
-# and that is the ambient case. What it CANNOT do is be proportional to the
-# glyph: inherited, its `em` resolves once at the root, so a 0.13em halo is
-# 2.1px on a 42px slide heading exactly as on a 13px kicker. Measured over
-# blur ÷ rendered size, the slide heading came out worst served of all —
-# 0.05 against 0.26 for `h1` — and it is a heading. A halo is proportional
-# to its glyph only where the component declares its own.
-#
-# So the axes go to every component whose selector paints text, and only
-# those. A container gets nothing: `text-shadow` being inherited, a halo on
-# `.fact-box` reaches the code, the tables and the footnote calls inside it,
-# which is a different instrument rather than a finer grain. `code` and
-# `sup` get nothing either — 2px of bleed on 1px stems, and the smallest
-# glyph on the page is the one whose job is to be findable.
-#
-# Four axes, not three: there was `dy` and no `dx`, so a halo could only be
-# offset downward — a constraint nobody chose, arrived at by only ever
-# needing the vertical case. `dx` defaults to `0` like `dy`, and the
-# neutral halo stays the centred one.
-#
-# Written as a list of keys and a loop rather than four ThemeProps repeated
-# twenty-nine times: the axes are identical everywhere, and the decision
-# worth reading is WHICH components have them.
+# `text-shadow` is inherited, so page.shadow is ambient. Proportional em blur
+# must instead resolve on the glyph itself: measured blur/size once ranged from
+# 0.05 on headings to 0.26 on small text. Containers get no independent halo;
+# it would unintentionally reach tables, code and note calls. Generic code/sup
+# also stay unshadowed; field-specific code is an explicit authored role.
+# Four axes include horizontal offset, rather than silently allowing only
+# downward shadows. Transparent defaults omit the declaration and inherit the
+# surrounding atmosphere. Keep the inventory below explicit and checked.
 HALO_COMPONENTS = (
     # A slide, and what it carries
     'slide.num', 'kicker', 'title2', 'summary', 'fact-label', 'source',
@@ -3896,7 +3922,7 @@ HALO_COMPONENTS = (
     'header.title', 'header.subtitle', 'version-tag',
     # Chrome that carries a glyph
     'nav-btn', 'slide-header', 'slide-footer',
-)
+) + tuple(f'{field}.{role}' for field in INLINE_FIELD_CONTEXTS for role in INLINE_FIELD_ROLES)
 
 for _c in THEME_COMPONENTS:
     if _c.key not in HALO_COMPONENTS:
@@ -4093,7 +4119,10 @@ THEME_OPTIONAL_PROPERTIES = frozenset({
     'slide-footer.asset-gap',
     'slide-footer.shadow.fg', 'slide-footer.shadow.blur',
     'slide-footer.shadow.dx', 'slide-footer.shadow.dy',
-})
+}) | frozenset(prop.key for component in THEME_COMPONENTS
+              if component.key.rsplit('.', 1)[0] in INLINE_FIELD_CONTEXTS
+              and component.key.rsplit('.', 1)[-1] in INLINE_FIELD_ROLES
+              for prop in component.props)
 
 # A pre-native-surface snapshot had no `slide-body.*`/chrome namespace. Its
 # free-form prose inherited the page treatment, while its headings inherited
@@ -8344,19 +8373,21 @@ class ContrastSite:
     constant written here: a theme that enlarges its summary gets its
     summary judged as large text, with nothing to remember to update.
 
-    `base` is the inherited size in px, for the sites whose size comes
-    from the skeleton rather than from a property, and for resolving `em`.
+    `base` is the inherited size in px or a parent-size property key, for
+    resolving em without losing the parent's responsive floor. parent_weight
+    supplies the corresponding weight for an inline role that inherits it.
     `unless` switches the site off when a property says the treatment is
     not painted at all (an underline that is `none`)."""
 
     def __init__(self, where, fg, grounds, size=None, base=16.0, weight=None,
-                 kind='text', unless=None):
+                 kind='text', unless=None, parent_weight=None):
         self.where = where
         self.fg = fg
         self.grounds = tuple(grounds)
         self.size = size
         self.base = base
         self.weight = weight
+        self.parent_weight = parent_weight
         self.kind = kind
         self.unless = unless          # (property, value) that switches it off
 
@@ -8365,14 +8396,17 @@ class ContrastSite:
         size and weight put it in."""
         if self.kind != 'text':
             return 'non_text'
-        px = self.base
+        base = (length_px(resolved[self.base], 16.0, resolved)
+                if isinstance(self.base, str) else self.base)
+        px = base or 16.0
         if self.size:
-            measured = length_px(resolved[self.size], self.base, resolved)
+            measured = length_px(resolved[self.size], base or 16.0, resolved)
             if measured is not None:
                 px = measured
-        bold = (self.weight == 'bold'
-                or (self.weight is not None and self.weight != 'normal'
-                    and resolved.get(self.weight) == 'bold'))
+        weight = resolved.get(self.weight, self.weight)
+        if weight == 'inherit':
+            weight = resolved.get(self.parent_weight, self.parent_weight)
+        bold = weight == 'bold'
         if px >= LARGE_TEXT_PX or (bold and px >= LARGE_TEXT_BOLD_PX):
             return 'large_text'
         return 'body_text'
@@ -8581,6 +8615,19 @@ CONTRAST_SITES = [
                  [('fact.bg', 'table.col-snap.bg'),
                   ('article.bg', 'table.col-snap.bg')], kind='non-text'),
 ]
+
+for _field, _context in INLINE_FIELD_CONTEXTS.items():
+    for _role in INLINE_FIELD_ROLES:
+        _key = f'{_field}.{_role}'
+        _grounds = _G_COVERS if _field in ('title1', 'cover.summary') else (_G_PAGE,)
+        _stacks = [ground + (f'{_key}.bg',) for ground in _grounds]
+        CONTRAST_SITES.extend([
+            ContrastSite(f'{_field} {_role}', f'{_key}.fg', _stacks,
+                         size=f'{_key}.size', base=_context['size'], weight=f'{_key}.weight',
+                         parent_weight=_context['weight']),
+            ContrastSite(f'{_field} {_role} decoration', f'{_key}.decoration-color',
+                         _stacks, kind='non-text', unless=(f'{_key}.decoration', 'none')),
+        ])
 
 # Colour properties CONTRAST_SITES deliberately never puts in a pair, each
 # with the reason. A test walks the registry against this dict and the site
@@ -10238,6 +10285,429 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
 }
 '''
 
+# Graphic rendering is an independent runtime. Its shadow trees never enter
+# native fitting/heading/chrome queries; its clipped hosts never add overflow.
+TEMPLATE_GRAPHIC_JS = r'''
+// LWP anchored graphic compositions, lightwebpres.layer/1.
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+  var registry = new Map(), mounted = new Map(), loadedPayloads = new WeakSet(), frame = null, printing = false;
+  var printMedia = window.matchMedia('print');
+  var hostCSS = document.createElement('style');
+  hostCSS.textContent = '[data-lwp-graphics]{isolation:isolate}'
+    + '.lwp-graphic-host{position:absolute!important;inset:0!important;'
+    + 'margin:0!important;padding:0!important;border:0!important;'
+    + 'overflow:hidden!important;contain:strict!important;isolation:isolate;'
+    + 'pointer-events:none!important;display:block;z-index:10}'
+    + '.lwp-graphic-under{z-index:-1}';
+  document.head.appendChild(hostCSS);
+  var planeCSS = ':host{all:initial;pointer-events:none}'
+    + '.layer{position:absolute;inset:0;pointer-events:none}'
+    + '.graphic{position:absolute;left:0;top:0;pointer-events:none;visibility:hidden;'
+    + 'transform-origin:0 0;box-sizing:border-box}'
+    + '.rotor{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none}'
+    + '.debug{position:absolute;border:1px dashed #f0f;box-sizing:border-box;'
+    + 'pointer-events:none;color:#900;background:#fff8;font:10px monospace}';
+  var assetCSS = ':host{all:initial;display:inline-block;box-sizing:border-box;'
+    + 'font:normal 16px/1.2 serif;letter-spacing:normal;color:#000;'
+    + 'text-align:left;text-transform:none;white-space:normal;vertical-align:top;'
+    + 'width:max-content;height:auto;pointer-events:none;visibility:inherit}'
+    + '*,*::before,*::after{box-sizing:border-box}'
+    + 'h1,h2,h3,h4,h5,h6,p,figure,blockquote,pre{margin:0}'
+    + 'h1,h2,h3,h4,h5,h6{font-size:1em;font-weight:bold}'
+    + 'p+p,ul,ol,blockquote,pre,table{margin-top:.5em;margin-bottom:.5em}'
+    + 'img{display:block;width:auto;height:auto;max-width:100%}'
+    + 'table{border-collapse:collapse}th,td{padding:.2em .4em;text-align:inherit}'
+    + 'a{color:inherit;text-decoration:underline;pointer-events:auto}'
+    + 'a:focus-visible{outline:2px solid currentColor;outline-offset:2px}';
+  function styleNode(css) {
+    var node = document.createElement('style'); node.textContent = css; return node;
+  }
+  function rect(left, top, right, bottom) {
+    return {left:left, top:top, right:right, bottom:bottom,
+      width:Math.max(0,right-left), height:Math.max(0,bottom-top)};
+  }
+  function fromDOM(box) { return rect(box.left,box.top,box.right,box.bottom); }
+  function union(boxes) {
+    boxes = boxes.filter(function (box) { return box && (box.width || box.height); });
+    if (!boxes.length) return null;
+    return rect(Math.min.apply(null,boxes.map(function(b){return b.left;})),
+      Math.min.apply(null,boxes.map(function(b){return b.top;})),
+      Math.max.apply(null,boxes.map(function(b){return b.right;})),
+      Math.max.apply(null,boxes.map(function(b){return b.bottom;})));
+  }
+  function intersection(a,b) {
+    var left=Math.max(a.left,b.left), top=Math.max(a.top,b.top);
+    var right=Math.min(a.right,b.right), bottom=Math.min(a.bottom,b.bottom);
+    return right>left && bottom>top ? rect(left,top,right,bottom) : null;
+  }
+  function viewport() {
+    var vv=window.visualViewport;
+    return vv ? rect(vv.offsetLeft,vv.offsetTop,vv.offsetLeft+vv.width,vv.offsetTop+vv.height)
+      : rect(0,0,document.documentElement.clientWidth,window.innerHeight);
+  }
+  function visible(node) {
+    if (node.closest('[hidden],.speaker-note')) return false;
+    var css=getComputedStyle(node);
+    return css.display!=='none' && css.visibility!=='hidden';
+  }
+  function occupied(node) {
+    // Ranges measure line fragments rather than a stretched flex/grid box.
+    var boxes=[], walker=document.createTreeWalker(node,NodeFilter.SHOW_TEXT);
+    var text;
+    while ((text=walker.nextNode())) {
+      if (!text.textContent.trim() || !visible(text.parentElement)) continue;
+      var range=document.createRange(); range.selectNodeContents(text);
+      Array.prototype.forEach.call(range.getClientRects(),function(b){boxes.push(fromDOM(b));});
+    }
+    Array.prototype.forEach.call(node.querySelectorAll('img,svg,hr,canvas'),function(child){
+      if (visible(child)) boxes.push(fromDOM(child.getBoundingClientRect()));
+    });
+    if (/^(IMG|svg|HR|CANVAS)$/.test(node.tagName)) boxes.push(fromDOM(node.getBoundingClientRect()));
+    return union(boxes);
+  }
+  function nativeNodes(slide,name) {
+    if (name==='draft-banner') return Array.prototype.slice.call(document.querySelectorAll('.draft-banner'));
+    var selectors={header:'.slide-chrome-header',footer:'.slide-chrome-footer',
+      'header.text':'.slide-chrome-header .slide-chrome-text',
+      'header.image':'.slide-chrome-header img','footer.text':'.slide-chrome-footer .slide-chrome-text',
+      'footer.image':'.slide-chrome-footer img',kicker:'.slide-kicker',summary:'.summary',
+      highlight:'.highlight-figure','highlight-caption':'.highlight-caption',fact:'.fact-box',
+      'highlight-group':'.highlight','unit-index':'.lwp-unit-index','series-list':'.series-list',
+      'article-footer':'.page-footer',byline:'.footer-byline',license:'.footer-license',
+      'draft-banner':'.draft-banner','build-stamp':'.build-stamp',
+      'fact-label':'.fact-label','fact-content':'.fact-content',source:'.source',
+      'slide-number':'.slide-num',notes:'.notes-local,.note-body',
+      'header-group':'.slide-header-region,.slide-chrome-header',
+      body:'.slide-body,.fact-content,.series-list,.lwp-unit-index,.notes-local,.note-body'};
+    if (name==='title') return Array.prototype.filter.call(slide.querySelectorAll('h1,h2'),function(node){
+      return !node.closest('.slide-body,.fact-box,.series-list,.lwp-unit-index,.notes-local,.slide-chrome');
+    }).slice(0,1);
+    if (name==='main') return Array.prototype.filter.call(slide.querySelectorAll(
+      'h1,h2,.summary,.highlight,.fact-box,.slide-body,.series-list,.lwp-unit-index,.source,.notes-local'),function(node){
+      return !node.closest('.slide-chrome,.speaker-note');
+    }).concat(nativeNodes(slide,'body'),Array.prototype.filter.call(nativeNodes(slide,'kicker'),function(node){
+      return !node.closest('.slide-header-region');
+    }));
+    if (name.indexOf('anchor:')===0) return Array.prototype.filter.call(
+      slide.querySelectorAll('[id]'),function(node){return node.id===name.slice(7);});
+    var nodes=selectors[name] ? Array.prototype.slice.call(slide.querySelectorAll(selectors[name])) : [];
+    if (name==='body' && slide.classList.contains('full-article')) {
+      nodes=Array.prototype.filter.call(slide.querySelectorAll('p,ul,ol,pre,table,blockquote,h3,h4'),
+        function(node){return !node.closest('.slide-chrome,.source,.speaker-note,.lwp-graphic-host');});
+    }
+    if (name==='header-group' && !nodes.length) nodes=nativeNodes(slide,'kicker');
+    if (name==='notes' && slide.classList.contains('notes-section')) nodes=[slide];
+    return nodes;
+  }
+  function nativeBox(state,name,bounds) {
+    if (name==='viewport') return viewport();
+    var box=fromDOM(state.slide.getBoundingClientRect());
+    if (name==='slide') return box;
+    if (name==='screen') return intersection(box,viewport());
+    return union(nativeNodes(state.slide,name).filter(visible).map(function(node){
+      var value=bounds==='content' ? occupied(node) : fromDOM(node.getBoundingClientRect());
+      return bounds==='visible' && value ? intersection(value,viewport()) : value;
+    }));
+  }
+  function point(box,anchor) {
+    anchor=anchor || 'top-left';
+    return {x:anchor==='center' || /center$/.test(anchor) && !/^(left|right)-/.test(anchor)
+        ? box.left+box.width/2 : /right/.test(anchor) ? box.right : box.left,
+      y:anchor==='center' || /^(left|right)-center$/.test(anchor) ? box.top+box.height/2
+        : /^bottom/.test(anchor) ? box.bottom : box.top};
+  }
+  function instanceKey(layer,reference) {
+    if (reference.indexOf('element:')===0) return layer+'/'+reference.slice(8);
+    if (reference.indexOf('region:')===0) return layer+'/'+reference;
+    if (reference.indexOf('layer:')===0) return reference.slice(6);
+    return null;
+  }
+  function reference(state,layer,name,bounds) {
+    var key=instanceKey(layer,name);
+    return key ? state.boxes.get(key) || null : nativeBox(state,name,bounds);
+  }
+  function length(value,state,layer) {
+    if (typeof value==='number') return value;
+    if (value && typeof value==='object') {
+      var dot=value.of.lastIndexOf('.'), box=reference(state,layer,value.of.slice(0,dot),'box');
+      if (!box) throw new Error('missing '+value.of.slice(0,dot));
+      return value.percent*box[value.of.slice(dot+1)]/100;
+    }
+    var n=parseFloat(value), unit=String(value).replace(/^[-\d.]+/,'');
+    var view={width:document.documentElement.clientWidth,height:window.innerHeight};
+    return n*({px:1,pt:96/72,mm:96/25.4,cm:96/2.54,in:96,
+      vw:view.width/100,vh:view.height/100,vmin:Math.min(view.width,view.height)/100,
+      vmax:Math.max(view.width,view.height)/100}[unit] || 1);
+  }
+  function effectCSS(effects,state,layer) {
+    return (effects || []).map(function(effect){
+      if (effect.kind==='shadow' || effect.kind==='glow') return 'drop-shadow('
+        + length(effect.x,state,layer)+'px '+length(effect.y,state,layer)+'px '
+        + Math.max(0,length(effect.blur,state,layer))+'px '+effect.color+')';
+      return effect.kind+'('+(effect.kind==='blur' ? Math.max(0,length(effect.value,state,layer))+'px'
+        : effect.value)+')';
+    }).join(' ');
+  }
+  function report(state,key,reason) {
+    if (state.reported.has(key+reason)) return;
+    state.reported.add(key+reason);
+    var detail={slide:state.slide.id,element:key,reason:reason};
+    console.warn('LWP graphic reference unavailable',detail);
+    state.slide.dispatchEvent(new CustomEvent('lwp:graphic-error',{bubbles:true,detail:detail}));
+  }
+  function assetNode(element,data) {
+    var payload=document.createElement('span'), shadow=payload.attachShadow({mode:'open'});
+    shadow.appendChild(styleNode(assetCSS));
+    if (data.kind==='image') {
+      var image=document.createElement('img'); image.alt=data.alt; image.src=data.url;
+      if (!data.alt) image.setAttribute('aria-hidden','true');
+      shadow.appendChild(image);
+    } else {
+      var template=document.createElement('template'); template.innerHTML=data.html;
+      shadow.appendChild(template.content.cloneNode(true));
+    }
+    Object.keys(data.style).forEach(function(name){payload.style.setProperty(name,data.style[name]);});
+    var interaction=element.interaction==='links';
+    if (!interaction) shadow.appendChild(styleNode('a{pointer-events:none}'));
+    ['click','dblclick','pointerdown','pointerup','contextmenu','keydown'].forEach(function(name){
+      shadow.addEventListener(name,function(event){
+        var link=event.composedPath().find(function(node){return node.tagName==='A';});
+        if (!link) return;
+        event.stopPropagation();
+        if (name==='click' && link.getAttribute('href').charAt(0)==='#') {
+          event.preventDefault();
+          var target=shadow.getElementById(link.getAttribute('href').slice(1));
+          if (target) {target.setAttribute('tabindex','-1');target.focus({preventScroll:true});}
+        }
+      });
+    });
+    shadow.addEventListener('load',schedule,true);
+    shadow.addEventListener('error',schedule,true);
+    return payload;
+  }
+  function mount(slide) {
+    var plan=JSON.parse(slide.getAttribute('data-lwp-graphics'));
+    var state={slide:slide,plan:plan,hosts:[],nodes:new Map(),groups:new Map(),
+      boxes:new Map(),reported:new Set()};
+    var planes=new Map();
+    plan.layers.forEach(function(layer){
+      if (!planes.has(layer.plane)) {
+        var host=document.createElement('div');
+        host.className='lwp-graphic-host'+(layer.plane==='under-content' ? ' lwp-graphic-under' : '');
+        var root=host.attachShadow({mode:'open'});root.appendChild(styleNode(planeCSS));
+        slide.appendChild(host);state.hosts.push(host);planes.set(layer.plane,root);
+      }
+      var group=document.createElement('div');group.className='layer';group.dataset.layer=layer.id;
+      planes.get(layer.plane).appendChild(group);state.groups.set(layer.id,group);
+      layer.elements.forEach(function(element){
+        var data=registry.get(element.asset);
+        if (!data) {report(state,layer.id+'/'+element.id,'missing asset payload');return;}
+        var wrapper=document.createElement('div');wrapper.className='graphic';wrapper.dataset.element=element.id;
+        var rotor=document.createElement('div');rotor.className='rotor';
+        var payload=assetNode(element,data);rotor.appendChild(payload);wrapper.appendChild(rotor);group.appendChild(wrapper);
+        state.nodes.set(layer.id+'/'+element.id,{wrapper:wrapper,rotor:rotor,payload:payload,data:data});
+      });
+    });
+    mounted.set(slide,state);return state;
+  }
+  function scan() {
+    Array.prototype.forEach.call(document.querySelectorAll('.lwp-graphic-assets'),function(node){
+      if (loadedPayloads.has(node)) return;
+      var assets=JSON.parse(node.textContent);
+      Object.keys(assets).forEach(function(key){registry.set(key,assets[key]);});
+      loadedPayloads.add(node);
+    });
+    mounted.forEach(function(state,slide){
+      if (!slide.isConnected || !state.hosts.every(function(host){return host.parentNode===slide;})) {
+        state.hosts.forEach(function(host){host.remove();});mounted.delete(slide);
+      }
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('section[data-lwp-graphics]'),function(slide){
+      if (!mounted.has(slide)) mount(slide);
+    });
+  }
+  function configuration(element,isPrint) {
+    var config=Object.assign({},element,element[isPrint ? 'print' : 'screen'] || {});
+    if (!isPrint) config=Object.assign(config,element[viewport().width<viewport().height ? 'portrait' : 'landscape'] || {});
+    return config;
+  }
+  function regionBox(state,layer,region) {
+    var values={};
+    ['left','right','top','bottom'].forEach(function(edge){
+      var item=region[edge], box=reference(state,layer,item.ref,item.bounds || 'box');
+      if (!box) throw new Error('missing '+item.ref);
+      var name=item.edge || edge;
+      values[edge]=(name==='center-x' ? box.left+box.width/2
+        : name==='center-y' ? box.top+box.height/2 : box[name])+length(item.offset || 0,state,layer);
+    });
+    if (values.left>=values.right || values.top>=values.bottom) throw new Error('empty region');
+    return rect(values.left,values.top,values.right,values.bottom);
+  }
+  function paintElement(state,layer,element,node,isPrint) {
+    var config=configuration(element,isPrint), wrapper=node.wrapper, payload=node.payload;
+    wrapper.style.visibility='hidden';
+    if (config.hidden || (config.media && config.media.indexOf(isPrint ? 'print' : 'screen')===-1)) return null;
+    var layout=config.layout || {}, size=config.size || {}, place=config.place || {};
+    var target=place.target || {ref:'slide'}, bounds=reference(state,layer.id,target.ref,target.bounds || 'box');
+    if (!bounds && place.on_missing && !/^(hide|error)$/.test(place.on_missing)) {
+      bounds=reference(state,layer.id,place.on_missing,target.bounds || 'box');
+    }
+    if (!bounds) throw new Error('missing '+target.ref);
+    ['width','height','min-width','max-width','min-height','max-height'].forEach(function(property){
+      var field=property.replace(/-/g,'_'), value=layout[field];
+      payload.style.setProperty(property,value===undefined
+        ? (property==='width' ? 'max-content' : /^(min|max)-/.test(property) ? (property.indexOf('min-')===0 ? '0px' : 'none') : 'auto')
+        : length(value,state,layer.id)+'px');
+    });
+    payload.style.overflow=layout.height===undefined ? 'visible' : 'hidden';
+    ['font-family','font-size','color','background-color','font-weight','line-height',
+      'letter-spacing','text-align','text-transform','text-decoration','padding','border-radius',
+      'font-variant'].forEach(function(name){payload.style.removeProperty(name);});
+    Object.keys(node.data.style).forEach(function(name){payload.style.setProperty(name,node.data.style[name]);});
+    Object.keys(config.style || {}).forEach(function(name){payload.style.setProperty(name,config.style[name]);});
+    var casing=(config.style || {})['text-transform'] || node.data.style['text-transform'] || 'none';
+    if (/^var\(--[a-z0-9-]+\)$/.test(casing)) {
+      casing=getComputedStyle(payload).getPropertyValue(casing.slice(4,-1)).trim();
+    }
+    payload.style.fontVariant=casing==='small-caps' ? 'small-caps' : 'normal';
+    payload.style.textTransform=casing==='small-caps' ? 'none' : casing;
+    // Measure the frozen, untransformed border box. CSS zoom and ancestor
+    // browser zoom have not been borrowed from native content fitting.
+    node.rotor.style.transform='none';
+    var natural=payload.getBoundingClientRect(), w=natural.width,h=natural.height;
+    if (!(w>0 && h>0)) return null;
+    var theta=(config.rotate || 0)*Math.PI/180,c=Math.cos(theta),s=Math.sin(theta);
+    var a=Math.abs(c)*w+Math.abs(s)*h,b=Math.abs(s)*w+Math.abs(c)*h;
+    var before=size.measure==='before-rotation', scale=1, factors=[];
+    if (size.width!==undefined) factors.push(length(size.width,state,layer.id)/(before ? w : a));
+    if (size.height!==undefined) factors.push(length(size.height,state,layer.id)/(before ? h : b));
+    if (factors.length) scale=(size.fit==='cover' ? Math.max : Math.min).apply(null,factors);
+    var minimum=0,maximum=Infinity;
+    ['width','height'].forEach(function(axis){
+      var extent=axis==='width' ? (before ? w : a) : (before ? h : b);
+      if (size['min_'+axis]!==undefined) minimum=Math.max(minimum,length(size['min_'+axis],state,layer.id)/extent);
+      if (size['max_'+axis]!==undefined) maximum=Math.min(maximum,length(size['max_'+axis],state,layer.id)/extent);
+    });
+    if (minimum>maximum) throw new Error('incompatible graphic size limits');
+    scale=Math.max(minimum,Math.min(maximum,scale));
+    if (!(scale>0 && isFinite(scale))) throw new Error('non-positive graphic size');
+    var width=a*scale,height=b*scale, pos=point(bounds,target.anchor), self=point(rect(0,0,width,height),place.self_anchor);
+    var offset=place.offset || [0,0], left=pos.x-self.x+length(offset[0],state,layer.id);
+    var top=pos.y-self.y+length(offset[1],state,layer.id);
+    var host=wrapper.getRootNode().host.getBoundingClientRect();
+    wrapper.style.left=(left-host.left)+'px';wrapper.style.top=(top-host.top)+'px';
+    wrapper.style.width=width+'px';wrapper.style.height=height+'px';
+    wrapper.style.opacity=config.opacity===undefined ? '1' : String(config.opacity);
+    wrapper.style.filter=effectCSS(config.effects,state,layer.id);
+    var minX=Math.min(0,c*w,-s*h,c*w-s*h)*scale;
+    var minY=Math.min(0,s*w,c*h,s*w+c*h)*scale;
+    node.rotor.style.transform='matrix('+[c*scale,s*scale,-s*scale,c*scale,-minX,-minY].join(',')+')';
+    if (config.tint && node.data.kind==='image') {
+      var image=node.payload.shadowRoot.querySelector('img');
+      node.rotor.style.backgroundColor=config.tint;
+      node.rotor.style.width=w+'px';node.rotor.style.height=h+'px';
+      node.rotor.style.maskImage='url("'+image.src.replace(/"/g,'%22')+'")';
+      node.rotor.style.maskSize='100% 100%';node.rotor.style.maskRepeat='no-repeat';
+      node.payload.style.visibility='hidden';
+      wrapper.setAttribute('role','img');wrapper.setAttribute('aria-label',node.data.alt);
+      if (!node.data.alt) wrapper.setAttribute('aria-hidden','true');
+    } else {
+      node.rotor.style.backgroundColor='';node.rotor.style.maskImage='';
+      node.rotor.style.width='';node.rotor.style.height='';node.payload.style.visibility='';
+      wrapper.removeAttribute('role');wrapper.removeAttribute('aria-label');wrapper.removeAttribute('aria-hidden');
+    }
+    wrapper.style.outline=config.debug ? '1px dashed magenta' : '';
+    if (config.debug) {
+      if (!node.debug) {
+        node.debug=document.createElement('div');node.debug.className='debug';
+        wrapper.parentNode.appendChild(node.debug);
+      }
+      Object.assign(node.debug.style,{display:'block',left:(bounds.left-host.left)+'px',
+        top:(bounds.top-host.top)+'px',width:bounds.width+'px',height:bounds.height+'px'});
+      node.debug.textContent=layer.id+'/'+element.id+' → '+target.ref;
+    }
+    wrapper.style.visibility='visible';
+    return rect(left,top,left+width,top+height);
+  }
+  function paint(state,isPrint) {
+    state.boxes.clear();
+    state.nodes.forEach(function(node){node.wrapper.style.visibility='hidden';});
+    state.nodes.forEach(function(node){if(node.debug)node.debug.style.display='none';});
+    var visibleSlide=!state.slide.hidden && (isPrint || intersection(fromDOM(state.slide.getBoundingClientRect()),viewport()));
+    state.hosts.forEach(function(host){host.style.display=visibleSlide ? 'block' : 'none';});
+    if (!visibleSlide) return;
+    var layers=new Map();
+    state.plan.layers.forEach(function(layer){
+      layers.set(layer.id,layer);
+      var group=state.groups.get(layer.id), active=layer.media.indexOf(isPrint ? 'print' : 'screen')!==-1;
+      group.style.display=active ? 'block' : 'none';group.style.opacity=layer.opacity;
+    });
+    var order=state.plan.order[isPrint ? 'print' : 'screen-'+(viewport().width<viewport().height ? 'portrait' : 'landscape')];
+    order.forEach(function(key){
+      var slash=key.indexOf('/'), layer=layers.get(key.slice(0,slash)), name=key.slice(slash+1);
+      if (layer.media.indexOf(isPrint ? 'print' : 'screen')===-1) return;
+      if (name==='$effects') {
+        try {state.groups.get(layer.id).style.filter=effectCSS(layer.effects,state,layer.id);}
+        catch(error){report(state,key,error.message);}
+        return;
+      }
+      var item=name.indexOf('region:')===0 ? layer.regions[name.slice(7)]
+        : layer.elements.find(function(element){return element.id===name;});
+      try {
+        var box;
+        if (name.indexOf('region:')===0) {
+          try {box=regionBox(state,layer.id,item);}
+          catch(error) {
+            if (item.on_missing && !/^(hide|error)$/.test(item.on_missing)) {
+              box=reference(state,layer.id,item.on_missing,'box');
+            } else throw error;
+          }
+        } else box=paintElement(state,layer,item,state.nodes.get(key),isPrint);
+        if (box) state.boxes.set(key,box);
+      } catch(error) {
+        if (name.indexOf('region:')!==0 && state.nodes.has(key)) state.nodes.get(key).wrapper.style.visibility='hidden';
+        if ((item.place || item).on_missing==='error') report(state,key,error.message);
+      }
+    });
+  }
+  function update() {
+    frame=null;scan();
+    mounted.forEach(function(state){paint(state,printing || printMedia.matches);});
+  }
+  function schedule() {if (frame===null) frame=requestAnimationFrame(update);}
+  document.addEventListener('lwp:layout',schedule);
+  window.addEventListener('scroll',schedule,{passive:true});
+  document.addEventListener('scroll',schedule,{capture:true,passive:true});
+  window.addEventListener('resize',schedule);
+  document.addEventListener('fullscreenchange',schedule);
+  if (window.visualViewport) {
+    visualViewport.addEventListener('scroll',schedule,{passive:true});
+    visualViewport.addEventListener('resize',schedule,{passive:true});
+  }
+  if (document.fonts) {
+    document.fonts.ready.then(schedule);document.fonts.addEventListener('loadingdone',schedule);
+  }
+  document.addEventListener('load',schedule,true);
+  new MutationObserver(function(records){
+    if (records.some(function(change){
+      return !(change.target.nodeType===1 && (change.target.classList.contains('lwp-graphic-host')
+        || change.type==='childList' && Array.prototype.every.call(change.addedNodes,function(node){
+          return node.nodeType===1 && node.classList.contains('lwp-graphic-host');
+        }) && !change.removedNodes.length));
+    })) schedule();
+  }).observe(document.documentElement,{subtree:true,childList:true,attributes:true,
+    attributeFilter:['style','class','hidden','data-lwp-graphics']});
+  window.addEventListener('beforeprint',function(){
+    printing=true;if(frame!==null)cancelAnimationFrame(frame);update();
+  });
+  window.addEventListener('afterprint',function(){printing=false;schedule();});
+  if (printMedia.addEventListener) printMedia.addEventListener('change',function(){update();});
+  else printMedia.addListener(function(){update();});
+  schedule();
+});
+'''
+
 # --- Template: nav.js ---
 # {{str_*}} placeholders are filled from the language pack's "strings" by
 # apply_strings() at build time.
@@ -11842,6 +12312,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (position && !position.slide.hidden) reanchorPresentation(position);
       ready = true;
       if (typeof updateReadingMenu === 'function') updateReadingMenu();
+      document.dispatchEvent(new Event('lwp:layout'));
     }
 
     function schedule(reason) {
@@ -15298,25 +15769,35 @@ document.addEventListener('DOMContentLoaded', function() {
   // Mouse command grammar. Recognition has no DOM or navigation side effects;
   // the event adapter below executes an action synchronously in its user gesture.
   function createMouseSequence() {
-    var count = 0, until = 0, timer = null;
+    var count = 0, until = 0, inputUntil = 0, lastInput = null, timer = null;
     function cancel() {
       count = 0;
-      until = 0;
+      until = inputUntil = 0;
+      lastInput = null;
       if (timer !== null) clearTimeout(timer);
       timer = null;
     }
     function active() {
-      if (count && Date.now() >= until) cancel();
-      return count !== 0;
+      return count !== 0 && Date.now() < until;
     }
-    function press(button) {
-      active();
+    function press(button, timestamp) {
+      var input = typeof timestamp === 'number' && isFinite(timestamp) ? timestamp : Date.now();
+      if (count && (input >= inputUntil || input < lastInput)) cancel();
       if (button === 1) {
         if (count === 2) { cancel(); return 'cancel'; }
         count++;
+        lastInput = input;
+        inputUntil = input + 900;
         until = Date.now() + 900;
         if (timer !== null) clearTimeout(timer);
-        timer = setTimeout(cancel, 900);
+        // Expire the live delivery-clock indication, not queued native input.
+        // A suffix recorded within 900ms may arrive after this timer under load.
+        var ownTimer = setTimeout(function () {
+          if (timer !== ownTimer) return;
+          until = 0;
+          timer = null;
+        }, 900);
+        timer = ownTimer;
         return 'prefix';
       }
       if (button !== 0 && button !== 2) { cancel(); return null; }
@@ -16058,7 +16539,7 @@ document.addEventListener('DOMContentLoaded', function() {
       notePointerInput('mouse');
     }
     if (!isMouseInputEvent(e)) return;
-    var action = mouseSequence.press(e.button);
+    var action = mouseSequence.press(e.button, e.timeStamp);
     if (action) {
       consumedMouseButtons[e.button] = true;
       consumeMouseEvent(e);
@@ -19099,7 +19580,42 @@ _HTML_TAG_RE = re.compile(r'<(/?)([a-zA-Z][a-zA-Z0-9]*)\b[^<>]*?(/?)>')
 # state (in_code_block), not by this regex — a closing line is always
 # just "```" with nothing after it, which this pattern also matches
 # (empty language group).
-_CODE_FENCE_RE = re.compile(r'^```(\S*)$')
+_CODE_FENCE_RE = re.compile(r'^(?P<fence>`{3,}|~{3,})(?P<language>[^`~\s]*)$')
+
+
+def _closes_code_fence(line, fence):
+    return re.fullmatch(re.escape(fence[0]) + r'{' + str(len(fence)) + r',}[ \t]*', line) is not None
+
+
+def _deck_source_parts(text, with_separators=False):
+    """Split deck boundaries without interpreting examples inside code fences.
+
+    Each result retains the original text and a code-masked view used only for
+    marker discovery. The converter, not this scanner, renders the quoted code.
+    """
+    source, structural, fence = [], [], None
+    for line in text.splitlines(keepends=True):
+        raw = line.rstrip('\r\n')
+        if fence is not None:
+            source.append(line)
+            structural.append('\n' if line.endswith('\n') else '')
+            if _closes_code_fence(raw, fence):
+                fence = None
+            continue
+        match = _CODE_FENCE_RE.match(raw)
+        if match:
+            fence = match.group('fence')
+            source.append(line)
+            structural.append('\n' if line.endswith('\n') else '')
+        elif raw == '---':
+            entry = (''.join(source), ''.join(structural))
+            yield entry + (line,) if with_separators else entry
+            source, structural = [], []
+        else:
+            source.append(line)
+            structural.append(line)
+    entry = (''.join(source), ''.join(structural))
+    yield entry + ('',) if with_separators else entry
 
 # The flat-list subset: Markdown's three unordered markers and decimal-period
 # ordered markers. The first ordered marker supplies the HTML list start.
@@ -19351,7 +19867,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
         # generic HTML balance check before the page is written (§13) —
         # no special end-of-file handling needed here.
         if in_code_block:
-            if line == '```':
+            if _closes_code_fence(line, in_code_block):
                 out.append('  </code></pre>')
                 in_code_block = False
             else:
@@ -19453,10 +19969,10 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
         m_fence = _CODE_FENCE_RE.match(line)
         if m_fence:
             close_list()
-            lang = m_fence.group(1)
+            lang = m_fence.group('language')
             lang_class = f' class="language-{html_escape(lang, quote=True)}"' if lang else ''
             out.append(f'  <pre><code{lang_class}>')
-            in_code_block = True
+            in_code_block = m_fence.group('fence')
             i += 1
             continue
 
@@ -19632,14 +20148,14 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
 SLIDE_FIELD_NAMES = (
     'slug', 'kicker', 'tags', 'summary', 'fact-label', 'fact-variant',
     'source', 'highlight', 'highlight-caption', 'slide-layout',
-    'slide-header', 'slide-footer', 'kicker-position', 'comment', 'note',
+    'slide-header', 'slide-footer', 'kicker-position', 'layers', 'comment', 'note',
 )
 
 # These fields are structural instructions for an Identity Kit, not
 # ordinary prose. They are accepted on every slide type so a header/footer can
 # follow the card it belongs to, including a cover, series navigation or a
 # full-article card.
-_PRESENTATION_SLIDE_FIELDS = ('slide-layout', 'slide-header', 'slide-footer', 'kicker-position')
+_PRESENTATION_SLIDE_FIELDS = ('slide-layout', 'slide-header', 'slide-footer', 'kicker-position', 'layers')
 
 
 # Logical selection is independent of physical output and publication policy.
@@ -20569,6 +21085,7 @@ SLIDE_DRAFT_EMPTY_RULES = {
     'slide-header': 'an exact "" suppresses inherited chrome; an unquoted empty value is invalid',
     'slide-footer': 'an exact "" suppresses inherited chrome; an unquoted empty value is invalid',
     'kicker-position': 'an empty value is invalid; omit to inherit before-title or after-header',
+    'layers': 'omit to inherit; auto resets tag/selector matching; [] explicitly disables all graphic layers',
 }
 
 
@@ -20763,6 +21280,7 @@ def slide_draft_contract(existing_slugs=()):
         'canonical_order': [slide_type.name for slide_type in SLIDE_TYPES],
         'empty_rules': dict(SLIDE_DRAFT_EMPTY_RULES),
         'value_sets': {'kicker-position': list(_KICKER_POSITIONS)},
+        'graphics': graphic_contract(),
         'slug': {
             'generated': True,
             'required': True,
@@ -20900,6 +21418,7 @@ class Slide:
         self.slug = None
         self.kicker = None
         self.kicker_position = None
+        self.layers = None
         self.tags = None
         self.h2 = None
         self.h2_present = False
@@ -20958,7 +21477,7 @@ def parse_metadata_block(text):
     return meta
 
 
-def parse_markdown_extended(md_text):
+def parse_markdown_extended(md_text, resource_capture=None):
     """Parses an extended Markdown file and returns
     (meta, slides, has_meta_block, content_before_meta).
 
@@ -20975,6 +21494,7 @@ def parse_markdown_extended(md_text):
     meta = {}
     has_meta_block = False
     content_before_meta = ''
+    line_offset = 0
     # Two anchored searches, not one lazy DOTALL span: with `.*?` every
     # `<!-- lwp:meta -->` occurrence rescanned the rest of the file when no
     # terminator followed, and the cost was paid BEFORE the file was rejected
@@ -20990,14 +21510,18 @@ def parse_markdown_extended(md_text):
         meta = parse_metadata_block(
             md_text[body_start:body_start + terminator.start()])
         # Strip the meta block from the text
-        md_text = md_text[body_start + terminator.end():]
+        end = body_start + terminator.end()
+        line_offset = md_text[:end].count('\n')
+        md_text = md_text[end:]
+
+    md_text = extract_graphic_resources(md_text, resource_capture, line_offset, has_meta_block)
 
     # Split into slides on --- (alone on its own line, surrounded by blank lines)
     # Uses a regex that captures the separators
-    parts = re.split(r'\n---\n', md_text)
+    parts = _deck_source_parts(md_text)
 
     slides = []
-    for part in parts:
+    for part, structural in parts:
         part = strip_ws(part)
         if not part:
             continue
@@ -21005,11 +21529,11 @@ def parse_markdown_extended(md_text):
         slide = None
 
         # Detect the slide type
-        slide_type_match = re.search(r'<!--\s*lwp:slide:\s*(\S+)\s*-->', part)
+        slide_type_match = re.search(r'<!--\s*lwp:slide:\s*(\S+)\s*-->', structural)
         if slide_type_match:
             slide_type = slide_type_match.group(1)
             slide = Slide(slide_type)
-        elif '<!-- lwp:slide -->' in part:
+        elif '<!-- lwp:slide -->' in structural:
             slide = Slide('standard')
         else:
             # With no marker, this is either orphan content or the first part
@@ -21053,6 +21577,7 @@ def parse_markdown_extended(md_text):
                 slug_match = re.match(r'^slug:[ \t]*(.*)', stripped)
                 if slug_match:
                     slide.slug = strip_ws(slug_match.group(1)) or None
+                    slide.raw_meta['slug'] = strip_ws(slug_match.group(1))
                     continue
                 presentation_match = re.match(
                     r'^(' + '|'.join(_PRESENTATION_SLIDE_FIELDS) + r'):[ \t]*(.*)',
@@ -21089,7 +21614,7 @@ def parse_markdown_extended(md_text):
             stripped = strip_ws(line)
 
             # Ignore slide markers
-            if stripped.startswith('<!-- lwp:slide'):
+            if not in_content and stripped.startswith('<!-- lwp:slide'):
                 continue
 
             # Multi-line continuation for `note:` / `comment:`: any line that
@@ -21519,6 +22044,15 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
             if field not in slide.raw_meta:
                 continue
             raw = slide.raw_meta[field]
+            if field == 'layers':
+                try:
+                    value = _graphic_value(raw, f'{filename}: slide {i}: layers')
+                    if value != 'auto' and not isinstance(value, (list, dict)):
+                        raise PropertyError('layers requires auto, a list or add/remove object')
+                except PropertyError as exc:
+                    log('error', str(exc))
+                    sys.exit(1)
+                continue
             if field == 'kicker-position':
                 try:
                     _parse_kicker_position(raw, f'{filename}: slide {i}: {field}')
@@ -22203,6 +22737,1141 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
     return _wrap_presentation_slide(
         rendered, slide, preset, slide_layouts or {}, slide_chrome_layers,
         typo_engine, disabled, inline_images, kicker_position)
+
+
+# ============================================================================
+# GRAPHIC RESOURCES AND ANCHORED COMPOSITIONS
+# ============================================================================
+
+GRAPHIC_ASSET_SCHEMA = 'lightwebpres.asset/1'
+GRAPHIC_LAYER_SCHEMA = 'lightwebpres.layer/1'
+GRAPHIC_REFERENCES = (
+    'slide', 'screen', 'viewport', 'main', 'header', 'header-group', 'footer',
+    'header.text', 'header.image', 'footer.text', 'footer.image', 'kicker',
+    'title', 'summary', 'highlight', 'highlight-caption', 'fact', 'fact-label',
+    'fact-content', 'body', 'source', 'slide-number', 'notes',
+    'highlight-group', 'unit-index', 'series-list', 'article-footer', 'byline',
+    'license', 'draft-banner', 'build-stamp',
+)
+GRAPHIC_ANCHORS = ('top-left', 'top-center', 'top-right', 'left-center', 'center',
+                   'right-center', 'bottom-left', 'bottom-center', 'bottom-right')
+_GRAPHIC_ID = re.compile(r'^[a-z][a-z0-9-]{0,79}$')
+_GRAPHIC_LIMITS = {'resources': 256, 'layers': 64, 'elements': 256,
+                   'descriptor_bytes': 1048576, 'html_bytes': 262144,
+                   'media_bytes': 16777216}
+
+
+def _graphic_json(text, origin):
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise PropertyError(f'{origin}: duplicate JSON key {key!r}')
+            result[key] = value
+        return result
+
+    def nonfinite(value):
+        raise PropertyError(f'{origin}: non-finite JSON number {value}')
+
+    if len(text.encode('utf-8')) > _GRAPHIC_LIMITS['descriptor_bytes']:
+        raise PropertyError(f'{origin}: graphic descriptor exceeds 1 MiB')
+    try:
+        return json.loads(text, object_pairs_hook=unique, parse_constant=nonfinite)
+    except (ValueError, RecursionError) as exc:
+        raise PropertyError(f'{origin}: invalid graphic JSON ({exc})')
+
+
+def _graphic_object(value, allowed, origin, required=()):
+    if not isinstance(value, dict):
+        raise PropertyError(f'{origin}: must be an object')
+    unknown = sorted(set(value) - set(allowed))
+    missing = sorted(set(required) - set(value))
+    if unknown or missing:
+        message = (f'unknown key(s): {", ".join(unknown)}' if unknown else
+                   f'missing key(s): {", ".join(missing)}')
+        raise PropertyError(f'{origin}: {message}')
+    return value
+
+
+def _graphic_id(value, origin):
+    if not isinstance(value, str) or not _GRAPHIC_ID.fullmatch(value):
+        raise PropertyError(f'{origin}: IDs use lowercase letters, digits and hyphens (max 80)')
+    return value
+
+
+def extract_graphic_resources(text, capture=None, line_offset=0, has_meta=True):
+    """Remove only active resource-prologue fences before deck separators run.
+
+    Blank replacement preserves line numbers and paragraph boundaries. Ordinary
+    code fences, including examples containing resource openers, remain literal.
+    """
+    lines = text.splitlines(keepends=True)
+    result, index, ordinary, prologue = [], 0, None, True
+    while index < len(lines):
+        line = lines[index].rstrip('\r\n')
+        opener = re.fullmatch(r'(`{3,}|~{3,})([^`~\s]*)\s*', line)
+        if ordinary is not None:
+            result.append(lines[index])
+            if re.fullmatch(re.escape(ordinary[0]) + r'{' + str(ordinary[1]) + r',}\s*', line):
+                ordinary = None
+            index += 1
+            continue
+        if re.match(r'<!--\s*lwp:slide(?:\s|:|-->)', line):
+            prologue = False
+        if not opener or opener.group(1)[0] != '`' or opener.group(2) not in ('lwp-asset', 'lwp-layer'):
+            if opener:
+                ordinary = (opener.group(1)[0], len(opener.group(1)))
+            result.append(lines[index])
+            index += 1
+            continue
+        if not prologue or not has_meta:
+            raise PropertyError(f'line {line_offset + index + 1}: graphic definitions belong '
+                                'after metadata and before the first slide')
+        start, count = index, len(opener.group(1))
+        kind = opener.group(2).replace('lwp-', '')
+        index += 1
+        body = []
+        while index < len(lines) and not re.fullmatch(r'`{' + str(count) + r',}\s*',
+                                                      lines[index].rstrip('\r\n')):
+            body.append(lines[index])
+            index += 1
+        if index == len(lines):
+            raise PropertyError(f'line {line_offset + start + 1}: unclosed {opener.group(2)} fence')
+        raw = ''.join(body)
+        parts = re.split(r'^---[ \t]*\n', raw, maxsplit=1, flags=re.M)
+        origin = f'line {line_offset + start + 1}: {opener.group(2)}'
+        descriptor = _graphic_json(parts[0], origin)
+        if len(parts) == 2:
+            if kind != 'asset' or not isinstance(descriptor, dict):
+                raise PropertyError(f'{origin}: literal content is only valid for an asset')
+            if 'content' in descriptor or 'file' in descriptor:
+                raise PropertyError(f'{origin}: literal content cannot be combined with file/content')
+            descriptor['content'] = parts[1].rstrip('\r\n')
+        if capture is not None:
+            capture.append({'type': kind, 'data': descriptor, 'line': line_offset + start + 1})
+        result.extend('\n' if value.endswith('\n') else '' for value in lines[start:index + 1])
+        index += 1
+    return ''.join(result)
+
+
+def _graphic_value(value, origin):
+    """Parse structured metadata without broadening the ordinary value grammar."""
+    if isinstance(value, str):
+        if value == 'auto':
+            return value
+        return _graphic_json(value, origin)
+    return value
+
+
+def _graphic_number(value, origin, low=None, high=None):
+    import math
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise PropertyError(f'{origin}: must be a finite number')
+    if (low is not None and value < low) or (high is not None and value > high):
+        raise PropertyError(f'{origin}: outside permitted range {low}..{high}')
+    return value
+
+
+def _graphic_reference(value, origin):
+    if not isinstance(value, str) or not (value in GRAPHIC_REFERENCES
+            or re.fullmatch(r'(?:element|region):[a-z][a-z0-9-]{0,79}', value)
+            or re.fullmatch(r'layer:[a-z][a-z0-9-]{0,79}/[a-z][a-z0-9-]{0,79}', value)
+            or re.fullmatch(r'anchor:[\w-]{1,128}', value)):
+        raise PropertyError(f'{origin}: unknown geometric reference {value!r}')
+    return value
+
+
+def _graphic_length(value, origin):
+    if isinstance(value, dict):
+        _graphic_object(value, ('percent', 'of'), origin, ('percent', 'of'))
+        _graphic_number(value['percent'], origin + '.percent', -100000, 100000)
+        ref, dot, axis = str(value['of']).rpartition('.')
+        if not dot or axis not in ('width', 'height'):
+            raise PropertyError(f'{origin}: of must name a reference width/height')
+        _graphic_reference(ref, origin)
+    elif isinstance(value, (int, float)) and not isinstance(value, bool):
+        _graphic_number(value, origin, -1000000, 1000000)
+    else:
+        match = re.fullmatch(r'(-?(?:\d+(?:\.\d*)?|\.\d+))(?:px|pt|mm|cm|in|vw|vh|vmin|vmax)', value) if isinstance(value, str) else None
+        if not match:
+            raise PropertyError(f'{origin}: use an absolute length or {{percent, of}}')
+        _graphic_number(float(match.group(1)), origin, -1000000, 1000000)
+    return value
+
+
+def _graphic_refs(value):
+    if isinstance(value, dict):
+        if 'ref' in value:
+            yield value['ref']
+        if 'of' in value:
+            yield str(value['of']).rpartition('.')[0]
+        if 'element' in value:
+            yield value['element']
+        if value.get('on_missing') not in (None, 'hide', 'error'):
+            yield value['on_missing']
+        if value.get('bounds') == 'visible':
+            yield 'viewport'
+        for key, child in value.items():
+            if key not in ('asset', 'ref', 'of', 'element', 'on_missing', 'style'):
+                yield from _graphic_refs(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _graphic_refs(child)
+    elif isinstance(value, str) and re.fullmatch(r'-?[\d.]+(?:vw|vh|vmin|vmax)', value):
+        yield 'viewport'
+
+
+_GRAPHIC_STYLES = {
+    'font': ('font-family', PROP_FONT), 'font_size': ('font-size', PROP_LENGTH),
+    'color': ('color', PROP_COLOR), 'background': ('background-color', PROP_COLOR),
+    'weight': ('font-weight', PROP_WEIGHT), 'line_height': ('line-height', PROP_RATIO),
+    'tracking': ('letter-spacing', PROP_LENGTH), 'align': ('text-align', PROP_ALIGN),
+    'transform': ('text-transform', PROP_CASE), 'decoration': ('text-decoration', PROP_DECORATION),
+    'padding': ('padding', PROP_LENGTH), 'radius': ('border-radius', PROP_LENGTH),
+}
+
+
+def _graphic_style(style, origin):
+    _graphic_object(style, _GRAPHIC_STYLES, origin)
+    result = {}
+    for name, value in style.items():
+        css, type_ = _GRAPHIC_STYLES[name]
+        if isinstance(value, dict):
+            _graphic_object(value, ('theme',), origin + '.' + name, ('theme',))
+            prop = (PROPERTY_REGISTRY.get(value['theme'])
+                    if isinstance(value['theme'], str) else None)
+            if prop is None or prop.type is not type_:
+                raise PropertyError(f'{origin}.{name}: incompatible theme property {value["theme"]!r}')
+            result[css] = f'var({prop.var})'
+        else:
+            result[css] = type_.check(origin + '.' + name, str(value))
+    return result
+
+
+def _graphic_media(value, origin):
+    if (not isinstance(value, list) or not value
+            or not all(isinstance(item, str) for item in value)
+            or set(value) - {'screen', 'print'} or len(value) != len(set(value))):
+        raise PropertyError(f'{origin}: media must contain screen and/or print, without duplicates')
+    return value
+
+
+def _graphic_dimension(value, origin, allow_zero=False):
+    _graphic_length(value, origin)
+    number = value['percent'] if isinstance(value, dict) else (
+        value if isinstance(value, (int, float)) else float(re.match(r'-?[\d.]+', value).group()))
+    if number < 0 or (not allow_zero and number == 0):
+        raise PropertyError(f'{origin}: graphic dimensions must be positive')
+    return value
+
+
+class _GraphicHTML(HTMLParser):
+    """A static fragment contract, not a sanitizer for the trusted body grammar."""
+    TAGS = frozenset(('a', 'b', 'i', 'u', 's', 'em', 'strong', 'span', 'div', 'p',
+                     'br', 'hr', 'small', 'sub', 'sup', 'code', 'pre', 'blockquote',
+                     'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                     'figure', 'figcaption', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td'))
+    ATTRS = frozenset(('id', 'class', 'title', 'alt', 'src', 'href', 'target', 'rel',
+                      'style', 'dir', 'lang', 'role', 'colspan', 'rowspan', 'start'))
+
+    def __init__(self, origin, media):
+        super().__init__(convert_charrefs=False)
+        self.origin, self.media, self.output, self.stack, self.links = origin, media, [], [], False
+        self.ids = set()
+
+    def handle_starttag(self, tag, attrs):
+        if tag not in self.TAGS:
+            raise PropertyError(f'{self.origin}: static HTML asset cannot contain <{tag}>')
+        values = {}
+        for key, value in attrs:
+            if (key not in self.ATTRS and not key.startswith('aria-')) or key in values:
+                raise PropertyError(f'{self.origin}: unsupported/duplicate HTML attribute {key}')
+            value = value or ''
+            if key == 'id':
+                if not re.fullmatch(r'[\w-]{1,128}', value) or value in self.ids:
+                    raise PropertyError(f'{self.origin}: invalid or duplicate local HTML ID {value!r}')
+                self.ids.add(value)
+            if key == 'style':
+                for declaration in value.split(';'):
+                    if not declaration.strip():
+                        continue
+                    name, sep, raw = declaration.partition(':')
+                    allowed = {entry[0] for entry in _GRAPHIC_STYLES.values()} | {'width', 'height',
+                        'max-width', 'max-height', 'zoom', 'font-variant', 'vertical-align', 'white-space'}
+                    if (not sep or name.strip() not in allowed
+                            or re.search(r'url\s*\(|expression\s*\(|[<>@{}\\]|/\*|!important', raw, re.I)):
+                        raise PropertyError(f'{self.origin}: unsafe HTML style {declaration!r}')
+            if key == 'href':
+                if not re.match(r'^(https?://|#[\w-]+$)', value, re.I):
+                    raise PropertyError(f'{self.origin}: asset links require HTTP(S) or a local fragment')
+                self.links = True
+            if key == 'src':
+                if tag != 'img':
+                    raise PropertyError(f'{self.origin}: only image media is allowed')
+                value = self.media(value)
+            values[key] = value
+        if tag == 'a' and 'href' in values and not values['href'].startswith('#'):
+            values.update(target='_blank', rel='noopener')
+        rendered = ''.join(f' {key}="{html_escape(value, quote=True)}"' for key, value in values.items())
+        self.output.append(f'<{tag}{rendered}>')
+        if tag not in ('br', 'hr', 'img'):
+            self.stack.append(tag)
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        if tag not in ('br', 'hr', 'img'):
+            self.handle_endtag(tag)
+
+    def handle_endtag(self, tag):
+        if not self.stack or self.stack[-1] != tag:
+            raise PropertyError(f'{self.origin}: unbalanced HTML closing tag </{tag}>')
+        self.stack.pop()
+        self.output.append(f'</{tag}>')
+
+    def handle_data(self, data):
+        self.output.append(html_escape(data, quote=False))
+
+    def handle_entityref(self, name):
+        self.output.append('&' + name + ';')
+
+    def handle_charref(self, name):
+        self.output.append('&#' + name + ';')
+
+    def handle_decl(self, declaration):
+        raise PropertyError(f'{self.origin}: HTML assets must be fragments, without declarations')
+
+    def handle_pi(self, data):
+        raise PropertyError(f'{self.origin}: HTML processing instructions are not allowed')
+
+    def unknown_decl(self, data):
+        raise PropertyError(f'{self.origin}: unsupported HTML declaration')
+
+    def finish(self):
+        self.close()
+        if self.stack:
+            raise PropertyError(f'{self.origin}: unclosed HTML asset tag {self.stack[-1]}')
+        return ''.join(self.output)
+
+
+class GraphicCatalog:
+    """One operation's scoped immutable definitions, plans and media inventory."""
+    def __init__(self, series_dir, sources_dir, series_data, inline_images=False):
+        self.root, self.sources = Path(series_dir), Path(sources_dir)
+        self.series_data = series_data
+        self.inline_images = inline_images
+        self.definitions = {'series': {'asset': {}, 'layer': {}}}
+        self.dependencies, self.media, self.assets, self.plans = set(), {}, {}, {}
+        self._compiled_assets = {}
+        self._embedded_assets = {}
+        self._asset_media = {}
+        self._snapshots, self._validated_scopes = {}, set()
+        resources = series_data.get('resources', {}) if isinstance(series_data, dict) else {}
+        self.import_resources('series', resources, 'series.json: resources')
+
+    def read_resource(self, path, limit, origin):
+        """Snapshot bytes once, with a pre-read bound, for render/hash/publish."""
+        path = Path(path)
+        if path not in self._snapshots:
+            if path.stat().st_size > limit:
+                raise PropertyError(f'{origin}: graphic resource exceeds {limit} bytes')
+            with path.open('rb') as stream:
+                data = stream.read(limit + 1)
+            if len(data) > limit:
+                raise PropertyError(f'{origin}: graphic resource exceeds {limit} bytes')
+            self._snapshots[path] = data
+        self.dependencies.add(path)
+        return self._snapshots[path]
+
+    def text_resource(self, path, limit, origin):
+        try:
+            return self.read_resource(path, limit, origin).decode('utf-8-sig')
+        except UnicodeError as exc:
+            raise PropertyError(f'{origin}: graphic text resource is not UTF-8 ({exc})')
+
+    def resource_file(self, base, value, origin):
+        relative = _presentation_relative_path(value, origin)
+        candidate = Path(base).joinpath(*relative.parts)
+        _validate_presentation_path(base, candidate, origin)
+        # Keep missing dependencies too: creating a previously missing payload
+        # must wake watch even when it lives outside templates/ or sources/.
+        self.dependencies.add(candidate)
+        return _presentation_file(base, value, origin)[0]
+
+    def import_resources(self, scope, value, origin):
+        value = _graphic_value(value, origin)
+        _graphic_object(value, ('assets', 'layers'), origin)
+        self.definitions.setdefault(scope, {'asset': {}, 'layer': {}})
+        for plural, descriptors in value.items():
+            if not isinstance(descriptors, list):
+                raise PropertyError(f'{origin}.{plural}: must be an array')
+            kind = plural[:-1]
+            for descriptor in descriptors:
+                if isinstance(descriptor, str):
+                    path = self.resource_file(self.root, descriptor, origin)
+                    if path.suffix != '.json':
+                        raise PropertyError(f'{origin}: resource descriptor must be JSON')
+                    data = _graphic_json(self.text_resource(path, _GRAPHIC_LIMITS['descriptor_bytes'], origin), str(path))
+                    self.register(scope, kind, data, path.parent, str(path))
+                elif isinstance(descriptor, dict):
+                    self.register(scope, kind, descriptor, self.root, origin)
+                else:
+                    raise PropertyError(f'{origin}: resource entries must be paths or objects')
+
+    def register(self, scope, kind, data, base, origin):
+        self.definitions.setdefault(scope, {'asset': {}, 'layer': {}})
+        allowed = ({'schema', 'id', 'label', 'kind', 'format', 'content', 'file', 'alt', 'style',
+                    'license', 'credit'} if kind == 'asset' else
+                   {'schema', 'id', 'label', 'tags', 'selector', 'plane', 'elements', 'regions',
+                    'media', 'opacity', 'effects', 'license', 'credit'})
+        _graphic_object(data, allowed, origin, ('id',))
+        name = _graphic_id(data['id'], origin)
+        for key in ('label', 'license', 'credit'):
+            if key in data and not isinstance(data[key], str):
+                raise PropertyError(f'{origin}: {key} must be text')
+        if len(self.definitions[scope][kind]) >= _GRAPHIC_LIMITS['resources']:
+            raise PropertyError(f'{origin}: too many graphic resources')
+        if name in self.definitions[scope][kind]:
+            raise PropertyError(f'{origin}: duplicate {kind} {name!r} in {scope}')
+        schema = GRAPHIC_ASSET_SCHEMA if kind == 'asset' else GRAPHIC_LAYER_SCHEMA
+        if data.get('schema', schema) != schema:
+            raise PropertyError(f'{origin}: expected {schema}')
+        if kind == 'asset':
+            if data.get('kind') not in ('image', 'html'):
+                raise PropertyError(f'{origin}: asset kind must be image or html')
+            if ('file' in data) == ('content' in data):
+                raise PropertyError(f'{origin}: asset requires exactly one of file/content')
+            if data['kind'] == 'image' and ('file' not in data or 'alt' not in data):
+                raise PropertyError(f'{origin}: image asset requires file and explicit alt text')
+            if 'alt' in data and not isinstance(data['alt'], str):
+                raise PropertyError(f'{origin}: image alternative text must be a string')
+            if data.get('format', 'html') not in ('plain', 'markdown-inline', 'markdown', 'html'):
+                raise PropertyError(f'{origin}: unsupported asset text format')
+            _graphic_style(data.get('style', {}), origin + '.style')
+        else:
+            if 'tags' in data and 'selector' in data:
+                raise PropertyError(f'{origin}: tags and selector are alternative automatic rules')
+            if 'tags' in data and (not isinstance(data['tags'], list)
+                                  or not all(isinstance(tag, str) for tag in data['tags'])):
+                raise PropertyError(f'{origin}: layer tags must be an array of tags')
+            if 'tags' in data:
+                for tag in data['tags']:
+                    if not _TAG_TOKEN_RE.fullmatch(tag.casefold()) or tag.startswith('_'):
+                        raise PropertyError(f'{origin}: invalid literal tag {tag!r}')
+            if 'selector' in data:
+                try:
+                    compile_selector(data['selector'], series_meta_of(self.series_data).get('selectors'))
+                except SelectorError as exc:
+                    raise PropertyError(f'{origin}: layer selector: {exc}')
+            if not isinstance(data.get('elements'), list):
+                raise PropertyError(f'{origin}: a composition requires elements')
+        from copy import deepcopy
+        self.definitions[scope][kind][name] = {
+            'data': deepcopy(data), 'base': Path(base), 'origin': origin, 'scope': scope}
+        self._validated_scopes.discard(scope)
+
+    def add_unit(self, source_name, parsed):
+        scope = 'unit/' + source_name
+        if scope in self.definitions:
+            return scope
+        self.definitions[scope] = {'asset': {}, 'layer': {}}
+        meta = parsed.parsed[0]
+        self.import_resources(scope, meta.get('resources', {}), source_name + ': resources')
+        for definition in parsed.resources:
+            self.register(scope, definition['type'], definition['data'], self.sources,
+                          f'{source_name}:{definition["line"]}')
+        return scope
+
+    def lookup(self, kind, name, scope):
+        if not isinstance(name, str):
+            raise PropertyError(f'{scope}: {kind} reference must be a name')
+        if name.startswith('series/'):
+            candidates, name = ['series'], name[7:]
+        elif name.startswith('unit/'):
+            candidates, name = [scope], name[5:]
+        else:
+            candidates = [scope, 'series'] if scope != 'series' else ['series']
+        for candidate in candidates:
+            found = self.definitions.get(candidate, {}).get(kind, {}).get(name)
+            if found is not None:
+                return found
+        raise PropertyError(f'{scope}: unknown {kind} resource {name!r}')
+
+    def media_url(self, base, name, origin):
+        import base64
+        import mimetypes
+        path = self.resource_file(base, name, origin)
+        data = self.read_resource(path, _GRAPHIC_LIMITS['media_bytes'], origin)
+        mime = mimetypes.guess_type(path.name)[0]
+        if mime not in ('image/svg+xml', 'image/png', 'image/jpeg', 'image/webp',
+                        'image/gif', 'image/avif'):
+            raise PropertyError(f'{origin}: unsupported image format {path.suffix}')
+        if mime == 'image/svg+xml':
+            try:
+                raw = data.decode('utf-8-sig')
+            except UnicodeError as exc:
+                raise PropertyError(f'{origin}: SVG is not UTF-8 ({exc})')
+            if re.search(r'<!DOCTYPE|<!ENTITY|<\s*(?:script|foreignObject)\b|\bon\w+\s*=|\\', raw, re.I):
+                raise PropertyError(f'{origin}: graphic SVG must be static and self-contained')
+            for match in re.finditer(r'(?:href|src)\s*=\s*["\']([^"\']+)', raw, re.I):
+                if not match.group(1).startswith(('#', 'data:image/')):
+                    raise PropertyError(f'{origin}: external SVG dependency is not allowed')
+            if re.search(r'@import', raw, re.I) or any(
+                    not match.group(1).strip().strip('"\'').startswith(('#', 'data:image/'))
+                    for match in re.finditer(r'url\(\s*([^)]*)\)', raw, re.I)):
+                raise PropertyError(f'{origin}: external SVG CSS dependency is not allowed')
+            from xml.parsers import expat
+            try:
+                parser = expat.ParserCreate(namespace_separator='|')
+                def inspect_svg(tag, attributes):
+                    if tag.rsplit('|', 1)[-1].casefold() in ('script', 'foreignobject'):
+                        raise PropertyError(f'{origin}: SVG must contain only static graphics')
+                    for key, value in attributes.items():
+                        key = key.rsplit('|', 1)[-1].casefold()
+                        if key.startswith('on') or (key in ('href', 'src')
+                                and not value.startswith(('#', 'data:image/'))):
+                            raise PropertyError(f'{origin}: external/active SVG dependency is not allowed')
+                parser.StartElementHandler = inspect_svg
+                parser.Parse(data, True)
+            except expat.ExpatError as exc:
+                raise PropertyError(f'{origin}: malformed SVG ({exc})')
+        digest = hashlib.sha256(data).hexdigest()
+        relative = 'assets/graphics/' + digest[:24] + path.suffix.lower()
+        if self.inline_images:
+            return 'data:' + mime + ';base64,' + base64.b64encode(data).decode('ascii')
+        self.media[relative] = data
+        return relative
+
+    def html_media_url(self, base, src, origin):
+        """HTML/Markdown image src is a URL; descriptor file remains a path."""
+        try:
+            parts = _image_url_parts(src)
+        except (ValueError, UnicodeError) as exc:
+            raise PropertyError(f'{origin}: invalid graphic image URL ({exc})')
+        if parts is None:
+            raise PropertyError(f'{origin}: graphic HTML images require a contained relative URL')
+        filename, fragment = parts
+        published = self.media_url(base, filename, origin)
+        return published + ('#' + quote(fragment, safe='()/:,;=') if fragment else '')
+
+    def compile_asset(self, reference, scope, base=None, origin='inline asset'):
+        if isinstance(reference, dict):
+            from copy import deepcopy
+            data = deepcopy(reference)
+            data.setdefault('id', 'inline-asset')
+            temporary_scope = {'data': data, 'scope': scope, 'base': base or self.sources, 'origin': origin}
+            # Inline instances use the same schema validation without defining
+            # an unintentional shared name in the caller's catalogue.
+            scratch = 'inline/' + hashlib.sha256((scope + '\n' + str(temporary_scope['base'])
+                                                 + '\n' + json.dumps(data, sort_keys=True)).encode()).hexdigest()
+            if scratch not in self.definitions:
+                self.definitions[scratch] = {'asset': {}, 'layer': {}}
+                self.register(scratch, 'asset', data, temporary_scope['base'], origin)
+            definition = self.definitions[scratch]['asset'][data['id']]
+        else:
+            definition = self.lookup('asset', reference, scope)
+        data, base, origin = definition['data'], definition['base'], definition['origin']
+        key = (definition['scope'], data['id'])
+        if key in self._compiled_assets:
+            return self._compiled_assets[key]
+        compiled = {'kind': data['kind'], 'style': _graphic_style(data.get('style', {}), origin)}
+        if data['kind'] == 'image':
+            compiled.update(url=self.media_url(base, data['file'], origin), alt=data['alt'], links=False)
+        else:
+            if 'file' in data:
+                path = self.resource_file(base, data['file'], origin)
+                content = self.text_resource(path, _GRAPHIC_LIMITS['html_bytes'], origin)
+            else:
+                content = data['content']
+            if not isinstance(content, str) or len(content.encode()) > _GRAPHIC_LIMITS['html_bytes']:
+                raise PropertyError(f'{origin}: HTML asset content must be text up to 256 KiB')
+            format_ = data.get('format', 'html')
+            if format_ == 'plain':
+                content = '<span style="white-space:pre-wrap">' + html_escape(content) + '</span>'
+            elif format_ == 'markdown-inline':
+                content = md_inline(content, allow_notes=False)
+            elif format_ == 'markdown':
+                content = convert_markdown(content)
+            parser = _GraphicHTML(origin, lambda src: self.html_media_url(base, src, origin))
+            parser.feed(content)
+            compiled.update(html=parser.finish(), links=parser.links)
+        asset_key = hashlib.sha256(json.dumps(compiled, sort_keys=True).encode()).hexdigest()[:24]
+        self.assets[asset_key] = compiled
+        self._asset_media[asset_key] = set(re.findall(r'assets/graphics/[0-9a-f]{24}\.[a-z0-9]+',
+                                                      json.dumps(compiled)))
+        self._compiled_assets[key] = asset_key
+        return asset_key
+
+    def embedded_image_asset(self, asset_key):
+        """CSS masks reject file: URLs. Embed tinted images from our bounded
+        source snapshot so downloaded multipage output needs no HTTP server.
+        """
+        import base64
+        import mimetypes
+        asset = self.assets[asset_key]
+        if asset['url'].startswith('data:'):
+            return asset_key
+        if asset_key not in self._embedded_assets:
+            data = self.media[asset['url']]
+            mime = mimetypes.guess_type(asset['url'])[0]
+            embedded = dict(asset, url='data:' + mime + ';base64,'
+                            + base64.b64encode(data).decode('ascii'))
+            key = hashlib.sha256(json.dumps(embedded, sort_keys=True).encode()).hexdigest()[:24]
+            self.assets[key] = embedded
+            self._asset_media[key] = set()
+            self._embedded_assets[asset_key] = key
+        return self._embedded_assets[asset_key]
+
+    def _effects(self, value, origin):
+        if not isinstance(value, list) or len(value) > 8:
+            raise PropertyError(f'{origin}: effects must be an array of at most 8 items')
+        result = []
+        for effect in value:
+            _graphic_object(effect, ('kind', 'x', 'y', 'blur', 'color', 'value'), origin, ('kind',))
+            kind = effect['kind']
+            if kind in ('shadow', 'glow'):
+                _graphic_object(effect, ('kind', 'x', 'y', 'blur', 'color'), origin)
+                _graphic_dimension(effect.get('blur', '4px'), origin, allow_zero=True)
+                result.append({'kind': kind,
+                    'x': _graphic_length(effect.get('x', '0px'), origin),
+                    'y': _graphic_length(effect.get('y', '0px'), origin),
+                    'blur': _graphic_length(effect.get('blur', '4px'), origin),
+                    'color': _graphic_style({'color': effect.get('color', '#00000080')}, origin)['color']})
+            elif kind in ('grayscale', 'brightness', 'contrast', 'saturate', 'blur'):
+                _graphic_object(effect, ('kind', 'value'), origin)
+                amount = effect.get('value', '0px' if kind == 'blur' else 1)
+                if kind == 'blur':
+                    _graphic_dimension(amount, origin, allow_zero=True)
+                else:
+                    _graphic_number(amount, origin, 0, 10)
+                result.append({'kind': kind, 'value': amount})
+            else:
+                raise PropertyError(f'{origin}: unsupported graphic effect {kind!r}')
+        return result
+
+    def _geometry(self, data, origin):
+        from copy import deepcopy
+        result = deepcopy(data)
+        if 'rotate' in result:
+            angle = result['rotate']
+            if isinstance(angle, str) and re.fullmatch(r'-?(?:\d+(?:\.\d*)?|\.\d+)deg', angle):
+                angle = float(angle[:-3])
+            result['rotate'] = _graphic_number(angle, origin + '.rotate', -100000, 100000)
+        if 'opacity' in result:
+            _graphic_number(result['opacity'], origin + '.opacity', 0, 1)
+        if 'media' in result:
+            _graphic_media(result['media'], origin)
+        for field in ('hidden', 'debug'):
+            if field in result and not isinstance(result[field], bool):
+                raise PropertyError(f'{origin}: {field} must be a boolean')
+        for field in ('size', 'layout'):
+            if field not in result:
+                continue
+            box = result[field]
+            allowed = ('width', 'height', 'min_width', 'max_width', 'min_height', 'max_height')
+            _graphic_object(box, allowed + (('measure', 'fit') if field == 'size' else ()), origin + '.' + field)
+            for axis in ('width', 'height', 'min_width', 'max_width', 'min_height', 'max_height'):
+                if axis in box:
+                    _graphic_dimension(box[axis], origin + '.' + field + '.' + axis,
+                                       allow_zero=axis.startswith('min_'))
+            if box.get('measure', 'after-rotation') not in ('before-rotation', 'after-rotation'):
+                raise PropertyError(f'{origin}: invalid size measurement')
+            if box.get('fit', 'contain') not in ('contain', 'cover'):
+                raise PropertyError(f'{origin}: invalid graphic fit')
+        if 'place' in result:
+            place = result['place']
+            _graphic_object(place, ('target', 'self_anchor', 'offset', 'on_missing'), origin + '.place')
+            target = place.get('target', {'ref': 'slide'})
+            _graphic_object(target, ('ref', 'anchor', 'bounds'), origin + '.target', ('ref',))
+            _graphic_reference(target['ref'], origin)
+            for anchor in (target.get('anchor', 'top-left'), place.get('self_anchor', 'top-left')):
+                if anchor not in GRAPHIC_ANCHORS:
+                    raise PropertyError(f'{origin}: invalid graphic anchor {anchor!r}')
+            if target.get('bounds', 'box') not in ('box', 'content', 'visible'):
+                raise PropertyError(f'{origin}: invalid reference bounds')
+            offset = place.get('offset', ['0px', '0px'])
+            if not isinstance(offset, list) or len(offset) != 2:
+                raise PropertyError(f'{origin}: offset requires two lengths')
+            for value in offset:
+                _graphic_length(value, origin)
+            missing = place.get('on_missing', 'hide')
+            if missing not in ('hide', 'error'):
+                _graphic_reference(missing, origin)
+        if 'effects' in result:
+            result['effects'] = self._effects(result['effects'], origin)
+        if 'tint' in result:
+            result['tint'] = _graphic_style({'color': result['tint']}, origin)['color']
+        return result
+
+    def _layer_instance(self, choice, scope, index):
+        from copy import deepcopy
+        if isinstance(choice, str):
+            choice = {'use': choice}
+        if not isinstance(choice, dict):
+            raise PropertyError(f'{scope}: layer choices must be names or objects')
+        if 'use' in choice:
+            _graphic_object(choice, ('use', 'as', 'overrides', 'opacity', 'effects', 'plane', 'media'), scope)
+            definition = self.lookup('layer', choice['use'], scope)
+            data = deepcopy(definition['data'])
+            name = choice.get('as', data['id'])
+            definition_scope, base, origin = definition['scope'], definition['base'], definition['origin']
+        else:
+            data = deepcopy(choice)
+            data.setdefault('id', 'inline-' + str(index))
+            name, definition_scope, base, origin = (data['id'], scope,
+                self.root if scope == 'series' else self.sources, scope + ': inline layer')
+            _graphic_object(data, ('id', 'label', 'schema', 'tags', 'selector', 'plane', 'elements',
+                                   'regions', 'media', 'opacity', 'effects'), origin, ('elements',))
+            if data.get('schema', GRAPHIC_LAYER_SCHEMA) != GRAPHIC_LAYER_SCHEMA:
+                raise PropertyError(f'{origin}: expected {GRAPHIC_LAYER_SCHEMA}')
+        _graphic_id(name, origin)
+        plane = choice.get('plane', data.get('plane', 'over-content'))
+        if plane not in ('under-content', 'over-content'):
+            raise PropertyError(f'{origin}: invalid graphic plane')
+        media = choice.get('media', data.get('media', ['screen', 'print']))
+        _graphic_media(media, origin)
+        elements, seen = [], set()
+        overrides = choice.get('overrides', {})
+        if not isinstance(overrides, dict):
+            raise PropertyError(f'{origin}: overrides must map element IDs')
+        if not isinstance(data.get('elements'), list) or len(data['elements']) > _GRAPHIC_LIMITS['elements']:
+            raise PropertyError(f'{origin}: elements must be an array of at most 256 items')
+        for original in data.get('elements', []):
+            _graphic_object(original, ('id', 'asset', 'layout', 'size', 'place', 'rotate', 'opacity',
+                'effects', 'tint', 'media', 'screen', 'print', 'portrait', 'landscape',
+                'interaction', 'style', 'debug'), origin, ('id', 'asset'))
+            element = deepcopy(original)
+            element_id = _graphic_id(element['id'], origin)
+            if element_id in seen:
+                raise PropertyError(f'{origin}: duplicate element {element_id!r}')
+            seen.add(element_id)
+            if element_id in overrides:
+                patch = overrides[element_id]
+                _graphic_object(patch, {'asset', 'layout', 'size', 'place', 'rotate', 'opacity',
+                    'effects', 'tint', 'media', 'screen', 'print', 'portrait', 'landscape',
+                    'interaction', 'style', 'debug'}, origin)
+                element.update(patch)
+            is_override = 'asset' in overrides.get(element_id, {})
+            asset_key = self.compile_asset(element['asset'], scope if is_override else definition_scope,
+                (self.root if scope == 'series' else self.sources) if is_override else base, origin)
+            element['asset'] = asset_key
+            if self.assets[asset_key].get('links') and element.get('interaction', 'none') != 'links':
+                raise PropertyError(f'{origin}: asset links require interaction: links')
+            if element.get('interaction', 'none') not in ('none', 'links'):
+                raise PropertyError(f'{origin}: unsupported graphic interaction')
+            if 'style' in element:
+                element['style'] = _graphic_style(element['style'], origin)
+            element = self._geometry(element, origin)
+            if 'tint' in element and self.assets[asset_key]['kind'] != 'image':
+                raise PropertyError(f'{origin}: tint is only valid on image assets')
+            for variant in ('screen', 'print', 'portrait', 'landscape'):
+                if variant in element:
+                    _graphic_object(element[variant], ('layout', 'size', 'place', 'rotate', 'opacity',
+                        'effects', 'tint', 'style', 'hidden'), origin + '.' + variant)
+                    element[variant] = self._geometry(element[variant], origin)
+                    if 'style' in element[variant]:
+                        element[variant]['style'] = _graphic_style(element[variant]['style'], origin)
+                    if 'tint' in element[variant] and self.assets[asset_key]['kind'] != 'image':
+                        raise PropertyError(f'{origin}: tint is only valid on image assets')
+            if 'tint' in element or any('tint' in element.get(variant, {})
+                                       for variant in ('screen', 'print', 'portrait', 'landscape')):
+                element['asset'] = self.embedded_image_asset(asset_key)
+            elements.append(element)
+        if set(overrides) - seen:
+            raise PropertyError(f'{origin}: overrides name unknown elements')
+        regions = deepcopy(data.get('regions', {}))
+        if not isinstance(regions, dict):
+            raise PropertyError(f'{origin}: regions must be an object')
+        for region_name, region in regions.items():
+            _graphic_id(region_name, origin)
+            _graphic_object(region, ('left', 'right', 'top', 'bottom', 'on_missing'), origin,
+                            ('left', 'right', 'top', 'bottom'))
+            for edge in ('left', 'right', 'top', 'bottom'):
+                boundary = region[edge]
+                _graphic_object(boundary, ('ref', 'edge', 'offset', 'bounds'), origin, ('ref',))
+                _graphic_reference(boundary['ref'], origin)
+                if boundary.get('edge', edge) not in ('left', 'right', 'top', 'bottom', 'center-x', 'center-y'):
+                    raise PropertyError(f'{origin}: invalid region boundary')
+                _graphic_length(boundary.get('offset', '0px'), origin)
+                if boundary.get('bounds', 'box') not in ('box', 'content', 'visible'):
+                    raise PropertyError(f'{origin}: invalid region reference bounds')
+            if region.get('on_missing', 'hide') not in ('hide', 'error'):
+                _graphic_reference(region['on_missing'], origin)
+        return {'id': name, 'plane': plane, 'media': media, 'elements': elements, 'regions': regions,
+                'definition': {'scope': definition_scope, 'id': data['id']},
+                'opacity': _graphic_number(choice.get('opacity', data.get('opacity', 1)), origin, 0, 1),
+                'effects': self._effects(choice.get('effects', data.get('effects', [])), origin)}
+
+    def _apply_choice(self, selected, value, automatic, scope):
+        from copy import deepcopy
+        value = _graphic_value(value, scope + ': layers')
+        if value == 'auto':
+            return deepcopy(automatic)
+        if isinstance(value, list):
+            return [self._layer_instance(item, scope, index) for index, item in enumerate(value)]
+        _graphic_object(value, ('add', 'remove'), scope + ': layers')
+        remove, add = value.get('remove', []), value.get('add', [])
+        if not isinstance(remove, list) or not all(isinstance(name, str) for name in remove) or not isinstance(add, list):
+            raise PropertyError(f'{scope}: layer add/remove values must be arrays')
+        selected = [item for item in selected if item['id'] not in remove]
+        selected.extend(self._layer_instance(item, scope, index) for index, item in enumerate(add))
+        return selected
+
+    def _validate_graph(self, layers, origin, medium, orientation=None):
+        graph = {}
+        for layer in layers:
+            if medium not in layer['media']:
+                continue
+            prefix = layer['id'] + '/'
+            for element in layer['elements']:
+                effective = dict(element)
+                effective.update(element.get(medium, {}))
+                if orientation:
+                    effective.update(element.get(orientation, {}))
+                if medium not in effective.get('media', ['screen', 'print']) or effective.get('hidden'):
+                    continue
+                for variant in ('screen', 'print', 'portrait', 'landscape'):
+                    effective.pop(variant, None)
+                graph[prefix + element['id']] = (layer, effective)
+            for name, region in layer['regions'].items():
+                graph[prefix + 'region:' + name] = (layer, region)
+            if layer['effects']:
+                graph[prefix + '$effects'] = (layer, {'effects': layer['effects']})
+        if len(graph) > _GRAPHIC_LIMITS['elements']:
+            raise PropertyError(f'{origin}: too many composition elements/regions')
+        edges = {}
+        for name, (layer, item) in graph.items():
+            dependencies = []
+            for reference in _graphic_refs(item):
+                _graphic_reference(reference, origin)
+                if medium == 'print' and not name.split('/')[-1].startswith('region:') and reference in ('screen', 'viewport'):
+                    raise PropertyError(f'{origin}: print geometry cannot depend on {reference}; '
+                                        'provide a print override or media: ["screen"]')
+                target = None
+                if reference.startswith('element:'):
+                    target = layer['id'] + '/' + reference[8:]
+                elif reference.startswith('region:'):
+                    target = layer['id'] + '/' + reference
+                elif reference.startswith('layer:'):
+                    target = reference[6:]
+                if target is not None:
+                    if target not in graph:
+                        raise PropertyError(f'{origin}: unknown instance reference {reference}')
+                    dependencies.append(target)
+            edges[name] = dependencies
+        order, active, done = [], [], set()
+        def visit(name):
+            if name in active:
+                raise PropertyError(f'{origin}: graphic dependency cycle: ' + ' -> '.join(active + [name]))
+            if name in done:
+                return
+            active.append(name)
+            for dependency in edges[name]:
+                visit(dependency)
+            active.pop()
+            done.add(name)
+            order.append(name)
+        for name in graph:
+            if medium == 'screen' or '/region:' not in name:
+                visit(name)
+        if medium == 'print':
+            for name in order:
+                if any(ref in ('screen', 'viewport') for ref in _graphic_refs(graph[name][1])):
+                    raise PropertyError(f'{origin}: print geometry depends on screen/viewport through {name}')
+        return order
+
+    def validate_scope(self, owner, values):
+        if owner in self._validated_scopes:
+            return
+        for name in self.definitions[owner]['asset']:
+            self.compile_asset(name, owner)
+        for index, name in enumerate(self.definitions[owner]['layer']):
+            self._layer_instance(name, owner, index)
+        if 'layers' in values:
+            self._apply_choice([], values['layers'], [], owner)
+        if 'layers_by_type' in values:
+            choices = _graphic_value(values['layers_by_type'], owner + ': layers_by_type')
+            _graphic_object(choices, (*_PRESENTATION_SLIDE_TYPES, 'notes'), owner)
+            for choice in choices.values():
+                self._apply_choice([], choice, [], owner)
+        self._validated_scopes.add(owner)
+
+    def plan_unit(self, source_name, parsed, series_meta, args=None, strings=None):
+        scope = self.add_unit(source_name, parsed)
+        if source_name in self.plans:
+            return self.plans[source_name]
+        meta, slides, _, _ = parsed.unpack()
+        self.validate_scope('series', series_meta)
+        self.validate_scope(scope, meta)
+        if (not any(self.definitions[name]['layer'] for name in ('series', scope))
+                and not any(key in values for values in (series_meta, meta)
+                            for key in ('layers', 'layers_by_type'))
+                and not any('layers' in slide.raw_meta for slide in slides)):
+            self.plans[source_name] = {}
+            return {}
+        slides = _prepare_unit_slides(slides, meta, series_meta, source_name, args)
+        entry = next((item for item in (self.series_data.get('articles', [])
+                     if isinstance(self.series_data, dict) else self.series_data)
+                     if item.get('page_source') == source_name), {})
+        has_notes = (any(item['type'] == 'notes' for item in entry['_lwp_tag_slides'])
+                     if '_lwp_tag_slides' in entry else
+                     _unit_has_page_endnotes(slides, meta, series_meta, self.sources))
+        if has_notes:
+            notes = Slide('notes')
+            notes.slug, notes.h2 = 'notes', (strings or {}).get('notes_section_title', 'Notes')
+            slides.append(notes)
+        plans = {}
+        for slide in slides:
+            if 'excluded' in _slide_tag_set(slide) or _is_incomplete_full_article(slide):
+                continue
+            normalize_slide_tags(slide, source_name, 1)
+            automatic = []
+            names = dict(self.definitions['series']['layer'])
+            names.update(self.definitions[scope]['layer'])
+            for name, definition in names.items():
+                data = definition['data']
+                match = bool({tag.casefold() for tag in data.get('tags', [])} & set(slide.tags))
+                if 'selector' in data:
+                    fields = {key: getattr(slide, attr) for key, attr in _SLIDE_FIELD_ATTRS.items()
+                              if key != 'comment' and getattr(slide, attr, None) is not None}
+                    fields.update(type=slide.slide_type, slug=slide.slug, tags=list(slide.tags),
+                                  title=_slide_preview_title(slide, 1),
+                                  id=resolve_slug_prefix(meta, series_meta, source_name)['value'] + str(slide.slug))
+                    record = make_selector_record(series_meta,
+                        entry.get('_lwp_selection_sources', [
+                            {'source': 'unit-meta', 'priority': 0, 'values': meta}]), fields,
+                        field_policies=_article_selector_field_policies())
+                    try:
+                        match = bool(select_records([record], data['selector'], series_meta.get('selectors')))
+                    except SelectorError as exc:
+                        raise PropertyError(f'{definition["origin"]}: layer selector: {exc}')
+                if match:
+                    automatic.append(self._layer_instance(name, scope, len(automatic)))
+            selected, trace = automatic, [{'source': 'auto', 'layers': [item['id'] for item in automatic]}]
+            for label, values in (('series', series_meta), ('unit', meta), ('slide', slide.raw_meta)):
+                choice_scope = 'series' if label == 'series' else scope
+                if 'layers' in values:
+                    selected = self._apply_choice(selected, values['layers'], automatic, choice_scope)
+                    trace.append({'source': label, 'layers': [item['id'] for item in selected]})
+                if label != 'slide' and 'layers_by_type' in values:
+                    choices = _graphic_value(values['layers_by_type'], label + ': layers_by_type')
+                    _graphic_object(choices, (*_PRESENTATION_SLIDE_TYPES, 'notes'), label)
+                    if slide.slide_type in choices:
+                        selected = self._apply_choice(selected, choices[slide.slide_type], automatic, choice_scope)
+                        trace.append({'source': label + ':' + slide.slide_type,
+                                      'layers': [item['id'] for item in selected]})
+            ids = [item['id'] for item in selected]
+            if len(ids) != len(set(ids)) or len(ids) > _GRAPHIC_LIMITS['layers']:
+                raise PropertyError(f'{source_name}: duplicate or excessive selected layers on {slide.slug}')
+            origin = source_name + ': ' + str(slide.slug or '(missing slug)')
+            order = {'screen-' + orientation: self._validate_graph(selected, origin, 'screen', orientation)
+                     for orientation in ('portrait', 'landscape')}
+            order['print'] = self._validate_graph(selected, origin, 'print')
+            plans[slide.slug] = {'layers': selected, 'order': order, 'trace': trace,
+                                'slide_type': slide.slide_type,
+                                'slide_title': _slide_preview_title(slide, len(plans) + 1, strings)}
+        self.plans[source_name] = plans
+        return plans
+
+    def decorate(self, html, source_name, identities=None):
+        plans = self.plans.get(source_name, {})
+        used = set()
+        def annotate(match):
+            opening = match.group(0)
+            ident = re.search(r'\bid="([^"]+)"', opening)
+            if not ident:
+                return opening
+            effective = html_unescape(ident.group(1))
+            plan = plans.get((identities or {}).get(effective, effective))
+            if not plan or not plan['layers']:
+                return opening
+            for layer in plan['layers']:
+                used.update(element['asset'] for element in layer['elements'])
+            encoded = html_escape(json.dumps(plan, ensure_ascii=True, separators=(',', ':')), quote=True)
+            return opening[:-1] + ' data-lwp-graphics="' + encoded + '">'
+        decorated = re.sub(r'<section\b[^>]*>', annotate, html)
+        if used:
+            decorated += self.payload(used)
+        return decorated
+
+    def selected_assets(self):
+        return {element['asset'] for plans in self.plans.values() for plan in plans.values()
+                for layer in plan['layers'] for element in layer['elements']}
+
+    def payload(self, keys=None):
+        keys = self.selected_assets() if keys is None else keys
+        if not keys:
+            return ''
+        payload = json.dumps({name: self.assets[name] for name in sorted(keys)},
+                             ensure_ascii=True, separators=(',', ':')).replace('<', '\\u003c')
+        return '\n<script type="application/json" class="lwp-graphic-assets">' + payload + '</script>'
+
+    def fingerprint(self):
+        result = {str(path.relative_to(self.root)) if self.root in path.parents else str(path):
+                  hashlib.sha256(data).hexdigest()
+                  for path, data in sorted(self._snapshots.items(), key=lambda item: str(item[0]))}
+        for source, plans in self.plans.items():
+            if plans:
+                result['@plans/' + source] = hashlib.sha256(json.dumps(plans, sort_keys=True).encode()).hexdigest()
+        return result
+
+    def published_media(self):
+        used = self.selected_assets()
+        paths = set().union(*(self._asset_media[key] for key in used)) if used else set()
+        return {path: self.media[path] for path in paths}
+
+
+def graphic_json_schemas():
+    """Declarative shapes; typed CSS, bindings, media and DAG checks stay live.
+
+    A schema is an authoring aid, not a replacement for the planner's bounded
+    resource reads, theme type checks and cross-instance geometry validation.
+    """
+    def object_(properties, required=()):
+        result = {'type': 'object', 'properties': properties, 'additionalProperties': False}
+        if required:
+            result['required'] = list(required)
+        return result
+    def ref(name):
+        return {'$ref': '#/$defs/' + name}
+    text = {'type': 'string'}
+    ident = {'type': 'string', 'pattern': _GRAPHIC_ID.pattern}
+    reference = {'anyOf': [{'enum': list(GRAPHIC_REFERENCES)},
+                 {'type': 'string', 'pattern': r'^(?:element:|region:|anchor:)[\w-]+$|^layer:[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$'}]}
+    length = {'oneOf': [{'type': 'number'},
+              {'type': 'string', 'pattern': r'^-?(?:\d+(?:\.\d*)?|\.\d+)(?:px|pt|mm|cm|in|vw|vh|vmin|vmax)$'},
+              object_({'percent': {'type': 'number', 'minimum': -100000, 'maximum': 100000},
+                       'of': {'type': 'string', 'pattern': r'^.+\.(?:width|height)$'}}, ('percent', 'of'))]}
+    media = {'type': 'array', 'items': {'enum': ['screen', 'print']},
+             'minItems': 1, 'maxItems': 2, 'uniqueItems': True}
+    styles = object_({key: {'oneOf': [{'type': ['string', 'number']},
+        object_({'theme': {'enum': [name for name, prop in PROPERTY_REGISTRY.items()
+                                   if prop.type is type_]}}, ('theme',))]}
+        for key, (_, type_) in _GRAPHIC_STYLES.items()})
+    effect = {'oneOf': [object_({'kind': {'enum': ['shadow', 'glow']},
+               'x': ref('length'), 'y': ref('length'), 'blur': ref('length'),
+               'color': {'oneOf': [text, object_({'theme': {'enum': [name for name, prop
+                    in PROPERTY_REGISTRY.items() if prop.type is PROP_COLOR]}}, ('theme',))]}}, ('kind',)),
+               object_({'kind': {'enum': ['grayscale', 'brightness', 'contrast', 'saturate']},
+                        'value': {'type': 'number', 'minimum': 0, 'maximum': 10}}, ('kind',)),
+               object_({'kind': {'const': 'blur'}, 'value': ref('length')}, ('kind',))]}
+    place = object_({'target': object_({'ref': ref('reference'),
+        'anchor': {'enum': list(GRAPHIC_ANCHORS)}, 'bounds': {'enum': ['box', 'content', 'visible']}}, ('ref',)),
+        'self_anchor': {'enum': list(GRAPHIC_ANCHORS)},
+        'offset': {'type': 'array', 'items': ref('length'), 'minItems': 2, 'maxItems': 2},
+        'on_missing': {'anyOf': [{'enum': ['hide', 'error']}, ref('reference')]}})
+    dimensions = {key: ref('length') for key in ('width', 'height', 'min_width',
+                                                'max_width', 'min_height', 'max_height')}
+    geometry = {'layout': object_(dimensions),
+        'size': object_(dict(dimensions, measure={'enum': ['before-rotation', 'after-rotation']},
+                             fit={'enum': ['contain', 'cover']})),
+        'place': ref('place'), 'rotate': {'oneOf': [{'type': 'number'},
+                    {'type': 'string', 'pattern': r'^-?(?:\d+(?:\.\d*)?|\.\d+)deg$'}]},
+        'opacity': {'type': 'number', 'minimum': 0, 'maximum': 1},
+        'effects': {'type': 'array', 'maxItems': 8, 'items': ref('effect')},
+        'tint': styles['properties']['color'], 'style': ref('style')}
+    asset_properties = {'schema': {'const': GRAPHIC_ASSET_SCHEMA}, 'id': ident,
+        'kind': {'enum': ['image', 'html']}, 'format': {'enum': ['plain', 'markdown-inline', 'markdown', 'html']},
+        'file': text, 'content': text, 'alt': text, 'style': ref('style'),
+        **{key: text for key in ('label', 'license', 'credit')}}
+    asset = object_(asset_properties, ('id', 'kind'))
+    asset['oneOf'] = [{'required': ['file'], 'not': {'required': ['content']}},
+                      {'required': ['content'], 'not': {'required': ['file']}}]
+    asset['allOf'] = [{'if': {'properties': {'kind': {'const': 'image'}}},
+                      'then': {'required': ['file', 'alt']}}]
+    inline_asset = dict(asset, required=['kind'])
+    element_properties = dict(geometry, id=ident,
+        asset={'oneOf': [text, ref('inline-asset')]}, media=media, debug={'type': 'boolean'},
+        interaction={'enum': ['none', 'links']})
+    variants = dict(geometry, hidden={'type': 'boolean'})
+    for name in ('screen', 'print', 'portrait', 'landscape'):
+        element_properties[name] = object_(variants)
+    boundary = object_({'ref': ref('reference'),
+        'edge': {'enum': ['left', 'right', 'top', 'bottom', 'center-x', 'center-y']},
+        'offset': ref('length'), 'bounds': {'enum': ['box', 'content', 'visible']}}, ('ref',))
+    region = object_({**{key: boundary for key in ('left', 'right', 'top', 'bottom')},
+        'on_missing': {'anyOf': [{'enum': ['hide', 'error']}, ref('reference')]}}, ('left', 'right', 'top', 'bottom'))
+    layer = object_({'schema': {'const': GRAPHIC_LAYER_SCHEMA}, 'id': ident,
+        **{key: text for key in ('label', 'license', 'credit', 'selector')},
+        'tags': {'type': 'array', 'items': text}, 'plane': {'enum': ['under-content', 'over-content']},
+        'media': media, 'opacity': geometry['opacity'], 'effects': geometry['effects'],
+        'regions': {'type': 'object', 'propertyNames': ident, 'additionalProperties': region},
+        'elements': {'type': 'array', 'maxItems': 256, 'items': ref('element')}}, ('id', 'elements'))
+    layer['not'] = {'required': ['tags', 'selector']}
+    definitions = {'length': length, 'reference': reference, 'style': styles, 'place': place,
+        'effect': effect, 'asset': asset, 'inline-asset': inline_asset,
+        'element': object_(element_properties, ('id', 'asset')), 'layer': layer}
+    return {key: {'$schema': 'https://json-schema.org/draft/2020-12/schema',
+                  '$id': schema, '$ref': '#/$defs/' + key, '$defs': definitions}
+            for key, schema in (('asset', GRAPHIC_ASSET_SCHEMA), ('layer', GRAPHIC_LAYER_SCHEMA))}
+
+
+def graphic_contract():
+    return {'schemas': {'asset': GRAPHIC_ASSET_SCHEMA, 'layer': GRAPHIC_LAYER_SCHEMA},
+            'references': list(GRAPHIC_REFERENCES), 'anchors': list(GRAPHIC_ANCHORS),
+            'limits': dict(_GRAPHIC_LIMITS), 'inline_fences': ['lwp-asset', 'lwp-layer'],
+            'json_schemas': graphic_json_schemas(),
+            'style_properties': {name: {'css': css, 'theme_properties': [key
+                for key, prop in PROPERTY_REGISTRY.items() if prop.type is type_]}
+                for name, (css, type_) in _GRAPHIC_STYLES.items()},
+            'geometry_fields': ['layout', 'size', 'place', 'rotate', 'opacity', 'effects', 'tint'],
+            'media': ['screen', 'print'], 'bounds': ['box', 'content', 'visible'],
+            'asset_kinds': ['html', 'image'],
+            'text_formats': ['plain', 'markdown-inline', 'markdown', 'html'],
+            'selection': {'fields': ['layers', 'layers_by_type'],
+                          'cascade': ['auto', 'series', 'series:type', 'unit', 'unit:type', 'slide'],
+                          'forms': ['auto', 'array', 'add/remove'],
+                          'scopes': ['series', 'unit', 'slide']},
+            'reference_availability': {
+                'all': ['slide', 'screen', 'viewport', 'main', 'header', 'header-group',
+                        'footer', 'header.text', 'header.image', 'footer.text', 'footer.image',
+                        'title', 'kicker', 'slide-number', 'notes'],
+                'cover': ['summary'],
+                'standard': ['summary', 'highlight', 'highlight-caption', 'fact', 'fact-label',
+                             'fact-content', 'body', 'source'],
+                'unit-index': ['summary', 'body', 'unit-index'], 'series-nav': ['body', 'series-list'],
+                'full-article': ['body'],
+                'optional_furniture': ['highlight-group', 'article-footer', 'byline', 'license',
+                                       'draft-banner', 'build-stamp']},
+            'absence': 'Known references may be absent when empty, cleared, hidden or not rendered; '
+                       'on_missing is hide (default), error, or a fallback reference.',
+            'screen': 'visible intersection of one slide and the visual viewport; not a logical scope'}
+
+
+def resolve_graphic_layers(sd, sources_dir, data, articles, only, name):
+    """Inspect the exact planner used by build, without generating any output."""
+    catalog = GraphicCatalog(sd, sources_dir, data)
+    meta = series_meta_of(data)
+    catalog.validate_scope('series', meta)
+    resolve_article_fields(articles, sources_dir, meta)
+    sites, unread = [], []
+    for entry in articles:
+        source = entry['page_source']
+        if only and only != source:
+            continue
+        path = _resolve_contained(sources_dir, source)
+        text = _read_article_source(path) if path is not None else None
+        if text is None:
+            unread.append(source)
+            continue
+        plans = catalog.plan_unit(source, ParsedUnit(text), meta)
+        for ordinal, (slug, plan) in enumerate(plans.items(), 1):
+            chain = [{'level': item['source'], 'value': item['layers'], 'present': True,
+                      'winner': number == len(plan['trace']) - 1}
+                     for number, item in enumerate(plan['trace'])]
+            sites.append({'article': source, 'slide': ordinal, 'slug': slug,
+                          'slide_type': plan['slide_type'], 'slide_title': plan['slide_title'],
+                          'value': [layer['id'] for layer in plan['layers']],
+                          'source': plan['trace'][-1]['source'], 'chain': chain[::-1],
+                          'plan': plan})
+    definitions = {scope: {kind + 's': {key: {'origin': definition['origin'],
+                    'descriptor': definition['data']} for key, definition in entries.items()}
+                    for kind, entries in resources.items()}
+                   for scope, resources in catalog.definitions.items() if not scope.startswith('inline/')}
+    if name == 'resources':
+        return {'value': definitions, 'source': 'scoped-catalog',
+                'chain': [{'level': 'scoped-catalog', 'present': True,
+                           'value': definitions, 'winner': True}]}, unread
+    return {'sites': sites, 'assets': catalog.assets}, unread
 
 
 # ============================================================================
@@ -23247,11 +24916,14 @@ def typo_engine_for_slide(slide, fallback, lang_tag_engines=None):
     return fallback
 
 
-def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None, theme_runtime=None, language_runtime=None, scroll_duration=None, presentation_preset=None, slide_layouts=None, slide_chrome_layers=(), structure_css='', presentation_runtime=None, presentation_capture=None, fragment_only=False, parsed_unit=None):
+def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None, theme_runtime=None, language_runtime=None, scroll_duration=None, presentation_preset=None, slide_layouts=None, slide_chrome_layers=(), structure_css='', presentation_runtime=None, presentation_capture=None, fragment_only=False, parsed_unit=None, graphics=None):
     """Builds an HTML page for an article."""
     if parsed_unit is None:
         parsed_unit = ParsedUnit(read_text_file(source_path))
     meta, slides, has_meta_block, content_before_meta = parsed_unit.unpack()
+    if graphics is None:
+        graphics = GraphicCatalog(Path(sources_dir).parent, sources_dir, series_data, inline_images)
+    graphics.plan_unit(source_path.name, parsed_unit, series_meta_of(series_data), args, strings)
     validate_slides(slides, source_path.name, has_meta_block, content_before_meta)
     article_chrome = _article_chrome_layer(meta, source_path.name)
     if article_chrome:
@@ -23679,6 +25351,10 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # relative) instead of the initial containing block, and the first
     # card starts at the top of the document, so the corner it lands in
     # is the same corner.
+    slides_html = graphics.decorate(slides_html, source_path.name,
+                                   dict(zip(identities, [slide.slug for slide in visible_slides])))
+    if 'data-lwp-graphics=' in slides_html:
+        nav_js += '\n' + TEMPLATE_GRAPHIC_JS
     stamp_in_body = build_stamp
     if build_stamp:
         slides_html, moved = re.subn(
@@ -24318,7 +25994,7 @@ _SERIES_META_FIELDS = (_SERIES_META_STRING_FIELDS
                         + ('lang_tags', 'notes_placement', 'notes_tooltip',
                             'slide_page_numbers', 'slug_prefix', 'unit_index',
                             'unit_index_max_columns', 'unit_index_selector')
-                        + _SERIES_META_OBJECT_FIELDS)
+                        + _SERIES_META_OBJECT_FIELDS + ('layers', 'layers_by_type'))
 DEFAULT_SCROLL_DURATION_MS = 200
 DEFAULT_READING_SETTINGS = {
     'table_mode': 'clip',
@@ -24442,6 +26118,10 @@ def series_meta_of(series_data, tolerate_invalid=False, errors=None):
                     f'(got {type(meta[field]).__name__}).')
             if tolerate_invalid:
                 meta.pop(field, None)
+    if 'resources' in meta:
+        invalid('series.json: resources belongs at the series root, not in series_meta.')
+        if tolerate_invalid:
+            meta.pop('resources', None)
     for field in _SERIES_META_INTEGER_FIELDS:
         if field in meta and meta[field] is not None:
             try:
@@ -24795,6 +26475,10 @@ def _resolve_article_presentation(entry, meta, series_meta, source_name):
         raise PropertyError(
             f'series.json: entry for {source_name}: kicker_position belongs '
             'in series_meta or the article lwp:meta block, not articles[].')
+    for field in ('layers', 'layers_by_type', 'resources'):
+        if field in entry:
+            raise PropertyError(f'series.json: entry for {source_name}: {field} belongs '
+                                'in article metadata, not articles[].')
     kicker_position_declarations(meta, series_meta, source_name)
 
 
@@ -24846,7 +26530,8 @@ class ParsedUnit:
     """Operation-local source snapshot; each renderer receives private mutable data."""
 
     def __init__(self, text):
-        self.parsed = parse_markdown_extended(text)
+        self.resources = []
+        self.parsed = parse_markdown_extended(text, self.resources)
         self._programs = {}
 
     def unpack(self):
@@ -24959,7 +26644,12 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
         selection_entry = {key: value for key, value in selection_entry.items()
                            if key in _RESOLVED_FIELDS + _EDITORIAL_FIELDS + ('page_source', 'status')}
         source_path = _resolve_contained(sources_dir, entry['page_source'])
-        parsed = unit_sources.get(source_path)
+        try:
+            parsed = unit_sources.get(source_path)
+        except PropertyError:
+            if strict_tags:
+                raise
+            parsed = None  # audit names the invalid resource prologue in its source pass
         meta, slides = {}, []
         if parsed is not None:
             meta, slides, _, _ = parsed.unpack()
@@ -25602,6 +27292,13 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
                                strict_tags=strict_tags, build_args=args,
                                build_strings=strings, unit_sources=unit_sources)
         membership = PublicationMembership(articles, args)
+        graphics = GraphicCatalog(sd, sources_dir, series_data, args.get('--inline-images', False))
+        graphics.validate_scope('series', series_meta)
+        for entry in membership.rendered:
+            source_path = _resolve_contained(sources_dir, entry['page_source'])
+            parsed = unit_sources.get(source_path)
+            if parsed is not None:
+                graphics.plan_unit(entry['page_source'], parsed, series_meta, args, strings)
         for preset in tuple(presentation_presets):
             try:
                 _validate_presentation_chrome_config(
@@ -25736,6 +27433,7 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
              effective_theme=effective_theme,
              appearance=appearance,
              series_chrome=appearance.config['chrome'],
+             graphics=graphics,
              identity_catalog=identity_catalog,
             series_presentation_preset=series_preset,
             presentation_presets=tuple(presentation_presets),
@@ -25861,7 +27559,7 @@ def _render_article(ctx, entry, source_path, build_stamp='', include_nav=True,
               structure_css=preset.identity_kit.structure_css,
             presentation_runtime=runtime,
              presentation_capture=capture, fragment_only=fragment_only,
-             parsed_unit=ctx.unit_sources.get(source_path))
+              parsed_unit=ctx.unit_sources.get(source_path), graphics=ctx.graphics)
 
     if ctx.presentation_runtime is None:
         return render(ctx.series_presentation_preset)
@@ -25966,6 +27664,10 @@ def _render_single_html(ctx, build_stamp=''):
     for key, values in rendered:
         content = (values['draft_banner'] + values['build_stamp'] + values['content']
                    + values['page_footer'] + values['index_extra'])
+        # A bundle owns one asset catalogue, not another base64 copy in every
+        # inert unit plus the initially mounted view. Instances retain IDs.
+        content = re.sub(r'\n<script type="application/json" class="lwp-graphic-assets">[^<]*</script>',
+                         '', content)
         theme, presentation = {}, {}
         for field, data in (('theme_runtime', theme), ('presentation_runtime', presentation)):
             markup = values[field]
@@ -26003,7 +27705,10 @@ def _render_single_html(ctx, build_stamp=''):
         'page_css': initial['page_css'].replace('<style', '<style data-lwp-series-css')
                     + '\n<template id="lwp-series-css-marker"></template>',
         'language_runtime': initial['language_runtime']
-            + '<script id="lwp-series-data" type="application/json">' + payload + '</script>\n',
+            + '<script id="lwp-series-data" type="application/json">' + payload + '</script>\n'
+            + ctx.graphics.payload(),
+        'js_nav': ctx.nav_js + ('\n' + TEMPLATE_GRAPHIC_JS if any(
+            plan['layers'] for plans in ctx.graphics.plans.values() for plan in plans.values()) else ''),
     })
     template = TEMPLATE_PAGE
     if no_index:
@@ -26059,7 +27764,8 @@ class PublicationPlan:
             raise OSError(f'Cannot prepare {name}: {exc}') from exc
         self._destinations.add(identity)
         self.entries.append(SimpleNamespace(name=name, destination=destination,
-                                            staged=staged, source=source, identity=Path(identity)))
+                                            staged=staged, source=source, identity=Path(identity),
+                                            binary=source is not None or isinstance(text, bytes)))
 
     def publish(self):
         # Structural destination failures are knowable before the first write.
@@ -26090,7 +27796,7 @@ class PublicationPlan:
                 print(f'[NEW] {entry.name} does not exist yet')
                 diff_count += 1
                 continue
-            if entry.source is not None:
+            if entry.binary:
                 equal = target.read_bytes() == entry.staged.read_bytes()
             else:
                 existing = strip_build_stamp(read_text_file(target)).strip()
@@ -26101,7 +27807,7 @@ class PublicationPlan:
                 ok_count += 1
             else:
                 print(f'[DRIFT] {entry.name}')
-                if entry.source is None:
+                if not entry.binary:
                     diff = difflib.unified_diff(existing.splitlines(), generated.splitlines(),
                                                 lineterm='', n=1)
                     for number, line in enumerate(diff):
@@ -26192,6 +27898,10 @@ def _plan_publication(ctx, plan, articles_to_build, claimant=None, build_stamp='
                 if relative not in images:
                     plan.add(relative, ctx.output_dir / relative, source=asset['path'])
                     images.append(relative)
+        for relative, data in sorted(ctx.graphics.published_media().items()):
+            if relative not in images:
+                plan.add(relative, ctx.output_dir / relative, text=data)
+                images.append(relative)
     return images, page_image_cache
 
 
@@ -26772,6 +28482,25 @@ def _watch_paths(series_dir, args):
                 paths.update(root.rglob('*'))
     if language_file:
         paths.add(Path(language_file))
+    # Graphic descriptors may be registered anywhere below the series root,
+    # not just in templates/. Reuse their resolver rather than guess a folder.
+    graphics = None
+    try:
+        data = load_series_data(sd)
+        graphics = GraphicCatalog(sd, sources_dir, data, args.get('--inline-images', False))
+        entries = data.get('articles', []) if isinstance(data, dict) else data
+        for entry in entries:
+            path = _resolve_contained(sources_dir, entry.get('page_source', ''))
+            if path is not None and path.is_file():
+                graphics.plan_unit(entry['page_source'], ParsedUnit(read_text_file(path)),
+                                   series_meta_of(data), args)
+    except (OSError, UnicodeError, PropertyError, SelectorError, SystemExit):
+        # A watched edit can be temporarily invalid. Keep all successfully
+        # resolved dependencies so fixing it still wakes the next rebuild.
+        pass
+    if graphics is not None:
+        paths.update(graphics.dependencies)
+        paths.update(path.parent for path in graphics.dependencies)
     return sorted(paths, key=str)
 
 
@@ -26902,6 +28631,7 @@ def cmd_build(series_dir, args):
         'css': ctx.css,
         'nav_js': ctx.nav_js,
         'strings': ctx.strings,
+        'graphics': ctx.graphics.fingerprint(),
         'language_runtime': ctx.language_runtime,
         'presentation_preset': {
             'selector': ctx.series_presentation_preset.selector,
@@ -27104,12 +28834,13 @@ def _instance_tag_inventory(text):
             raw_html_depth = max(0, raw_html_depth + _html_tag_depth_delta(line))
             continue
         if in_code_block:
-            if line == '```':
+            if _closes_code_fence(line, in_code_block):
                 in_code_block = False
             continue
-        if _CODE_FENCE_RE.match(line):
+        fence_match = _CODE_FENCE_RE.match(line)
+        if fence_match:
             flush()
-            in_code_block = True
+            in_code_block = fence_match.group('fence')
             continue
         if not line.strip():
             flush()
@@ -27186,11 +28917,12 @@ def unrecognized_note_labels(text):
             raw_html_depth = max(0, raw_html_depth + _html_tag_depth_delta(line))
             continue
         if in_code_block:
-            if line == '```':
+            if _closes_code_fence(line, in_code_block):
                 in_code_block = False
             continue
-        if _CODE_FENCE_RE.match(line):
-            in_code_block = True
+        fence_match = _CODE_FENCE_RE.match(line)
+        if fence_match:
+            in_code_block = fence_match.group('fence')
             continue
         if _is_raw_html_line(line):
             raw_html_depth = max(0, _html_tag_depth_delta(line))
@@ -28386,7 +30118,13 @@ def cmd_audit(series_dir, args):
             warnings += 1
             named_the_cause = True
             continue
-        meta, slides, has_meta_block, _ = parse_markdown_extended(md_text)
+        try:
+            meta, slides, has_meta_block, _ = parse_markdown_extended(md_text)
+        except PropertyError as exc:
+            log('warn', f'{entry["page_source"]}: graphic declarations: {exc}')
+            warnings += 1
+            named_the_cause = True
+            continue
         # Instance tags are author interventions that survive every theme
         # change; audit enumerates them (never blocks) so an author changing
         # themes knows where to look. Count only free Markdown text: fields,
@@ -30674,16 +32412,13 @@ def cmd_theme_info(positional, args):
 
 SERIES_SLUG_SCHEMA = 'lightwebpres.series-slug/1'
 
-# The separator the parser splits on, so the writer below cuts a file
-# exactly where the reader does. Two rules would eventually disagree, and
-# the disagreement would be a slug written into the wrong card.
-_SLIDE_SPLIT_RE = re.compile(r'\n---\n')
-_SLIDE_MARKER_RE = re.compile(r'\A\s*<!--\s*lwp:slide(?::[^>]*)?\s*-->\s*$',
-                              re.M)
+# Source editing shares the fence-aware parser scanner and preserves every
+# original separator byte. Resource declarations belong to the untouched head.
+_SLIDE_MARKER_RE = re.compile(r'\A\s*<!--\s*lwp:slide(?::[^>\r\n]*)?\s*-->[ \t]*(?=\r?\n|\Z)')
 
 
 def _split_article_parts(text):
-    """(head, parts) — the meta block as written, then one string per
+    """(head, parts, separators) — metadata/resources as written, then one string per
     card, using the parser's own separator.
 
     The head is returned verbatim rather than re-serialised: this
@@ -30693,10 +32428,17 @@ def _split_article_parts(text):
     marker = re.search(r'<!--\s*lwp:meta\s*-->', text)
     terminator = (re.search(r'(?:^|\n)---', text[marker.end():])
                   if marker else None)
-    if not terminator:
-        return '', _SLIDE_SPLIT_RE.split(text)
-    cut = marker.end() + terminator.end()
-    return text[:cut], _SLIDE_SPLIT_RE.split(text[cut:])
+    cut = marker.end() + terminator.end() if terminator else 0
+    tail = text[cut:]
+    masked = extract_graphic_resources(tail, has_meta=bool(terminator))
+    prefix = 0
+    for raw, structural in zip(tail.splitlines(keepends=True), masked.splitlines(keepends=True)):
+        if structural.strip():
+            break
+        prefix += len(raw)
+    cut += prefix
+    entries = list(_deck_source_parts(text[cut:], with_separators=True))
+    return text[:cut], [entry[0] for entry in entries], [entry[2] for entry in entries]
 
 
 def _part_with_slug(part, value):
@@ -30720,18 +32462,14 @@ def _slugs_in_article(text):
     line is an author's unfinished decision and `series slug set` must not
     overwrite it, while a missing line is what that command fills.
     """
-    _head, parts = _split_article_parts(text)
+    _head, parts, _separators = _split_article_parts(text)
+    _meta, slides, _has_meta, _before_meta = parse_markdown_extended(text)
     out = []
-    for index, part in enumerate(parts):
-        if not strip_ws(part):
-            continue
-        found = None
-        for line in part.split('\n'):
-            m = re.match(r'\A\s*slug:\s*(.*)$', line)
-            if m:
-                found = m.group(1).strip()
-                break
-        out.append((index, found))
+    indices = [index for index, part in enumerate(parts) if strip_ws(part)]
+    if len(indices) != len(slides):
+        raise PropertyError('source editing and parsed slide boundaries disagree; nothing written')
+    for index, slide in zip(indices, slides):
+        out.append((index, slide.raw_meta.get('slug')))
     return out
 
 
@@ -30840,7 +32578,7 @@ def cmd_assign_slug(series_dir, args):
         except OSError as exc:
             log('warn', f'{source}: {exc} — skipped.')
             continue
-        head, parts = _split_article_parts(text)
+        head, parts, separators = _split_article_parts(text)
         present = _slugs_in_article(text)
         # Unique within the FILE, and against the skeleton's own ids: a
         # page cannot hold two things with one id, whoever minted them.
@@ -30860,7 +32598,7 @@ def cmd_assign_slug(series_dir, args):
         if dry_run:
             log('info', f'{entry["page_source"]}: would write {added} slug(s).')
             continue
-        _write_file(source, head + '\n---\n'.join(parts))
+        _write_file(source, head + ''.join(part + separator for part, separator in zip(parts, separators)))
         log('info', f'{entry["page_source"]}: wrote {added} slug(s).')
     if not written:
         log('info', 'Every card already has a slug. Nothing to write.')
@@ -31367,7 +33105,8 @@ _NOTES_FIELD_DEFAULTS = {'notes_placement': 'local', 'notes_tooltip': 'off'}
 # else. A one-level cascade is still a cascade worth reporting — the
 # answer "you can only set this in the meta block" is the useful half.
 _TYPO_FIELD_NAMES = ('typo', 'typo_units', 'typo_thousands')
-_PRESENTATION_ARTICLE_FIELDS = ('slide-header', 'slide-footer', 'kicker_position')
+_PRESENTATION_ARTICLE_FIELDS = ('slide-header', 'slide-footer', 'kicker_position',
+                                'layers', 'layers_by_type', 'resources')
 
 # Every name that resolves per article, whatever its own cascade — the
 # display fields, the editorial three, the notes settings, the typography
@@ -31442,6 +33181,9 @@ def _build_field_registry():
     registry['kicker-position'].internal_name = 'kicker_position'
     registry['kicker_position'].configure(handler='kicker-position')
     registry['kicker_position'].add_scopes((LogicalScope.SLIDE,))
+    for name in ('layers', 'layers_by_type', 'resources'):
+        registry[name].configure(policy='specific-first', composition='ordered-choices', handler='graphics')
+        registry[name].add_scopes((LogicalScope.UNIT, LogicalScope.SERIES))
     return registry
 
 
@@ -31880,7 +33622,9 @@ def cmd_resolve(series_dir, name, args):
 
     try:
         handler = spec.handler if spec is not None else None
-        if handler == 'theme' or kind == 'theme-property':
+        if handler == 'graphics':
+            resolution, unread = resolve_graphic_layers(sd, sources_dir, series_data, articles, only, name)
+        elif handler == 'theme' or kind == 'theme-property':
             if name not in PROPERTY_REGISTRY:
                 tail = name.split('.')[-1]
                 near = [k for k in PROPERTY_REGISTRY if k.split('.')[-1] == tail]
@@ -33142,7 +34886,7 @@ SERIES DIRECTORY
 
 ARTICLE FORMAT (.md)
   <!-- lwp:meta --> ... ---     Metadata block at the top of the file
-  ---                           Separates slides, alone on its own line
+  ---                           Separates slides outside fenced code/resources
   <!-- lwp:slide:TYPE -->       Marks a slide's type (absent = standard)
   key: value                    A slide field (one line = one value; no line
                                 breaks inside a value for now)
@@ -33177,6 +34921,22 @@ ARTICLE-LEVEL FIELDS (series.json entry, overriding the .md meta block)
     lightwebpres resolve my-series page_title --article intro.md
     lightwebpres resolve my-series kicker.fg
     lightwebpres resolve my-series fact-label
+
+GRAPHIC COMPOSITIONS (specifications.md §9.10)
+  Root series.json resources and article metadata resources register assets
+  and layers. Backtick fences lwp-asset / lwp-layer declare the same resources
+  in the article prologue, after metadata and before the first slide.
+  layers applies ordered compositions at series/unit/slide scope; omit to
+  inherit, auto resets matching, [] disables all, an array replaces selection.
+  layers_by_type gives series/unit exceptions, including covers and notes.
+  These settings do not belong in articles[] entries.
+  Assets may be images or static HTML/Markdown, with fixed or theme-linked
+  styles. Placement targets slide, screen (its visible portion), viewport,
+  native components or other instances. Print needs geometry independent of
+  the current screen. Graphics remain outside native content fitting.
+    lightwebpres resolve my-series layers --article intro.md --format json
+    lightwebpres resolve my-series resources --article intro.md --format json
+  contract exposes resource shapes, anchors and limits under graphics.
 
 NOTES (specifications.md §6.5)
   [^label] calls a note, [^label]: body defines it — standard Markdown, in

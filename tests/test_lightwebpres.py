@@ -16124,7 +16124,7 @@ class H1H2FieldFormRemoved(unittest.TestCase):
             self.assertIn('unrecognized field "tag:"', result.stderr)
             self.assertIn(
                 'kicker:, tags:, summary:, slide-layout:, slide-header:, '
-                'slide-footer:, kicker-position:, comment:, note:', result.stderr)
+                'slide-footer:, kicker-position:, layers:, comment:, note:', result.stderr)
             self.assertIn(
                  'Use "kicker:" for a visible label or "tags:" for tag filtering.',
                 result.stderr,
@@ -16144,7 +16144,7 @@ class H1H2FieldFormRemoved(unittest.TestCase):
             self.assertIn('unrecognized field "mystery:"', result.stderr)
             self.assertIn(
                 'kicker:, tags:, summary:, slide-layout:, slide-header:, '
-                'slide-footer:, kicker-position:, comment:, note:', result.stderr)
+                'slide-footer:, kicker-position:, layers:, comment:, note:', result.stderr)
             self.assertNotIn('Use "kicker:" for a visible label', result.stderr)
 
 
@@ -17594,12 +17594,15 @@ class ThemeEngineStaged(unittest.TestCase):
         self.assertIn('cycle', str(ctx.exception))
         self.assertIn('kicker.fg -> summary.fg -> kicker.fg', str(ctx.exception))
 
-    def test_reference_chain_capped_at_three_hops(self):
-        layer = {'kicker.fg': 'summary.fg', 'summary.fg': 'highlight.fg',
-                 'highlight.fg': 'ink-quiet', 'color.ink-quiet': 'ink'}
+    def test_reference_chain_capped_at_five_hops(self):
+        layer = {'kicker.fg': 'source.fg', 'source.fg': 'footer.fg',
+                 'footer.fg': 'color.call', 'color.call': 'color.affirm',
+                 'color.affirm': 'color.ink'}
+        self.assertEqual(self.resolve(layer)['kicker.fg'], self.resolve(layer)['color.ink'])
+        layer.update({'color.affirm': 'color.ink-quiet', 'color.ink-quiet': 'color.ink'})
         with self.assertRaises(self.lwp.PropertyError) as ctx:
             self.resolve(layer)
-        self.assertIn('3 hops', str(ctx.exception))
+        self.assertIn('5 hops', str(ctx.exception))
 
     def test_colours_normalise_to_argb(self):
         r = self.resolve({'color.page': '#abc',
@@ -18802,7 +18805,21 @@ class EveryTypeSizeScalesWithTheScreen(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.lwp = load_lightwebpres_module()
-        cls.sizes = {n: p.default for n, p in cls.lwp.PROPERTY_REGISTRY.items()
+        def inherited_default(value):
+            # A direct CSS-variable wrapper can inherit an em size just as a
+            # literal em does. Follow the actual registry, not a key exemption:
+            # a pixel-pinned target must still fail the same scale guard.
+            seen = set()
+            while True:
+                match = re.fullmatch(r'calc\(var\((--[\w-]+)\)\)', value)
+                if not match:
+                    return value
+                variable = match.group(1)
+                if variable in seen or variable not in cls.lwp.VAR_TO_KEY:
+                    raise AssertionError('Unknown/cyclic font-size variable: ' + variable)
+                seen.add(variable)
+                value = cls.lwp.PROPERTY_REGISTRY[cls.lwp.VAR_TO_KEY[variable]].default
+        cls.sizes = {n: inherited_default(p.default) for n, p in cls.lwp.PROPERTY_REGISTRY.items()
                      if getattr(p, 'css', None) == 'font-size'}
 
     def test_no_size_is_pinned_to_pixels(self):
@@ -20292,7 +20309,7 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                             'license', 'default_tag', 'scroll_duration',
                              'lang_tags', 'notes_placement', 'notes_tooltip',
                               'slide_page_numbers', 'slug_prefix',
-                             'kicker_position',
+                             'kicker_position', 'layers', 'layers_by_type',
                              'reading', 'selectors',
                              'unit_index', 'unit_index_max_columns', 'unit_index_selector'})
         self.assertEqual(set(report['presentation']),

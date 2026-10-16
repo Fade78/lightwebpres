@@ -128,6 +128,36 @@ builder run the same engine; changing the interface does not change the format.
 
 ---
 
+<!-- lwp:slide -->
+slug: graphic-layers
+kicker: Design with graphics
+## Put images behind or in front of content
+fact-label: Decoration is not body layout
+source: <a href="#attach-reusable-image-and-text-compositions">Guide: graphic compositions</a>
+
+Place an image beside a native title, fill a card with a cropped background,
+or add a foreground mark. A layer composes independent image and HTML assets.
+
+Use `under-content` for a background and `over-content` for a foreground.
+Theme-linked styles follow the palette; sources still select the composition.
+
+---
+
+<!-- lwp:slide -->
+slug: inline-field-styles
+kicker: Design inline formatting
+## Theme the **emphasis**, not the source
+fact-label: Semantic Markdown, typed appearance
+source: <a href="#style-inline-markdown-in-titles-and-summaries">Guide: inline field styles</a>
+
+Titles and summaries parse inline Markdown automatically. Their `strong`, `em`,
+`code` and `link` roles have their own typed theme properties.
+
+Choose ink, font, highlight, decoration and shadow without changing body text.
+Cover summaries retain their own colour context, including after a palette switch.
+
+---
+
 <!-- lwp:slide:series-nav -->
 slug: la-serie
 

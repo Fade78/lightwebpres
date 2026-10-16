@@ -33,6 +33,7 @@ function fixture({percent = false, pixels = false, caption = false, frameFractio
   const document = {
     documentElement: {clientHeight: 700, style: new Style(), setAttribute() {}},
     addEventListener(name, callback) { callbacks.document[name] = callback; },
+    dispatchEvent(event) { if (callbacks.document[event.type]) callbacks.document[event.type](event); return true; },
     querySelectorAll() { return []; },
   };
   function node(tag) {
@@ -105,7 +106,7 @@ function fixture({percent = false, pixels = false, caption = false, frameFractio
   const settings = {table_mode: 'clip', text_fit: 'fixed', table_shrink: false,
     object_shrink_horizontal: false, object_shrink_vertical: false,
     min_text_scale: .75, min_table_scale: .85, min_object_scale: .5};
-  const context = vm.createContext({document, getComputedStyle: computed,
+  const context = vm.createContext({document, Event, getComputedStyle: computed,
     window: {addEventListener(name, callback) { callbacks.window[name] = callback; }},
     requestAnimationFrame(callback) { frames.set(++nextFrame, callback); return nextFrame; },
     cancelAnimationFrame(id) { frames.delete(id); },

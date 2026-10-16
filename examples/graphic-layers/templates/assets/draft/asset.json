@@ -1,0 +1,13 @@
+{
+  "schema": "lightwebpres.asset/1",
+  "id": "draft-label",
+  "kind": "html",
+  "format": "plain",
+  "content": "DRAFT",
+  "style": {
+    "font": "monospace",
+    "font_size": "120px",
+    "weight": "bold",
+    "color": {"theme": "kicker.fg"}
+  }
+}

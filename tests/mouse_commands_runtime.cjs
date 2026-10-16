@@ -91,7 +91,7 @@ function harness(primaryFine = true) {
     between('  var consumedMouseButtons = {};', '  // --- Touch swipe and double tap'),
   ].join('\n'), context);
   function fire(type, fields = {}) {
-    const event = {button: 0, detail: 1, target: root, defaultPrevented: false,
+    const event = {button: 0, detail: 1, timeStamp: now, target: root, defaultPrevented: false,
       preventDefault() { this.defaultPrevented = true; },
       stopPropagation() { this.stopped = true; },
       stopImmediatePropagation() { this.stopped = true; }, ...fields};
@@ -128,6 +128,54 @@ function harness(primaryFine = true) {
     const h = harness(); for (let i = 0; i < count; i++) h.press(1);
     h.tick(900); assert.equal(h.press(0).defaultPrevented, false);
     assert.equal(h.calls.length, 0, 'an expired prefix has no action');
+  }
+  {
+    const h = harness(); [1, 2].forEach(h.press); h.acknowledge();
+    h.fire('mousedown', {button: 1, timeStamp: 3056});
+    h.tick(1078);
+    assert.equal(h.context.mouseSequence.active(), false, 'the delivery-clock prefix indicator expires');
+    h.fire('mousedown', {button: 2, timeStamp: 3856});
+    assert.equal(h.document.pointerLockElement, null,
+      'an 800ms native MD still releases capture when its handlers arrive 1078ms apart');
+  }
+  {
+    const h = harness();
+    h.fire('mousedown', {button: 1, timeStamp: 0}); h.tick(1200);
+    h.fire('mousedown', {button: 0, timeStamp: 899});
+    assert.ok(h.calls.includes('fullscreen'), 'zero is a valid native input timestamp');
+  }
+  {
+    const h = harness();
+    h.fire('mousedown', {button: 1, timeStamp: 0});
+    const event = h.fire('mousedown', {button: 0, timeStamp: 900});
+    assert.equal(event.defaultPrevented, false, '900ms native expiry holds even with immediate delivery');
+    assert.equal(h.calls.length, 0, 'late native suffixes are not made rapid by the dispatch clock');
+  }
+  for (const timeStamp of [undefined, NaN, Infinity]) {
+    const h = harness();
+    h.fire('mousedown', {button: 1, timeStamp}); h.tick(500);
+    h.fire('mousedown', {button: 0, timeStamp});
+    assert.ok(h.calls.includes('fullscreen'), 'missing/nonfinite timestamps keep the bounded delivery-clock fallback');
+  }
+  {
+    const h = harness();
+    h.fire('mousedown', {button: 1, timeStamp: 900});
+    h.fire('mousedown', {button: 0, timeStamp: 899});
+    assert.equal(h.calls.length, 0, 'a backwards timestamp cannot revive or complete a prefix');
+  }
+  {
+    const h = harness();
+    h.fire('mousedown', {button: 1, timeStamp: 0}); h.tick(1000);
+    h.fire('mousedown', {button: 1, timeStamp: 800}); h.tick(1000);
+    h.fire('mousedown', {button: 2, timeStamp: 1600});
+    assert.equal(h.pause.classList.contains('open'), true, 'each native M renews the same 900ms window');
+  }
+  for (const type of ['keydown', 'wheel', 'touchstart', 'pointercancel', 'blur']) {
+    const h = harness();
+    h.fire('mousedown', {button: 1, timeStamp: 0}); h.tick(1100);
+    h.fire(type, {key: 'Shift'});
+    h.fire('mousedown', {button: 0, timeStamp: 800});
+    assert.equal(h.calls.length, 0, `${type} cancels queued input too, without reviving an expired prefix`);
   }
   {
     const h = harness(); [1, 1, 1].forEach(h.press);

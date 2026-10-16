@@ -76,13 +76,27 @@ article: apple-pie_article.md
 
 The file must start with `<!-- lwp:meta -->`, followed by `key: value` lines
 and a bare `---` closing the block. No non-blank content may precede it.
-An empty meta block is valid. A bare `---` separates slides everywhere in
-this file, including inside body text or a code example. Use `<hr>` for a
+An empty meta block is valid. A bare `---` separates slides outside fenced
+code and reserved graphic-resource declarations. Use `<hr>` for a
 visual rule. `<!-- lwp:slide:TYPE -->` opens a typed slide; the standard
 spelling is `<!-- lwp:slide -->` (explicit `<!-- lwp:slide:standard -->`
 also works). A misspelt type is fatal and names the rank, token and five types.
 
 ## Metadata And Cascades
+
+Graphic resources may be declared in `lwp-asset` / `lwp-layer` backtick fences
+after metadata and before the first slide, or imported through a one-line JSON
+`resources: {"assets":[...],"layers":[...]}` field. A literal asset body follows
+its JSON header and a whole-line `---`; it is not a slide separator. Quote
+resource examples inside a longer ordinary code fence. Definitions are not
+rendered where declared; duplicates in one scope fail.
+
+`layers` applies compositions to a unit or any of the five slide types. Omit to
+inherit, use `auto` for tag/selector matching, `[]` for none, a JSON array to
+replace, or `{ "add": [...], "remove": [...] }` to modify inherited choices.
+`layers_by_type` is series/unit-only. Refer to `specifications.md` §9.10 and the
+tracked `examples/graphic-layers/` for the exact asset/element geometry contract.
+Use `resolve <series> layers --article file.md --format json` to inspect plans.
 
 Every meta field is optional. An `articles[]` entry in `series.json` only
 needs to repeat a field to override this file or its content-derived fallback.
@@ -173,11 +187,11 @@ layer and the `typo`, `typo_units`, `typo_thousands` opt-outs.
 
 | Type | Fields | Cardinality |
 |---|---|---|
-| `cover` | `slug`, `kicker`, `tags`, `# Title`, `summary`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `comment`, `note` | Any number, anywhere; a layout style, not a structural marker. No free body: text after its fields is fatal. |
-| standard (default, or explicit `<!-- lwp:slide -->`) | `slug`, `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `comment`, `note`, then free Markdown text | As many as you want |
-| `series-nav` | `slug`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `comment` | 0 or 1 per article; navigation generated from `series.json` |
-| `full-article` | `slug`, `kicker`, `article: filename.md`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `comment` | Any number, each with its own file; `article` is required for publication. `kicker` labels the included long-form piece and defaults to the localized `full_article_kicker` string. Explicit empty `article:` warns and omits the unfinished slide. |
-| `unit-index` | `slug`, `kicker`, `tags`, `## Title`, `summary`, `index-max-columns`, `index-selector`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `comment`, `note` | Any number, anywhere; generated contents for this logical unit, no free body |
+| `cover` | `slug`, `kicker`, `tags`, `# Title`, `summary`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `layers`, `comment`, `note` | Any number, anywhere; a layout style, not a structural marker. No free body: text after its fields is fatal. |
+| standard (default, or explicit `<!-- lwp:slide -->`) | `slug`, `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `layers`, `comment`, `note`, then free Markdown text | As many as you want |
+| `series-nav` | `slug`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `layers`, `comment` | 0 or 1 per article; navigation generated from `series.json` |
+| `full-article` | `slug`, `kicker`, `article: filename.md`, `tags`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `layers`, `comment` | Any number, each with its own file; `article` is required for publication. `kicker` labels the included long-form piece and defaults to the localized `full_article_kicker` string. Explicit empty `article:` warns and omits the unfinished slide. |
+| `unit-index` | `slug`, `kicker`, `tags`, `## Title`, `summary`, `index-max-columns`, `index-selector`, `slide-layout`, `slide-header`, `slide-footer`, `kicker-position`, `layers`, `comment`, `note` | Any number, anywhere; generated contents for this logical unit, no free body |
 
 All fields other than `slug` and `full-article`'s `article` are optional.
 Ordinary empty scalars behave as absent; empty `tags:` receives `default`.

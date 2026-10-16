@@ -353,7 +353,9 @@ class TheDocumentationDeliversItsExamples(unittest.TestCase):
         deck = (ROOT / 'tools/guide-deck.md').read_text(encoding='utf-8')
         self.assertEqual(re.findall(r'^source: (.+)$', deck, re.M), [
             f'<a href="#{heading_slug(title)}">Guide, route {title.replace(". ", ": ", 1)}</a>'
-            for title in ROUTES])
+            for title in ROUTES] + [
+                '<a href="#attach-reusable-image-and-text-compositions">Guide: graphic compositions</a>',
+                '<a href="#style-inline-markdown-in-titles-and-summaries">Guide: inline field styles</a>'])
         parser = DocumentHTML()
         output = ROOT / 'generated/guide'
         parser.feed((output / 'guide.html').read_text(encoding='utf-8'))

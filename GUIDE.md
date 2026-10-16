@@ -220,6 +220,10 @@ Five, and only five. Mistype one, such as `<!-- lwp:slide:covre -->`, and the
 build stops and tells you which slide, what you wrote, and what the five
 names are. You will not find out from the page.
 
+All five also accept `layers` for a local graphic-composition choice; `[]`
+disables inherited and automatic graphics. Definitions belong in the resource
+prologue, not the slide body. See [graphic compositions](#attach-reusable-image-and-text-compositions).
+
 **The components inside a standard slide.**
 
 | Component | What it is for | How you reach it |
@@ -1086,6 +1090,250 @@ The guide itself uses the tracked kit
 into a temporary series and publishes its assets with the guide. It is an
 inspectable kit example, not another source of this manual.
 
+### Attach reusable image and text compositions
+
+A **graphic layer / calque** is an ordered composition of assets, each with
+independent size, rotation, anchors and effects. It is not one flattened image
+or a Theme-property cascade layer. The
+[complete source example](examples/graphic-layers/README.md) combines an
+external two-element DRAFT composition and inline text resources.
+
+#### Choose the graphic use case
+
+| Need | Use |
+|---|---|
+| An image anywhere on one card | An image asset, a `place` anchor/offset and a slide-local `layers` choice |
+| A full-slide image background | `plane: under-content`, centred on `slide`, with a two-dimensional `cover` fit |
+| A logo or illustration in front of the card | `plane: over-content`; it stays below reader controls and passes gestures through |
+| Decoration that follows a theme | A reusable composition with typed `{theme: property}` style/tint references |
+| A DRAFT or other article-wide mark | Unit metadata `layers`, with `layers_by_type` or slide exceptions |
+| A screen-attached mark while a tall card scrolls | Explicit `screen` geometry and screen-only media, or a separate print override |
+
+The stack is **theme fill → under-content graphics → native card content →
+over-content graphics → reader controls**. A graphic background is above the
+theme's base fill, not hidden under an opaque background. Backgrounds do not
+move the title, shrink the body or reserve an empty column. A normal Markdown
+figure, in contrast, participates in the body layout and fitting.
+
+#### Declare and reuse a composition
+
+For a unit-wide DRAFT with a cover exception, place the following before the
+first slide. Fixed text size and theme-linked ink can coexist:
+
+````markdown
+<!-- lwp:meta -->
+page_title: My briefing
+layers: ["draft"]
+layers_by_type: {"cover": []}
+---
+
+```lwp-asset
+{"id":"draft-text","kind":"html","format":"plain","style":{"font_size":"100px","weight":"bold","color":{"theme":"kicker.fg"}}}
+---
+DRAFT
+```
+
+```lwp-layer
+{"id":"draft","plane":"under-content","elements":[{"id":"stamp","asset":"draft-text","rotate":"-14deg","opacity":0.12,"size":{"width":{"percent":65,"of":"slide.width"}},"place":{"target":{"ref":"slide","anchor":"center"},"self_anchor":"center"}}]}
+```
+
+<!-- lwp:slide:cover -->
+slug: cover
+# My briefing
+
+---
+
+<!-- lwp:slide -->
+slug: evidence
+## A card with a graphic composition
+````
+
+External descriptors use the same objects with `lightwebpres.asset/1` or
+`lightwebpres.layer/1` schemas. Register paths under root `resources` in
+`series.json`, or a one-line `resources:` JSON field in article metadata.
+Payload files are relative to their defining descriptor. Inline assets may
+instead carry literal Markdown/HTML after their JSON header and `---`.
+Resource declarations never become slides or body text.
+
+Descriptor `file` values are literal filenames, not URLs. Inside a graphic
+HTML/Markdown asset, image destinations use URL encoding just like body images:
+`logo%20%2520.svg` reads the file `logo %20.svg`, with one decoding step. SVG
+fragments remain on the published/embedded image URL.
+
+Omit `layers` to inherit automatic tag/selector matches; an array replaces the
+selection, `[]` disables it, `auto` resets matching and `{add, remove}` modifies
+inherited instances. The same field works in every slide header, before prose.
+Series defaults apply to all units; unit metadata and slide exceptions follow.
+This DRAFT mark is only a graphic: publication status remains independent.
+
+#### Place an image freely
+
+Register an image asset such as `photo`, with its local payload file and
+alternative text. Its instance can attach to the complete card or to a native
+element. For example, this composition puts a 120-pixel image beside the
+occupied title, independently of its position in the selected Identity Kit:
+
+```json
+{
+  "schema": "lightwebpres.layer/1", "id": "title-picture", "plane": "over-content",
+  "elements": [{
+    "id": "picture", "asset": "photo", "size": {"width": "120px"},
+    "place": {"target":{"ref":"title","bounds":"content","anchor":"right-center"},
+              "self_anchor":"left-center", "offset":["16px","0px"]}
+  }]
+}
+```
+
+Use `ref: slide` and absolute offsets for a corner position, or explicit
+percentages for proportional placement/sizing. Supply a real asset file: an
+asset name is not a URL and is not discovered automatically. Apply it to one
+slide with `layers: ["title-picture"]`, or add it to inherited decorations with
+`layers: {"add":["title-picture"]}`. Images remain clipped to their own card.
+
+#### Fill a card with an image background
+
+Register the desired image as `photo` and apply this layer. Both dimensions
+describe the target box; `cover` preserves the ratio and crops the excess,
+rather than stretching the image. The centred self anchor keeps that crop even:
+
+```json
+{
+  "schema": "lightwebpres.layer/1", "id": "photo-background", "plane": "under-content",
+  "elements": [{
+    "id": "photo", "asset": "photo", "opacity": 0.2,
+    "size": {"width":{"percent":100,"of":"slide.width"},
+             "height":{"percent":100,"of":"slide.height"}, "fit":"cover"},
+    "place": {"target":{"ref":"slide","anchor":"center"}, "self_anchor":"center"}
+  }]
+}
+```
+
+This fills a complete **logical card**, including a tall card; it is not fixed
+to the browser window. It prints by default using the full print card. Use
+`media: ["screen"]` if the image must not print. A decorative background image
+has `alt: ""`; meaningful information must also remain in readable text.
+Check real text against the picture: a palette's solid-background contrast
+report does not certify text placed over an arbitrary image.
+
+#### Put an image in front of the card
+
+Use `plane: over-content` for a foreground composition. The same geometry and
+effects apply; there is no separate image syntax. An explicit named instance
+can override a reusable composition's plane:
+
+```text
+layers: [{"use":"title-picture","as":"foreground-picture","plane":"over-content"}]
+```
+
+Foregrounds can deliberately cover native text, but never reader menus or
+dialogs. Ordinary images are pointer-transparent elements; authored HTML links
+need explicit `interaction: links`. A foreground does not become a button or
+opt into image-click zoom.
+
+#### Design decoration that follows the theme
+
+For a shared visual identity, register resources once in `series.json` and
+apply the composition in `series_meta.layers`. Keep exceptions on units/slides.
+Reference typed theme properties instead of copying the current pixels of a
+rendered kicker: an SVG mark can use `"tint":{"theme":"kicker.fg"}` and an
+HTML label `"color":{"theme":"kicker.fg"}` while retaining a fixed font size.
+
+Tinted image payloads are embedded even in a normal multipage build. This keeps
+their alpha masks usable when a downloaded HTML file is opened directly:
+browsers reject `file://` mask fetches. Untinted images retain the normal copied
+asset behaviour, or are embedded by `--inline-images`.
+
+Changing the palette changes the decoration's resolved style. This is
+**theme-driven decoration**, not implicit selection of resources by a theme
+name: the colour snapshot supplies properties; documentary sources register and
+select compositions. Identity, preset and theme remain distinct. Do not put
+resource JSON inside a `.conf` theme or assume a palette switch selects another
+layer. The complete example includes a theme-tinted background and a foreground.
+
+#### Choose the reference frame and inspect the result
+
+Attach to semantic `header`, `footer`, `kicker`, `title`, `summary`, `body`,
+fact/highlight/source components, or another instance. `bounds: content` uses
+occupied text rather than an allocated row. `layout.width` wraps text before
+`size` scales the frozen rectangle. Dimensions can be absolute or explicit
+percentages of another reference's width/height, before or after rotation.
+
+**Slide** is the complete card. **Screen / écran** is its currently visible
+fragment. **Viewport** is the whole reader window. Two partly visible cards
+have separate screen fragments. Use a `print` geometry override or
+`media: ["screen"]` for screen/viewport-dependent elements: a sheet of paper is
+not the current screen. Ordinary layers pass gestures through; static HTML
+links require explicit `interaction: links`.
+
+```bash
+./lightwebpres contract --format json
+./lightwebpres resolve my-series layers --article briefing.md --format json
+./lightwebpres resolve my-series resources --article briefing.md --format json
+```
+
+`contract.graphics` exposes typed shapes, limits and references. `resolve`
+reports the actual selected composition and its source chain, without writing
+output. Set an element's `debug: true` to outline its reference and transformed
+bounds. The exact resource, geometry and safety contract is in
+`specifications.md` §9.10.
+
+### Style inline Markdown in titles and summaries
+
+The source still uses ordinary inline Markdown automatically. A **strong** run
+is a semantic role: a theme may render it as bold, normal, italic, highlighted
+or underlined without rewriting the source. Role controls are separate from
+the field's overall typography and from body-text formatting:
+
+| Field | Theme prefix |
+|---|---|
+| Cover `# Title` | `title1` |
+| Standard/generated slide `## Title` | `title2` |
+| Standard `summary:` | `summary` |
+| Cover `summary:` | `cover.summary` |
+
+Each prefix has `strong` (`**text**`), `em` (`*text*`), `code` (backticks) and
+`link` (HTTP(S) links) components. Typed axes are `fg`, `bg`, `font`, `size`,
+`weight`, `style`, `decoration`, `decoration-color`, `pad-inline`, `pad-block`,
+`radius` and the usual four `shadow.*` axes. `inherit` for weight or font style
+keeps the enclosing treatment, including nested emphasis.
+
+For example, put the following in `templates/settings.conf` for the initial
+custom theme, or put the same properties in a theme snapshot:
+
+```text
+title2.strong.weight: normal
+title2.strong.style: italic
+summary.strong.fg: ink
+summary.strong.bg: mark
+summary.strong.pad-inline: 0.15em
+summary.em.style: normal
+title2.code.size: 0.78em
+title2.link.decoration: underline
+cover.summary.strong.fg: cover.summary.fg
+cover.summary.strong.bg: transparent
+```
+
+`1em` is the size of the enclosing field, not the page default; the ratio stays
+attached during fitting and manual zoom. Cover summaries have their own ink
+because their background is different. The new selectors do not restyle
+headings, emphasis or code inside native body/long-form text or kit chrome.
+
+For an article-owned exception, use a normal metadata pin such as
+`style.summary.strong.bg: #FFF0AA`. It survives runtime theme changes, like
+other `style.*` pins. Series settings instead belong to the initial custom
+variant; choosing a raw palette can remove them. Instance styles keep their
+normal final precedence. Source escapes, literal code and plain derived
+metadata are unchanged.
+
+```bash
+./lightwebpres resolve my-series summary.strong.bg --article briefing.md --format json
+./lightwebpres contract --format json
+```
+
+The live registry describes exact types/defaults, including the new axes in
+theme snapshots and contrast reports. Keep links visibly identifiable if you
+remove their default underline. See `specifications.md` §9.6.4.
+
 ### Add a Commons preset
 
 Commons themes use the global `themes/` catalogue, `LWP_THEMES_DIR` and a
@@ -1898,7 +2146,9 @@ continues upward. A click during a slide-to-slide glide jumps immediately to
 its next target; a click in the other direction returns to the slide just left.
 
 Each middle press renews a **900 ms** sequence window. A lone middle press
-has no action; an expired prefix returns to normal clicks. Keyboard input
+has no action; an expired prefix returns to normal clicks. The window uses
+native input timestamps, so busy rendering does not turn rapid physical clicks
+into a late sequence or late clicks into a rapid one. Keyboard input
 (including modifiers and editable fields), wheel commands, extra buttons,
 touch/pen input, cancellation, a menu opening or focus loss cancels the pending
 sequence before its usual action. Mouse movement does not cancel it.

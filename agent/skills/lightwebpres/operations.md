@@ -174,7 +174,8 @@ images, follow that mouse reading step unless they have their own action.
 For a mouse used as a presenter remote, middle then left toggles fullscreen,
 middle then right toggles Pointer Lock, two middles then left return to the
 beginning (then series contents), two middles then right toggle theme pause,
-and three middles cancel. Each middle press renews the 900 ms sequence window;
+and three middles cancel. Each middle press renews the 900 ms sequence window,
+measured from native input timestamps rather than handler delivery;
 **P** and the presenter menu also toggle mouse capture. Touch retains its
 own gestures. See the guide's **Present with a mouse as a remote** section.
 Check the active tag and browser-persisted choices when reproducing a view.

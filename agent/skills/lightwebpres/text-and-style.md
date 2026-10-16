@@ -1,5 +1,40 @@
 # Text And Style
 
+## Inline field roles
+
+Titles/summaries parse inline Markdown automatically. Their typed theme
+namespaces are `title1`, `title2`, `summary` and `cover.summary`, each with
+`strong`, `em`, `code`, `link` components. Use ordinary theme/settings properties
+or `style.*` article pins for ink, background, font/size, weight/style,
+decoration, padding, radius and shadow axes. `inherit` preserves the enclosing
+weight/style. Native body/fact/long-form/chrome styles remain independent.
+Discover exact keys through `contract.theme`; see §9.6.4 and the guide's
+dedicated inline-style section.
+
+## Graphic compositions
+
+Reusable image/static-HTML assets and ordered layers use a separate declarative
+contract (`specifications.md` §9.10). They may mix typed fixed styles and
+`{"theme":"kicker.fg"}` references per property. Fixed styles do not borrow
+native fitting or reader zoom. HTML lives in isolated shadow trees; active HTML,
+unsafe URLs and event attributes are refused in these assets, unlike the
+existing trusted raw-HTML body grammar. Links require `interaction: links`.
+Descriptor `file` values stay literal; image `src` values inside HTML/Markdown
+assets are URLs decoded once before contained lookup, retaining SVG fragments.
+
+`layout.width` wraps text before measurement; `size` geometrically scales the
+frozen rectangle, preserving its ratio. `slide` is the complete card, `screen`
+its visible fragment and `viewport` the full reader window. Use a print override
+or screen-only media for screen/viewport-dependent geometry. See the live
+`contract.graphics` object and `examples/graphic-layers/` instead of inventing
+CSS selectors or substituting a single flattened background image.
+
+For a background, use `under-content`, a centred `slide` anchor and width/height
+of 100% of the slide with `fit: cover`. For a foreground use `over-content`.
+Both stay outside fitting and below controls; backgrounds paint above the
+theme fill, not invisibly under it. Theme-driven decoration uses typed
+style/tint references; `.conf` snapshots do not select resource compositions.
+
 Read this for free Markdown text, images, notes, typography and styling hooks.
 [Article Format](article-format.md) describes the one-way header/body switch;
 [Series and Appearance](series-and-appearance.md) covers series-wide choices.

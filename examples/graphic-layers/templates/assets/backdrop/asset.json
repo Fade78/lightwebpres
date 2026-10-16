@@ -1,0 +1,6 @@
+{
+  "schema": "lightwebpres.asset/1", "id": "background-motif",
+  "kind": "image", "file": "landscape.svg", "alt": "",
+  "license": "CC0-1.0",
+  "credit": "Original abstract demonstration artwork for LightWebPres."
+}

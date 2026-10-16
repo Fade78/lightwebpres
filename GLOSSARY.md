@@ -18,6 +18,8 @@ Excludes LWP's structural markers (`<!-- lwp:meta -->`, `<!-- lwp:slide:TYPE
 | **series** | Ordered collection of content units, logical scope 0 |
 | **content unit** / **unit** | Coherent deck and optional supporting long-form texts, logical scope 1; the persisted format calls it an article, not an HTML page |
 | **slide** | An authored card or generated reading section inside a unit, logical scope 2 |
+| **screen / écran** | The geometrically visible portion of one slide: its rectangle intersected with the visual viewport. Two partly visible slides have separate screens. Not a logical scope, output document or pagination unit (§9.10) |
+| **viewport** | The full reader window, independently of which slide occupies it; `viewport` geometry uses the browser's visual viewport |
 | **physical HTML document** | Output container: one unit per document by default, or a series combined by `--single-html [FILE]` |
 | **source authority** | Precedence between declarations of the same logical object; an article entry and its Markdown meta both own unit values |
 | **selector** | Build-time predicate over supplied ordered records, with no intrinsic publication exclusions; not the runtime reading-tag filter (§3.4) |
@@ -55,10 +57,10 @@ natural beside it. A test holds every name here to the shape its level
 requires — the rule was broken four times before there was one.
 
 Bare single words carry no shape, so they are looked up rather than
-read. Every one of them belongs to exactly one level except `comment`,
-which belongs to all of them and is why `resolve` refuses it: it is
-parsed everywhere and read nowhere, so it has no resolved value to
-report (below).
+read. Some span several scopes: `layers` resolves series/unit/slide graphic
+choices; `resources` declares a scoped catalogue. `comment` is parsed everywhere
+and rendered nowhere, so `resolve` refuses it (below). The field registry, not
+punctuation alone, records these contracts.
 
 ## Machine-readable draft contract
 
@@ -74,6 +76,9 @@ The contract also carries a generated `theme` registry: shared values,
 components and every typed property with its type, default, CSS variable and
 native selector. Authoring tools should discover theme keys from this object
 instead of maintaining a second list.
+The `graphics` object adds resource JSON Schemas, typed style references, native
+geometric references, anchors, limits and application rules. A JSON Schema check
+does not replace build-time binding, media and dependency-graph validation.
 
 ## Public report contracts
 
@@ -127,6 +132,8 @@ Once per series, in `series.json`'s `series_meta` object.
 | `default_tag` | `default` | Tag selected when a page has no valid persisted reader choice; must occur on an article or non-excluded slide selected for the build, and warns when the effective article/slide intersection is empty. `series tags` and `status --format json` expose the resulting `default_output` too |
 | `scroll_duration` | `200` ms | Duration of the deck's own slide glide. It must be a non-negative integer; `0` jumps instantly. `--scroll-duration` overrides it for one `build`, `verify` or `watch` invocation, and the presenter menu or **I** toggles between this configured value and `0` |
 | `kicker_position` | selected preset's default, otherwise `before-title` | Series-wide placement: `before-title` or `after-header`; article metadata and slide `kicker-position` override it (§4.3) |
+| `layers` | automatic tag/selector matching | Ordered graphic compositions for every slide; unit then slide choices override it. `auto` resets matching, `[]` cancels all, `{add, remove}` modifies inherited choices (§9.10) |
+| `layers_by_type` | `{}` | Type-specific choices after that scope's general `layers`; accepts the five slide types and generated `notes` (§9.10) |
 | `reading` | `{}` resolves to the defaults below | Strict object of initial reader choices and reduction limits, only in `series_meta`; not a theme property or article cascade (§9.3.9) |
 | `lang_tags` | `{}` — no tag selects a typography pack | Object mapping a slide tag to a typography pack name, e.g. `{"fr": "fr", "en": "en"}`; the first mapped tag on a slide selects its engine (§20.5) |
 | `selectors` | `{}` | Named expression strings used by `selector:name`; validates mapping shape, then only reachable expression syntax/cycles/budgets. Compact and bounded JSONPath filter profiles, not full RFC 9535 (§3.4) |
@@ -185,6 +192,11 @@ emulation does not establish physical-device behavior.
 Print clears runtime scales and expands table viewports without screen clipping.
 
 ## Series root fields
+
+Root `resources` registers `assets` and `layers` as arrays of JSON descriptor
+paths (relative to the series root) or descriptor objects. Article metadata
+accepts the same one-line JSON field in unit scope. These graphic resources are
+distinct from Identity Kit assets and appearance presets (§9.10).
 
 In the object form of `series.json`, these keys live beside `series_meta` and
 `articles`, not inside either one.
@@ -410,6 +422,26 @@ cover, `build` reports the unknown field and suggests the two current choices.
 
 ## Presentation vocabulary
 
+Graphic vocabulary (§9.10): an **asset** is reusable image or static HTML
+content; an **element** is an instance with its own geometry and effects; a
+**graphic layer / calque** is an ordered composition of elements; an
+**application** selects layers for slides. A graphic layer is not a dictionary
+of cascading theme properties. This distinction qualifies the older **layer**
+entry below, which names a **style-cascade layer**, not a composition.
+
+`layers`, `layers_by_type` and `resources` are article metadata fields too;
+their values are one-line JSON (or `auto` for `layers`). Every authored slide
+type accepts `layers` before its body. Registered inline `lwp-asset` and
+`lwp-layer` fences belong after metadata and before the first slide, not inside
+a slide's fields or prose. `file` and literal `content` are exclusive.
+
+Inline field styles (§9.6.4) use `title1`, `title2`, `summary` and `cover.summary`
+prefixes, each with `strong`, `em`, `code` and `link` components. These typed
+theme properties control semantic Markdown runs, not whether Markdown is
+parsed. Native body/chrome styles remain independent. Font weight/style may
+be `inherit`; this reuses the enclosing treatment rather than introducing an
+intermediate physical weight.
+
 The theme engine's terms of art — the shared vocabulary contract with
 lightwebpres-gui. `specifications.md` §9 is the authoritative behavioral
 description; the terms are fixed here, in English.
@@ -422,7 +454,7 @@ description; the terms are fixed here, in English.
 | **halo** | A `text-shadow` a component sets on its own glyphs, in four axes (`shadow.fg/blur/dx/dy`). A halo is a shadow with no offset — the same mechanism, not a branch. Emitted only when a theme asks for one: `text-shadow` is inherited, so emitting it at its default would block what the page set rather than paint nothing. |
 | **elevation** | A `box-shadow` a component sets on its own box, in five axes (`elevation.fg/blur/dx/dy/spread`), with an `elevation-hover` group where the component lifts under the pointer. Always emitted — `box-shadow` is not inherited, so its default paints nothing and blocks nothing. Never measured for contrast: a drop shadow falls outside the box, on a ground the theme does not own, and carries no information. |
 | **shared value** | A palette colour (`color.*`) or font stack (`font.*`) themes provide and properties reference. Never read by an emitted rule directly. |
-| **reference** | A word used as a value, resolved at merge time and never surviving into the output (§9.2). Bare (`kicker.fg: ink-quiet`) it is looked up in its type's namespace; dotted (`title1.fg: cover.fg`) it names another property. At most 3 hops; cycles are detected and named. |
+| **reference** | A word used as a value, resolved at merge time and never surviving into the output (§9.2). Bare (`kicker.fg: ink-quiet`) it is looked up in its type's namespace; dotted (`title1.fg: cover.fg`) it names another property. At most 5 hops, including inline-role defaults; cycles are detected and named. |
 | **layer** | One dictionary of properties in the cascade (§9.3): built-in defaults, theme, settings, article, instance — merged in that order before emission. |
 | **theme** | A named layer of properties applied over the built-in defaults. It may be the native `builtin:light` resource, an embedded palette entry, or a complete external snapshot. |
 | **runtime custom variant** | The dynamic `custom(<theme>)` entry made from a base theme and the property pins in `settings.conf`; it is the primary runtime choice when those pins exist. The raw base theme remains separately selectable. |

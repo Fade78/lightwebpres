@@ -1,0 +1,9 @@
+{
+  "schema": "lightwebpres.asset/1",
+  "id": "compass",
+  "kind": "image",
+  "file": "compass.svg",
+  "alt": "",
+  "license": "CC0-1.0",
+  "credit": "Original geometric demonstration artwork for LightWebPres."
+}

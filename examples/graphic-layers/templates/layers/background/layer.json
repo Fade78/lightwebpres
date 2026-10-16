@@ -1,0 +1,10 @@
+{
+  "schema": "lightwebpres.layer/1", "id": "theme-background", "plane": "under-content",
+  "elements": [{
+    "id": "landscape", "asset": "background-motif", "opacity": 0.11,
+    "tint": {"theme": "kicker.fg"},
+    "size": {"width": {"percent": 100, "of": "slide.width"},
+             "height": {"percent": 100, "of": "slide.height"}, "fit": "cover"},
+    "place": {"target": {"ref": "slide", "anchor": "center"}, "self_anchor": "center"}
+  }]
+}

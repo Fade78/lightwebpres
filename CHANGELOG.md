@@ -33,6 +33,44 @@ link to the originals. They are at
 
 ---
 
+## v0.72.0
+
+Compose reusable image and static HTML assets as anchored graphic layers.
+Declare resources in separate files or inline article fences, apply them through
+tags/selectors or series/unit/slide choices, and override individual instances.
+Mix fixed and theme-linked text styles with rotation-aware sizing, native or
+instance anchors, derived regions, opacity, tint, shadow and glow.
+
+Screen means the visible portion of one slide, distinct from its full extent
+and the reader viewport. Isolated graphics follow layout and fullscreen changes
+without changing native fitting or scroll metrics. Printing has its own
+geometry; combined HTML shares an asset catalogue, including embedded images.
+`contract.graphics` and `resolve ... layers/resources` expose the live contract
+and effective plans. A complete source example accompanies the guide.
+
+Resource declarations and quoted code examples are protected from deck splitting
+and slug assignment. Screen-only style overrides are restored across print,
+theme and preset changes. Existing trusted raw-HTML bodies keep their contract;
+the new graphic HTML format is explicitly static.
+
+Images inside graphic HTML/Markdown assets share the reader's single-decoded
+URL handling, including encoded filenames and SVG fragments. Descriptor
+`file` values remain literal filesystem paths; a filename containing `%20`
+does not become a different file containing a space.
+
+Mouse command sequences now measure their unchanged 900 ms window from native
+input timestamps. Busy rendering can no longer expire a rapid physical command
+merely because its handlers run farther apart, nor make a late physical suffix
+look rapid when handlers arrive together. Explicit cancellation still wins;
+the live prefix indication expires without discarding valid queued input.
+
+Themes can now style inline strong/emphasis/code/link roles in slide titles and
+summaries independently from body text, including cover-specific summary ink.
+Typed settings, article pins, runtime palettes, fitting and print use the same
+registry. The guide adds free-image, full-slide background, foreground and
+theme-driven decoration recipes. The bounded reference budget is five hops
+to accommodate inline-role defaults above existing parent chains.
+
 ## Unreleased — 0.71.0
 
 Markdown tables now support two DokuWiki-style merge operators: adjacent pipes

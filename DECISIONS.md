@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 14 · **à faire** 1 · **en cours** 3 · **terminé** 79 · **abandonné** 1 · **sans objet** 3
+**à étudier** 14 · **à faire** 1 · **en cours** 3 · **terminé** 82 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -211,6 +211,9 @@ gets its own entry and its own state**, however small.
 - **B94** — Mixed-case index claimants leave physical home links broken
 - **B96** — Layout slot counts ignore their HTML insertion context
 - **B97** — Native Markdown table-cell merges
+- **B98** — Anchored graphic layers and reusable image/HTML assets
+- **B99** — Theme-controlled inline formatting in titles and summaries
+- **B100** — Queued mouse commands expire on the handler-delivery clock
 
 ### abandonné
 
@@ -4476,3 +4479,140 @@ after refusal. Deterministic independently tiled rectangles exercise compact and
 repeated continuations. Native Chromium/Firefox checks build the new Markdown
 syntax with image cells and test automatic/fixed layouts, mobile/desktop resize,
 native fullscreen, 150% reader zoom and print restoration in both topologies.
+
+## B98 — Anchored graphic layers and reusable image/HTML assets
+
+**État :** terminé · **Depuis :** 2026-10-16 · **Version :** 0.72.0
+
+The owner commissioned the complete implementation after two design rounds,
+explicitly requested the `feature/layers` branch, and delegated remaining
+decisions. This branch is an owner-authorized exception to the ordinary
+main-only contribution workflow. On 2026-10-16 the owner authorized integration
+after committing/pushing 0.71.0 with tables and reader corrections but without
+graphics. This integration is the separate unreleased 0.72.0 lot, not a release
+or push request. The original staged worktree remains intact.
+
+The maintained feature contract and delivery checklist are in
+[Anchored graphic compositions](features/layers.md). It retains the distinctions
+between assets, instances, compositions and application; external/inline
+declarations; absolute/theme-linked text; screen/slide/native references; and
+geometry, media, style, accessibility and publication ownership.
+
+The new term **screen / écran** means the visible portion of one logical slide,
+not another documentary scope or a physical output page. Preserve B67's
+series/unit/slide ownership and current persisted names. B81/B82 stay deferred.
+
+The initial delivery was implemented on the requested branch without committing,
+merging or publishing; its subsequent commissioning history is retained in B99.
+The normative contract is `specifications.md` §9.10; the source example is
+`examples/graphic-layers/`. The original branch called this entry B85, before
+integration renumbered it to preserve main's unrelated image-URL correction.
+The initial delivery had 26 new graphic-layer
+tests, all passing in its final complete runs, including Chromium/Firefox
+geometry, local/document scroll, media, presets and combined HTML. Those
+1,580-test six-worker runs retained the baseline Chromium Pointer Lock timeout
+at `mouse_commands_e2e.cjs:296` as their only failing class; that test passed
+isolated. Exact conditions and logs remain in the feature's dated record;
+B99 records the subsequent expanded coverage and its own results separately.
+Those are dated branch measurements, not acceptance of the current integration.
+The later 1,587-test check retained an MG/fullscreen failure. Integration retains
+main's B90 acknowledgement fix as well as its table and kit guards, rather than
+replacing the reader with the feature branch's older implementation.
+
+**Integration correction.** A failing CLI regression established that HTML and
+Markdown graphic assets treated encoded image `src` values and SVG fragments as
+literal descriptor filenames. The graphical HTML boundary now reuses main's
+single-decoded image-URL parser before the contained resource loader, retaining
+the fragment after publication/embedding. Descriptor `file` fields remain raw
+paths. Regression cases distinguish actual spaces from literal percent escapes
+and preserve ampersands/reserved punctuation, in both output topologies and
+inline-image modes. This is separate from the original branch's successful
+tests of raw image-asset filenames.
+
+The combined browser regression also exercises merged image cells both in the
+native body and inside an isolated Markdown asset, automatic `constructor` tag
+matching, encoded output/media names, real MD/MG capture/fullscreen cycles,
+mobile resizing, zoom, print restoration and combined-view remounting. It uses
+main's existing gesture timeouts and acknowledgement-state corrections.
+All 71 targeted integration tests pass, including that native combined scenario,
+the image-URL correction, the table grammar and the existing kit/image guards.
+The first complete current run passed 1,639 tests; the second exposed a separate
+native-input/delivery-clock defect in that new scenario. B100 records the trace,
+deterministic reproduction and correction rather than concealing the failure as
+unspecified test intermittence.
+
+## B99 — Theme-controlled inline formatting in titles and summaries
+
+**État :** terminé · **Depuis :** 2026-10-16 · **Version :** 0.72.0
+
+The owner requested typed theme controls for the inline Markdown now accepted
+in slide titles and summaries, plus a dedicated graphic-use section covering
+free placement, theme-driven decoration, image backgrounds and foregrounds.
+
+The contract and verification checklist are in
+[Theme-controlled inline roles](features/inline-field-styles.md). Preserve
+automatic Markdown and the existing style cascade. Cover summaries keep their
+own ink; native body and chrome formatting remain independent. The existing
+graphic planes supply backgrounds/foregrounds; do not confuse theme-linked
+properties with implicit resource selection by a colour snapshot.
+
+Originally implemented and verified on `feature/layers`, which labelled the
+entry B86 and announced 0.71.0 locally. Its commissioning record mentions later
+commit/tag/push authorization, but no such feature commit or local tag existed
+at integration. Main's table-only 0.71.0 was committed/pushed separately; B98
+records the owner's new authorization to integrate this work for 0.72.0.
+The guide now has dedicated free-image, background, foreground, theme-driven
+decoration and inline-role sections, backed by the expanded tracked example
+and regenerated guide cards. The normative inline-style contract is
+`specifications.md` §9.6.4. Tinted image instances use embedded payloads because
+browser CSS masks reject `file:` fetches; the regression checks actual pixels
+in Chromium and Firefox. The verification record distinguishes the earlier
+Pointer Lock timeout from the later MMG capture-loss failure instead of
+claiming they are proven identical. The subsequent complete six-worker run
+passed all 1,587 tests across 243 classes, including mouse-command integration.
+That dated result is retained separately from the current integration checks.
+The current targeted integration run includes the six inline-style regressions,
+native theme/preset switching, zoom and print; no reader assertion or timeout
+was relaxed to integrate these roles.
+
+## B100 — Queued mouse commands expire on the handler-delivery clock
+
+**État :** terminé · **Depuis :** 2026-10-16 · **Version :** 0.72.0
+
+**Reproduction.** The second complete graphical integration run failed to
+release capture with MD. An instrumented native Chromium check reproduced the
+failure in one of eight runs under four-way browser contention. The native M/D
+timestamps were 3,056.2 and 3,855.8 ms (about 800 ms apart), but their handlers
+ran at 3,477.2 and 4,555.3 ms (about 1,078 ms apart). The 900 ms delivery-clock
+timer discarded M before the recorded-in-time D arrived. This is not a
+fullscreen/pointer acknowledgement race from B90, and is not proof that every
+historical mouse failure had the same cause.
+
+**Correction and preserved limits.** The event adapter passes native timestamps
+to the existing grammar. Matching and renewal use that input clock; zero is a
+valid timestamp and an unavailable/nonfinite timestamp falls back to the delivery
+clock. The live indicator still expires after 900 ms without extending its UI
+ownership. Its timer does not erase the separate queued-input grammar state;
+completed commands, explicit cancellation and a genuinely late native suffix
+still discard it. Old timer callbacks cannot expire a newer indication. Mouse
+movement and the existing cancellation/Pointer Lock/fullscreen safety rules do
+not change. No deadline, native wait or assertion was relaxed.
+
+**Evidence.** A deterministic generated-runtime case reproduces the captured MD
+release failure before correction and passes after it. Additional cases cover
+zero timestamps, exactly-expired suffixes delivered together, queued 2M renewal
+and cancellation of expired-looking queued prefixes by keys, wheel, touch,
+pointer cancellation and blur. The complete mouse-command class passes in
+Chromium, Firefox and the controlled runtime. The graphical integration guard
+retains its input trace on failure, including browser, topology and cycle.
+
+An initial post-correction stress run correctly rejected a different pair whose
+native timestamps were about 1,046 ms apart: waiting for a renderer reply between
+the two Playwright clicks had itself made the test input late. The fixture now
+queues ordered native down/up requests together and explicitly verifies both
+presses, the prefix's intervening release and a native interval below 900 ms.
+Firefox may omit the suffix release when that press exits native fullscreen;
+the command assertion still requires actual exit and capture release. With that
+validated input, eight runs at four-way contention pass in both browsers and
+topologies. This fixture correction is not an extension of the reader's window
+or a retry-until-green substitute for the deterministic failing-before case.

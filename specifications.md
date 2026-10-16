@@ -37,7 +37,7 @@
 
 **§9. Thèmes et personnalisation : les propriétés typées**
 
-9.1 Le principe et le vocabulaire · 9.2 Les types et les renvois · 9.3 La cascade à cinq couches et les trois fichiers · 9.3.8 Présentations compilées à la demande · 9.3.9 Reader controls and bounded fitting · 9.4 Les commandes · 9.5 Thèmes de couleurs et catalogue externe · 9.6 La couche article, et les balises d'instance · 9.7 Effets et dégradés · 9.8 Migration depuis `templates/style.css` · 9.9 Identités, kits et presets
+9.1 Le principe et le vocabulaire · 9.2 Les types et les renvois · 9.3 La cascade à cinq couches et les trois fichiers · 9.3.8 Présentations compilées à la demande · 9.3.9 Reader controls and bounded fitting · 9.4 Les commandes · 9.5 Thèmes de couleurs et catalogue externe · 9.6 La couche article, et les balises d'instance · 9.7 Effets et dégradés · 9.8 Migration depuis `templates/style.css` · 9.9 Identités, kits et presets · 9.10 Anchored graphic compositions
 
 **§10. Pipeline GitLab CI**
 
@@ -1054,12 +1054,16 @@ le **texte Markdown standard** (le contenu libre, régi par la section 6).
 
 La structure LWP n'est reconnue que sous ces formes précises :
 
-1. **`---`** (seul sur une ligne — les lignes vides autour sont d'usage
-   mais pas exigées, voir §12.2) sépare les fiches
+1. **`---`** alone on a line separates slides outside fenced code and the
+   reserved graphic-resource prologue (§9.10). Surrounding blank lines are
+   conventional, not required (§12.2).
 2. **`<!-- lwp:meta -->`** marque le début du bloc de métadonnées (avant le premier
    `---`)
 3. **`<!-- lwp:slide:TYPE -->`** marque le type d'une fiche (défaut : standard)
 4. **`clé: valeur`** (en tête de bloc meta ou de fiche) définit un champ
+5. Reserved **`lwp-asset` / `lwp-layer` backtick fences** declare resources
+   after metadata and before the first slide (§9.10); they are extracted before
+   slide splitting, not rendered as prose.
 
 Les commentaires HTML portent le préfixe `lwp:` (et non un mot générique
 comme `meta`) délibérément : un commentaire HTML est déjà invisible pour
@@ -1796,19 +1800,15 @@ littéralement une balise. Le contenu d'un span de code n'est jamais
 retraité par les autres règles inline (gras, italique, lien) : `` `**pas
 en gras**` `` reste littéral.
 
-**Bloc de code (` ``` `).** Une ligne composée uniquement de trois
-backticks ouvre un bloc de code ; une ligne identique le referme. Un nom
-de langage optionnel peut suivre directement les trois backticks
-d'ouverture, sans espace (` ```python `), et devient
-`class="language-python"` sur la balise `<code>` — purement informatif,
-aucune coloration syntaxique n'est appliquée par le moteur. Entre les
-deux délimiteurs, chaque ligne est reproduite verbatim (échappée, jamais
-interprétée comme Markdown) — y compris une ligne vide ou une ligne de
-tirets qui, ailleurs, aurait un sens structurel. Un bloc ouvert sans être
-refermé avant la fin du fichier produit une balise non refermée dans le
-HTML généré, détectée comme n'importe quelle autre erreur de structure
-par la vérification de balisage qui précède l'écriture de chaque page
-(§13) — le build échoue au lieu de publier une page tronquée.
+**Fenced code.** At least three backticks or tildes at the beginning of a line
+open a block. A closing line uses the same character, at least the opening
+length, and no language token. An optional language token immediately after
+the opening delimiter becomes an informational `language-*` class; there is no
+syntax highlighting. A longer outer fence quotes shorter resource fences.
+Contents are escaped literal text, including `---`, slide markers and resource
+examples. An unclosed block fails the HTML balance check before publication
+(§13). Active `lwp-asset` / `lwp-layer` declarations are reserved for the
+resource prologue, not ordinary slide code examples (§9.10).
 
 **Protection contre la typographie automatique.** Le contenu d'un span
 ou d'un bloc de code ne doit jamais voir son espacement altéré par les
@@ -2592,8 +2592,13 @@ button and D the right button; keyboard M remains the presenter menu.
 | 2M + D | Toggle the theme-background pause screen, exactly like T |
 | 3M | Cancel the sequence immediately, with no action |
 
-Each accepted middle press renews a 900 ms deadline. Expiry and completed
-actions return to neutral. A keyboard key (including modifiers and keys owned
+Each accepted middle press renews a 900 ms deadline, measured from native
+`mousedown.timeStamp` values rather than handler execution time. A suffix at or
+after the deadline is expired even if both handlers run together. Conversely,
+a queued suffix recorded before expiry remains valid after the live
+delivery-clock indication has expired. Explicit cancellation discards both live
+and queued prefix state. Expiry and completed actions return to neutral.
+A keyboard key (including modifiers and keys owned
 by an input), wheel command, extra mouse button, touch/pen input, pointer
 cancellation, foreground-surface opening, focus loss or view replacement
 cancels the pending sequence before its normal command runs. Mouse movement
@@ -3051,7 +3056,7 @@ et le type est vérifié à la génération :
 | ratio | `1.5` | nombre **sans unité**. Délibérément distinct d'une longueur : un `line-height` sans unité est hérité comme facteur et remultiplié par la taille de chaque descendant ; `1.5rem` est hérité comme longueur figée et casse dès qu'un enfant change de taille — invisible jusqu'au jour où ça mord, ce qui est exactement ce que le typage existe à prévenir |
 | angle | `200deg` | unité connue (`deg rad turn grad`) |
 | pile de polices | `Georgia, serif` | **se termine par un générique CSS 2.1** (`serif`, `sans-serif`, `monospace`, `cursive`, `fantasy`) — voir ci-dessous |
-| énumération | `bold`, `italic`, `uppercase`, `line-through` | valeur admise. Les graisses n'admettent que **`normal` et `bold`** — voir ci-dessous |
+| enumeration | `bold`, `italic`, `uppercase`, `line-through` | A registered choice. Physical weights are `normal` or `bold`; `inherit` reuses the enclosing weight. Font style accepts `normal`, `italic` or `inherit`; other enumerations keep their own choices. |
 | chaîne CSS | `"\25D0"`, `none` | une **seule chaîne entre guillemets doubles** (les marqueurs de forme des verdicts), échappements `\` autorisés, ni guillemet nu ni `<` ni `}` — ou le mot-clé `none`. Le type paraît anodin, mais la valeur atterrit dans le `<style>` inliné de la page : une accolade nue y fermerait la déclaration, un `</style>` littéral la feuille entière — c'est le seul axe dont une valeur voyage sans transformation, donc le seul à devoir se garder lui-même |
 
 **Pourquoi les piles finissent sur un générique.** Aucune police nommée
@@ -3078,6 +3083,10 @@ une taille explicite à chaque composant portant du texte, donc le défaut
 divergent des moteurs n'est jamais consulté et le contournement
 historique `monospace, monospace` devient inutile.
 
+`inherit` is not a third physical weight: inline roles reuse the surrounding
+treatment, including nested emphasis. Explicit `normal` and `italic` can still
+override it (§9.6.4).
+
 **Les renvois.** Un renvoi est un mot, pas une fonction, et il est résolu
 à la fusion — il ne survit jamais dans la sortie :
 
@@ -3090,13 +3099,11 @@ historique `monospace, monospace` devient inutile.
   pile contient une virgule ou est un générique).
 - **Un mot pointé référence une autre propriété**, qualifiée :
   `title1.fg: cover.fg`, `cover.bg.to: cover.bg.from`.
-- **Profondeur maximale : 3 sauts.** Les chaînes étant résolues à la
-  génération, la limite ne protège que le lecteur d'un fichier de
-  settings. Deux sauts se sont avérés trop courts le jour où le thème
-  `terminal` du catalogue a eu besoin de `page.font → font.text →
-  font.mono` : un thème ordinaire saturait la limite et ne laissait à
-  une série aucune indirection propre. `terminal` est désormais `code`
-  en chasse fixe — le slug est resté pour le registre terminal.
+- **Maximum depth: 5 hops.** Chains resolve at generation, not in the browser.
+  Two inline-role references may sit above a parent chain valid under the
+  previous three-hop budget. The finite bound preserves that composition
+  without permitting unbounded input. Length expressions and enumeration
+  literals retain their own grammar; arbitrary strings do not become references.
 - **Les cycles sont détectés et nommés** : `kicker.fg: reference cycle
   kicker.fg -> summary.fg -> kicker.fg`, jamais une boucle infinie ni un
   plantage obscur.
@@ -4649,6 +4656,50 @@ l'intérieur d'un span de `` `code` ``, rien n'est jamais une balise. La
 est l'outil de l'intervention ponctuelle d'un auteur qui sait ce qu'il
 fait.
 
+#### 9.6.4 Inline roles in slide titles and summaries
+
+Inline Markdown remains automatic in authored `#`/`##` titles and `summary:`
+values (§4.3). Its semantic roles now have typed theme components:
+
+| Context | Prefix |
+|---|---|
+| Cover title | `title1` |
+| Standard, series-navigation or unit-index title | `title2` |
+| Standard/unit-index summary | `summary` |
+| Cover summary | `cover.summary` |
+
+Every context has `strong`, `em`, `code` and `link` components. Axes are `fg`,
+`bg`, `font`, `size`, `weight`, `style`, `decoration`, `decoration-color`,
+`pad-inline`, `pad-block`, `radius`, and `shadow.fg/blur/dx/dy`. These use the
+existing colour, font-stack, length and choice types. Colour/font references
+follow normal resolution; lengths may use supported CSS expressions.
+
+Defaults keep field-specific ink and fonts instead of body/fact styles. Strong
+is bold; em is italic; code uses `code.font` and relative `code.size`; links
+keep field ink and an underline. Other run sizes default to `1em`, relative to
+their field. Non-strong weights and non-em font styles default to `inherit`.
+Marks are transparent and padding zero except for code-like treatment.
+Decorations default to the run's foreground. Colour/font axes belong to each
+role; inherited weight/style preserves nested emphasis without copying every
+parent override into every child role.
+
+Selectors reach native fields through arbitrary Identity Kit wrappers but
+exclude native body/fact text, long-form prose, notes, chrome, navigation cards
+and generated index labels. Field markup and derived plain metadata are
+unchanged. Explicit instance styles retain normal precedence.
+
+The theme → settings → article-pin mechanism applies. Runtime palette, preset
+and combined-view changes use the same registry variables, not another
+formatting interpreter. Fitting/manual zoom preserve relative child sizes;
+print restores authored native sizes. `contract.theme`, `resolve` and theme
+snapshot output expose these properties. Previous complete snapshots may omit
+the new keys and use registry defaults.
+
+Contrast reports include every foreground, mark and decoration against its
+field ground and parent size/weight. This extends measurement, not aesthetic
+admission thresholds (§9.5.6). Arbitrary image backgrounds and author-defined
+nested mark combinations still need rendered inspection.
+
 ### 9.7 Effets et dégradés
 
 **Fond dégradable.** Un fond qui sait se dégrader se paramètre en trois
@@ -5335,6 +5386,236 @@ Toute destination de kit existante est refusée. Le résultat est autonome, sans
 les sources de composition ni enregistrement de provenance.
 
 ---
+
+### 9.10 Anchored graphic compositions
+
+Graphic layers are static, reusable compositions, not CSS-cascade layers and
+not flattened background images. An **asset** supplies image or static HTML
+content and initial style. An **element** instances an asset with geometry and
+effects. A **layer / calque** orders elements. Its **application** selects the
+composition for slides; it does not change publication status or native content.
+
+#### 9.10.1 Resources, inline declarations and binding
+
+`resources` at the root of `series.json`, or as one-line JSON in article
+metadata, accepts `assets` and `layers` arrays. Entries are descriptor paths
+relative to the series root, or descriptor objects. No directory is discovered
+implicitly. External descriptors use `lightwebpres.asset/1` and
+`lightwebpres.layer/1`; the schema token may be omitted but, when present, must
+match. Resource IDs use `[a-z][a-z0-9-]{0,79}`.
+
+```json
+{"resources":{"assets":["templates/assets/draft/asset.json"],"layers":["templates/layers/draft/layer.json"]}}
+```
+
+Assets require `id`, `kind` (`image` or `html`) and exactly one of `file` and
+`content`. Images require a local `file` and string `alt` (empty means
+decorative). HTML defaults to `format: html`; other formats are `plain`,
+`markdown-inline` and `markdown`. Optional `style`, `label`, `license` and
+`credit` describe the content; licence/credit text is exposed to inspection, not
+automatically painted. HTML formats do not execute scripts.
+
+Payloads are relative to their external descriptor's directory, series-root
+descriptor object, or the unit's sources directory for inline declarations.
+Paths must remain inside that resource root, including through symlinks.
+Images support SVG, PNG, JPEG, WebP, GIF and AVIF; SVG must be static and
+self-contained. Source names are not rewritten; public images receive
+content-addressed names below `assets/graphics/`.
+
+Descriptor `file` values are literal filesystem paths. Image `src` values inside
+HTML/Markdown assets are URLs: decode their path once before contained lookup,
+preserve SVG fragments on the published or embedded URL, and do not reinterpret
+decoded punctuation as another URL. For a file named `logo %20.svg`, write that
+literal name in `file`, but `logo%20%2520.svg` in an image `src`. HTML attribute
+entities have already been decoded by the parser and are not decoded again.
+
+Inline declarations are backtick fences with the exact language `lwp-asset` or
+`lwp-layer`, after metadata and before the first slide. Their contents use the
+same descriptor JSON. An HTML asset may omit `content` and put literal text
+after its JSON header and a whole-line `---` inside the fence. That delimiter
+does not split a slide. Ordinary fenced examples are never registered. Original
+file/line diagnostics survive extraction. Forward references work; duplicate
+IDs in one scope fail.
+
+Unqualified names resolve in their definition's scope, then series scope.
+`series/id` and `unit/id` qualify lookup. A series layer does not dynamically
+rebind its assets to unit-local names. Explicit asset overrides belong to the
+calling scope. Inline element assets may omit `id`; inline application layers
+may omit `id` (a deterministic local instance name is assigned).
+
+All registered descriptors/payloads are validated; only selected media are
+published. Reads are bounded and snapshotted for the operation: 256 definitions
+per resource kind/scope, 1 MiB per descriptor, 256 KiB per HTML body and 16 MiB
+per image. Each slide permits 64 selected layers and 256 graph nodes. These
+budgets and typed JSON Schema shapes are exposed by `contract.graphics`.
+
+#### 9.10.2 Application and ordered composition
+
+A layer contains `id` and an `elements` array; each element has a unique `id`
+and named or inline `asset`. Optional layer fields are `tags`, `selector`,
+`regions`, `plane`, `media`, `opacity`, `effects`, `label`, `license`, `credit`.
+`tags` (literal case-normalized OR) and bounded `selector` are alternative
+automatic rules; absence of both means explicit use only. Automatic matching
+uses actual slide tags, not reader shared-default visibility. Selectors reuse
+the supplied-record selector core (§3.4), not a browser query language.
+
+`layers` is accepted in `series_meta`, article metadata and every slide header:
+
+| Value | Operation |
+|---|---|
+| omitted | inherit |
+| `auto` | reset to automatic matches |
+| array | replace the complete selection, in painting order |
+| `[]` | no layers, including automatic matches |
+| `{"add":[...],"remove":[...]}` | remove inherited instance IDs, then append choices; removing an absent ID is harmless |
+
+At each series/unit scope, `layers_by_type` applies type-specific choices after
+that scope's general choice. Unit scope follows series scope; the slide choice
+is last. Type names include all five authored types and generated `notes`.
+The series contents view is not implicitly a slide.
+`layers`, `layers_by_type` and `resources` are not accepted in `articles[]`;
+use article metadata. Series resources belong at the root, not `series_meta`.
+
+A choice is a layer name, an inline layer object, or `{use, as, overrides}`.
+`as` supplies an independent instance ID. `overrides` maps element IDs to
+changes; geometry/style/effects objects replace the complete corresponding
+field, not individual array positions. The named-instance form also accepts
+layer `plane`, `media`, `opacity` and `effects`. Unknown resource/element names
+and duplicate selected instance IDs fail.
+
+`plane` is `over-content` by default, or `under-content` (above the slide's
+background). Layer order and element order are deterministic within each
+plane. Neither plane covers reader controls or dialogs.
+
+For a full-slide image background, use `under-content`, a centred `slide`
+target/self anchor, width and height of 100% of `slide`, and `fit: cover`.
+Uniform scaling fills/crops the box without stretching or enlarging native
+layout. The image paints above the theme fill; below an opaque fill it would
+disappear. An `over-content` image can cover native text but remains below
+controls. Both planes stay clipped and pointer-transparent by default.
+Theme-driven decoration uses typed style/tint references: a `.conf` theme does
+not implicitly import/select resources. Registration/application remain
+documentary data.
+
+#### 9.10.3 Geometry and references
+
+**Slide** is the full card, possibly taller than the reader. **Screen / écran**
+is the card rectangle intersected with the visual viewport. Two partly visible
+cards therefore have separate screen fragments. **Viewport** is the complete
+reader window. Dialog occlusion is not subtracted. These are geometric
+references, not new logical scopes, output files or pagination units.
+
+Native references are `slide`, `screen`, `viewport`, `main`, `header`,
+`header-group`, `footer`, `header.text`, `header.image`, `footer.text`,
+`footer.image`, `kicker`, `title`, `summary`, `highlight`, `highlight-caption`,
+`fact`, `fact-label`, `fact-content`, `body`, `source`, `slide-number`, `notes`,
+`highlight-group`, `unit-index`, `series-list`, `article-footer`, `byline`,
+`license`, `draft-banner`, `build-stamp`.
+`main` aggregates native content; `header-group` aggregates the rendered header
+and its header-attached kicker. Standard cards expose fact/highlight/source
+only when supplied; a free body has `body` but no `fact-content`. Covers expose
+title/kicker/summary; generated navigation/index and full-article cards expose
+their rendered title/body. Empty, cleared or hidden fields have no rectangle.
+Hidden speaker notes and metadata-only fields have no geometry. The live
+contract describes potential references by type, not guaranteed presence.
+`anchor:id` addresses an authored ID within the same card.
+
+`place.target` contains `ref`, optional `bounds` and `anchor`.
+`bounds: box` (default) is the border rectangle, without margins/effects;
+`content` measures occupied text/media instead of a stretched row; `visible`
+intersects the box with the viewport. `self_anchor` aligns the post-rotation
+instance rectangle with the target anchor; `offset` adds two lengths.
+The nine physical anchor names are `top-left`, `top-center`, `top-right`,
+`left-center`, `center`, `right-center`, `bottom-left`, `bottom-center`,
+`bottom-right`. Coordinates increase right/down; positive rotation is clockwise.
+
+```json
+{"place":{"target":{"ref":"kicker","bounds":"content","anchor":"right-center"},"self_anchor":"left-center","offset":["10px","0px"]},"rotate":"-12deg","size":{"width":{"percent":20,"of":"screen.width"}},"media":["screen"]}
+```
+
+Lengths are finite numeric CSS pixels, `px`, `pt`, `mm`, `cm`, `in`, `vw`, `vh`,
+`vmin`, `vmax`, or `{percent, of}` naming an explicit reference width/height.
+CSS viewport units follow the layout viewport; explicit `viewport.*` uses the
+visual viewport. There is no arbitrary expression evaluator. Dimensions are
+positive; offsets may be negative. `rotate` is degrees, numeric or `deg`.
+
+`layout.width` wraps HTML before measuring; optional height clips its layout.
+`size.width`/`height` uniformly scale the frozen image/layout rectangle,
+preserving aspect ratio. `size.measure` defaults to `after-rotation`, or is
+`before-rotation`; transparent source margins count, shadows/glow do not.
+Both dimensions use `fit: contain` by default; `cover` fills the target box
+without distorting the content. Layout/size permit `min_width`, `max_width`,
+`min_height`, `max_height` constraints. Layout and geometry are independent of
+native fitting and manual reading zoom.
+
+`element:id` targets a current-layer instance; `layer:instance/id` targets an
+instance in another selected layer. Named `regions` derive four boundaries
+(`left`, `right`, `top`, `bottom`), each from `{ref, edge, offset, bounds}`.
+Edges can also be `center-x` or `center-y`. `region:id` targets the resulting
+rectangle. Native boxes never depend on graphics. Position, dimension, fallback
+and effect dependencies form a bounded DAG, separately for print and each
+screen orientation. Unknown instances and cycles fail with the dependency chain.
+
+`on_missing` defaults to `hide`, can name a fallback reference, or be `error`.
+An element's named fallback replaces its missing placement target; a region's
+fallback replaces the whole unavailable rectangle. Missing size dependencies
+hide or diagnose the dependent element; they do not substitute unrelated sizes.
+The latter hides the unavailable element and emits a console diagnostic and a
+bubbling `lwp:graphic-error` event with slide/element/reason; CSS-hidden or
+offscreen component availability is determined at runtime. An empty screen
+simply hides its graphics. Invalid/empty regions use the same policy.
+Element `debug: true` outlines its target and transformed rectangle.
+
+#### 9.10.4 Style, interaction, media and lifecycle
+
+Asset/element `style` maps `font`, `font_size`, `color`, `background`, `weight`,
+`line_height`, `tracking`, `align`, `transform`, `decoration`, `padding`, `radius`
+to typed literals or `{theme: property}` of the matching registry type. Mixed
+styles are valid: fixed `font_size: "28px"` and theme-linked `color` do not
+select a global fixed/themed mode. Theme references follow resolved theme,
+settings and article pins, not a native element's fitted rendered style.
+
+`opacity` is 0–1. `effects` accepts up to eight typed `shadow`/`glow`
+(`x`, `y`, `blur`, `color`), `blur` (`value` length), or `grayscale`, `brightness`,
+`contrast`, `saturate` (`value`, 0–10). Shadow/glow follows the alpha contour,
+with offsets in screen axes after rotation. Image-only `tint` colours its alpha
+mask without changing geometric bounds. Effects do not enlarge layout.
+
+Tinted image instances use an embedded data URI from the operation's validated,
+bounded source snapshot, including when normal images are copied. CSS masks
+reject `file:` fetches; embedding makes local downloaded HTML portable without
+requiring a web server or disabling browser security. These derived assets are
+deduplicated, and unused ordinary copies are not published. A media-specific
+tint override uses the same portable source for the element's other variants.
+
+Static HTML is isolated in per-instance shadow trees with a fixed initial
+style. Native component searches/styles cannot be impersonated by asset
+headings/classes. Scripts, handlers, forms, browsing contexts, unsafe URLs and
+active/external SVG dependencies are rejected. Links require element
+`interaction: links` (otherwise ordinary layers pass gestures through). HTTP(S)
+links retain browser navigation; fragment links stay within the asset's local
+IDs and never become slide routes. Fixed and theme-linked styles do not alter
+the existing trusted raw-HTML body contract (§6.2).
+
+`media` defaults to `["screen","print"]`. Base geometry works in both media;
+optional `screen` and `print` objects replace complete geometry/style fields.
+`portrait`/`landscape` overrides follow `screen` on screen only. Variants also
+accept `hidden`. A print-active element cannot depend on `screen`, `viewport`
+or geometric viewport units, directly or through a region/instance: provide
+print geometry or mark it screen-only. Print uses the complete logical slide,
+not the screen coordinates at the moment of printing. Screen layout is restored
+afterwards. Graphics repeat per logical slide, not per physical paper sheet.
+
+Native fitting completes first. Graphics follow scroll, fonts/images, theme and
+preset changes, resize, fullscreen and VisualViewport updates without
+reanchoring native content on pinch alone. Hosts are clipped/contained so rotated
+assets cannot alter native scroll metrics, slide counts, notes or fitting.
+Preset replacement and combined-HTML article replacement remount from retained
+plans. Build/verify share media ownership and `--inline-images` embedding;
+watch and incremental fingerprints include descriptors/payloads/plans, and
+clean owns only manifested output. `resolve <series> layers --article file.md
+--format json` exposes effective plans and provenance; querying `resources`
+exposes definitions. The complete source example is `examples/graphic-layers/`.
 
 ## 10. Pipeline GitLab CI
 
@@ -9563,9 +9844,9 @@ authority rather than either example alone.
 
 ### 22.1 Séparateur `---` dans le corps d'une fact-box
 
-Si `---` apparaît seul sur une ligne dans le texte d'une fact-box, c'est un
-séparateur de slide (thematic break Markdown). Pour inclure un trait
-horizontal dans le texte, utiliser `<hr>` en HTML inline.
+A bare `---` in a fact-box body separates slides, except inside a fenced code
+example. Reserved graphic-resource fences in the prologue have their own literal
+content delimiter (§9.10). Use raw `<hr>` for a visible horizontal rule.
 
 ### 22.2 `kicker:` dans le texte d'une fact-box
 

@@ -54,8 +54,10 @@ a slide. See the [complete first-article example](examples/first-article/README.
    Arrange a corpus into series, reuse canonical articles in different
    contexts, and check language or audience variants.
 3. **[Design and compose identities](GUIDE.md#3-design-and-compose-identities).**
-   Create a theme, design layouts and chrome, or combine resources into a
-   self-contained Identity Kit for other authors.
+    Create a theme, design layouts and chrome, or combine resources into a
+    self-contained Identity Kit for other authors. Use
+    [graphic layers, backgrounds and foregrounds](GUIDE.md#attach-reusable-image-and-text-compositions),
+    or [theme inline title/summary formatting](GUIDE.md#style-inline-markdown-in-titles-and-summaries).
 4. **[Read, present and share](GUIDE.md#4-read-present-and-share).**
    Navigate by keyboard, mouse or touch; use fullscreen, print to PDF, and
    share a series, article or individual slide.

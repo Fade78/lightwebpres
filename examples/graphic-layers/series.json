@@ -1,0 +1,11 @@
+{
+  "series_meta": {"title": "Anchored graphic compositions", "scroll_duration": 0},
+  "resources": {
+    "assets": ["templates/assets/draft/asset.json", "templates/assets/mark/asset.json",
+               "templates/assets/backdrop/asset.json"],
+    "layers": ["templates/layers/draft/layer.json", "templates/layers/background/layer.json",
+               "templates/layers/foreground/layer.json"]
+  },
+  "appearance": {"presets": ["builtin/standard"], "themes": ["light", "monochrome-night"]},
+  "articles": [{"page_source": "compositions.md"}]
+}
