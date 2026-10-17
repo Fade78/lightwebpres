@@ -1,0 +1,8 @@
+{
+  "schema": "lightwebpres.layer/1", "id": "draft", "plane": "under-content",
+  "elements": [{
+    "id": "stamp", "asset": "draft-label", "rotate": "-14deg", "opacity": 0.10,
+    "size": {"width": {"percent": 70, "of": "slide.width"}},
+    "place": {"target": {"ref": "slide", "anchor": "center"}, "self_anchor": "center"}
+  }]
+}

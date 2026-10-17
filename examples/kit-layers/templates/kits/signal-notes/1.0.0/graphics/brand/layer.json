@@ -1,0 +1,8 @@
+{
+  "schema": "lightwebpres.layer/1", "id": "brand", "plane": "over-content",
+  "elements": [{
+    "id": "image", "asset": "brand-image", "rotate": "12deg", "opacity": 0.55,
+    "tint": {"theme": "kicker.fg"}, "size": {"width": "64px"},
+    "place": {"target": {"ref": "slide", "anchor": "top-right"}, "self_anchor": "top-right", "offset": ["-24px", "24px"]}
+  }]
+}

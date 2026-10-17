@@ -70,7 +70,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.72.0"
+VERSION = "0.73.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -4560,6 +4560,8 @@ class IdentityKit:
         self.chrome_models = dict(chrome_models or {})
         self.starters = dict(starters or {})
         self.presets = dict(presets or {})
+        self.graphic_resources = {'asset': {}, 'layer': {}}
+        self.graphic_snapshots = {}
         self.dependency_paths = tuple(dependency_paths or ())
         self.digest = digest
         self.default = default
@@ -4613,7 +4615,7 @@ class PresentationPreset:
                  default=False,
                  resource_collection=None, scope=None,
                  dependency_paths=None, digest=None, theme_origin=None,
-                 kicker_position='before-title'):
+                 kicker_position='before-title', graphic_choices=None):
         self.identity_kit = identity_kit
         self.id = preset_id
         self.label = label
@@ -4630,6 +4632,7 @@ class PresentationPreset:
                 f'{" | ".join(_PRESENTATION_CHROME_PLACEMENTS)}')
         self.slide_chrome_placement = slide_chrome_placement
         self.kicker_position = _parse_kicker_position(kicker_position, 'kicker_position')
+        self.graphic_choices = json.loads(json.dumps(graphic_choices or {}))
         self.starter = starter
         # This selects the native renderer, not the selected/default preset.
         self.default = default
@@ -5523,6 +5526,7 @@ def _load_identity_kit(root, scope):
     allowed = {
         'schema', 'id', 'version', 'layouts', 'structure_css', 'chrome',
         'assets', 'themes', 'starters', 'presets', 'label', 'default_preset',
+        'resources',
     }
     unknown = sorted(set(manifest) - allowed)
     if unknown:
@@ -5711,6 +5715,7 @@ def _load_identity_kit(root, scope):
         allowed_preset = {
             'label', 'description', 'theme', 'slide_layouts',
             'slide_chrome', 'slide_chrome_placement', 'kicker_position', 'starter',
+            'layers', 'layers_by_type',
         }
         unknown = sorted(set(descriptor) - allowed_preset)
         if unknown:
@@ -5779,13 +5784,20 @@ def _load_identity_kit(root, scope):
             theme_meta=theme['meta'], slide_layouts=layout_defaults,
             slide_chrome=chrome_defaults,
             slide_chrome_placement=chrome_placement, starter=starter,
-            kicker_position=kicker_position)
+            kicker_position=kicker_position,
+            graphic_choices={key: descriptor[key] for key in ('layers', 'layers_by_type')
+                             if key in descriptor})
 
     identity_kit.presets = presets
     default_preset = manifest.get('default_preset', next(iter(presets)))
     if not isinstance(default_preset, str) or default_preset not in presets:
         _presentation_error(manifest_path, 'default_preset must name one kit preset')
     identity_kit.default_preset = default_preset
+    if 'resources' in manifest or any(preset.graphic_choices for preset in presets.values()):
+        _load_identity_kit_graphics(identity_kit, manifest.get('resources', {}), manifest_path)
+        for path, content in sorted(identity_kit.graphic_snapshots.items(), key=lambda item: str(item[0])):
+            dependency_paths.append(path)
+            digest_parts.append((path.relative_to(root).as_posix(), content))
     identity_kit.dependency_paths = tuple(dependency_paths)
     identity_kit.digest = _presentation_digest(digest_parts)
     identity_kit.scope = scope
@@ -10488,7 +10500,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   function mount(slide) {
     var plan=JSON.parse(slide.getAttribute('data-lwp-graphics'));
-    var state={slide:slide,plan:plan,hosts:[],nodes:new Map(),groups:new Map(),
+    var state={slide:slide,plan:plan,source:slide.getAttribute('data-lwp-graphics'),hosts:[],nodes:new Map(),groups:new Map(),
       boxes:new Map(),reported:new Set()};
     var planes=new Map();
     plan.layers.forEach(function(layer){
@@ -10519,7 +10531,8 @@ document.addEventListener('DOMContentLoaded', function () {
       loadedPayloads.add(node);
     });
     mounted.forEach(function(state,slide){
-      if (!slide.isConnected || !state.hosts.every(function(host){return host.parentNode===slide;})) {
+      if (!slide.isConnected || state.source!==slide.getAttribute('data-lwp-graphics')
+          || !state.hosts.every(function(host){return host.parentNode===slide;})) {
         state.hosts.forEach(function(host){host.remove();});mounted.delete(slide);
       }
     });
@@ -12690,6 +12703,11 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       allSlides.forEach(function (slide) {
         slide.innerHTML = variant.sections[slide.id];
+        if (variant.graphics) {
+          if (Object.prototype.hasOwnProperty.call(variant.graphics, slide.id)) {
+            slide.setAttribute('data-lwp-graphics', JSON.stringify(variant.graphics[slide.id]));
+          } else slide.removeAttribute('data-lwp-graphics');
+        }
       });
       if (buildStamp && allSlides.length) {
         allSlides[0].insertBefore(buildStamp, allSlides[0].firstChild);
@@ -23055,7 +23073,7 @@ class _GraphicHTML(HTMLParser):
 
 class GraphicCatalog:
     """One operation's scoped immutable definitions, plans and media inventory."""
-    def __init__(self, series_dir, sources_dir, series_data, inline_images=False):
+    def __init__(self, series_dir, sources_dir, series_data, inline_images=False, presets=()):
         self.root, self.sources = Path(series_dir), Path(sources_dir)
         self.series_data = series_data
         self.inline_images = inline_images
@@ -23065,6 +23083,13 @@ class GraphicCatalog:
         self._embedded_assets = {}
         self._asset_media = {}
         self._snapshots, self._validated_scopes = {}, set()
+        self.presets = tuple(presets)
+        self._preset_plans, self._kit_roots = {}, {}
+        self._active_kit_scope = None
+        for preset in self.presets:
+            self.add_kit(preset.identity_kit)
+        if self.presets:
+            self._active_kit_scope = self.add_kit(self.presets[0].identity_kit)
         resources = series_data.get('resources', {}) if isinstance(series_data, dict) else {}
         self.import_resources('series', resources, 'series.json: resources')
 
@@ -23097,7 +23122,23 @@ class GraphicCatalog:
         self.dependencies.add(candidate)
         return _presentation_file(base, value, origin)[0]
 
-    def import_resources(self, scope, value, origin):
+    def add_kit(self, identity_kit):
+        if identity_kit.root is None:
+            return None
+        scope = 'kit/' + identity_kit.selector
+        if scope not in self._kit_roots:
+            from copy import deepcopy
+            self._kit_roots[scope] = identity_kit.root
+            self.definitions[scope] = deepcopy(identity_kit.graphic_resources)
+            self._snapshots.update(identity_kit.graphic_snapshots)
+            self.dependencies.update(identity_kit.graphic_snapshots)
+        return scope
+
+    def resource_base(self, scope):
+        return self._kit_roots.get(scope, self.root if scope == 'series' else self.sources)
+
+    def import_resources(self, scope, value, origin, base=None):
+        base = self.root if base is None else Path(base)
         value = _graphic_value(value, origin)
         _graphic_object(value, ('assets', 'layers'), origin)
         self.definitions.setdefault(scope, {'asset': {}, 'layer': {}})
@@ -23107,13 +23148,13 @@ class GraphicCatalog:
             kind = plural[:-1]
             for descriptor in descriptors:
                 if isinstance(descriptor, str):
-                    path = self.resource_file(self.root, descriptor, origin)
+                    path = self.resource_file(base, descriptor, origin)
                     if path.suffix != '.json':
                         raise PropertyError(f'{origin}: resource descriptor must be JSON')
                     data = _graphic_json(self.text_resource(path, _GRAPHIC_LIMITS['descriptor_bytes'], origin), str(path))
                     self.register(scope, kind, data, path.parent, str(path))
                 elif isinstance(descriptor, dict):
-                    self.register(scope, kind, descriptor, self.root, origin)
+                    self.register(scope, kind, descriptor, base, origin)
                 else:
                     raise PropertyError(f'{origin}: resource entries must be paths or objects')
 
@@ -23167,7 +23208,7 @@ class GraphicCatalog:
         from copy import deepcopy
         self.definitions[scope][kind][name] = {
             'data': deepcopy(data), 'base': Path(base), 'origin': origin, 'scope': scope}
-        self._validated_scopes.discard(scope)
+        self._validated_scopes = {key for key in self._validated_scopes if key[0] != scope}
 
     def add_unit(self, source_name, parsed):
         scope = 'unit/' + source_name
@@ -23184,17 +23225,26 @@ class GraphicCatalog:
     def lookup(self, kind, name, scope):
         if not isinstance(name, str):
             raise PropertyError(f'{scope}: {kind} reference must be a name')
-        if name.startswith('series/'):
+        reference = name
+        kit_scope = scope if scope.startswith('kit/') else self._active_kit_scope
+        if scope.startswith('kit/') and name.startswith(('series/', 'unit/')):
+            raise PropertyError(f'{scope}: kit resources cannot depend on source resources {name!r}')
+        if name.startswith('kit/'):
+            candidates, name = [kit_scope], name[4:]
+        elif name.startswith('series/'):
             candidates, name = ['series'], name[7:]
         elif name.startswith('unit/'):
             candidates, name = [scope], name[5:]
         else:
-            candidates = [scope, 'series'] if scope != 'series' else ['series']
+            candidates = ([scope] if scope.startswith('kit/') or scope == 'series'
+                          else [scope, 'series'])
+            if kit_scope is not None and kit_scope not in candidates:
+                candidates.append(kit_scope)
         for candidate in candidates:
             found = self.definitions.get(candidate, {}).get(kind, {}).get(name)
             if found is not None:
                 return found
-        raise PropertyError(f'{scope}: unknown {kind} resource {name!r}')
+        raise PropertyError(f'{scope}: unknown {kind} resource {reference!r}')
 
     def media_url(self, base, name, origin):
         import base64
@@ -23418,7 +23468,7 @@ class GraphicCatalog:
             data = deepcopy(choice)
             data.setdefault('id', 'inline-' + str(index))
             name, definition_scope, base, origin = (data['id'], scope,
-                self.root if scope == 'series' else self.sources, scope + ': inline layer')
+                self.resource_base(scope), scope + ': inline layer')
             _graphic_object(data, ('id', 'label', 'schema', 'tags', 'selector', 'plane', 'elements',
                                    'regions', 'media', 'opacity', 'effects'), origin, ('elements',))
             if data.get('schema', GRAPHIC_LAYER_SCHEMA) != GRAPHIC_LAYER_SCHEMA:
@@ -23452,7 +23502,7 @@ class GraphicCatalog:
                 element.update(patch)
             is_override = 'asset' in overrides.get(element_id, {})
             asset_key = self.compile_asset(element['asset'], scope if is_override else definition_scope,
-                (self.root if scope == 'series' else self.sources) if is_override else base, origin)
+                self.resource_base(scope) if is_override else base, origin)
             element['asset'] = asset_key
             if self.assets[asset_key].get('links') and element.get('interaction', 'none') != 'links':
                 raise PropertyError(f'{origin}: asset links require interaction: links')
@@ -23580,33 +23630,54 @@ class GraphicCatalog:
         return order
 
     def validate_scope(self, owner, values):
-        if owner in self._validated_scopes:
+        key = (owner, self._active_kit_scope)
+        if key in self._validated_scopes:
             return
         for name in self.definitions[owner]['asset']:
             self.compile_asset(name, owner)
         for index, name in enumerate(self.definitions[owner]['layer']):
             self._layer_instance(name, owner, index)
-        if 'layers' in values:
-            self._apply_choice([], values['layers'], [], owner)
-        if 'layers_by_type' in values:
-            choices = _graphic_value(values['layers_by_type'], owner + ': layers_by_type')
-            _graphic_object(choices, (*_PRESENTATION_SLIDE_TYPES, 'notes'), owner)
-            for choice in choices.values():
-                self._apply_choice([], choice, [], owner)
-        self._validated_scopes.add(owner)
+        self.validate_choices(owner, values)
+        self._validated_scopes.add(key)
 
-    def plan_unit(self, source_name, parsed, series_meta, args=None, strings=None):
+    def validate_choices(self, owner, values):
+        def validate(value):
+            if owner.startswith('kit/') and isinstance(value, str) and value != 'auto':
+                raise PropertyError(f'{owner}: layers choices use JSON arrays/objects or auto, not encoded JSON strings')
+            layers = self._apply_choice([], value, [], owner)
+            ids = [layer['id'] for layer in layers]
+            if len(ids) != len(set(ids)) or len(ids) > _GRAPHIC_LIMITS['layers']:
+                raise PropertyError(f'{owner}: duplicate or excessive selected layers')
+        if 'layers' in values:
+            validate(values['layers'])
+        if 'layers_by_type' in values:
+            choices = (values['layers_by_type'] if owner.startswith('kit/') else
+                       _graphic_value(values['layers_by_type'], owner + ': layers_by_type'))
+            _graphic_object(choices, (*_PRESENTATION_SLIDE_TYPES, 'notes'), owner + ': layers_by_type')
+            for choice in choices.values():
+                validate(choice)
+
+    def plan_unit(self, source_name, parsed, series_meta, args=None, strings=None, preset=None):
+        preset = preset or (self.presets[0] if self.presets else None)
+        selector = preset.selector if preset is not None else ''
+        key = (source_name, selector)
+        self._active_kit_scope = self.add_kit(preset.identity_kit) if preset is not None else None
+        preset_choices = preset.graphic_choices if preset is not None else {}
         scope = self.add_unit(source_name, parsed)
-        if source_name in self.plans:
-            return self.plans[source_name]
+        if key in self._preset_plans:
+            return self._preset_plans[key]
         meta, slides, _, _ = parsed.unpack()
         self.validate_scope('series', series_meta)
         self.validate_scope(scope, meta)
-        if (not any(self.definitions[name]['layer'] for name in ('series', scope))
+        owners = ([self._active_kit_scope] if self._active_kit_scope else []) + ['series', scope]
+        if (not any(self.definitions[name]['layer'] for name in owners)
                 and not any(key in values for values in (series_meta, meta)
                             for key in ('layers', 'layers_by_type'))
+                and not preset_choices
                 and not any('layers' in slide.raw_meta for slide in slides)):
-            self.plans[source_name] = {}
+            self._preset_plans[key] = {}
+            if preset is None or not self.presets or preset.selector == self.presets[0].selector:
+                self.plans[source_name] = {}
             return {}
         slides = _prepare_unit_slides(slides, meta, series_meta, source_name, args)
         entry = next((item for item in (self.series_data.get('articles', [])
@@ -23625,8 +23696,9 @@ class GraphicCatalog:
                 continue
             normalize_slide_tags(slide, source_name, 1)
             automatic = []
-            names = dict(self.definitions['series']['layer'])
-            names.update(self.definitions[scope]['layer'])
+            names = {}
+            for owner in owners:
+                names.update(self.definitions[owner]['layer'])
             for name, definition in names.items():
                 data = definition['data']
                 match = bool({tag.casefold() for tag in data.get('tags', [])} & set(slide.tags))
@@ -23647,8 +23719,9 @@ class GraphicCatalog:
                 if match:
                     automatic.append(self._layer_instance(name, scope, len(automatic)))
             selected, trace = automatic, [{'source': 'auto', 'layers': [item['id'] for item in automatic]}]
-            for label, values in (('series', series_meta), ('unit', meta), ('slide', slide.raw_meta)):
-                choice_scope = 'series' if label == 'series' else scope
+            for label, values in (('preset', preset_choices), ('series', series_meta), ('unit', meta), ('slide', slide.raw_meta)):
+                choice_scope = (self._active_kit_scope if label == 'preset' else
+                                'series' if label == 'series' else scope)
                 if 'layers' in values:
                     selected = self._apply_choice(selected, values['layers'], automatic, choice_scope)
                     trace.append({'source': label, 'layers': [item['id'] for item in selected]})
@@ -23669,11 +23742,14 @@ class GraphicCatalog:
             plans[slide.slug] = {'layers': selected, 'order': order, 'trace': trace,
                                 'slide_type': slide.slide_type,
                                 'slide_title': _slide_preview_title(slide, len(plans) + 1, strings)}
-        self.plans[source_name] = plans
+        self._preset_plans[key] = plans
+        if preset is None or not self.presets or preset.selector == self.presets[0].selector:
+            self.plans[source_name] = plans
         return plans
 
-    def decorate(self, html, source_name, identities=None):
-        plans = self.plans.get(source_name, {})
+    def decorate(self, html, source_name, identities=None, preset=None):
+        selector = preset.selector if preset is not None else ''
+        plans = self._preset_plans.get((source_name, selector), self.plans.get(source_name, {}))
         used = set()
         def annotate(match):
             opening = match.group(0)
@@ -23689,13 +23765,22 @@ class GraphicCatalog:
             encoded = html_escape(json.dumps(plan, ensure_ascii=True, separators=(',', ':')), quote=True)
             return opening[:-1] + ' data-lwp-graphics="' + encoded + '">'
         decorated = re.sub(r'<section\b[^>]*>', annotate, html)
+        used.update(self.source_assets(source_name))
         if used:
             decorated += self.payload(used)
         return decorated
 
-    def selected_assets(self):
-        return {element['asset'] for plans in self.plans.values() for plan in plans.values()
+    def source_assets(self, source_name=None):
+        return {element['asset'] for (source, _preset), plans in self._preset_plans.items()
+                if source_name is None or source == source_name for plan in plans.values()
                 for layer in plan['layers'] for element in layer['elements']}
+
+    def has_layers(self, source_name=None):
+        return any(plan['layers'] for (source, _preset), plans in self._preset_plans.items()
+                   if source_name is None or source == source_name for plan in plans.values())
+
+    def selected_assets(self):
+        return self.source_assets()
 
     def payload(self, keys=None):
         keys = self.selected_assets() if keys is None else keys
@@ -23709,15 +23794,34 @@ class GraphicCatalog:
         result = {str(path.relative_to(self.root)) if self.root in path.parents else str(path):
                   hashlib.sha256(data).hexdigest()
                   for path, data in sorted(self._snapshots.items(), key=lambda item: str(item[0]))}
-        for source, plans in self.plans.items():
+        for (source, preset), plans in self._preset_plans.items():
             if plans:
-                result['@plans/' + source] = hashlib.sha256(json.dumps(plans, sort_keys=True).encode()).hexdigest()
+                result['@plans/' + source + '/' + preset] = hashlib.sha256(json.dumps(plans, sort_keys=True).encode()).hexdigest()
         return result
 
     def published_media(self):
         used = self.selected_assets()
         paths = set().union(*(self._asset_media[key] for key in used)) if used else set()
         return {path: self.media[path] for path in paths}
+
+
+def _load_identity_kit_graphics(identity_kit, resources, manifest_path):
+    """Validate one standalone catalogue once and retain its bounded input bytes."""
+    from copy import deepcopy
+    _graphic_object(resources, ('assets', 'layers'), str(manifest_path) + ': resources')
+    catalog = GraphicCatalog(identity_kit.root, identity_kit.root, {})
+    scope = 'kit/' + identity_kit.selector
+    catalog._kit_roots[scope] = identity_kit.root
+    catalog._active_kit_scope = scope
+    catalog.import_resources(scope, resources, str(manifest_path) + ': resources', identity_kit.root)
+    catalog.validate_scope(scope, {})
+    for preset in identity_kit.presets.values():
+        try:
+            catalog.validate_choices(scope, preset.graphic_choices)
+        except PropertyError as exc:
+            raise PropertyError(f'{manifest_path}: presets.{preset.id}: {exc}')
+    identity_kit.graphic_resources = deepcopy(catalog.definitions[scope])
+    identity_kit.graphic_snapshots = dict(catalog._snapshots)
 
 
 def graphic_json_schemas():
@@ -23817,10 +23921,13 @@ def graphic_contract():
             'media': ['screen', 'print'], 'bounds': ['box', 'content', 'visible'],
             'asset_kinds': ['html', 'image'],
             'text_formats': ['plain', 'markdown-inline', 'markdown', 'html'],
-            'selection': {'fields': ['layers', 'layers_by_type'],
-                          'cascade': ['auto', 'series', 'series:type', 'unit', 'unit:type', 'slide'],
-                          'forms': ['auto', 'array', 'add/remove'],
-                          'scopes': ['series', 'unit', 'slide']},
+             'selection': {'fields': ['layers', 'layers_by_type'],
+                           'cascade': ['auto', 'preset', 'preset:type', 'series', 'series:type', 'unit', 'unit:type', 'slide'],
+                           'forms': ['auto', 'array', 'add/remove'],
+                           'scopes': ['series', 'unit', 'slide']},
+             'resource_owners': ['kit', 'series', 'unit'],
+             'kit': {'manifest_field': 'resources', 'preset_fields': ['layers', 'layers_by_type'],
+                     'reference': 'kit/<resource-id>', 'self_contained': True},
             'reference_availability': {
                 'all': ['slide', 'screen', 'viewport', 'main', 'header', 'header-group',
                         'footer', 'header.text', 'header.image', 'footer.text', 'footer.image',
@@ -23837,13 +23944,15 @@ def graphic_contract():
             'screen': 'visible intersection of one slide and the visual viewport; not a logical scope'}
 
 
-def resolve_graphic_layers(sd, sources_dir, data, articles, only, name):
+def resolve_graphic_layers(sd, sources_dir, data, articles, only, name, presets=()):
     """Inspect the exact planner used by build, without generating any output."""
-    catalog = GraphicCatalog(sd, sources_dir, data)
+    catalog = GraphicCatalog(sd, sources_dir, data, presets=presets)
     meta = series_meta_of(data)
     catalog.validate_scope('series', meta)
     resolve_article_fields(articles, sources_dir, meta)
-    sites, unread = [], []
+    presets = tuple(presets) or (None,)
+    by_preset = {(preset.selector if preset is not None else ''): [] for preset in presets}
+    unread = []
     for entry in articles:
         source = entry['page_source']
         if only and only != source:
@@ -23853,16 +23962,20 @@ def resolve_graphic_layers(sd, sources_dir, data, articles, only, name):
         if text is None:
             unread.append(source)
             continue
-        plans = catalog.plan_unit(source, ParsedUnit(text), meta)
-        for ordinal, (slug, plan) in enumerate(plans.items(), 1):
-            chain = [{'level': item['source'], 'value': item['layers'], 'present': True,
-                      'winner': number == len(plan['trace']) - 1}
-                     for number, item in enumerate(plan['trace'])]
-            sites.append({'article': source, 'slide': ordinal, 'slug': slug,
-                          'slide_type': plan['slide_type'], 'slide_title': plan['slide_title'],
-                          'value': [layer['id'] for layer in plan['layers']],
-                          'source': plan['trace'][-1]['source'], 'chain': chain[::-1],
-                          'plan': plan})
+        parsed = ParsedUnit(text)
+        for preset in presets:
+            selector = preset.selector if preset is not None else ''
+            plans = catalog.plan_unit(source, parsed, meta, preset=preset)
+            for ordinal, (slug, plan) in enumerate(plans.items(), 1):
+                chain = [{'level': item['source'], 'value': item['layers'], 'present': True,
+                          'winner': number == len(plan['trace']) - 1}
+                         for number, item in enumerate(plan['trace'])]
+                by_preset[selector].append({'article': source, 'slide': ordinal, 'slug': slug,
+                              'preset': selector,
+                              'slide_type': plan['slide_type'], 'slide_title': plan['slide_title'],
+                              'value': [layer['id'] for layer in plan['layers']],
+                              'source': plan['trace'][-1]['source'], 'chain': chain[::-1],
+                              'plan': plan})
     definitions = {scope: {kind + 's': {key: {'origin': definition['origin'],
                     'descriptor': definition['data']} for key, definition in entries.items()}
                     for kind, entries in resources.items()}
@@ -23871,7 +23984,8 @@ def resolve_graphic_layers(sd, sources_dir, data, articles, only, name):
         return {'value': definitions, 'source': 'scoped-catalog',
                 'chain': [{'level': 'scoped-catalog', 'present': True,
                            'value': definitions, 'winner': True}]}, unread
-    return {'sites': sites, 'assets': catalog.assets}, unread
+    return {'sites': next(iter(by_preset.values())), 'presets': by_preset,
+            'assets': catalog.assets}, unread
 
 
 # ============================================================================
@@ -24421,7 +24535,7 @@ _SRC_BARE_STOP = set(" \t\n\r\f\"'`=<>")
 _SRC_VALUE_QUOTES = ('"', "'")
 
 
-def _presentation_section_interiors(html, origin):
+def _presentation_section_interiors(html, origin, graphic_plans=None):
     """Return top-level slide section interiors keyed by their IDs."""
     sections = {}
     stack = []
@@ -24468,6 +24582,11 @@ def _presentation_section_interiors(html, origin):
                     raise PropertyError(
                         f'{origin}: duplicate slide section id {section_id!r}')
                 sections[section_id] = html[inner_start:start]
+                if graphic_plans is not None:
+                    graphic = re.search(r'\bdata-lwp-graphics\s*=\s*(["\'])(.*?)\1', opening,
+                                        re.IGNORECASE | re.DOTALL)
+                    if graphic:
+                        graphic_plans[section_id] = json.loads(html_unescape(graphic.group(2)))
         elif not re.search(r'/\s*>$', raw):
             stack.append((opening_end, raw))
         position = opening_end
@@ -24922,8 +25041,10 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
         parsed_unit = ParsedUnit(read_text_file(source_path))
     meta, slides, has_meta_block, content_before_meta = parsed_unit.unpack()
     if graphics is None:
-        graphics = GraphicCatalog(Path(sources_dir).parent, sources_dir, series_data, inline_images)
-    graphics.plan_unit(source_path.name, parsed_unit, series_meta_of(series_data), args, strings)
+        graphics = GraphicCatalog(Path(sources_dir).parent, sources_dir, series_data, inline_images,
+                                  (presentation_preset,) if presentation_preset is not None else ())
+    graphics.plan_unit(source_path.name, parsed_unit, series_meta_of(series_data), args, strings,
+                       presentation_preset)
     validate_slides(slides, source_path.name, has_meta_block, content_before_meta)
     article_chrome = _article_chrome_layer(meta, source_path.name)
     if article_chrome:
@@ -25352,8 +25473,9 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # card starts at the top of the document, so the corner it lands in
     # is the same corner.
     slides_html = graphics.decorate(slides_html, source_path.name,
-                                   dict(zip(identities, [slide.slug for slide in visible_slides])))
-    if 'data-lwp-graphics=' in slides_html:
+                                   dict(zip(identities, [slide.slug for slide in visible_slides])),
+                                   presentation_preset)
+    if graphics.has_layers(source_path.name):
         nav_js += '\n' + TEMPLATE_GRAPHIC_JS
     stamp_in_body = build_stamp
     if build_stamp:
@@ -27292,13 +27414,18 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
                                strict_tags=strict_tags, build_args=args,
                                build_strings=strings, unit_sources=unit_sources)
         membership = PublicationMembership(articles, args)
-        graphics = GraphicCatalog(sd, sources_dir, series_data, args.get('--inline-images', False))
+        graphics = GraphicCatalog(sd, sources_dir, series_data, args.get('--inline-images', False),
+                                  presentation_presets)
         graphics.validate_scope('series', series_meta)
         for entry in membership.rendered:
             source_path = _resolve_contained(sources_dir, entry['page_source'])
             parsed = unit_sources.get(source_path)
             if parsed is not None:
-                graphics.plan_unit(entry['page_source'], parsed, series_meta, args, strings)
+                for preset in presentation_presets:
+                    try:
+                        graphics.plan_unit(entry['page_source'], parsed, series_meta, args, strings, preset)
+                    except PropertyError as exc:
+                        raise PropertyError(f'{entry["page_source"]} -> {preset.selector} -> graphics: {exc}')
         for preset in tuple(presentation_presets):
             try:
                 _validate_presentation_chrome_config(
@@ -27578,10 +27705,12 @@ def _render_article(ctx, entry, source_path, build_stamp='', include_nav=True,
             raise PropertyError(
                 f'{entry["page_source"]} -> {_presentation_selector(preset)} '
                 'did not produce one presentation layer')
+        graphic_plans = {}
         variants[_presentation_selector(preset)] = {
             'sections': _presentation_section_interiors(
                 capture[0],
-                f'{entry["page_source"]} -> {_presentation_selector(preset)}')
+                f'{entry["page_source"]} -> {_presentation_selector(preset)}', graphic_plans),
+            'graphics': graphic_plans,
         }
     runtime = dict(ctx.presentation_runtime)
     runtime['variants'] = variants
@@ -27707,8 +27836,7 @@ def _render_single_html(ctx, build_stamp=''):
         'language_runtime': initial['language_runtime']
             + '<script id="lwp-series-data" type="application/json">' + payload + '</script>\n'
             + ctx.graphics.payload(),
-        'js_nav': ctx.nav_js + ('\n' + TEMPLATE_GRAPHIC_JS if any(
-            plan['layers'] for plans in ctx.graphics.plans.values() for plan in plans.values()) else ''),
+        'js_nav': ctx.nav_js + ('\n' + TEMPLATE_GRAPHIC_JS if ctx.graphics.has_layers() else ''),
     })
     template = TEMPLATE_PAGE
     if no_index:
@@ -31623,6 +31751,7 @@ def _presentation_preset_report(preset):
     identity_kit = preset.identity_kit
     starter = preset.starter
     return {
+        **json.loads(json.dumps(preset.graphic_choices)),
         'schema': PRESENTATION_PRESET_SCHEMA,
         'selector': preset.selector,
         'id': preset.id,
@@ -31695,6 +31824,8 @@ def _identity_kit_report(identity_kit):
             }
             for name, descriptor in sorted(identity_kit.assets.items())
         ],
+        'resources': {kind + 's': sorted(entries)
+                      for kind, entries in identity_kit.graphic_resources.items()},
         'themes': [
             {
                 'id': name,
@@ -31718,6 +31849,7 @@ def _identity_kit_report(identity_kit):
         ],
         'presets': [
             {
+                **json.loads(json.dumps(preset.graphic_choices)),
                 'id': preset.id,
                 'selector': preset.selector,
                 'label': preset.label,
@@ -31749,6 +31881,8 @@ def _print_identity_kit(report):
     print('  layouts: ' + (', '.join(
         f'{slide_type}={"/".join(variants)}'
         for slide_type, variants in report['layouts'].items()) or 'none'))
+    print('  graphic assets: ' + (', '.join(report['resources']['assets']) or 'none'))
+    print('  graphic layers: ' + (', '.join(report['resources']['layers']) or 'none'))
 
 
 def _identity_kit_reports(catalog):
@@ -31810,6 +31944,9 @@ def _print_presentation_preset(report, fmt):
     print(f'  theme: {report["theme"]["label"] or "registry defaults"}')
     starter = report['starter']
     print(f'  starter: {starter["id"] if starter else "none"}')
+    for field in ('layers', 'layers_by_type'):
+        if field in report:
+            print(f'  {field}: ' + json.dumps(report[field], ensure_ascii=False))
 
 
 def cmd_preset_list(args):
@@ -33623,7 +33760,8 @@ def cmd_resolve(series_dir, name, args):
     try:
         handler = spec.handler if spec is not None else None
         if handler == 'graphics':
-            resolution, unread = resolve_graphic_layers(sd, sources_dir, series_data, articles, only, name)
+            resolution, unread = resolve_graphic_layers(sd, sources_dir, series_data, articles, only, name,
+                                                        appearance.presets)
         elif handler == 'theme' or kind == 'theme-property':
             if name not in PROPERTY_REGISTRY:
                 tail = name.split('.')[-1]
@@ -34856,7 +34994,7 @@ SERIES DIRECTORY
                           (your rules) — those two are yours, and nothing but
                           you ever writes them
                         kits/<id>/<version>/ is an optional vendored identity
-                          kit: layouts, themes, chrome, assets and presets
+                           kit: layouts, themes, chrome, graphics and presets
                         commons/presets/<id>.json holds optional shared presets;
                           vendored Commons themes live in themes/<slug>.conf
   interface/            Created empty. Interface strings live in this

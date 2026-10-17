@@ -224,8 +224,9 @@ holding directory or mistake a historical measurement for a current guarantee
   Les origines sont calculées par les chargeurs, jamais déclarées. Pas
   d'extension ni de dépendance entre kits ; `kit compose` produit un kit final
   autonome depuis une recette explicite. Les contrats et exemples sont en
-  `specifications.md` §9.9 ; la sortie des assets reste sous
-  `public/assets/presentations/`.
+  `specifications.md` §9.9. Presentation/chrome assets remain under
+  `public/assets/presentations/`; graphic resource payloads, including kit-owned
+  ones, use the shared content-addressed `public/assets/graphics/` pipeline (§9.10).
 
 - **Parseur CLI fait main** (pas d'argparse) — `parse_cli_options()` + tables
   `_COMMAND_OPTIONS`, `_VALUE_OPTIONS`, `_GLOBAL_OPTIONS`. L'aide (`--help`)

@@ -1,0 +1,35 @@
+{
+  "schema": "lightwebpres.identity-kit/1",
+  "id": "signal-notes", "version": "1.0.0", "label": "Signal Notes", "default_preset": "marked",
+  "layouts": {
+    "cover": {"default": "builtin:standard"},
+    "standard": {"default": "builtin:standard"},
+    "series-nav": {"default": "builtin:standard"},
+    "full-article": {"default": "builtin:standard"},
+    "unit-index": {"default": "builtin:standard"}
+  },
+  "themes": {"paper": "builtin:light"},
+  "resources": {
+    "assets": ["graphics/brand/asset.json", "graphics/draft/asset.json"],
+    "layers": ["graphics/brand/layer.json", "graphics/draft/layer.json"]
+  },
+  "presets": {
+    "marked": {
+      "label": "Marked", "description": "A kit-owned corner mark with source-owned content.", "theme": "paper",
+      "slide_layouts": {"cover": "default", "standard": "default", "series-nav": "default", "full-article": "default", "unit-index": "default"},
+      "slide_chrome": {}, "layers": {"add": ["brand"]}, "layers_by_type": {"cover": [], "notes": []}
+    },
+    "review": {
+      "label": "Review", "description": "A rotated mark and a translucent DRAFT composition.", "theme": "paper",
+      "slide_layouts": {"cover": "default", "standard": "default", "series-nav": "default", "full-article": "default", "unit-index": "default"},
+      "slide_chrome": {},
+      "layers": {"add": [{"use": "brand", "overrides": {"image": {"rotate": "-12deg"}}}, "draft"]},
+      "layers_by_type": {"cover": [], "notes": [], "full-article": {"remove": ["draft"]}}
+    },
+    "clean": {
+      "label": "Clean", "description": "No preset graphics; later author choices remain in force.", "theme": "paper",
+      "slide_layouts": {"cover": "default", "standard": "default", "series-nav": "default", "full-article": "default", "unit-index": "default"},
+      "slide_chrome": {}, "layers": []
+    }
+  }
+}

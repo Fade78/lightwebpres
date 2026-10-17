@@ -5112,6 +5112,9 @@ defaults, `slide_chrome` defaults and optionally a declared
 `slide_chrome_placement` and starter. The placement defaults to `edge` when
 omitted and accepts only `edge` or `content`. `slide_layouts`, `slide_chrome`
 and `slide_chrome_placement` belong only to the manifest, not author JSON.
+Optional manifest `resources` and preset `layers` / `layers_by_type` add the
+graphic catalogue and default choices described in §9.9.7. They are distinct
+from chrome assets and do not require custom layout fragments or a starter.
 
 `chrome` référence un objet JSON de modèles de chrome ; `structure_css`
 référence la feuille structurelle contrainte ; `starters` mappe un nom à son
@@ -5387,6 +5390,86 @@ les sources de composition ni enregistrement de provenance.
 
 ---
 
+#### 9.9.7 Graphic resources and preset choices
+
+An Identity Kit may declare `resources: {"assets": [...], "layers": [...]}` in
+its manifest. It uses the same graphic schemas, limits and static-content rules
+as §9.10, not a second image/composition format. Descriptor paths and descriptor
+objects are relative to the kit root; payload files are relative to their
+defining descriptor. Nothing may escape that resource root. Existing manifest
+`assets` still describes chrome images/icons; it is a separate namespace.
+Manifests already contain JSON: resource catalogues and type maps must be actual
+objects, and layer choices must be arrays/objects or the literal `auto`.
+JSON-encoded strings are not accepted in place of those containers. The
+one-line textual JSON convention belongs to Markdown metadata, not manifests.
+
+A preset may declare `layers` and `layers_by_type`. These have the same
+auto/array/add-remove semantics as documentary choices. The complete order is
+automatic matching → preset → preset/type → series → series/type → unit →
+unit/type → slide. A preset is a default-resolution source, not another logical
+documentary scope. Source `[]` cancels kit defaults too; preset `[]` does not
+prohibit later author additions. `auto` resets to literal tag/selector matching,
+not to the preset's explicit list. Arrays replace all current selection; a kit
+that wants to augment automatic source matches should use `{"add":[...]}`.
+
+```json
+{
+  "resources": {
+    "assets": ["graphics/brand/asset.json"],
+    "layers": ["graphics/brand/layer.json"]
+  },
+  "presets": {
+    "marked": {
+      "label": "Marked", "description": "A kit-owned mark", "theme": "paper",
+      "slide_layouts": {"cover":"default","standard":"default","series-nav":"default","full-article":"default","unit-index":"default"},
+      "slide_chrome": {},
+      "layers": {"add":["brand"]}, "layers_by_type": {"cover":[],"notes":[]}
+    }
+  }
+}
+```
+
+This is a manifest excerpt; the normal schema/id/version/label/layout/theme
+declarations remain required. Native layouts and `builtin:light` remain valid
+building blocks. A kit does not extend another kit or depend on a documentary
+catalogue: its compositions bind their own assets. Source lookup is unit →
+series → active kit, and `kit/id` explicitly selects the active kit resource.
+Two kits may reuse an ID without sharing definitions. A source asset of the
+same name cannot silently replace an asset inside a kit composition; explicit
+instance overrides use the caller's resource scope. Kit definitions cannot
+reference `series/id` or `unit/id`, another kit or source-owned named selectors.
+
+Only the active kit contributes automatic matches, defaults and qualified kit
+lookups. Every published preset is planned and validated before publication.
+Consequently, a source `kit/brand` reference requires that resource in every
+published alternative; adding native Built-in without it fails explicitly.
+Palette-only changes adjust typed styles/tints without selecting resources.
+Identity/preset changes replace graphic plans, including removal when the next
+preset has none. Author additions remain governed by the same later overrides.
+The five authored card types and generated notes participate; the separate
+series contents view is not implicitly converted to a card.
+
+All registered kit descriptors/payloads and every kit preset choice are
+validated, including an unused preset or media asset. Bounded snapshots are
+reused for the operation. Declared files affect kit digests, watcher inputs and
+build fingerprints. Publication includes media needed by inactive alternatives,
+deduplicates identical content and omits registered-but-unselected media.
+Existing inline-image, manifest, incremental-build and clean ownership rules
+apply unchanged. A rejected alternative leaves the existing publication intact.
+
+`init --preset` and `series preset set` vendor graphic files with the kit.
+`kit compose` still uses an explicit final manifest and file map: referenced
+graphic JSON and payload files are declared dependencies and may be selected
+from source kits, but no hidden copying, inheritance or live dependency remains.
+The composed kit must load independently after its source kits are unavailable.
+
+Kit inspection reports resource IDs separately from chrome assets; preset
+reports include declared choices. `resolve ... resources` exposes kit-owned
+catalogues, and `resolve ... layers` retains primary `sites` plus `presets`, a
+map of every published preset selector to its resolved sites and provenance.
+`contract.graphics` describes the kit fields and complete cascade. The tracked
+`examples/kit-layers/` demonstrates authoring, kit design and explicit composition.
+
 ### 9.10 Anchored graphic compositions
 
 Graphic layers are static, reusable compositions, not CSS-cascade layers and
@@ -5397,9 +5480,11 @@ composition for slides; it does not change publication status or native content.
 
 #### 9.10.1 Resources, inline declarations and binding
 
-`resources` at the root of `series.json`, or as one-line JSON in article
-metadata, accepts `assets` and `layers` arrays. Entries are descriptor paths
-relative to the series root, or descriptor objects. No directory is discovered
+`resources` in an Identity Kit manifest (§9.9.7), at the root of `series.json`,
+or as one-line JSON in article metadata accepts `assets` and `layers` arrays.
+Documentary descriptor paths are relative to the series root; kit descriptor
+paths are relative to the kit root. Entries may also be descriptor objects.
+No directory is discovered
 implicitly. External descriptors use `lightwebpres.asset/1` and
 `lightwebpres.layer/1`; the schema token may be omitted but, when present, must
 match. Resource IDs use `[a-z][a-z0-9-]{0,79}`.
@@ -5437,8 +5522,9 @@ does not split a slide. Ordinary fenced examples are never registered. Original
 file/line diagnostics survive extraction. Forward references work; duplicate
 IDs in one scope fail.
 
-Unqualified names resolve in their definition's scope, then series scope.
-`series/id` and `unit/id` qualify lookup. A series layer does not dynamically
+Unqualified source names resolve in their definition's unit (when applicable),
+then series, then active kit. `series/id`, `unit/id` and `kit/id` qualify lookup.
+Kit definitions bind only their own catalogue. A series layer does not dynamically
 rebind its assets to unit-local names. Explicit asset overrides belong to the
 calling scope. Inline element assets may omit `id`; inline application layers
 may omit `id` (a deterministic local instance name is assigned).
@@ -5459,7 +5545,7 @@ automatic rules; absence of both means explicit use only. Automatic matching
 uses actual slide tags, not reader shared-default visibility. Selectors reuse
 the supplied-record selector core (§3.4), not a browser query language.
 
-`layers` is accepted in `series_meta`, article metadata and every slide header:
+`layers` is accepted in kit presets, `series_meta`, article metadata and every slide header:
 
 | Value | Operation |
 |---|---|
@@ -5469,9 +5555,10 @@ the supplied-record selector core (§3.4), not a browser query language.
 | `[]` | no layers, including automatic matches |
 | `{"add":[...],"remove":[...]}` | remove inherited instance IDs, then append choices; removing an absent ID is harmless |
 
-At each series/unit scope, `layers_by_type` applies type-specific choices after
-that scope's general choice. Unit scope follows series scope; the slide choice
-is last. Type names include all five authored types and generated `notes`.
+At preset, series and unit levels, `layers_by_type` applies type-specific
+choices after that level's general choice. Preset defaults precede series and
+unit choices; the slide choice is last. Type names include all five authored
+types and generated `notes`.
 The series contents view is not implicitly a slide.
 `layers`, `layers_by_type` and `resources` are not accepted in `articles[]`;
 use article metadata. Series resources belong at the root, not `series_meta`.
@@ -5495,7 +5582,7 @@ disappear. An `over-content` image can cover native text but remains below
 controls. Both planes stay clipped and pointer-transparent by default.
 Theme-driven decoration uses typed style/tint references: a `.conf` theme does
 not implicitly import/select resources. Registration/application remain
-documentary data.
+kit/preset or documentary data, not a theme name.
 
 #### 9.10.3 Geometry and references
 

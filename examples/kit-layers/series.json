@@ -1,0 +1,12 @@
+{
+  "series_meta": {"title": "Kit-owned graphic layers", "scroll_duration": 0},
+  "appearance": {
+    "presets": ["signal-notes@1.0.0/marked", "signal-notes@1.0.0/review", "signal-notes@1.0.0/clean"],
+    "themes": ["preset", "monochrome-night"]
+  },
+  "resources": {
+    "assets": ["templates/author-label.json"],
+    "layers": ["templates/author-marker.json"]
+  },
+  "articles": [{"page_source": "kit-layers.md"}]
+}

@@ -76,8 +76,10 @@ Human walkthrough: [Organize a documentary collection](https://github.com/Fade78
 Inputs: the intended identity, available resources, target kit/version and
 authorized catalogue or series destination. Read [Series and Appearance](series-and-appearance.md)
 and [Operations](operations.md). Change the smallest appropriate layer:
-instance, article, series settings, theme or structural kit. Composition
-needs an explicit recipe and produces an autonomous kit, not inheritance.
+instance, article, series settings, theme or structural kit. Kits may own
+graphic resources and preset layer defaults; preserve
+later documentary overrides rather than injecting permanent starter-only marks.
+Composition needs an explicit recipe and produces an autonomous kit, not inheritance.
 Inspect actual content and runtime alternatives; contrast measurements and
 compatibility filters are not accessibility or brand approval.
 

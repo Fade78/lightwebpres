@@ -139,7 +139,7 @@ Place an image beside a native title, fill a card with a cropped background,
 or add a foreground mark. A layer composes independent image and HTML assets.
 
 Use `under-content` for a background and `over-content` for a foreground.
-Theme-linked styles follow the palette; sources still select the composition.
+Theme-linked styles follow the palette; presets and sources select the composition.
 
 ---
 
@@ -155,6 +155,22 @@ Titles and summaries parse inline Markdown automatically. Their `strong`, `em`,
 
 Choose ink, font, highlight, decoration and shadow without changing body text.
 Cover summaries retain their own colour context, including after a palette switch.
+
+---
+
+<!-- lwp:slide -->
+slug: kit-graphic-layers
+kicker: Design an autonomous identity
+## Let the kit own its marks
+fact-label: Defaults before author overrides
+source: <a href="#package-graphic-layers-in-an-identity-kit">Guide: kit-owned graphic layers</a>
+
+Declare graphic assets and layers in the kit manifest. Marked, Review and Clean
+presets can select different compositions without changing documentary text.
+
+Series, unit and slide choices remain later overrides. Package the declared
+files with `kit compose`; do not simulate kit behavior with starter-only source
+injection or CSS that guesses native selectors.
 
 ---
 

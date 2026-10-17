@@ -1,0 +1,4 @@
+{
+  "schema": "lightwebpres.layer/1", "id": "author-marker",
+  "elements": [{"id":"label","asset":"author-label","place":{"target":{"ref":"slide","anchor":"bottom-left"},"self_anchor":"bottom-left","offset":["24px","-24px"]}}]
+}

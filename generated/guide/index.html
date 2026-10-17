@@ -3312,7 +3312,7 @@ button.share-action:hover:not(:disabled) {
       data-lwp-default-tag="default"
       data-lwp-series-tags="default"
       data-lwp-article-tags=""
-      data-lwp-tag-preview="{&quot;articles&quot;:[{&quot;title&quot;:&quot;LightWebPres — the guide&quot;,&quot;tags&quot;:[],&quot;slides&quot;:[{&quot;title&quot;:&quot;LightWebPres&quot;,&quot;type&quot;:&quot;cover&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Find your route&quot;,&quot;type&quot;:&quot;unit-index&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Start from a page that already works&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Reuse the article, change its context&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Compose a kit, not a dependency chain&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Share the point, not directions to it&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Check the output you intend to publish&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Give automation a bounded job&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Put images behind or in front of content&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Theme the emphasis, not the source&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;&quot;,&quot;type&quot;:&quot;series-nav&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;guide-complet&quot;,&quot;type&quot;:&quot;full-article&quot;,&quot;tags&quot;:[&quot;default&quot;]}]}]}"
+      data-lwp-tag-preview="{&quot;articles&quot;:[{&quot;title&quot;:&quot;LightWebPres — the guide&quot;,&quot;tags&quot;:[],&quot;slides&quot;:[{&quot;title&quot;:&quot;LightWebPres&quot;,&quot;type&quot;:&quot;cover&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Find your route&quot;,&quot;type&quot;:&quot;unit-index&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Start from a page that already works&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Reuse the article, change its context&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Compose a kit, not a dependency chain&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Share the point, not directions to it&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Check the output you intend to publish&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Give automation a bounded job&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Put images behind or in front of content&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Theme the emphasis, not the source&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Let the kit own its marks&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;&quot;,&quot;type&quot;:&quot;series-nav&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;guide-complet&quot;,&quot;type&quot;:&quot;full-article&quot;,&quot;tags&quot;:[&quot;default&quot;]}]}]}"
       data-lwp-table-mode="clip"
       data-lwp-scroll-duration="0"
       data-lwp-series-home="index.html">
@@ -3348,7 +3348,7 @@ button.share-action:hover:not(:disabled) {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.72.0</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.73.0</div>
   </div>
 </div>
 
@@ -5572,6 +5572,11 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       allSlides.forEach(function (slide) {
         slide.innerHTML = variant.sections[slide.id];
+        if (variant.graphics) {
+          if (Object.prototype.hasOwnProperty.call(variant.graphics, slide.id)) {
+            slide.setAttribute('data-lwp-graphics', JSON.stringify(variant.graphics[slide.id]));
+          } else slide.removeAttribute('data-lwp-graphics');
+        }
       });
       if (buildStamp && allSlides.length) {
         allSlides[0].insertBefore(buildStamp, allSlides[0].firstChild);

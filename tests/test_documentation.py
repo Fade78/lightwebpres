@@ -355,7 +355,8 @@ class TheDocumentationDeliversItsExamples(unittest.TestCase):
             f'<a href="#{heading_slug(title)}">Guide, route {title.replace(". ", ": ", 1)}</a>'
             for title in ROUTES] + [
                 '<a href="#attach-reusable-image-and-text-compositions">Guide: graphic compositions</a>',
-                '<a href="#style-inline-markdown-in-titles-and-summaries">Guide: inline field styles</a>'])
+                '<a href="#style-inline-markdown-in-titles-and-summaries">Guide: inline field styles</a>',
+                '<a href="#package-graphic-layers-in-an-identity-kit">Guide: kit-owned graphic layers</a>'])
         parser = DocumentHTML()
         output = ROOT / 'generated/guide'
         parser.feed((output / 'guide.html').read_text(encoding='utf-8'))
@@ -365,6 +366,8 @@ class TheDocumentationDeliversItsExamples(unittest.TestCase):
         self.assertEqual(parser.headings, [(f'h{level}', heading_slug(title))
                                            for level, title in headings])
         self.assertEqual(len(parser.ids), len(set(parser.ids)), 'duplicate HTML IDs')
+        self.assertIn('package-graphic-layers-in-an-identity-kit', parser.ids)
+        self.assertIn('use-compositions-supplied-by-your-kit', parser.ids)
         for link in parser.links:
             if link.startswith('#'):
                 self.assertIn(unquote(link[1:]), parser.ids)

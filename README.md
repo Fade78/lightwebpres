@@ -112,8 +112,12 @@ rebuilds saved edits; refresh the browser yourself.
 
 Three actual Chromium views of the same article with different presentation
 choices, not device photographs. A **Theme** supplies typed colors and fonts;
-a **Preset** selects a theme, layouts and chrome; an **Identity Kit** bundles
-those resources and assets into a reusable, versioned directory.
+a **Preset** selects a theme, layouts, chrome and optional graphic-layer defaults;
+an **Identity Kit** bundles those resources and assets into a reusable, versioned
+directory. Kits can own image/text compositions that follow identity/preset
+changes while author-owned layer choices remain independent. See the
+[complete kit-layer example](examples/kit-layers/README.md) and
+[kit designer workflow](GUIDE.md#package-graphic-layers-in-an-identity-kit).
 
 Use native `builtin/standard` with its Light theme, choose a Commons theme or
 preset, or deliver your own kit. Authors select what ships; readers use

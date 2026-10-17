@@ -221,8 +221,9 @@ build stops and tells you which slide, what you wrote, and what the five
 names are. You will not find out from the page.
 
 All five also accept `layers` for a local graphic-composition choice; `[]`
-disables inherited and automatic graphics. Definitions belong in the resource
-prologue, not the slide body. See [graphic compositions](#attach-reusable-image-and-text-compositions).
+disables inherited and automatic graphics, including kit defaults. Definitions
+belong in a declared catalogue or resource prologue, not the slide body. See
+[graphic compositions](#attach-reusable-image-and-text-compositions).
 
 **The components inside a standard slide.**
 
@@ -1234,6 +1235,8 @@ opt into image-click zoom.
 
 For a shared visual identity, register resources once in `series.json` and
 apply the composition in `series_meta.layers`. Keep exceptions on units/slides.
+For a reusable deliverable owned by a designer rather than one documentary
+series, [package the compositions in an Identity Kit](#package-graphic-layers-in-an-identity-kit).
 Reference typed theme properties instead of copying the current pixels of a
 rendered kicker: an SVG mark can use `"tint":{"theme":"kicker.fg"}` and an
 HTML label `"color":{"theme":"kicker.fg"}` while retaining a fixed font size.
@@ -1245,8 +1248,8 @@ asset behaviour, or are embedded by `--inline-images`.
 
 Changing the palette changes the decoration's resolved style. This is
 **theme-driven decoration**, not implicit selection of resources by a theme
-name: the colour snapshot supplies properties; documentary sources register and
-select compositions. Identity, preset and theme remain distinct. Do not put
+name: the colour snapshot supplies properties; kit presets and documentary
+sources register/select compositions. Identity, preset and theme remain distinct. Do not put
 resource JSON inside a `.conf` theme or assume a palette switch selects another
 layer. The complete example includes a theme-tinted background and a foreground.
 
@@ -1276,6 +1279,32 @@ reports the actual selected composition and its source chain, without writing
 output. Set an element's `debug: true` to outline its reference and transformed
 bounds. The exact resource, geometry and safety contract is in
 `specifications.md` §9.10.
+
+#### Use compositions supplied by your kit
+
+Kit/preset defaults apply before series, unit and slide choices. You can keep
+them, clear them, or change individual instances using the same grammar:
+
+```text
+layers: {"remove":["brand"],"add":[{"use":"kit/brand","as":"local-brand","overrides":{"image":{"rotate":35}}}]}
+```
+
+`remove` addresses an inherited instance ID, `as` gives the new instance its own
+ID, and `overrides` addresses the kit element `image`. That ID must be declared
+by the composition: inspect the kit/resolve report rather than guessing it.
+An array replaces all inherited choices; slide-local `[]` clears kit and author
+layers together. A preset's own `[]` runs earlier, so a later unit add still wins.
+
+Unqualified source lookup is unit → series → active kit. `kit/brand` explicitly
+uses the active kit catalogue. It must be available in **every** published
+alternative: a native Built-in alternative cannot satisfy that reference.
+Keep source-owned compositions independent when a document must work with
+arbitrary identities. A kit composition keeps its own asset binding even if
+your series declares another asset with the same ID.
+
+The [kit-layer source example](examples/kit-layers/README.md) shows kit defaults,
+type exceptions, a unit addition, a local instance override and a complete opt-out.
+Changing only the palette changes colours, not these selected compositions.
 
 ### Style inline Markdown in titles and summaries
 
@@ -1380,17 +1409,21 @@ inspectable example of each richer surface, not as a file to edit in place.
    kit's [chrome models](examples/kits/lightwebpres-docs/0.1.0/chrome.json)
    show `presentation:mark`, its alt text and a text slot. Select that model
    in the preset's `slide_chrome`; do not put an image into a layout fragment.
-3. Add a second preset, for example `brief` beside the minimal kit's `reading`.
+3. Add graphic compositions through manifest `resources` and preset `layers`
+   when the identity needs free marks, a background or a watermark. These do
+   not require a custom fragment. The next section gives the complete workflow;
+   keep chrome logos and free graphic elements as distinct contracts.
+4. Add a second preset, for example `brief` beside the minimal kit's `reading`.
    Both can reuse the native layouts while choosing different themes or chrome.
    Declare each preset's four `slide_layouts` and theme explicitly. Pick one
    `default_preset`; it is a default selection, not the identity's name.
-4. When those views work, add a starter. The documentation kit's
+5. When those views work, add a starter. The documentation kit's
    [starter manifest](examples/kits/lightwebpres-docs/0.1.0/starters/blank/starter.json)
    lists Markdown sources and article entries. Register the starter in the kit
    manifest and name it in the preset. `init --preset` applies it;
    `--no-starter` skips it, and selecting a preset on an existing series never
    applies it.
-5. Validate in a fresh disposable series, inspect both presets and deliver the
+6. Validate in a fresh disposable series, inspect both presets and deliver the
    complete kit directory with instructions naming its selector. Test delivery
    using only that directory, without the recipe's source kits available.
 
@@ -1398,16 +1431,146 @@ For a supplied, richer kit you can inspect immediately, run from this
 repository root with a fresh output directory:
 
 ```bash
-LWP_IDENTITY_KITS_DIR="$PWD/examples/kits" python3 lightwebpres init /tmp/lwp-docs-preview --preset lightwebpres-docs@0.1.0/docs --lang en
-python3 lightwebpres audit /tmp/lwp-docs-preview --lang en
-python3 lightwebpres build /tmp/lwp-docs-preview --lang en --open
+mkdir -p work/tmp
+LWP_IDENTITY_KITS_DIR="$PWD/examples/kits" python3 lightwebpres init work/tmp/lwp-docs-preview --preset lightwebpres-docs@0.1.0/docs --lang en
+python3 lightwebpres audit work/tmp/lwp-docs-preview --lang en
+python3 lightwebpres build work/tmp/lwp-docs-preview --lang en --open
 ```
 
-The copy under `/tmp/lwp-docs-preview/templates/kits/` belongs to that preview;
+The copy under `work/tmp/lwp-docs-preview/templates/kits/` belongs to that preview;
 the tracked example is unchanged. A delivered kit has no extension chain,
 authentication claim or lineage metadata. Local references must stay inside
 it. The full manifest, allowed fragment tags, structural CSS restrictions and
 starter restrictions are in specifications.md §9.9.2 through §9.9.4.
+
+### Package graphic layers in an Identity Kit
+
+Requires 0.73.0. Use a kit when a designer should deliver the marks, backgrounds
+or text compositions and their default application together. Registering them
+only in an article, or having a starter copy a declaration into an article,
+does **not** make them follow a later kit/preset change.
+
+Start from the complete [Signal Notes kit and author series](examples/kit-layers/README.md).
+It uses native layouts, original local SVG/text assets and three presets:
+Marked, Review and Clean. Build a disposable copy, not the tracked example:
+
+```bash
+mkdir -p work/tmp
+demo="$(mktemp -d "$PWD/work/tmp/kit-layers-demo.XXXXXX")"
+cp -a examples/kit-layers/. "$demo/"
+python3 lightwebpres build "$demo" --lang en
+python3 lightwebpres verify "$demo" --lang en
+```
+
+#### Register kit-owned resources
+
+Add optional `resources` to the kit's `manifest.json`, not `series.json`:
+
+```json
+{
+  "resources": {
+    "assets": ["graphics/brand/asset.json", "graphics/draft/asset.json"],
+    "layers": ["graphics/brand/layer.json", "graphics/draft/layer.json"]
+  }
+}
+```
+
+This is an addition to the ordinary kit manifest, not a replacement for its
+required identity/layout/theme/preset fields. Paths are relative to the kit
+root. An asset's literal `file` is relative to that asset descriptor, as with
+the example's `signal mark.svg`. Image destinations inside HTML/Markdown assets
+are URLs decoded once; do not URL-encode a descriptor's filesystem `file` value.
+All paths stay inside their declared resource root.
+
+The graphic schemas are still `lightwebpres.asset/1` and `lightwebpres.layer/1`:
+the same anchors, sizing, rotation, effects, tint, static HTML and print rules
+apply. Manifest `assets` used by header/footer chrome is a **different**
+namespace. A free layer is not a chrome slot, CSS layer or flattened screenshot.
+
+#### Give presets different defaults
+
+These fields belong inside an otherwise complete preset descriptor:
+
+```json
+{
+  "layers": {"add":["brand"]},
+  "layers_by_type": {"cover":[], "notes":[]}
+}
+```
+
+An add augments automatic tag/selector matching. An array replaces the current
+selection; `[]` clears it. A type choice runs after that level's general choice.
+In the example, Review adds a DRAFT composition and changes a named image
+element's rotation; its full-article choice removes only DRAFT. Clean selects
+`[]`, but cannot prevent an author's later explicit addition.
+Review is only a presentation choice: its DRAFT mark does not change article
+publication status, tags or build membership.
+
+The full order is **auto → preset/type → series/type → unit/type → slide**.
+Preset is a default-resolution source, not a new documentary scope. `auto`
+resets to matching, not to the preset's explicit list. Choices apply to the
+five authored card types and generated notes, not the separate series contents
+page. Duplicate instance IDs are errors; use `as` to make a deliberate copy.
+
+#### Keep resource binding independent
+
+Inside a kit, a composition uses the kit's own resources. It cannot import
+`series/id`, `unit/id`, another kit or source-owned named queries as hidden
+dependencies. Authors resolve unqualified names through unit → series → active
+kit, or explicitly use `kit/id`. An instance's explicit asset override resolves
+from the caller's scope rather than silently rebinding the original definition.
+
+This lets unrelated kits reuse names such as `brand` without sharing assets.
+It also means an article with an explicit `kit/brand` requires that resource
+in every published alternative. Adding `builtin/standard` without it is a
+pre-publication error. An article that uses only independent source resources
+can switch freely between native and kit identities.
+
+#### Inspect, switch and print
+
+```bash
+LWP_IDENTITY_KITS_DIR="$demo/templates/kits" python3 lightwebpres kit show signal-notes@1.0.0 --format json
+python3 lightwebpres series preset "$demo" --format json
+python3 lightwebpres resolve "$demo" resources --article kit-layers.md --format json
+python3 lightwebpres resolve "$demo" layers --article kit-layers.md --format json
+```
+
+`kit show` inspects its global catalogue, so the explicit catalogue root above
+selects this disposable kit. `series preset` shows what the series actually
+resolves. Kit reports list graphic IDs separately from chrome assets; preset
+reports include declared choices. Layer resolution keeps primary `sites` and
+adds a `presets` map containing every published selector's effective plans.
+Origins are computed. `contract.graphics` exposes fields, scopes and schemas.
+
+In **C**, switch Marked → Review → Clean. The unit's SOURCE marker remains,
+except where a slide replaces/clears it. Switching identity/preset changes the
+kit plans; changing only the palette restyles/tints the same resources. Plans
+and media for inactive alternatives are prepared before publication, including
+when the initial native view has no graphics. Printing uses logical-card
+geometry; screen/viewport-based elements need a print override or screen-only
+media. Check actual PDF/printing as well as screen-media previews.
+
+#### Compose, vendor and maintain the deliverable
+
+```bash
+python3 lightwebpres kit compose "$demo/compose.json" --output "$demo/composed-kits"
+LWP_IDENTITY_KITS_DIR="$demo/composed-kits" python3 lightwebpres kit show signal-notes-composed@1.0.0 --format json
+```
+
+The recipe names the final manifest and every copied graphic descriptor/payload
+file. It produces an autonomous kit, not an extension chain; test it without
+the source kit available. `init --preset` and `series preset set` vendor those
+files with the kit. A starter remains optional source content applied by init,
+not the implementation of kit-owned graphics.
+
+All registered kit resources and preset choices are validated, including an
+inactive preset or an unused asset. Only media selected by a published plan
+are emitted, with content deduplication and normal inline-image handling.
+Descriptor/payload changes affect the kit digest and build fingerprints;
+`watch` observes them and `verify` catches stale output. Normal owned-file and
+manual-sidecar preservation rules apply to `clean`. Bad alternatives fail
+before replacing an existing publication. The exact contract is in
+specifications.md §9.9.7 and §9.10.
 
 ### Compose a minimal kit
 

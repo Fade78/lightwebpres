@@ -33,6 +33,19 @@ link to the originals. They are at
 
 ---
 
+## v0.73.0
+
+Identity Kits can own graphic assets and layers through an optional `resources`
+catalogue. Presets select compositions with `layers` and `layers_by_type` before
+series, unit and slide overrides. Kit resources bind within their own standalone
+kit; documentary sources can explicitly address the active kit with `kit/id`.
+
+Identity/preset changes switch the prepared graphic plans as well as native
+layouts. Palette-only changes still affect styles, not resource selection.
+Publication validates every declared alternative and includes the media needed
+by inactive presets; composition, vendoring, inspection and dependency tracking
+use the same resource declarations.
+
 ## v0.72.0
 
 Compose reusable image and static HTML assets as anchored graphic layers.

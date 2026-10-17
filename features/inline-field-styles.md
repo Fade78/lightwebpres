@@ -1,12 +1,14 @@
 # Theme-controlled inline roles in slide fields
 
-Status: integrated for unreleased 0.72.0 (DECISIONS.md B99).
+Status: delivered in 0.72.0 (DECISIONS.md B99).
 The original uncommitted `feature/layers` worktree announced 0.71.0 and called
 this entry B86. Its historical commissioning record authorized a commit, tag
 and push, but no such feature commit or local tag existed at integration.
 The owner authorized integration on 2026-10-16, after table-only 0.71.0 was
 committed/pushed separately. The original worktree stays intact; this request
 does not authorize a 0.72.0 tag, push or GitHub release.
+The owner later authorized the 0.72.0 push/tag on 2026-10-17; the commissioning
+history below is retained separately from that subsequent action.
 
 ## Owner request
 

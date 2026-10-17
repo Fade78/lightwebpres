@@ -21,6 +21,11 @@ unsafe URLs and event attributes are refused in these assets, unlike the
 existing trusted raw-HTML body grammar. Links require `interaction: links`.
 Descriptor `file` values stay literal; image `src` values inside HTML/Markdown
 assets are URLs decoded once before contained lookup, retaining SVG fragments.
+Identity Kits can own that catalogue and presets can supply general/type layer
+choices before author overrides. Resource ownership is not another logical
+scope; `kit/id` means the active kit. Kit definitions keep their own bindings.
+See [Series and Appearance](series-and-appearance.md) for manifest/defaults,
+alternative compatibility, composition and publication rules.
 
 `layout.width` wraps text before measurement; `size` geometrically scales the
 frozen rectangle, preserving its ratio. `slide` is the complete card, `screen`

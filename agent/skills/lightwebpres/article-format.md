@@ -94,9 +94,15 @@ rendered where declared; duplicates in one scope fail.
 `layers` applies compositions to a unit or any of the five slide types. Omit to
 inherit, use `auto` for tag/selector matching, `[]` for none, a JSON array to
 replace, or `{ "add": [...], "remove": [...] }` to modify inherited choices.
-`layers_by_type` is series/unit-only. Refer to `specifications.md` §9.10 and the
+Kit presets contribute the same general/type defaults before series/unit/slide
+choices; they do not create a new documentary scope. `layers_by_type` is accepted
+on presets and series/unit metadata, not slide headers. `kit/id` explicitly
+references the active kit; it must exist in every published alternative.
+Refer to `specifications.md` §9.9.7 and §9.10 and the
 tracked `examples/graphic-layers/` for the exact asset/element geometry contract.
-Use `resolve <series> layers --article file.md --format json` to inspect plans.
+Use `examples/kit-layers/` for kit defaults, source overrides and composition.
+`resolve <series> layers --article file.md --format json` reports primary `sites`
+and a `presets` map of plans for all published alternatives.
 
 Every meta field is optional. An `articles[]` entry in `series.json` only
 needs to repeat a field to override this file or its content-derived fallback.

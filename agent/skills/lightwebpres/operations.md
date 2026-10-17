@@ -74,6 +74,15 @@ selection, pins and custom CSS. There is no theme-preservation option on that
 command. Do not overwrite a shared theme or kit version merely because the
 series needs a local variation.
 
+From 0.73.0, kits can own `resources.assets` / `resources.layers`; presets may
+declare `layers` / `layers_by_type` before author overrides. Inspect those
+defaults with kit/preset reports and `resolve ... layers`, whose `presets` map
+shows all published alternatives. An identity/preset switch changes plans;
+a palette switch does not select another composition. A source `kit/id` must
+be satisfiable by every selected alternative. Prefer independent source layers
+when the article must work with an unrelated identity. The source/kit workflow
+and complete recipe are in `examples/kit-layers/` and specifications.md §9.9.7.
+
 For composition, obtain source kit roots, the final identity/version, target
 manifest, desired files and authorized output catalogue. Read
 `kit compose --help` and the
@@ -84,6 +93,12 @@ implicit merge, inheritance or dependency resolver. The output is an
 autonomous kit, and an existing target is refused. Inspect the dry-run,
 compose only in the authorized destination, then test the result in a scratch
 series before selecting it in an existing publication.
+
+For graphic composition, include every declared descriptor and referenced
+payload in the explicit file map. They participate in kit digests and copied
+dependencies; do not leave the output dependent on its former source kit.
+`init` / preset selection vendor those files with the kit. A starter can still
+add documentary content but is not the mechanism for runtime kit-owned layers.
 
 Validate required layouts, chrome, assets and selected alternatives against
 real cards and the index. The engine measures theme contrast per category;

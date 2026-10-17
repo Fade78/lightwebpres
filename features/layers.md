@@ -1,6 +1,7 @@
 # Anchored graphic compositions
 
-Status: integrated for unreleased 0.72.0 (DECISIONS.md B98).
+Status: delivered in 0.72.0 (DECISIONS.md B98); the native kit/preset extension
+is tracked for 0.73.0 in B101 and `specifications.md` §9.9.7.
 The implementation originally lived in the uncommitted `feature/layers`
 worktree and announced 0.71.0 locally; main's separately committed 0.71.0
 contains table merges and reader corrections, not graphics. The original
@@ -16,6 +17,8 @@ that historical authorization is not evidence that a commit or tag was made.
 On 2026-10-16 the owner authorized integration after table-only 0.71.0 was
 committed/pushed. The original worktree remains intact. No 0.72.0 tag, push or
 GitHub release is implied by this integration request.
+The owner later authorized and published tag `v0.72.0` on 2026-10-17; the earlier
+non-publication statements retain the scope of their original requests.
 The finalized normative contract is `specifications.md` §9.10. This feature
 retains the commissioning choices, scope and verification record.
 
@@ -49,6 +52,12 @@ own unit resources. Import paths are relative to the series root. Payload files
 are relative to their descriptor (or the unit's sources directory for inline
 definitions), inside the authorized resource root. URLs and file paths remain
 distinct, and spaces/non-ASCII names are encoded rather than renamed.
+From 0.73.0, an Identity Kit may declare the same `resources` catalogue relative
+to its own root. Presets may supply general/type layer defaults before source
+overrides. Kit definitions bind only kit-owned assets; source lookup adds the
+active kit as fallback and accepts explicit `kit/id`. Preset changes replace
+the plans, whereas palette changes only restyle them. The complete independent
+kit, source deck and composition recipe are in `examples/kit-layers/`.
 
 Image `src` values inside HTML/Markdown assets use URL encoding: decoding
 happens once before contained file lookup, with SVG fragments kept on the
@@ -132,7 +141,7 @@ roles. No tags/selector means explicit use only. An optional selector reuses
 the bounded selector core and cannot depend on the result of layer selection.
 A graphical DRAFT mark does not change publication status.
 
-`layers` is accepted in series metadata, unit metadata and all five slide types:
+`layers` is accepted in kit presets, series metadata, unit metadata and all five slide types:
 
 | Value | Meaning |
 |---|---|
@@ -142,8 +151,9 @@ A graphical DRAFT mark does not change publication status.
 | `[]` | no layers, including automatic matches |
 | `{ "add": [...], "remove": [...] }` | modify inherited selection |
 
-`layers_by_type` at series/unit scope provides type-specific choices after that
-scope's general choice. Unit scope wins over series, slide scope wins last.
+`layers_by_type` on presets and at series/unit scope provides type-specific
+choices after that level's general choice. Preset defaults come first; unit
+scope wins over series, and slide scope wins last. Preset is not a logical scope.
 Choices may be resource IDs, `{use, as, overrides}` instances, or inline layer
 objects. Overrides address element IDs, not array indices. Scalars replace;
 structured layout/size/place/effects replace their complete value. Unknown or

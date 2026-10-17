@@ -409,6 +409,47 @@ cascade. `slide-header.align` and `slide-footer.align` accept `left`, `center`
 or `right` in a theme or `settings.conf`; an article can override them with
 `style.slide-header.align` and `style.slide-footer.align` in `lwp:meta`.
 
+## Graphic Resources In Identity Kits
+
+Requires 0.73.0. Optional manifest `resources` registers graphic `assets` and
+`layers` using the same schemas as documentary graphics, with paths relative
+to the kit root and payloads relative to their descriptors. Do not confuse this
+catalogue with manifest chrome `assets`. Nothing may escape the kit; definitions
+cannot depend on another kit or documentary resources/named selectors.
+
+Presets may declare `layers` / `layers_by_type` before series, unit and slide
+overrides. The order is auto → preset/type → series/type → unit/type → slide;
+the documentary scopes remain series/unit/slide. Omission inherits, `auto`
+resets matching, arrays replace, `[]` clears and `{add, remove}` modifies the
+inherited selection. Prefer preset add for decoration that augments automatic
+source matches. Type maps accept the five card types and generated notes, not
+the separate series contents view. Explicit nulls and duplicate instances fail.
+Manifest containers are actual JSON objects/arrays, not encoded JSON strings;
+`auto` is the literal string choice. Textual JSON belongs to Markdown metadata.
+
+Unqualified source lookup is unit → series → active kit. `kit/id` explicitly
+uses the active kit, while a kit composition keeps its own asset binding even
+if an author declares the same ID. Explicit asset overrides use caller scope.
+Any explicit kit reference in sources must be satisfiable in every published
+preset, including a native alternative if requested. Identity/preset switches
+replace/remove kit plans; a palette change only restyles them. Later author
+choices remain effective, so a clean preset cannot ban a unit's explicit add.
+
+All declared kit resources and preset choices are validated before publication,
+including inactive choices. Selected media across all alternatives are published;
+unused media are not. Descriptor/payload bytes affect digests, fingerprints,
+watch and verify; bounded validated snapshots are reused during the operation.
+Vendoring includes graphic files. Composition still requires the explicit final
+manifest and file map and produces a kit independent of its source kits.
+
+Inspect `kit show` with the correct catalogue root, `series preset`, and
+`resolve ... resources/layers`. JSON kit reports list graphic IDs separately
+from chrome, preset reports show declared choices, and layer resolution exposes
+primary `sites` plus all plans in `presets`. See the complete source kit,
+author deck and composition recipe in `examples/kit-layers/`, and normative
+`specifications.md` §9.9.7 / §9.10. Do not implement this as starter-only source
+injection or as global CSS that guesses native selectors.
+
 ## Runtime Presentation Alternatives
 
 A series publishes the ordered presentation choices declared in

@@ -1,0 +1,20 @@
+{
+  "schema": "lightwebpres.kit-composition/1",
+  "sources": {"signals": "templates/kits/signal-notes/1.0.0"},
+  "manifest": {
+    "schema": "lightwebpres.identity-kit/1", "id": "signal-notes-composed", "version": "1.0.0", "label": "Signal Notes Composed", "default_preset": "review",
+    "layouts": {"cover":{"default":"builtin:standard"},"standard":{"default":"builtin:standard"},"series-nav":{"default":"builtin:standard"},"full-article":{"default":"builtin:standard"},"unit-index":{"default":"builtin:standard"}},
+    "themes": {"paper":"builtin:light"},
+    "resources": {"assets":["graphics/brand/asset.json","graphics/draft/asset.json"],"layers":["graphics/brand/layer.json","graphics/draft/layer.json"]},
+    "presets": {
+      "review": {"label":"Review","description":"A standalone composition copied from declared graphic resources.","theme":"paper","slide_layouts":{"cover":"default","standard":"default","series-nav":"default","full-article":"default","unit-index":"default"},"slide_chrome":{},"layers":{"add":["brand","draft"]},"layers_by_type":{"cover":[],"notes":[]}}
+    }
+  },
+  "files": {
+    "graphics/brand/asset.json": {"source":"signals","path":"graphics/brand/asset.json"},
+    "graphics/brand/signal mark.svg": {"source":"signals","path":"graphics/brand/signal mark.svg"},
+    "graphics/brand/layer.json": {"source":"signals","path":"graphics/brand/layer.json"},
+    "graphics/draft/asset.json": {"source":"signals","path":"graphics/draft/asset.json"},
+    "graphics/draft/layer.json": {"source":"signals","path":"graphics/draft/layer.json"}
+  }
+}

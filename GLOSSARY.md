@@ -57,7 +57,7 @@ natural beside it. A test holds every name here to the shape its level
 requires — the rule was broken four times before there was one.
 
 Bare single words carry no shape, so they are looked up rather than
-read. Some span several scopes: `layers` resolves series/unit/slide graphic
+read. Some span several scopes: `layers` resolves preset defaults before series/unit/slide graphic
 choices; `resources` declares a scoped catalogue. `comment` is parsed everywhere
 and rendered nowhere, so `resolve` refuses it (below). The field registry, not
 punctuation alone, records these contracts.
@@ -132,7 +132,7 @@ Once per series, in `series.json`'s `series_meta` object.
 | `default_tag` | `default` | Tag selected when a page has no valid persisted reader choice; must occur on an article or non-excluded slide selected for the build, and warns when the effective article/slide intersection is empty. `series tags` and `status --format json` expose the resulting `default_output` too |
 | `scroll_duration` | `200` ms | Duration of the deck's own slide glide. It must be a non-negative integer; `0` jumps instantly. `--scroll-duration` overrides it for one `build`, `verify` or `watch` invocation, and the presenter menu or **I** toggles between this configured value and `0` |
 | `kicker_position` | selected preset's default, otherwise `before-title` | Series-wide placement: `before-title` or `after-header`; article metadata and slide `kicker-position` override it (§4.3) |
-| `layers` | automatic tag/selector matching | Ordered graphic compositions for every slide; unit then slide choices override it. `auto` resets matching, `[]` cancels all, `{add, remove}` modifies inherited choices (§9.10) |
+| `layers` | selected preset's choice, otherwise automatic matching | Ordered graphic compositions for every slide; series, unit and slide choices override preset defaults. `auto` resets matching, `[]` cancels all at that level, `{add, remove}` modifies inherited choices (§9.10) |
 | `layers_by_type` | `{}` | Type-specific choices after that scope's general `layers`; accepts the five slide types and generated `notes` (§9.10) |
 | `reading` | `{}` resolves to the defaults below | Strict object of initial reader choices and reduction limits, only in `series_meta`; not a theme property or article cascade (§9.3.9) |
 | `lang_tags` | `{}` — no tag selects a typography pack | Object mapping a slide tag to a typography pack name, e.g. `{"fr": "fr", "en": "en"}`; the first mapped tag on a slide selects its engine (§20.5) |
@@ -195,8 +195,10 @@ Print clears runtime scales and expands table viewports without screen clipping.
 
 Root `resources` registers `assets` and `layers` as arrays of JSON descriptor
 paths (relative to the series root) or descriptor objects. Article metadata
-accepts the same one-line JSON field in unit scope. These graphic resources are
-distinct from Identity Kit assets and appearance presets (§9.10).
+accepts the same one-line JSON field in unit scope. Identity Kit manifests may
+declare the same graphic catalogue relative to their own root. It remains
+distinct from manifest `assets` used by chrome. Preset `layers` / `layers_by_type`
+provide defaults before documentary overrides (§9.9.7, §9.10).
 
 In the object form of `series.json`, these keys live beside `series_meta` and
 `articles`, not inside either one.
@@ -434,6 +436,13 @@ their values are one-line JSON (or `auto` for `layers`). Every authored slide
 type accepts `layers` before its body. Registered inline `lwp-asset` and
 `lwp-layer` fences belong after metadata and before the first slide, not inside
 a slide's fields or prose. `file` and literal `content` are exclusive.
+
+Kit manifests may own a graphic catalogue; presets supply general/type choices
+before documentary overrides (§9.9.7). Resource ownership can be kit, series or
+unit, but logical documentary scopes remain series/unit/slide. Source lookup is
+unit → series → active kit; `kit/id` qualifies the last. A kit composition binds
+only its own assets and never captures a source-owned namesake. Identity/preset
+selection swaps plans; a palette selection changes styles, not resources.
 
 Inline field styles (§9.6.4) use `title1`, `title2`, `summary` and `cover.summary`
 prefixes, each with `strong`, `em`, `code` and `link` components. These typed

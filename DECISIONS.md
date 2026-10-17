@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 14 · **à faire** 1 · **en cours** 3 · **terminé** 82 · **abandonné** 1 · **sans objet** 3
+**à étudier** 14 · **à faire** 1 · **en cours** 3 · **terminé** 83 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -214,6 +214,7 @@ gets its own entry and its own state**, however small.
 - **B98** — Anchored graphic layers and reusable image/HTML assets
 - **B99** — Theme-controlled inline formatting in titles and summaries
 - **B100** — Queued mouse commands expire on the handler-delivery clock
+- **B101** — Identity Kit graphic catalogues and preset-owned layer defaults
 
 ### abandonné
 
@@ -4616,3 +4617,57 @@ the command assertion still requires actual exit and capture release. With that
 validated input, eight runs at four-way contention pass in both browsers and
 topologies. This fixture correction is not an extension of the reader's window
 or a retry-until-green substitute for the deterministic failing-before case.
+
+## B101 — Identity Kit graphic catalogues and preset-owned layer defaults
+
+**État :** terminé · **Depuis :** 2026-10-17 · **Version :** 0.73.0
+
+**Owner requirement and confirmed gap.** After 0.72.0 was tagged, the owner
+asked for extensive author/Identity Kit documentation and required kits to
+manipulate graphic layers. Inert CLI probes confirmed that the released loader
+rejected manifest `resources` and preset `layers`; graphics were source-owned
+only. This was a functional gap, not one that prose or starter injection could
+honestly hide. The owner authorized a plan and implementation, not publication.
+
+**Contract.** Reuse the existing resource schemas and operators. Optional kit
+manifest `resources` owns standalone graphic assets/layers; optional preset
+`layers` / `layers_by_type` run after automatic matching and before series,
+unit and slide choices. Arrays replace; add augments matching; source [] clears
+kit defaults too. Preset is a default-resolution source, not a new documentary
+scope (B67 remains open for its unrelated broader work). Source lookup is
+unit → series → active kit with explicit `kit/id`. Kit compositions bind only
+their own resources and cannot capture source-owned resources or named queries.
+Identities may reuse resource IDs without sharing definitions. Every published
+alternative must satisfy explicit source kit references, including a native
+alternative if requested. A palette changes style, not resource selection.
+
+**Implementation boundaries.** The kit loader uses the existing bounded graphic
+catalogue and retains validated resource bytes for the operation, digest and
+dependencies. All declared media and preset choices are validated, including
+inactive choices. Build compiles a plan per unit/published preset and unions
+only selected media for publication. Vendoring and explicit kit composition use
+declared dependencies and produce autonomous kits, not extension chains.
+
+Existing presentation variants swap section interiors, not section attributes.
+Consequently, variant records explicitly carry graphic plans; the reader
+replaces/removes their attributes and remounts stale graphic hosts. Payloads for
+inactive alternatives are available even when the initial native view is empty.
+Source choices remain independent and all existing geometry/print rules apply.
+The series contents view is not silently made another slide type.
+
+**Documentation and evidence.** Normative contracts are §9.9.7 and §9.10; the
+guide has separate author and kit-designer paths, and `examples/kit-layers/`
+contains an autonomous kit, author overrides and explicit composition recipe.
+Glossary and agent references distinguish resource ownership from logical scope.
+Kit/preset reports expose IDs/defaults; layer inspection retains primary sites
+and adds plans for all published presets. Optional report additions preserve
+existing key meanings. CLI/native regressions cover defaults, overrides,
+bindings, snapshots, media, rejection atomicity, composition, vendoring and
+identity/preset/theme switching. At the first expanded checkpoint, 129 targeted
+tests pass, including Chromium and Firefox; final whole-suite acceptance follows
+on the frozen completed source rather than being inferred from that checkpoint.
+The completed targeted kit suite also checks real alternative image bytes,
+strict JSON containers, inactive-preset validation, caller-scope asset overrides,
+all-alternative reference compatibility and the tracked example/recipe. The
+existing 28 main-file Identity Kit fixture tests pass without weakening their
+assertions. Final acceptance measurements remain separate dated evidence.
