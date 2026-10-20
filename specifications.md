@@ -545,9 +545,9 @@ d'une commande vont sur **stdout**. C'est ce qui permet à
 ```bash
 lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--preset builtin/standard|commons/id|id@version/preset] [--no-starter] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
-lightwebpres build [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--language-file path.json] [--no-typography] [--include-drafts] [--incremental article] [--nav-cache path] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
-lightwebpres watch [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--include-drafts] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
-lightwebpres verify [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--language-file path.json] [--no-typography] [--include-drafts] [--no-nav] [--no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres build [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--language-file path.json] [--no-typography] [--include-drafts] [--incremental article] [--nav-cache path] [--build-stamp | --build-stamp-minimal] [--make-nav | --no-nav] [--make-index | --no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres watch [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--include-drafts] [--no-typography] [--make-nav | --no-nav] [--make-index | --no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres verify [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--language-file path.json] [--no-typography] [--include-drafts] [--make-nav | --no-nav] [--make-index | --no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
 lightwebpres template show <nav.js|fr.json|en.json|interface/...|typography/...>
@@ -5872,7 +5872,9 @@ Builds the site. The file layout below is the default multipage mode;
 `--single-html [FILE]` instead writes the combined document specified in §11.3.8.
 
 1. Read `series.json`, load the identity/theme/language context, and parse each
-   unit source once. Resolve metadata before choosing publication membership.
+   unit source once. Resolve metadata before choosing publication membership,
+   then resolve contents/navigation output policy against that logical
+   membership (§11.3.4).
    `ignored` units never participate in publication; ordinary drafts are omitted
    unless `--include-drafts` is used (§20.6). Included drafts retain their
    independently styled `draft_banner`, so preview status remains visible.
@@ -6161,34 +6163,22 @@ exactement 1,00:1.
 
 ### 11.3.3 Un article qui réclame `index.html`
 
-Default multipage builds generate series contents at `index.html`, unless
-`--no-index` suppresses it or the single-article rule below applies. An article
-claiming the same filename would otherwise collide with that index. Earlier
-builds silently overwrote the article with the index and exited zero, leaving
-a three-article series with only two articles without `verify` noticing.
-This was the missing-output failure prohibited by §22.8, caused by a filename
-collision. Combined-HTML mode has no separate index file and therefore does not
-apply this index-ownership rule (§11.3.8).
+Multipage series contents, when enabled under §11.3.4, own `index.html`.
+An article resolving to that filename is a fatal collision before writes:
+neither output may silently overwrite the other. This applies even when an
+index is explicitly required for a single article. Give the article another
+destination or disable contents. When an index is enabled, non-ignored declared
+articles reserve their destinations, including drafts; a lone omitted draft
+does not occupy an emitted output slot.
 
-La règle dépend du **nombre d'articles**, et ce n'est pas un cas
-particulier concédé : c'est la reconnaissance de ce que l'index vaut dans
-chaque cas.
-
-- **Plus d'un article** : l'index porte une information réelle — la liste
-  des articles — et l'écraser est une perte. **Erreur fatale**, nommée,
-  code de sortie non nul.
-- **Exactement un article** : l'index ne listerait qu'une entrée. Il
-  n'apporte rien. L'article réclame la place, il l'obtient : **l'index de
-  série n'est pas produit**, et `build` le dit dans sa sortie plutôt que
-  de le faire en douce.
-
-Ce que cette seconde branche reconnaît, c'est qu'une série d'un seul
-article est une **brique** autant qu'un site. Elle peut atterrir dans un
-répertoire dont l'index est tenu autrement — à la main, par un autre
-générateur, ou parce que d'autres articles y vivent déjà ; l'auteur laisse
-alors le nom par défaut et ne réclame rien. Ou elle est seule chez elle,
-et `index.html` est le nom qui a du sens. **Le nom choisi est la
-déclaration d'intention**, et l'outil n'a pas à la deviner autrement.
+Exactly one participating article disables contents automatically, independently
+of its destination. It may use `index.html`, but is never renamed to that name:
+a single article is also a component that may live under an independently
+managed homepage. With several participating articles, contents are enabled
+automatically and the filename is reserved. `--no-index` or `build.index: false`
+removes that reservation. Build and verify use the same resolved policy.
+Combined HTML has no separate index file and therefore does not apply this
+physical filename rule (§11.3.8); logical article keys remain distinct.
 
 Collision comparison is case-insensitive, but filesystem identity is not
 rewritten. If the emitted home article is named `Index.html`, navigation,
@@ -6197,30 +6187,49 @@ No lowercase alias is generated. This does not configure a web server's
 directory-index policy. Combined HTML keeps its contents route distinct from
 an article key with either spelling.
 
-#### 11.3.4 `--no-nav`, `--no-index`, `--no-readme`
+#### 11.3.4 Series contents, navigation and README output policy
 
-`build`, `verify` and `watch` accept these flags. In combined-HTML mode,
-all three remain supported. `--no-index` omits the series contents view and
-opens the first published unit instead (§11.3.8); it does not suppress
-source or automatically inserted `unit-index` slides.
+`build`, `verify` and `watch` share two independent choices, in both physical
+output modes:
 
-Trois drapeaux qui suppriment des sorties générées :
+| Navigation members after status resolution | Series contents | Placed `series-nav` slides |
+|---|---|---|
+| Exactly one | Disabled | Disabled |
+| More than one | Enabled | Enabled |
+| Zero | Enabled (empty contents) | Disabled |
 
-- `--no-nav` : le bloc de navigation de série (les cartes pointant vers
-  les autres articles) n'est pas inséré dans les pages. Le conteneur
-  (`<h2>` + `<div class="series-list">`) reste vide — la structure HTML
-  est préservée, le contenu est omis.
-- `--no-index` : `public/index.html` n'est pas écrit. Les pages d'article
-  sont construites normalement. Comme l'index n'est pas produit, un article
-  peut alors prendre `page_dest: index.html` même dans une série de plusieurs
-  articles : la règle de collision de §11.3.3 ne s'applique que lorsqu'un
-  index de série doit être écrit.
-- `--no-readme` : `README.md` n'est pas (re)généré. Un `README.md` existant
-  n'est pas touché non plus.
+The count is logical, not the number of physical HTML files or the incremental
+work list. Resolve article status first. Ignored entries never count; drafts
+count with `--include-drafts`. A `--drafts-only` preview deliberately retains
+its existing broader navigation membership, including active articles (§20.6).
 
-Ces drapeaux permettent à une série d'être une brique dans un site plus
-large : l'auteur contrôle les sorties qu'il veut générer et celles qu'il
-tient lui-même.
+Optional root `build.index` and `build.nav` JSON booleans override the automatic
+choices independently. Omission means automatic; null, numbers, arrays, objects
+and strings (including `"auto"`) are invalid. CLI `--make-index` / `--no-index`
+and `--make-nav` / `--no-nav` override those persisted values. Opposite switches
+in one invocation are fatal regardless of order, before writes. Match explicit
+CLI choices in verify; watch resolves configuration and counts again after
+changes. Index and navigation choices affect incremental fingerprints.
+
+- Disabled contents mean no separate multipage index or combined contents view.
+  Multipage Home, series sharing and browser opening use an emitted article:
+  prefer an emitted index-name article with its exact spelling, otherwise the
+  first emitted article. No destination, alias or directory-index policy is
+  invented. With no articles and explicitly disabled contents, there is no HTML
+  entry; combined output refuses that empty collection (§11.3.8).
+- Disabled navigation omits the entire `series-nav` slide before rendering,
+  numbering, index selection, tag previews and graphic planning. There is no
+  blank section or emitted anchor. Authored source slides still undergo source
+  validation and slug reservation. `--make-nav` enables placed slides, never
+  inserts one missing from a source. Generated back-to-index links are omitted
+  when contents are disabled, even when navigation itself is enabled.
+- Source and automatically inserted `unit-index` slides and intra-unit reader
+  controls remain independent of these series-level choices.
+- `--no-readme` does not generate or overwrite the series README. It does not
+  delete an existing file.
+
+Build does not delete previous index/article files or an unowned homepage.
+The manifest records former outputs for explicit `clean` review (§11.13).
 
 #### 11.3.5 `--drafts-only`
 
@@ -6337,7 +6346,8 @@ HTML document containing optional series contents and the selected articles. Wit
 the option, default multipage behavior is unchanged; the shared built-in
 runtime bytes are intentionally updated to support both modes.
 
-**Views and lifecycle.** The initial view is series contents by default. Article changes
+**Views and lifecycle.** The initial view follows §11.3.4: series contents with
+multiple participating articles, the article directly with one. Article changes
 are deliberate navigation actions, not continuous scrolling through the whole
 series. Only the active contents/article view is mounted in the DOM; inactive
 fragments are inert data, not hidden live articles. Styles, notes and IDs remain
@@ -6345,13 +6355,13 @@ article-local. One root runtime persists across view changes, preserving
 fullscreen. Printing includes only the active article under its current tag
 filter; when the contents view is active, only series contents print.
 
-With explicit `--no-index`, no series contents HTML or inert index view is
+When contents are disabled automatically, by JSON or by `--no-index`, no series contents HTML or inert index view is
 generated. The first unit in the published collection becomes the initial view;
 one or several units are allowed. An empty published collection is rejected
 before any writes, including in dry runs and verification. Existing `series-nav`
 and authored links permit deliberate unit changes; generated back-to-index
-links are omitted. Multipage `--no-index` keeps its existing links to a
-separately managed homepage. Source and automatic `unit-index` slides are
+links are omitted in both physical output modes. `--make-index` or
+`build.index: true` can require a contents view for a single unit. Source and automatic `unit-index` slides are
 unaffected. `Home` still starts the current unit; `Ctrl+Home` and the menu action
 return to the first unit, labelled **Start of series** / **Début de la série**.
 
@@ -6402,7 +6412,7 @@ assets, not nonexistent per-article files (§11.4).
 ### 11.4 `verify`
 
 ```bash
-lightwebpres verify [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--language-file path.json] [--no-typography] [--include-drafts] [--no-nav] [--no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres verify [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--language-file path.json] [--no-typography] [--include-drafts] [--make-nav | --no-nav] [--make-index | --no-index] [--no-readme] [--scroll-duration milliseconds] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 ```
 
 Vérifie sans modifier :
@@ -7784,7 +7794,7 @@ build a déclaré, et le manifeste est la déclaration.
 ### 11.14 `watch`
 
 ```
-lightwebpres watch [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--include-drafts] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port 8000] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
+lightwebpres watch [directory] [--lang en] [--output public/] [--single-html [FILE]] [--unit-index on|off] [--unit-index-max-columns N] [--unit-index-selector expression] [--inline-images] [--include-drafts] [--no-typography] [--make-nav | --no-nav] [--make-index | --no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port 8000] [--themes selectors|all] [--presentation-presets selectors] [--no-essential-theme]
 ```
 
 Surveille les sources (articles, `series.json`, `templates/`, y compris les
@@ -7808,8 +7818,11 @@ y compris de sa liste `themes`, est relue au prochain build.
 
 `--single-html [FILE]` and `--inline-images` are retained on the initial build
 and every rebuild, with the same restrictions as `build` (§11.3.7, §11.3.8).
-With combined-HTML output, `--open` targets the combined filename rather than
-`index.html`; `--output` still selects the directory served.
+`--open` targets the combined filename in combined output, or the resolved
+physical home in multipage output (§11.3.4), not an assumed index filename.
+`--output` still selects the directory served. Raw CLI output choices are kept
+across rebuilds; omitted choices are resolved again from current JSON and
+navigation membership rather than freezing the initial automatic result.
 
 ### 11.15 `completion`
 
@@ -9464,6 +9477,14 @@ leurs éléments sont des chaînes selon §9.3.7 et §9.3.8. Il n'appartient ni 
 valide, mais ne peut pas porter ce bloc ; la forme objet est nécessaire pour
 une sélection JSON.
 
+The optional root `build` object contains output defaults, not editorial
+`series_meta` fields. Supported keys are `single_html` (a plain `.html`/`.htm`
+filename), `inline_images` (boolean), and independent `index` / `nav` booleans.
+Omitted index/navigation keys select the automatic policy in §11.3.4. CLI
+choices take precedence; invalid declared values remain errors even when the
+invocation would override them. A direct-array series uses automatic defaults
+unless the CLI overrides them.
+
 Nommage (gel v1.0) : la famille `page_*` regroupe tout ce qui concerne la
 page compilée — sa source (`page_source`), son fichier de destination
 (`page_dest`), son titre (`page_title`), sa description (`page_desc`). Les
@@ -9862,13 +9883,15 @@ déclaré dans le fichier. Avec trois mots nommés, aucune valeur n'est
   `--quiet` (§2.4.1) et par rien d'autre. Aucun article ne sort de la
   liste sans que le build le dise à qui écoute — et `audit`, lui,
   n'exclut rien du tout (§11.5).
-- **Le nom d'index (§11.3.3).** Le décompte se prend **entre les deux
-  filtres** : un brouillon est un article de la série, donc une série de
-  deux dont l'un est brouillon a bien un index à protéger, et la
-  collision est fatale avec ou sans `--include-drafts`. Compter la liste
-  effectivement construite rendrait un même `series.json` légal ou
-  illégal selon un drapeau de build. Un article `ignored` n'est pas un
-  article de la série : il ne compte pas.
+- **Automatic contents/navigation (§11.3.4).** Count after both status
+  filters, using effective navigation membership. One active article plus an
+  omitted draft is a one-article publication; including that draft changes the
+  automatic output policy. Drafts-only preview keeps its existing navigation
+  universe, not merely its rebuilt files.
+- **Index filename (§11.3.3).** Only an enabled index reserves its physical
+  filename. While enabled, reservation includes non-ignored declared drafts;
+  an ignored entry never counts. A lone omitted draft does not occupy a
+  published article slot. With contents disabled, there is no index collision.
 - **`status` (§11.11).** Trois nombres, dont la somme est la liste
   entière — un article `ignored` est toujours *dans* le fichier de série,
   et un rapport qui le sortirait discrètement de l'arithmétique ferait

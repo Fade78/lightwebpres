@@ -50,6 +50,8 @@ SERIES = {
     'appearance': {
         'presets': [PRESENTATION_PRESET],
     },
+    # The published manual deliberately keeps its separate landing page.
+    'build': {'index': True, 'nav': True},
     'articles': [{
         'page_source': 'guide.md',
         'page_dest': 'guide.html',

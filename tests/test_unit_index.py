@@ -235,7 +235,7 @@ class UnitIndexBuild(unittest.TestCase):
         self.fixture([STANDARD.replace('Focus', 'expert-en')
                       + '\nText[^1].\n\n[^1]: Endnote.\n'],
                      meta='notes_placement: page\n')
-        built = support.run('build', str(self.root), '--lang', 'en')
+        built = support.run('build', str(self.root), '--lang', 'en', '--make-index')
         self.assertEqual(built.returncode, 0, built.stderr)
         self.assertNotIn("tag 'default' selects no displayable slide", built.stderr)
         article = IndexHTML((self.root / 'public' / 'a.html').read_text())

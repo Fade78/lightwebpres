@@ -33,6 +33,28 @@ link to the originals. They are at
 
 ---
 
+## v0.74.0
+
+A collection with exactly one participating article now omits series contents
+and placed `series-nav` slides automatically, in multipage and combined HTML.
+Multiple articles retain both; an empty collection retains its empty index.
+Count logical articles after status resolution, not output files or the
+incremental work list. Drafts-only previews keep their existing navigation scope.
+
+Use `--make-index` / `--no-index` and `--make-nav` / `--no-nav` on build,
+verify and watch, or root `build.index` / `build.nav` JSON booleans. CLI choices
+override configuration; omission selects the automatic policy. Opposite switches
+are errors, and a forced index cannot silently replace an article's index filename.
+
+Disabled navigation slides are omitted entirely rather than leaving an empty
+screen. Source identities remain validated; unit indexes, graphic plans,
+numbering, tag previews and output counts follow the emitted slides. Home,
+sharing and browser opening target the actual publication entry without renaming
+destinations. Without series contents, generated back-to-index links are omitted.
+Watch recomputes defaults after configuration/status changes, and index-policy
+changes invalidate incremental reuse. Old generated files remain available to
+manifest-controlled cleanup; unowned files are not removed.
+
 ## v0.73.0
 
 Identity Kits can own graphic assets and layers through an optional `resources`

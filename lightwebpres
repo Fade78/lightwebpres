@@ -70,7 +70,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.73.0"
+VERSION = "0.74.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -14007,9 +14007,10 @@ document.addEventListener('DOMContentLoaded', function() {
     ['PageDown / PageUp', '', lwpString('help_next') + ' / ' + lwpString('help_prev'), ''],
     ['Space / Shift+Space', '', lwpString('help_step'), ''],
     ['Home', lwpString('help_touch_home'), lwpString('help_home')],
-    ['Ctrl+Home', seriesHomeKey
+    ['Ctrl+Home', document.body.getAttribute('data-lwp-series-index') === 'false'
       ? lwpString('menu_series_start') : lwpString('help_touch_index'),
-      seriesHomeKey ? lwpString('menu_series_start') : lwpString('help_index')],
+      document.body.getAttribute('data-lwp-series-index') === 'false'
+        ? lwpString('menu_series_start') : lwpString('help_index')],
     ['Ctrl+End', lwpString('help_touch_edges'), lwpString('help_edges')],
     ['+ / - / =', lwpString('help_touch_zoom'), lwpString('help_zoom')],
     ['D', lwpString('help_touch_reading'), lwpString('help_reading')],
@@ -17045,7 +17046,8 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
       data-lwp-tag-preview="{{tag_preview}}"
       data-lwp-table-mode="{{table_mode}}"
       data-lwp-scroll-duration="{{scroll_duration}}"
-      data-lwp-series-home="{{series_home}}">
+      data-lwp-series-home="{{series_home}}"
+      data-lwp-series-index="{{series_index}}">
 
 {{build_stamp}}{{draft_banner}}
 <nav class="nav-dots"></nav>
@@ -21985,6 +21987,14 @@ def normalize_slide_tags(slide, filename, slide_number):
     return slide.tags
 
 
+def _slide_is_published(slide, args=None):
+    """Output membership, after source validation and identity reservation."""
+    return ('excluded' not in _slide_tag_set(slide)
+            and not _is_incomplete_full_article(slide)
+            and not ((args or {}).get('--no-nav')
+                     and slide.slide_type == 'series-nav'))
+
+
 def validate_slides(slides, filename, has_meta_block=True, content_before_meta=''):
     """Rejects the parser edge cases the spec (§22) says must be fatal,
     instead of letting them silently corrupt or truncate the build:
@@ -23692,7 +23702,7 @@ class GraphicCatalog:
             slides.append(notes)
         plans = {}
         for slide in slides:
-            if 'excluded' in _slide_tag_set(slide) or _is_incomplete_full_article(slide):
+            if not _slide_is_published(slide, args):
                 continue
             normalize_slide_tags(slide, source_name, 1)
             automatic = []
@@ -24097,6 +24107,10 @@ def tag_inventory_report(series_data, entries=None, skip_ignored=False,
             for entry in entries),
     }
 
+    output_options = {}
+    _resolve_publication_options(
+        output_options, series_appearance_of(series_data, tolerate_invalid=True)['build'],
+        article_totals['active'])
     all_tag_reports = []
     for tag in available:
         status_counts = {status: 0 for status in ARTICLE_STATUSES}
@@ -24111,8 +24125,12 @@ def tag_inventory_report(series_data, entries=None, skip_ignored=False,
             status_counts[status] += 1
             slides += len(matching)
             if status == 'active':
-                output_articles += 1
-                output_slides += len(matching)
+                published = [slide for slide in matching
+                             if not (output_options.get('--no-nav')
+                                     and slide['type'] == 'series-nav')]
+                if published:
+                    output_articles += 1
+                    output_slides += len(published)
         status_counts['total'] = sum(status_counts.values())
         all_tag_reports.append({
             'tag': tag,
@@ -24229,15 +24247,26 @@ def tag_preview_data(series_data):
                       separators=(',', ':'))
 
 
-def _series_home_filename(series_data):
-    """Preserve the exact spelling of an emitted index-name article.
+def _series_home_filename(series_data, args=None):
+    """Choose the physical publication entry without renaming destinations."""
+    args = args or {}
+    entries = _series_entries(series_data)
+    if args.get('--drafts-only'):
+        entries = [entry for entry in entries if entry.get('status') == 'draft']
+    fallback = 'index.html'
+    if args.get('--no-index'):
+        fallback = entries[0]['page_dest'] if entries else ''
+    return next((entry['page_dest'] for entry in entries
+                 if entry.get('page_dest', '').lower() == 'index.html'), fallback)
 
-    Collision policy is enforced separately by resolve_index_claim(). This
-    helper only chooses a physical home target from resolved navigation members;
-    it neither renames destinations nor creates a combined-document route.
-    """
-    return next((entry['page_dest'] for entry in _series_entries(series_data)
-                 if entry.get('page_dest', '').lower() == 'index.html'), 'index.html')
+
+def _publication_page_template(no_index=False):
+    """The same Home label in multipage output and the combined shell."""
+    if not no_index:
+        return TEMPLATE_PAGE
+    return TEMPLATE_PAGE.replace('data-lwp-i18n="menu_home"',
+                                 'data-lwp-i18n="menu_series_start"').replace(
+                                     '{{str_menu_home}}', '{{str_menu_series_start}}')
 
 
 def build_series_nav(current_file, series_data, strings, typo_engine, contents_href='index.html'):
@@ -24420,6 +24449,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         'series_tags': html_escape(' '.join(series_tag_values), quote=True),
         'article_tags': '',
         'series_home': html_escape(quote(_series_home_filename(series_data), safe=''), quote=True),
+        'series_index': 'true',
         'tag_preview': html_escape(tag_preview_data(series_data), quote=True),
         'meta_head': '', 'draft_banner': '',
         'content': content, 'page_footer': index_footer,
@@ -25037,6 +25067,10 @@ def typo_engine_for_slide(slide, fallback, lang_tag_engines=None):
 
 def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None, theme_runtime=None, language_runtime=None, scroll_duration=None, presentation_preset=None, slide_layouts=None, slide_chrome_layers=(), structure_css='', presentation_runtime=None, presentation_capture=None, fragment_only=False, parsed_unit=None, graphics=None):
     """Builds an HTML page for an article."""
+    args = dict(args or {})
+    if not include_nav:
+        args['--no-nav'] = True
+    include_nav = not args.get('--no-nav')
     if parsed_unit is None:
         parsed_unit = ParsedUnit(read_text_file(source_path))
     meta, slides, has_meta_block, content_before_meta = parsed_unit.unpack()
@@ -25120,8 +25154,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # obey the author's declared-identity contract.
     visible_slides = [
         slide for slide in slides
-        if 'excluded' not in slide.tags
-        and not _is_incomplete_full_article(slide)
+        if _slide_is_published(slide, args)
     ]
     own_entry = next((entry for entry in _series_entries(series_data)
                       if entry.get('page_dest') == current_file), None)
@@ -25145,8 +25178,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
         log('error', f'{source_path.name}: {exc}')
         sys.exit(1)
     identities = [identity for slide, identity in zip(slides, all_identities)
-                  if ('excluded' not in slide.tags
-                      and not _is_incomplete_full_article(slide))]
+                   if _slide_is_published(slide, args)]
 
     slide_htmls = []
 
@@ -25183,14 +25215,12 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # Inject the series navigation — the build-wide typo_engine, not
     # article_typo_engine: this block's entries aren't "this article's
     # own page content" even when it's this article's own entry (§4.5).
-    # --no-nav: the placeholder is replaced by an empty string,
-    # leaving the container (<h2> + <div class="series-list">) in the HTML,
-    # empty but not an error.
+    # Disabled series-nav slides were omitted before numbering and rendering.
     if include_nav:
         series_nav_html = build_series_nav(
             current_file, series_data, strings, typo_engine,
-            contents_href=((None if args.get('--no-index') else '#lwp/index')
-                           if args and args.get('--single-html') else 'index.html'))
+            contents_href=(None if args.get('--no-index') else
+                           '#lwp/index' if args.get('--single-html') else 'index.html'))
     else:
         series_nav_html = ''
     slides_html = slides_html.replace('{SERIES_NAV_PLACEHOLDER}', series_nav_html)
@@ -25504,7 +25534,8 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # re-scanned each injected value, letting author content inject the
     # stylesheet/other markers into the tag-stripped <title> and escaped
     # <meta> sinks, bypassing their guard (§18.4).
-    html = apply_strings(TEMPLATE_PAGE, strings, html_context=True)
+    html = apply_strings(_publication_page_template(args.get('--no-index')),
+                         strings, html_context=True)
     series_meta = series_meta_of(series_data)
     if scroll_duration is None:
         scroll_duration = resolve_scroll_duration(series_meta, args)
@@ -25523,7 +25554,8 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
         'article_tags': html_escape(
             ' '.join(own_entry.get('_lwp_article_tags', ())
                      if own_entry else ()), quote=True),
-        'series_home': html_escape(quote(_series_home_filename(series_data), safe=''), quote=True),
+        'series_home': html_escape(quote(_series_home_filename(series_data, args), safe=''), quote=True),
+        'series_index': 'false' if args.get('--no-index') else 'true',
         'tag_preview': html_escape(tag_preview_data(series_data), quote=True),
         'content': slides_html, 'page_footer': page_footer,
          'js_nav': nav_js, 'build_stamp': stamp_in_body,
@@ -25810,7 +25842,7 @@ SERIES_SCHEMA = 'lightwebpres.series/1'
 _APPEARANCE_DEFAULT_PRESETS = ('builtin/standard',)
 _APPEARANCE_DEFAULT_THEMES = ('preset', 'essential')
 _APPEARANCE_KEYS = frozenset(('presets', 'themes'))
-_SERIES_BUILD_KEYS = frozenset(('single_html', 'inline_images'))
+_SERIES_BUILD_KEYS = frozenset(('single_html', 'inline_images', 'index', 'nav'))
 
 
 def series_appearance_of(series_data, tolerate_invalid=False, errors=None):
@@ -25909,8 +25941,9 @@ def series_appearance_of(series_data, tolerate_invalid=False, errors=None):
                 '#' in filename or '?' in filename):
             invalid('series.json: "build.single_html" must be a plain .html '
                     'or .htm filename.')
-    if 'inline_images' in build and not isinstance(build['inline_images'], bool):
-        invalid('series.json: "build.inline_images" must be a boolean.')
+    for key in ('inline_images', 'index', 'nav'):
+        if key in build and not isinstance(build[key], bool):
+            invalid(f'series.json: "build.{key}" must be a boolean.')
 
     return {
         'presets': presets,
@@ -26693,6 +26726,25 @@ class PublicationMembership:
                               if not args.get('--drafts-only') or e['status'] == 'draft')
 
 
+def _validate_publication_switches(args):
+    for name in ('index', 'nav'):
+        if args.get('--make-' + name) and args.get('--no-' + name):
+            raise PropertyError(f'--make-{name} and --no-{name} cannot be combined.')
+
+
+def _resolve_publication_options(args, defaults, count):
+    """Resolve independent CLI > JSON > automatic policies on a private dict.
+
+    Count navigation members, not HTML files or the incremental work list.
+    A drafts-only preview deliberately retains its broader navigation universe.
+    """
+    for name, automatic in (('index', count != 1), ('nav', count > 1)):
+        enabled = (True if args.get('--make-' + name) else
+                   False if args.get('--no-' + name) else
+                   defaults.get(name, automatic))
+        args['--no-' + name] = not enabled
+
+
 def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=True,
                            build_args=None, build_strings=None, unit_sources=None):
     """Resolves `page_dest` and the display/editorial fields for every
@@ -27249,6 +27301,11 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     non-breaking space already in it) reaches the output completely
     unchanged, not just that the new rules stay quiet."""
     args = dict(args)
+    try:
+        _validate_publication_switches(args)
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
     if '--single-html' in args:
         filename = args['--single-html']
         if filename is not True and (not _is_safe_relative_filename(filename)
@@ -27414,6 +27471,17 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
                                strict_tags=strict_tags, build_args=args,
                                build_strings=strings, unit_sources=unit_sources)
         membership = PublicationMembership(articles, args)
+        _resolve_publication_options(args, appearance.build, len(membership.navigation))
+        if args.get('--no-nav'):
+            # The initial metadata pass must resolve statuses before automatic
+            # policy is knowable. Its output inventories now drop the omitted
+            # type, while its source validation remains intact.
+            for entry in membership.declared:
+                details = [slide for slide in entry['_lwp_tag_slides']
+                           if slide['type'] != 'series-nav']
+                entry['_lwp_tag_slides'] = details
+                entry['_lwp_slide_tags'] = list(dict.fromkeys(
+                    tag for slide in details for tag in slide['tags']))
         graphics = GraphicCatalog(sd, sources_dir, series_data, args.get('--inline-images', False),
                                   presentation_presets)
         graphics.validate_scope('series', series_meta)
@@ -27441,8 +27509,7 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
             source_meta, source_slides = (parsed.unpack()[:2]
                                           if parsed is not None else ({}, ()))
             source_slides = [slide for slide in source_slides
-                             if 'excluded' not in _slide_tag_set(slide)
-                             and not _is_incomplete_full_article(slide)]
+                             if _slide_is_published(slide, args)]
             article_chrome = _article_chrome_layer(
                 source_meta, entry['page_source'])
             for preset in tuple(presentation_presets):
@@ -27499,11 +27566,9 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
             progress(f'  [ignored] {f} is not part of this series')
 
     # The list as the SERIES declares it — after `ignored`, before `draft`.
-    # This is what the index-name rule counts (§11.3.3): a draft is still an
-    # article of the series, so a two-article series where one is a draft
-    # still has an index worth protecting, and the collision is decided the
-    # same way whether or not --include-drafts is passed. An ignored article
-    # is not an article of the series at all, so it does not count.
+    # When contents are enabled, index-name reservation uses this declaration
+    # set (§11.3.3). Automatic output policy uses navigation membership instead:
+    # a single active unit with an omitted draft needs no series contents.
     claim_articles = list(membership.claims)
 
     if not args.get('--include-drafts') and not args.get('--drafts-only'):
@@ -27568,78 +27633,26 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
      )
 
 
-def resolve_index_claim(claim_articles, built_articles=None, index_enabled=True):
-    """§11.3.3 — the article, if any, whose resolved page_dest is the very
-    name `build` writes the series index to. Returns that entry, or None.
+def validate_index_claim(claim_articles, built_articles=None, index_enabled=True):
+    """§11.3.3: an enabled index must never overwrite an article, even alone.
 
-    The name is what the collision is: the article page was written
-    first, the index landed on top of it, exit code 0, no warning — a
-    series declaring three articles shipped two. Same class of defect as
-    §22.8 (a page published broken while the build reports success),
-    applied to a name clash.
-
-    What to do about it depends on the number of articles, and that is
-    not a concession — it is what the index is worth in each case. With
-    more than one article the index carries real information (the list),
-    so overwriting it is a loss: fatal, here, before anything is written.
-    With exactly one, the index would list a single entry and adds
-    nothing; the caller lets the article take the name and skips the
-    index (announced in the build output, never in silence).
-
-    A one-article series is a brick as much as a site: it may land in a
-    directory whose index is kept some other way — by hand, by another
-    generator, or because other articles already live there — and the
-    author then leaves the default name and claims nothing. Or it is
-    alone, and index.html is the name that means something. The name
-    chosen IS the statement of intent, and the tool has no business
-    guessing otherwise.
-
-    Compared case-insensitively, for the same reason the duplicate
-    page_dest check is (see resolve_article_fields): 'Index.html' and
-    'index.html' are two names to a URL but one file on Windows and
-    default macOS, so the clash is decided identically everywhere rather
-    than being silent data loss on some filesystems only.
-
-    Shared by build and check: refusing in one and diffing against an
-    arrangement the other will not build would leave check reporting a
-    drift that no rebuild can ever settle.
-
-    TWO lists, because the count and the outcome are different questions
-    (§20.6). `claim_articles` is the series as it declares itself —
-    `ignored` entries removed, drafts still in it — and it is what decides
-    whether the index is worth protecting: a draft is an article of the
-    series, so the collision is fatal or not regardless of
-    --include-drafts, which is what keeps a build and a build --include-drafts
-    from disagreeing about whether a series.json is legal at all.
-    `built_articles` is what will actually be written; a claimant that is a
-    draft left out of this build claims nothing today, and the index gets
-    generated as usual. When the caller disabled index generation, there is
-    no index filename to collide with, so the claim is irrelevant."""
+    Automatic policy is resolved first. With no index there is no collision;
+    otherwise reserve its filename across non-ignored declarations. A lone
+    omitted draft does not occupy an output slot. Compare case-insensitively
+    for portable collision handling, without rewriting filesystem names.
+    """
     if not index_enabled:
         return None
     if built_articles is None:
         built_articles = claim_articles
     claimant = next((e for e in claim_articles
                      if e['page_dest'].lower() == 'index.html'), None)
-    if claimant is not None and len(claim_articles) > 1:
+    if claimant is not None and (len(claim_articles) > 1 or claimant in built_articles):
         log('error', f'series.json: article "{claimant["page_source"]}" resolves '
               f'to page_dest "{claimant["page_dest"]}", which collides with the '
-              f'series index — with {len(claim_articles)} articles the index carries '
-              f'the article list, so one of the two pages would overwrite the '
-              f'other. Give this article another page_dest (in series.json, in '
-              f'its own meta block, or by renaming the source); only a '
-              f'one-article series may take the index name.')
+              f'series index. Give the article another page_dest or disable '
+              f'the series index with --no-index or build.index: false.')
         sys.exit(1)
-    return claimant if claimant in built_articles else None
-
-
-def _no_index_notice(claimant):
-    """The one-article branch of §11.3.3, said out loud. Someone whose
-    index stopped being generated has to be able to see why from the
-    build output alone, without going to the specification."""
-    return (f'  [no index] {claimant["page_dest"]} is {claimant["page_source"]}\'s '
-            f'own page — a series index would list that one article and nothing '
-            f'else, so none is generated.')
 
 
 def _resolve_incremental_entry(ctx, incremental_file):
@@ -27662,11 +27675,13 @@ def _resolve_incremental_entry(ctx, incremental_file):
     return entry
 
 
-def _render_article(ctx, entry, source_path, build_stamp='', include_nav=True,
+def _render_article(ctx, entry, source_path, build_stamp='', include_nav=None,
                     render_args=None, fragment_only=False):
     """Renders one already-resolved article with the shared build context."""
     if render_args is None:
         render_args = ctx.args
+    if include_nav is None:
+        include_nav = not ctx.args.get('--no-nav')
 
     def render(preset, capture=None, runtime=None):
         return build_article(
@@ -27838,11 +27853,7 @@ def _render_single_html(ctx, build_stamp=''):
             + ctx.graphics.payload(),
         'js_nav': ctx.nav_js + ('\n' + TEMPLATE_GRAPHIC_JS if ctx.graphics.has_layers() else ''),
     })
-    template = TEMPLATE_PAGE
-    if no_index:
-        template = template.replace('data-lwp-i18n="menu_home"',
-                                    'data-lwp-i18n="menu_series_start"')
-        template = template.replace('{{str_menu_home}}', '{{str_menu_series_start}}')
+    template = _publication_page_template(no_index)
     html = fill_placeholders(apply_strings(template, ctx.strings, html_context=True), shell)
     html = _factor_runtime_resources(html)
     validate_html(html, ctx.args['--single-html'])
@@ -27949,7 +27960,7 @@ class PublicationPlan:
         print('All files are up to date.')
 
 
-def _plan_publication(ctx, plan, articles_to_build, claimant=None, build_stamp='',
+def _plan_publication(ctx, plan, articles_to_build, build_stamp='',
                       incremental=False, announce=False,
                       previous_image_cache=None):
     """Resolve both output topologies into the same text/asset inventory."""
@@ -27980,13 +27991,13 @@ def _plan_publication(ctx, plan, articles_to_build, claimant=None, build_stamp='
             plan.add(name, ctx.output_dir / name, text=html)
             record_page(name, html)
             rendered_names.add(name)
-        if claimant is None and not ctx.args.get('--no-index'):
+        if not ctx.args.get('--no-index'):
             html = _render_index(ctx, _index_extra(ctx), build_stamp, validate_scripts=True)
             plan.add('index.html', ctx.output_dir / 'index.html', text=html)
             record_page('index.html', html)
             rendered_names.add('index.html')
-        elif claimant is not None and announce:
-            progress(_no_index_notice(claimant))
+        elif announce:
+            progress('  [no index] Series contents omitted.')
         if incremental or ctx.args.get('--drafts-only'):
             for entry in ctx.articles:
                 name = entry['page_dest']
@@ -28033,13 +28044,13 @@ def _plan_publication(ctx, plan, articles_to_build, claimant=None, build_stamp='
     return images, page_image_cache
 
 
-def _execute_publication(ctx, articles_to_build, claimant, nav_cache_path,
+def _execute_publication(ctx, articles_to_build, nav_cache_path,
                          fingerprint, build_stamp='', incremental=False,
                          previous_image_cache=None):
     """Prepare the complete requested publication, then promote its owned files."""
     with PublicationPlan() as plan:
         images, page_image_cache = _plan_publication(
-            ctx, plan, articles_to_build, claimant, build_stamp, incremental,
+            ctx, plan, articles_to_build, build_stamp, incremental,
             announce=True, previous_image_cache=previous_image_cache)
         plan.add('.lwp-cache/nav.json', Path(nav_cache_path),
                  text=json.dumps(fingerprint, indent=2, sort_keys=True))
@@ -28048,7 +28059,7 @@ def _execute_publication(ctx, articles_to_build, claimant, nav_cache_path,
                  text=_image_cache_text(ctx.output_dir, page_image_cache))
         plan.add(_MANIFEST_NAME, ctx.output_dir / _MANIFEST_NAME,
                  text=_manifest_text(ctx.output_dir, ctx.articles,
-                     include_index=not ctx.args.get('--single-html') and claimant is None
+                     include_index=not ctx.args.get('--single-html')
                                    and not ctx.args.get('--no-index'),
                      images=images, presentation_presets=ctx.presentation_presets,
                      single_html=ctx.args.get('--single-html')))
@@ -28057,14 +28068,14 @@ def _execute_publication(ctx, articles_to_build, claimant, nav_cache_path,
     if single_html:
         progress(f'Build complete: {len(articles_to_build)} articles in {single_html} -> {ctx.output_dir}')
     else:
-        tail = ' + index' if claimant is None and not ctx.args.get('--no-index') else ''
+        tail = ' + index' if not ctx.args.get('--no-index') else ''
         if incremental:
             progress(f'Incremental build complete: {articles_to_build[0]["page_dest"]}{tail} -> {ctx.output_dir}')
         else:
             progress(f'Build complete: {len(articles_to_build)} articles{tail} -> {ctx.output_dir}')
     if ctx.args.get('--open') and not _LOG_STATE['dry_run']:
         import webbrowser
-        webbrowser.open((ctx.output_dir / (single_html or _series_home_filename(ctx.series_data))).resolve().as_uri())
+        webbrowser.open((ctx.output_dir / (single_html or _series_home_filename(ctx.series_data, ctx.args))).resolve().as_uri())
 
 
 def _identity_kits_for_output(ctx):
@@ -28104,11 +28115,11 @@ def _cmd_build_incremental(ctx, incremental_file, nav_cache_path, fresh_fingerpr
     # Same §11.3.3 branch as the full build when an index is requested — the
     # fast path writes the index too, so leaving the claim out there would
     # drop the index straight back onto the article page it just wrote.
-    claimant = resolve_index_claim(
+    validate_index_claim(
         ctx.claim_articles, ctx.articles,
         index_enabled=not ctx.args.get('--no-index'))
     _execute_publication(
-        ctx, [entry], claimant, nav_cache_path, fresh_fingerprint,
+        ctx, [entry], nav_cache_path, fresh_fingerprint,
         build_stamp=build_stamp, incremental=True,
         previous_image_cache=previous_image_cache)
 
@@ -28652,7 +28663,7 @@ def cmd_watch(series_dir, args):
     build_args.pop('--port', None)
     build_args.pop('--open', None)
     progress(f'[watch] initial build of {sd}')
-    entry_name = cmd_build(str(sd), build_args) or 'index.html'
+    entry_name = cmd_build(str(sd), build_args) or ''
 
     # Start the HTTP server if --serve.
     if args.get('--serve'):
@@ -28728,17 +28739,15 @@ def cmd_build(series_dir, args):
             _resolve_incremental_entry(ctx, args['--incremental'])
         # Do not let a later multipage --incremental reuse a fingerprint from before
         # this topology switch. The ordinary missing-cache path rebuilds it.
-        _execute_publication(ctx, ctx.membership.rendered, None,
+        _execute_publication(ctx, ctx.membership.rendered,
                              args.get('--nav-cache') or default_nav_cache_path(ctx.sd),
                              {}, build_stamp=build_stamp)
         return args['--single-html']
 
     # §11.3.3, decided before anything is written and before the --incremental
-    # fast path (which writes the index too): when an index is requested, more
-    # than one article claiming index.html is fatal in there, exactly one gets
-    # the name and no series index is produced. --no-index removes the
-    # collision entirely.
-    claimant = resolve_index_claim(
+    # fast path (which writes the index too). Automatic defaults have already
+    # resolved; an enabled index cannot yield to an article with the same name.
+    validate_index_claim(
         ctx.claim_articles, ctx.articles,
         index_enabled=not ctx.args.get('--no-index'))
 
@@ -28785,7 +28794,7 @@ def cmd_build(series_dir, args):
         'lang': ctx.lang,
         'options': {
             name: args.get(name)
-            for name in ('--no-typography', '--no-nav', '--inline-images',
+            for name in ('--no-typography', '--no-nav', '--no-index', '--inline-images',
                          '--include-drafts', '--drafts-only',
                           '--unit-index', '--unit-index-max-columns', '--unit-index-selector',
                          '--slides-page-numbers', '--scroll-duration',
@@ -28833,7 +28842,7 @@ def cmd_build(series_dir, args):
                 _cmd_build_incremental(
                     ctx, incremental_file, nav_cache_path, fresh_fingerprint,
                     build_stamp, previous_image_cache=previous_image_cache)
-                return _series_home_filename(ctx.series_data)
+                return _series_home_filename(ctx.series_data, args)
             reason = 'retained pages/assets are missing or the output manifest is unusable'
         log('info', f'--incremental requested but not safe ({reason}) — doing a full build instead.')
 
@@ -28849,9 +28858,9 @@ def cmd_build(series_dir, args):
     if args.get('--drafts-only') and not articles_to_build:
         log('error', 'No draft articles found in this series.')
         sys.exit(1)
-    _execute_publication(ctx, articles_to_build, claimant, nav_cache_path,
+    _execute_publication(ctx, articles_to_build, nav_cache_path,
                          fresh_fingerprint, build_stamp=build_stamp)
-    return _series_home_filename(ctx.series_data)
+    return _series_home_filename(ctx.series_data, args)
 
 
 def cmd_check(series_dir, args):
@@ -28869,11 +28878,12 @@ def cmd_check(series_dir, args):
     # is refused here too, with the same message and before any per-file
     # line is printed, rather than after a screenful of comparisons that
     # describe an arrangement no build will produce.
-    claimant = (None if args.get('--single-html') else resolve_index_claim(
-        ctx.claim_articles, ctx.articles, index_enabled=not args.get('--no-index')))
+    if not args.get('--single-html'):
+        validate_index_claim(ctx.claim_articles, ctx.articles,
+                             index_enabled=not args.get('--no-index'))
 
     with PublicationPlan() as plan:
-        _plan_publication(ctx, plan, ctx.membership.rendered, claimant)
+        _plan_publication(ctx, plan, ctx.membership.rendered)
         plan.compare()
 
 
@@ -29542,7 +29552,10 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False,
         # the claim is resolved against what a build would actually ship.
         shipped = [e for e in ctx.articles
                    if e['status'] not in ('draft', 'ignored')]
-        claimant = resolve_index_claim(ctx.claim_articles, shipped)
+        shipped_args = dict(args)
+        _resolve_publication_options(shipped_args, ctx.appearance.build, len(shipped))
+        index_enabled = not shipped_args.get('--no-index')
+        validate_index_claim(ctx.claim_articles, shipped, index_enabled=index_enabled)
 
         # Per article, so a fatal names the page that carries it -- and so
         # one bad article does not hide every article after it. A draft
@@ -29573,7 +29586,7 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False,
                         f'not build — the error above is fatal, and this '
                         f'page would not be produced. audit does not block, '
                         f'but this is not an editorial remark.')
-        if claimant is None:
+        if index_enabled:
             try:
                 rendered = _render_index(ctx, _index_extra(ctx),
                                          validate_scripts=True)
@@ -34797,11 +34810,16 @@ OPTIONS
     build/verify/watch: also build articles marked status: draft
   --drafts-only
     build/watch: build only status: draft articles (preview, not publication)
-  --no-nav
-    build/watch/verify: do not generate the series navigation block
-  --no-index
-    build/verify/watch: omit series contents; with --single-html, open the first
-    published unit. Unit-index slides are unaffected.
+  --make-nav / --no-nav
+    build/watch/verify: enable or omit placed series-nav slides entirely.
+    Automatic: enabled with multiple participating units, disabled otherwise.
+    Overrides the optional boolean build.nav in series.json; does not insert slides.
+  --make-index / --no-index
+    build/verify/watch: enable or omit series contents. Automatic: disabled with
+    one participating unit, enabled otherwise (including an empty collection).
+    Overrides the optional boolean build.index in series.json. Without contents,
+    Home opens an emitted unit; unit-index slides are unaffected.
+    Opposite make/no switches cannot be combined.
   --no-readme
     build/verify/watch: do not generate README.md
   --open
@@ -35163,12 +35181,12 @@ _COMMAND_OPTIONS = {
               '--themes', '--presentation-presets', '--no-essential-theme',
               '--include-drafts', '--incremental', '--nav-cache',
               '--build-stamp', '--build-stamp-minimal',
-              '--no-nav', '--no-index', '--no-readme', '--drafts-only',
+              '--no-nav', '--no-index', '--make-nav', '--make-index', '--no-readme', '--drafts-only',
               '--open', '--inline-images', '--slides-page-numbers',
               '--scroll-duration'},
     'check': {'--lang', '--output', '--language-file', '--no-typography',
               '--unit-index', '--unit-index-max-columns', '--unit-index-selector',
-              '--single-html', '--inline-images', '--no-index', '--no-readme',
+              '--single-html', '--inline-images', '--no-index', '--make-index', '--make-nav', '--no-readme',
               '--slides-page-numbers', '--build-stamp', '--build-stamp-minimal', '--drafts-only',
               '--themes', '--presentation-presets', '--no-essential-theme',
               '--include-drafts', '--no-nav', '--scroll-duration'},
@@ -35209,7 +35227,7 @@ _COMMAND_OPTIONS = {
               '--single-html', '--inline-images', '--include-drafts', '--language-file',
               '--themes', '--presentation-presets', '--no-essential-theme',
               '--open', '--slides-page-numbers',
-              '--no-nav', '--no-index', '--no-readme', '--drafts-only',
+              '--no-nav', '--no-index', '--make-nav', '--make-index', '--no-readme', '--drafts-only',
               '--scroll-duration'},
     'completion': {'--shell'},
 }

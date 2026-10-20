@@ -118,7 +118,7 @@ class WebBuild(unittest.TestCase):
             with zipfile.ZipFile(out_path) as zf:
                 names = zf.namelist()
                 self.assertIn('a.html', names)
-                self.assertIn('index.html', names)
+                self.assertNotIn('index.html', names)
                 html = zf.read('a.html').decode('utf-8')
             return html
 

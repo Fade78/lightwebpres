@@ -88,13 +88,15 @@ class IndependentReviewRegressions(unittest.TestCase):
 
     def test_mixed_case_index_home_links_sharing_and_shortcut_reach_real_home(self):
         self.series([({'page_source': 'a.md', 'page_dest': 'Index.html'}, '')])
-        self.cli('build', '--output', self.root / 'multi')
-        self.cli('verify', '--output', self.root / 'multi')
+        self.cli('build', '--output', self.root / 'multi', '--make-nav')
+        self.cli('verify', '--output', self.root / 'multi', '--make-nav')
         self.assertTrue((self.root / 'multi/Index.html').is_file())
         if os.name != 'nt':
             self.assertFalse((self.root / 'multi/index.html').exists())
-        self.cli('build', '--output', self.root / 'combined', '--single-html', 'series.html')
-        self.cli('verify', '--output', self.root / 'combined', '--single-html', 'series.html')
+        self.cli('build', '--output', self.root / 'combined', '--single-html', 'series.html',
+                 '--make-index', '--make-nav')
+        self.cli('verify', '--output', self.root / 'combined', '--single-html', 'series.html',
+                 '--make-index', '--make-nav')
         self.browser('home', ['multi/Index.html', 'combined/series.html#lwp/a/Index.html/cover'])
 
     def test_build_open_uses_the_exact_claimant_spelling(self):

@@ -117,11 +117,12 @@ The following chains run from strongest to weakest:
 
 Invalid `page_dest` values are fatal: not ending in `.html`/`.htm`, not a bare
 filename (`sub/x.html` is rejected), a case-insensitive collision with another
-article's destination, or `index.html` in a multipage series of several articles
-when an index is generated. `--no-index` removes that last collision; combined-HTML
+article's destination, or `index.html` in multipage output when a separate series
+index is generated, even if forced for a single article. `--no-index` removes that last collision; combined-HTML
 mode has no separate index file and keeps `page_dest` as an article route key.
-In multipage output, a series of exactly one article may choose `index.html`;
-no series index is then generated and `build` prints `[no index]`. Leave the default article
+In multipage output, a series of exactly one participating article omits series
+contents automatically and may choose `index.html`; `--make-index` or
+`build.index: true` instead requires a distinct article destination. Leave the default article
 filename when another page or generator owns that directory's index.
 The normative cascade is in specifications.md §20.3.1; index ownership is
 in §11.3.3. Combined-HTML routes and restrictions are in §11.3.8 and

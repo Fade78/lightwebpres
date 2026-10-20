@@ -102,7 +102,7 @@ class ReadingSettings(unittest.TestCase):
 
 class ReadingCLI(unittest.TestCase):
     def make_series(self, tmp, reading=None, table=NORMAL_TABLE):
-        root = scaffold(tmp, ARTICLE.format(table=table))
+        root = scaffold(tmp, ARTICLE.format(table=table), build_defaults={'index': True})
         if reading is not None:
             data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
             data['series_meta'] = {'reading': reading}

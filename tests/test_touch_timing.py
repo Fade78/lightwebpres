@@ -26,6 +26,7 @@ class TouchEventTiming(unittest.TestCase):
                 + '\n## Native touch\nsummary: A queued gesture.\n'
                 for index in range(1, 4)), encoding='utf-8')
         (self.root / 'series.json').write_text(json.dumps({
+            'build': {'index': True},
             'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
         self.env = {**os.environ, 'TMPDIR': str(ROOT / 'work/tmp'),
                     'LWP_THEMES_DIR': str(self.root / 'themes'),

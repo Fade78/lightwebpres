@@ -207,7 +207,7 @@ In the object form of `series.json`, these keys live beside `series_meta` and
 |---|---|---|
 | `appearance` | omitted: `presets` is `builtin/standard`, `themes` is `preset, essential` | Optional object beside `series_meta` and `articles`; it may contain either or both non-empty `presets` and `themes` lists. The first preset is primary; the first individual theme token sets the initial theme policy. Explicit lists are exact; `--themes` and `--presentation-presets` replace them for one invocation (§9.3.7, §9.3.8) |
 | `chrome` | `{}` | Optional object beside `appearance`, `series_meta` and `articles`; series-wide header/footer layer keyed by `all` or slide type. Direct `header`/`footer` keys are shorthand for `all`; slots accept text, models, `""` or JSON `null` to clear inherited chrome (§9.9.1, §20.5.3) |
-| `build` | `{}` | Optional output defaults: `single_html` is a plain combined-output filename and `inline_images` is boolean |
+| `build` | `{}` | Optional output defaults: `single_html` is a plain combined-output filename; `inline_images`, `index` and `nav` are booleans. Omitted `index`/`nav` use logical publication counts, not physical HTML counts; explicit CLI choices win |
 
 The list is build configuration, not a persisted reader choice. A reader's
 presentation choice is kept in the browser session and never written back to

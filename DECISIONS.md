@@ -101,7 +101,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 14 · **à faire** 1 · **en cours** 3 · **terminé** 83 · **abandonné** 1 · **sans objet** 3
+**à étudier** 14 · **à faire** 1 · **en cours** 3 · **terminé** 84 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -215,6 +215,7 @@ gets its own entry and its own state**, however small.
 - **B99** — Theme-controlled inline formatting in titles and summaries
 - **B100** — Queued mouse commands expire on the handler-delivery clock
 - **B101** — Identity Kit graphic catalogues and preset-owned layer defaults
+- **B102** — Automatic single-article output and explicit series output policy
 
 ### abandonné
 
@@ -3464,8 +3465,11 @@ now contains its own unit-index, and source-only `examples/unit-index/` provides
 multiple explicit selections. Authoring documentation, glossary, product skill,
 live draft contract and generated guide/gallery/capture manifests are synchronized.
 This first-increment delivery follows the separately commissioned design-only
-commit d41802a. Build defaults remain multipage HTML and referenced images;
-the proposed default-policy change and inverse options are a subsequent task.
+commit d41802a. Build defaults remain multipage HTML and referenced images.
+The inverse series-contents/navigation options and single-unit defaults were
+subsequently commissioned and implemented in B102. Multipage output and
+referenced-image defaults remain unchanged; broader publication-selector work
+in this checklist is still open.
 
 The index universe is all published content in its unit, including itself,
 other indexes, covers, full-article slides and generated endnotes. No wildcard
@@ -4671,3 +4675,58 @@ strict JSON containers, inactive-preset validation, caller-scope asset overrides
 all-alternative reference compatibility and the tracked example/recipe. The
 existing 28 main-file Identity Kit fixture tests pass without weakening their
 assertions. Final acceptance measurements remain separate dated evidence.
+
+## B102 — Automatic single-article output and explicit series output policy
+
+**État :** terminé · **Depuis :** 2026-10-20 · **Version :** 0.74.0
+
+**Owner requirement and evidence.** The owner expected one article to imply
+`--no-index` and `--no-nav`, requested inverse `--make-index` / `--make-nav`
+options and persisted series.json controls, then approved implementation of the
+study. The study built the released c6b55fa snapshot: a singleton generated both
+an index and placed navigation, no-nav left a blank section, and no-index left
+physical Home/browser opening aimed at an absent index. JSON index/nav keys and
+inverse switches were rejected. This is a deliberate pre-1.0 default change,
+not a 1.0 stability milestone or an alias/migration layer.
+
+**Contract.** Resolve status first, then count logical navigation membership.
+Exactly one member disables series contents and placed series-nav slides;
+several enable both. Zero retains the existing empty index. Ignored entries
+never participate; drafts join only when included. Drafts-only preview retains
+its established broader navigation universe. Neither one combined physical file
+nor one incremental work item makes a publication a logical singleton.
+
+Root build.index/build.nav accept actual JSON booleans. Each choice resolves
+CLI > JSON > automatic independently; omission is automatic, not null or a new
+string vocabulary. Opposite make/no switches are errors before writes, in
+either order. Make-nav fills placed slides rather than inserting a missing
+slide. Unit indexes and intra-unit reader controls are independent. Watch
+retains the caller's raw options and recomputes policy after source/configuration
+changes; both effective choices belong in the shared incremental fingerprint.
+
+**Output invariants.** Disabled navigation has no section, emitted anchor,
+number, unit-index target, tag-preview entry or graphic plan. Source validation
+and slug reservation still examine authored slides. Source tag reports keep
+their inventory but default-output counts exclude disabled navigation. Without
+contents, generated back-to-index links are absent. Home/sharing/browser entry
+uses an emitted destination with exact case and one URL encoding boundary;
+destinations are not renamed and server directory-index policy is not invented.
+An explicitly required index cannot silently yield to an emitted article named
+index.html. Earlier generated files remain manifest-tracked orphans for explicit
+clean; a build does not delete unowned output.
+
+The official guide deliberately opts into index/navigation in its source build
+configuration to preserve its published landing page, rather than relying on
+the old singleton default. Index-/navigation-specific test fixtures similarly
+state their intent while ordinary singleton fixtures exercise automatic policy.
+
+**Verification status.** New CLI regressions fail on the released source for
+the demonstrated missing behavior and pass on the candidate. Dedicated browser
+checks exercise Chromium and Firefox, both topologies, logical counts, explicit
+overrides, omitted slides, unit-index links, Home and encoded sharing URLs.
+The complete regression suite and generated-output freshness guards pass on
+the implemented source, including the dedicated browser checks and existing
+reader/graphic regressions. Working measurements and the tested input inventory
+are retained under repository-local work/tmp. Artifacts were rebuilt from their
+sources and the regenerated product/documentation images were inspected. This
+closes the implementation, not a tag, deployment or release authorization.

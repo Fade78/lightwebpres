@@ -97,6 +97,7 @@ class KeyboardNav(unittest.TestCase):
         tall_root = parent / 'tall_series'
         (tall_root / 'sources').mkdir(parents=True)
         (tall_root / 'series.json').write_text(json.dumps({
+            'build': {'index': True},
             'articles': [{'page_dest': 'tall.html', 'page_source': 'tall.md', 'nav_title': 'Tall', 'nav_desc': 'Tall'}],
         }), encoding='utf-8')
         # Long enough to push the slide's rendered height well past any
@@ -129,6 +130,7 @@ class KeyboardNav(unittest.TestCase):
         last_root = parent / 'last_series'
         (last_root / 'sources').mkdir(parents=True)
         (last_root / 'series.json').write_text(json.dumps({
+            'build': {'index': True},
             'articles': [{'page_dest': 'last.html', 'page_source': 'last.md', 'nav_title': 'Last', 'nav_desc': 'Last'}],
         }), encoding='utf-8')
         (last_root / 'sources' / 'last_article.md').write_text(long_body, encoding='utf-8')

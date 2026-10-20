@@ -81,7 +81,8 @@ def contrast_ratio(hex_a, hex_b):
     return (lighter + 0.05) / (darker + 0.05)
 
 
-def scaffold(tmp, article_md, series_extra=None, source_name='a.md', file_name='a.html'):
+def scaffold(tmp, article_md, series_extra=None, source_name='a.md', file_name='a.html',
+             build_defaults=None):
     """Creates a minimal single-article series and returns its path."""
     root = Path(tmp)
     (root / 'sources').mkdir(parents=True, exist_ok=True)
@@ -90,6 +91,8 @@ def scaffold(tmp, article_md, series_extra=None, source_name='a.md', file_name='
     if series_extra:
         entry.update(series_extra)
     series = {'articles': [entry]}
+    if build_defaults is not None:
+        series['build'] = build_defaults
     series_path = root / 'series.json'
     if series_path.is_file():
         try:
@@ -117,7 +120,7 @@ class BuildGoldenPath(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((root / 'public' / 'a.html').exists())
-            self.assertTrue((root / 'public' / 'index.html').exists())
+            self.assertFalse((root / 'public' / 'index.html').exists())
 
     def test_check_reports_no_drift_after_build(self):
         md = (
@@ -164,7 +167,7 @@ class ScrollDuration(unittest.TestCase):
     )
 
     def _series(self, tmp, duration=None):
-        root = scaffold(tmp, self.ARTICLE)
+        root = scaffold(tmp, self.ARTICLE, build_defaults={'index': True})
         data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
         if duration is not None:
             data['series_meta'] = {'scroll_duration': duration}
@@ -413,7 +416,7 @@ class ArticleTags(unittest.TestCase):
 
     def test_article_tags_reach_index_nav_payload_and_page_body(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, self._article('FR'))
+            root = scaffold(tmp, self._article('FR'), build_defaults={'index': True, 'nav': True})
             data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
             data['series_meta'] = {'default_tag': 'FR'}
             (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
@@ -1233,7 +1236,7 @@ class PlaceholderNotSubstitutedInAuthorContent(unittest.TestCase):
 
     def test_index_series_title_placeholder_stays_literal(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
+            root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
             data['series_meta'] = {'title': 'T{{cards}}X'}
             (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
@@ -1370,7 +1373,7 @@ class CheckIncludeDrafts(unittest.TestCase):
         (root / 'sources' / 'a.md').write_text(_MINIMAL_MD, encoding='utf-8')
         (root / 'sources' / 'b.md').write_text(
             _MINIMAL_MD.replace('a.html', 'b.html'), encoding='utf-8')
-        (root / 'series.json').write_text(json.dumps({'articles': [
+        (root / 'series.json').write_text(json.dumps({'build': {'index': True}, 'articles': [
             {'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'},
             {'page_source': 'b.md', 'nav_title': 'B', 'nav_desc': 'B', 'status': 'draft'},
         ]}), encoding='utf-8')
@@ -1778,7 +1781,7 @@ class Axis4CommandGaps(unittest.TestCase):
 
     def test_lwp_lang_env_var_selects_language(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
+            root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             result = run('build', str(root), '--output', str(root / 'public'),
                          env={'LWP_LANG': 'en'})
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -1787,7 +1790,7 @@ class Axis4CommandGaps(unittest.TestCase):
 
     def test_implicit_build_embeds_both_runtime_interface_packs(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
+            root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
@@ -1806,7 +1809,7 @@ class Axis4CommandGaps(unittest.TestCase):
 
     def test_explicit_build_language_locks_runtime_interface_choice(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
+            root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             result = run('build', str(root), '--lang', 'en',
                          '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -1959,7 +1962,7 @@ class Axis4CommandGaps(unittest.TestCase):
         articles — share included, with the fiche scope disabled (the
         index has no fiche, §9.3.4)."""
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
+            root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             run('build', str(root), '--output', str(root / 'public'))
             index = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             self.assertIn('id="menuShare"', index)
@@ -1974,7 +1977,7 @@ class Axis4CommandGaps(unittest.TestCase):
             '<!-- lwp:slide:series-nav -->\nslug: k46\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, md)
+            root = scaffold(tmp, md, build_defaults={'index': True, 'nav': True})
             result = run('build', str(root), '--output', str(root / 'public'),
                          '--lang', 'en')
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -2024,7 +2027,7 @@ class CheckCoversIndexAndReadme(unittest.TestCase):
 
     def test_series_meta_change_is_caught_via_index(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
+            root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             run('build', str(root), '--output', str(root / 'public'))
             data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
             data['series_meta'] = {'title': 'A brand new title'}
@@ -2035,7 +2038,7 @@ class CheckCoversIndexAndReadme(unittest.TestCase):
 
     def test_readme_drift_is_caught(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
+            root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             run('build', str(root), '--output', str(root / 'public'))
             (root / 'README.md').write_text('Hand-edited.', encoding='utf-8')
             result = run('verify', str(root), '--output', str(root / 'public'))
@@ -2046,7 +2049,7 @@ class CheckCoversIndexAndReadme(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
             root.mkdir()
-            scaffold(root, _MINIMAL_MD)
+            scaffold(root, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             self.assertEqual(
                 run('build', str(root), '--output', str(root / 'public')).returncode,
                 0)
@@ -2069,7 +2072,7 @@ class CheckCoversIndexAndReadme(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
             root.mkdir()
-            scaffold(root, _MINIMAL_MD)
+            scaffold(root, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             self.assertEqual(
                 run('build', str(root), '--output', str(root / 'public')).returncode,
                 0)
@@ -2808,7 +2811,7 @@ class CliStrictParsing(unittest.TestCase):
     swallows the positional argument that follows it."""
 
     def _root(self, tmp):
-        return scaffold(tmp, _MINIMAL_MD)
+        return scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True})
 
     def test_unknown_option_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -3378,7 +3381,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
 
     def test_global_lang_before_command(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
+            root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             result = run('--lang', 'en', 'build', str(root),
                          '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -3388,7 +3391,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
     def test_global_lang_nearest_to_command_wins(self):
         # `--lang en build --lang fr` → fr (DECISION §2: nearest wins).
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
+            root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             result = run('--lang', 'en', 'build', str(root), '--lang', 'fr',
                          '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -4050,8 +4053,8 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(out.exists())
 
-    def test_no_nav_leaves_empty_container(self):
-        """--no-nav must remove the links and keep the container.
+    def test_no_nav_omits_the_entire_navigation_slide(self):
+        """--no-nav removes the slide, not just its links.
 
         The version this replaces could not fail. It sliced on the FIRST
         occurrence of `series-list`, which is in the inline <style> block
@@ -4102,7 +4105,12 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertEqual(run('build', str(root), '--output',
                                  str(root / 'without'), '--no-nav').returncode,
                              0)
-            without = body_of('without/a.html')
+            # Inspect emitted sections, never CSS or runtime selector strings.
+            without = '\n'.join(re.findall(
+                r'<section\b.*?</section>',
+                (root / 'without/a.html').read_text(encoding='utf-8'), re.S))
+            self.assertNotIn('<div class="series-list">', without)
+            self.assertNotIn('id="k75"', without)
             self.assertNotIn('series-link', without,
                              'the nav links survived --no-nav:\n' + without)
             self.assertNotIn('<a href', without,
@@ -4194,7 +4202,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
                             'the browser was never invoked')
             opened = record.read_text(encoding='utf-8').strip()
             self.assertEqual(
-                opened, (root / 'public' / 'index.html').resolve().as_uri(),
+                opened, (root / 'public' / 'a.html').resolve().as_uri(),
                 'the browser was opened on something other than the build')
 
     def test_a_build_without_open_opens_nothing(self):
@@ -4904,7 +4912,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
         one reported in a language about the program's insides, and it is
         the class most likely to be read by whoever is on call."""
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
+            root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             pub = root / 'public'
             run('build', str(root), '--output', str(pub))
             # A directory where index.html goes: the write cannot succeed
@@ -4934,7 +4942,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
         rename is atomic within a filesystem, which is why the temporary
         is a sibling."""
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
+            root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             pub = root / 'public'
             run('build', str(root), '--output', str(pub))
             # The inode is the evidence, not the word `os.replace` in the
@@ -5598,7 +5606,7 @@ class NoEmptyDecorativeElements(unittest.TestCase):
 
     def test_index_without_series_version_emits_no_pill(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
+            root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
@@ -5611,7 +5619,7 @@ class NoEmptyDecorativeElements(unittest.TestCase):
             '<!-- lwp:slide:series-nav -->\nslug: k94\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, md)
+            root = scaffold(tmp, md, build_defaults={'index': True, 'nav': True})
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -5627,7 +5635,7 @@ class TheIndexVersionPillEscapesLikeItsSiblingHeaderFields(unittest.TestCase):
     because the body's raw-HTML boundary (§6.2) applies here too."""
 
     def _build_with_version(self, tmp, version):
-        root = scaffold(tmp, _MINIMAL_MD)
+        root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
         series = json.loads((root / 'series.json').read_text(encoding='utf-8'))
         series['series_meta'] = {'title': 'The series', 'version': version}
         (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
@@ -6427,15 +6435,12 @@ class AnArticleThatClaimsTheIndexName(unittest.TestCase):
             self.assertIn('Summary of A.', written)
             self.assertNotIn('The series title', written)
 
-    def test_what_counts_here_is_the_series_not_the_build(self):
-        """§20.6 decides the tally, and it is deliberately NOT the list of
-        pages this particular run will write.
+    def test_enabled_index_reservation_uses_declarations_not_the_work_list(self):
+        """§20.6 reserves a requested index across declared drafts.
 
-        A draft is an article of the series — it is only kept out of the
-        output — so a two-entry series with one draft has an index worth
-        protecting and the collision is fatal, with or without
-        --include-drafts. Counting the built list instead would make the
-        very same series.json legal or illegal depending on a build flag.
+        Explicitly require contents: the collision must be fatal with or
+        without --include-drafts. Without that explicit choice the automatic
+        singleton policy omits contents instead, covered by OutputDefaults.
 
         An `ignored` entry is not an article of the series at all, so what
         remains really is a series of one, and the index name is free."""
@@ -6445,7 +6450,7 @@ class AnArticleThatClaimsTheIndexName(unittest.TestCase):
             for flags in ((), ('--include-drafts',)):
                 with self.subTest(flags=flags):
                     result = run('build', str(root), '--output',
-                                 str(root / 'public'), *flags)
+                                 str(root / 'public'), '--make-index', *flags)
                     self.assertEqual(result.returncode, 1, result.stdout)
                     self.assertIn('collides with the series index', result.stderr)
 
@@ -6857,7 +6862,9 @@ class IncrementalBuild(unittest.TestCase):
             result = run('build', str(root), '--output', str(output),
                          '--no-index', '--incremental', 'a.md')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('Incremental build', result.stdout)
+            self.assertNotIn('Incremental build:', result.stdout)
+            self.assertIn('b.html ← b.md', result.stdout,
+                          'changing index policy must rebuild the other article too')
             manifest = json.loads(
                 (output / '.lwp-manifest.json').read_text(encoding='utf-8'))
             self.assertNotIn('img/index-only.svg', manifest['files'])
@@ -6916,7 +6923,7 @@ class IncrementalBuild(unittest.TestCase):
             self.assertFalse((root / 'README.md').exists())
             self.assertEqual(
                 record.read_text(encoding='utf-8').strip(),
-                (output / 'index.html').resolve().as_uri())
+                (output / 'a.html').resolve().as_uri())
 
 
 class WatchPathCoverage(unittest.TestCase):
@@ -8246,14 +8253,16 @@ class NbspPreservedFromSource(unittest.TestCase):
         self.assertTrue(value.endswith(self.NBSP), repr(value))
 
     def _build(self, tmp, article_md, extra_articles=None, series_meta=None, second_entry=None):
-        root = scaffold(tmp, article_md, series_extra={'card_label': self._wrap('Carte')})
+        root = scaffold(tmp, article_md, series_extra={'card_label': self._wrap('Carte')},
+                        build_defaults={'index': True, 'nav': True})
         if extra_articles:
             for name, content in extra_articles.items():
                 (root / 'sources' / name).write_text(content, encoding='utf-8')
         if series_meta or second_entry:
             data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
             if series_meta:
-                data = {'series_meta': series_meta, 'articles': data if isinstance(data, list) else data['articles']}
+                data = {'series_meta': series_meta, 'build': {'index': True, 'nav': True},
+                        'articles': data if isinstance(data, list) else data['articles']}
             if second_entry:
                 articles = data if isinstance(data, list) else data['articles']
                 articles.append(second_entry)
@@ -8344,7 +8353,7 @@ class NbspPreservedFromSource(unittest.TestCase):
             (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             entry = {'page_dest': 'a.html', 'page_source': 'a.md'}
             (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
-            result = run('build', str(root), '--output', str(root / 'public'))
+            result = run('build', str(root), '--output', str(root / 'public'), '--make-index')
             self.assertEqual(result.returncode, 0, result.stderr)
             index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             self._both_ends(re.search(r'<div class="article-desc">(.*?)</div>', index_html).group(1))
@@ -8797,6 +8806,7 @@ class TypographyDisableSwitches(unittest.TestCase):
             (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             entry = {'page_dest': 'a.html', 'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'}
             series = {
+                'build': {'index': True},
                 'series_meta': {'title': 'Titre à 50 % fini', 'subtitle': '', 'intro': ''},
                 'articles': [entry],
             }
@@ -9005,7 +9015,7 @@ class TemplateOverride(unittest.TestCase):
             '<!-- lwp:slide:cover -->\nslug: k151\nkicker: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, md)
+            root = scaffold(tmp, md, build_defaults={'index': True, 'nav': True})
             (root / 'templates').mkdir()
             (root / 'templates' / 'index_extra.html').write_text(
                 '<div id="qr-share">CUSTOM-INDEX-EXTRA</div>\n'
@@ -9029,7 +9039,7 @@ class TemplateOverride(unittest.TestCase):
             '<!-- lwp:slide:cover -->\nslug: k152\nkicker: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, md)
+            root = scaffold(tmp, md, build_defaults={'index': True, 'nav': True})
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
@@ -9073,7 +9083,8 @@ class ChromeCascade(unittest.TestCase):
         )
 
     def _series(self, tmp, chrome, meta='', slides=None):
-        root = scaffold(tmp, self._article(meta=meta, slides=slides))
+        root = scaffold(tmp, self._article(meta=meta, slides=slides),
+                        build_defaults={'index': True, 'nav': True})
         data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
         data['chrome'] = chrome
         (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
@@ -9346,7 +9357,7 @@ class IdentityKitFixtures(unittest.TestCase):
         return identity_kit
 
     def _selected_series(self, tmp):
-        root = scaffold(tmp, self._article())
+        root = scaffold(tmp, self._article(), build_defaults={'index': True, 'nav': True})
         identity_kit = self._write_identity_kit(root / 'templates' / 'kits')
         series_path = root / 'series.json'
         series = json.loads(series_path.read_text(encoding='utf-8'))
@@ -9355,7 +9366,7 @@ class IdentityKitFixtures(unittest.TestCase):
         return root, identity_kit
 
     def _runtime_series(self, tmp):
-        root = scaffold(tmp, self._article())
+        root = scaffold(tmp, self._article(), build_defaults={'index': True, 'nav': True})
         layouts_root = root / 'templates' / 'kits'
         primary = self._write_identity_kit(layouts_root)
 
@@ -9437,7 +9448,7 @@ class IdentityKitFixtures(unittest.TestCase):
 
     def test_preset_chrome_placement_is_rendered_without_author_cascade(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, self._article())
+            root = scaffold(tmp, self._article(), build_defaults={'index': True, 'nav': True})
             self._write_identity_kit(
                 root / 'templates' / 'kits', chrome_placement='content')
             series_path = root / 'series.json'
@@ -10297,7 +10308,7 @@ class BuildStamp(unittest.TestCase):
 
     def test_absent_by_default(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, self._md())
+            root = scaffold(tmp, self._md(), build_defaults={'index': True, 'nav': True})
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             article_html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -10310,7 +10321,7 @@ class BuildStamp(unittest.TestCase):
 
     def test_present_on_every_page_with_flag(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, self._md())
+            root = scaffold(tmp, self._md(), build_defaults={'index': True, 'nav': True})
             result = run('build', str(root), '--output', str(root / 'public'), '--build-stamp')
             self.assertEqual(result.returncode, 0, result.stderr)
             article_html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -10340,7 +10351,7 @@ class BuildStamp(unittest.TestCase):
         )
         for version in ('1.0.0-beta.1', '1.0.0-beta.2+build.001', '1.0.0-rc.1', '1.0.0'):
             with self.subTest(version=version), tempfile.TemporaryDirectory() as tmp:
-                root = scaffold(tmp, self._md())
+                root = scaffold(tmp, self._md(), build_defaults={'index': True, 'nav': True})
                 for args in (('--version',), ('--help',),
                              ('build', str(root), '--build-stamp'),
                              ('status', str(root), '--format', 'json'),
@@ -10369,7 +10380,7 @@ class BuildStamp(unittest.TestCase):
         or every check on a stamped series would report permanent,
         meaningless drift purely because time moved on since the build."""
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, self._md())
+            root = scaffold(tmp, self._md(), build_defaults={'index': True, 'nav': True})
             build_result = run('build', str(root), '--output', str(root / 'public'), '--build-stamp')
             self.assertEqual(build_result.returncode, 0, build_result.stderr)
 
@@ -10384,7 +10395,7 @@ class BuildStamp(unittest.TestCase):
         different code path than a full build."""
         md_a = self._md()
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, md_a)
+            root = scaffold(tmp, md_a, build_defaults={'index': True, 'nav': True})
             (root / 'sources' / 'b.md').write_text(
                 '<!-- lwp:meta -->\npage_dest: b.html\npage_title: B\nnav_title: B\nnav_desc: B\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k154\nkicker: T\n# B\nsummary: Summary.\n',
@@ -10420,7 +10431,7 @@ class BuildStamp(unittest.TestCase):
         The fix carries its own styling inline; assert that's still true
         so this can't silently regress back to depending on style.css."""
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, self._md())
+            root = scaffold(tmp, self._md(), build_defaults={'index': True, 'nav': True})
             (root / 'templates').mkdir()
             # No .build-stamp anywhere in this custom stylesheet — the
             # exact shape of the series that triggered the original bug.
@@ -10444,7 +10455,7 @@ class BuildStamp(unittest.TestCase):
         document was prepared) — the minimal marker drops it entirely,
         along with the version, rather than a half-measure."""
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, self._md())
+            root = scaffold(tmp, self._md(), build_defaults={'index': True, 'nav': True})
             result = run('build', str(root), '--output', str(root / 'public'), '--build-stamp-minimal')
             self.assertEqual(result.returncode, 0, result.stderr)
             article_html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -10461,7 +10472,7 @@ class BuildStamp(unittest.TestCase):
         richer flag also being present, however that happened (a stray
         flag left over from a script, a copy-pasted command...)."""
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, self._md())
+            root = scaffold(tmp, self._md(), build_defaults={'index': True, 'nav': True})
             result = run(
                 'build', str(root), '--output', str(root / 'public'),
                 '--build-stamp', '--build-stamp-minimal',
@@ -10473,7 +10484,7 @@ class BuildStamp(unittest.TestCase):
 
     def test_minimal_variant_ignored_by_check_too(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, self._md())
+            root = scaffold(tmp, self._md(), build_defaults={'index': True, 'nav': True})
             build_result = run('build', str(root), '--output', str(root / 'public'), '--build-stamp-minimal')
             self.assertEqual(build_result.returncode, 0, build_result.stderr)
             check_result = run('verify', str(root), '--output', str(root / 'public'))
@@ -10590,7 +10601,7 @@ class Themes(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('init', str(root), '--theme', 'nord').returncode, 0)
-            scaffold(tmp, _MINIMAL_MD)
+            scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             result = run('build', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             for page in ('a.html', 'index.html'):
@@ -11059,7 +11070,7 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
         import time as _time
 
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
+            root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             out = root / 'public'
             proc = sp.Popen(
                 [sys.executable, str(EXECUTABLE), 'watch', str(root),
@@ -14628,7 +14639,7 @@ class SeriesJsonRequiredFields(unittest.TestCase):
             (root / 'series.json').write_text(json.dumps([
                 {'page_dest': 'a.html', 'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'},
             ]), encoding='utf-8')
-            result = run('build', str(root), '--output', str(root / 'public'), '--lang', 'en')
+            result = run('build', str(root), '--output', str(root / 'public'), '--lang', 'en', '--make-index')
             self.assertEqual(result.returncode, 0, result.stderr)
             index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             self.assertIn('Article series', index_html)
@@ -14741,7 +14752,8 @@ class DisplayFieldOverrides(unittest.TestCase):
         (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
         entry = {'page_source': 'a.md'}
         entry.update(series_entry_extra)
-        (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
+        (root / 'series.json').write_text(json.dumps({
+            'build': {'index': True}, 'articles': [entry]}), encoding='utf-8')
         return root
 
     # --- file --------------------------------------------------------
@@ -14904,7 +14916,8 @@ class DisplayFieldOverrides(unittest.TestCase):
         (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
         entry = {'page_source': 'a.md'}
         entry.update(series_entry_extra)
-        (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
+        (root / 'series.json').write_text(json.dumps({
+            'build': {'index': True, 'nav': True}, 'articles': [entry]}), encoding='utf-8')
         return root
 
     def test_nav_title_desc_from_meta_used_in_series_nav(self):
@@ -15202,7 +15215,7 @@ class HelpListsEveryAcceptedOption(unittest.TestCase):
                 '--slides-page-numbers on|off',
                 '--templates',
                 '--no-essential-theme',
-                'build/watch/verify: do not generate the series navigation',
+                'build/watch/verify: enable or omit placed series-nav slides entirely',
                 'build/watch: build only status: draft articles',
                 'restrict the audit to the presentation/template layer',
                 'lightwebpres clean [directory] [--output public/] [--force]',
@@ -15342,7 +15355,7 @@ class CheckSummaryLine(unittest.TestCase):
             '<!-- lwp:slide:cover -->\nslug: k175\nkicker: T\n# Title\nsummary: Original.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, md)
+            root = scaffold(tmp, md, build_defaults={'index': True, 'nav': True})
             run('build', str(root), '--output', str(root / 'public'))
             clean = run('verify', str(root), '--output', str(root / 'public'))
             # 3 files: the article page, index.html and README.md (§11.4)
@@ -15518,7 +15531,7 @@ class SymlinkComposition(unittest.TestCase):
             except OSError:
                 self.skipTest('symlinks unavailable on this filesystem')
 
-            result = run('build', str(root), '--output', str(root / 'public'))
+            result = run('build', str(root), '--output', str(root / 'public'), '--make-index')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((root / 'public').is_dir())
             self.assertIn(
@@ -15781,6 +15794,7 @@ class IndexTitleXssProtection(unittest.TestCase):
         )
         (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
         series = {
+            'build': {'index': True},
             'series_meta': {'title': malicious_title},
             'articles': [{'page_dest': 'a.html', 'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'}],
         }
@@ -15820,7 +15834,7 @@ class HrefAttributeEscaping(unittest.TestCase):
                 '<!-- lwp:slide:cover -->\nslug: k185\nkicker: T\n# A\n'
             )
             (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
-            series = {'articles': [
+            series = {'build': {'index': True}, 'articles': [
                 {'page_dest': 'a".html', 'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'},
             ]}
             (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
@@ -16313,7 +16327,7 @@ class SeriesJsonEmptyStringRejected(unittest.TestCase):
             (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             entry = {'page_dest': 'a.html', 'page_source': 'a.md', 'nav_title': '', 'nav_desc': 'A'}
             (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
-            result = run('build', str(root), '--output', str(root / 'public'))
+            result = run('build', str(root), '--output', str(root / 'public'), '--make-nav')
             self.assertEqual(result.returncode, 0, result.stderr)
             # nav_title only ever renders in the series-nav card, on the
             # article's OWN page (a.html) — never on index.html.
@@ -16467,6 +16481,7 @@ class CommentField(unittest.TestCase):
             (root / 'sources').mkdir()
             (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             (root / 'series.json').write_text(json.dumps({
+                'build': {'index': True},
                 'articles': [{'page_source': 'a.md', 'comment': 'SERIES-JSON-SECRET'}],
             }), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -16664,7 +16679,7 @@ class EditorialFields(unittest.TestCase):
         (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
         entry = {'page_source': 'a.md'}
         entry.update(entry_extra or {})
-        data = {'articles': [entry]}
+        data = {'build': {'index': True}, 'articles': [entry]}
         if series_meta:
             data['series_meta'] = series_meta
         (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
@@ -16749,7 +16764,8 @@ class PageDescMetaDescription(unittest.TestCase):
         (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
         entry = {'page_source': 'a.md'}
         entry.update(entry_extra or {})
-        (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
+        (root / 'series.json').write_text(json.dumps({
+            'build': {'index': True}, 'articles': [entry]}), encoding='utf-8')
         result = run('build', str(root), '--output', str(root / 'public'))
         self.assertEqual(result.returncode, 0, result.stderr)
         return root
@@ -16812,7 +16828,7 @@ class ArticleStatus(unittest.TestCase):
     def test_draft_excluded_from_page_index_and_nav_by_default(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp, b_meta_extra='status: draft\n')
-            result = run('build', str(root), '--output', str(root / 'public'))
+            result = run('build', str(root), '--output', str(root / 'public'), '--make-index', '--make-nav')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('[draft] b.html skipped', result.stdout)
             self.assertFalse((root / 'public' / 'b.html').exists())
@@ -16877,7 +16893,7 @@ class ArticleStatus(unittest.TestCase):
                 with self.subTest(flags=flags):
                     shutil.rmtree(root / 'public', ignore_errors=True)
                     result = run('build', str(root), '--output',
-                                 str(root / 'public'), *flags)
+                                 str(root / 'public'), '--make-index', '--make-nav', *flags)
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertIn('[ignored] b.html', result.stdout)
                     self.assertFalse(
@@ -16919,15 +16935,13 @@ class ArticleStatus(unittest.TestCase):
             'status': b_status, 'page_dest': 'index.html'})
         return root
 
-    def test_a_draft_still_counts_for_the_index_name(self):
-        """A draft is an article of the series, so the collision is decided
-        identically with and without --include-drafts. Counting the built
-        list instead would make a series.json legal or illegal depending on
-        a build flag."""
+    def test_a_draft_still_reserves_a_forced_index_name(self):
+        """When contents are requested, draft declarations reserve filenames
+        with or without --include-drafts; automatic output has its own count."""
         for flags in ((), ('--include-drafts',)):
             with self.subTest(flags=flags), tempfile.TemporaryDirectory() as tmp:
                 root = self._claiming(tmp, 'draft')
-                result = run('build', str(root), '--output', str(root / 'public'), *flags)
+                result = run('build', str(root), '--output', str(root / 'public'), '--make-index', *flags)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn('collides with the series index', result.stderr)
 
@@ -17200,7 +17214,7 @@ class NativeUtf8EndToEnd(unittest.TestCase):
             (root / 'sources' / 'café-日本.md').write_text(md, encoding='utf-8')
             (root / 'series.json').write_text(json.dumps(
                 {'articles': [{'page_source': 'café-日本.md'}]}, ensure_ascii=False), encoding='utf-8')
-            result = run('build', str(root), '--output', str(root / 'public'))
+            result = run('build', str(root), '--output', str(root / 'public'), '--make-index')
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'café-日本.html').read_text(encoding='utf-8')
             for needle in ('<meta charset="UTF-8">', '東京 🗼', 'всё хорошо',
@@ -18410,7 +18424,7 @@ class TemplatesAndSourcesStayInsideTheSeries(unittest.TestCase):
             secret = Path(tmp) / 'hostsecret.html'
             secret.write_text('HOSTSECRET=hunter2', encoding='utf-8')
             run('init', tmp, '--force')
-            root = scaffold(tmp, _MINIMAL_MD)
+            root = scaffold(tmp, _MINIMAL_MD, build_defaults={'index': True, 'nav': True})
             (root / 'templates' / 'index_extra.html').symlink_to(secret)
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -19117,7 +19131,8 @@ class ArticleStyleLayer(unittest.TestCase):
         # install first: it writes its own empty series.json, which would
         # bury the scaffold's article list if run second.
         run('init', tmp, '--force')
-        return scaffold(tmp, self.ARTICLE.format(style_lines=style_lines))
+        return scaffold(tmp, self.ARTICLE.format(style_lines=style_lines),
+                        build_defaults={'index': True})
 
     def test_style_meta_restyles_its_page_only(self):
         with tempfile.TemporaryDirectory() as tmp:

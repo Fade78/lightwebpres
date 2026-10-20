@@ -255,7 +255,8 @@ class SingleDocument(unittest.TestCase):
         self.assertTrue(any(attrs.get('id') == 'navMenu' for _, attrs in _Markup(html).elements))
         for view in payload['views'][1:]:
             self.assertNotIn('class="series-item', view['content'])
-            self.assertIn('class="series-list"', view['content'])
+            self.assertNotIn('class="series-list"', view['content'])
+            self.assertNotIn('id="collection"', view['content'])
         self.assertFalse((self.root / 'README.md').exists())
         self.cli('verify', '--single-html', 'collection.htm', '--include-drafts',
                  '--no-nav', '--no-readme')
@@ -475,10 +476,12 @@ class SingleDocument(unittest.TestCase):
         self.assertEqual(payload['home'], 'a.html')
         self.assertEqual(payload['order'], ['a.html', 'b.html'])
 
-    def test_multipage_no_index_keeps_managed_homepage_links(self):
+    def test_multipage_no_index_omits_unowned_homepage_links(self):
         self.cli('build', '--no-index')
         self.assertFalse((self.output / 'index.html').exists())
-        self.assertIn('href="index.html"', (self.output / 'a.html').read_text())
+        html = (self.output / 'a.html').read_text()
+        self.assertNotIn('href="index.html"', html)
+        self.assertIn('data-lwp-series-home="a.html"', html)
         self.cli('verify', '--no-index')
 
     def test_no_index_retains_explicit_unit_index_even_with_no_nav(self):

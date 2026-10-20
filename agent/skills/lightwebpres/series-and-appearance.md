@@ -61,8 +61,15 @@ The first preset is the initial presentation and later entries are published
 alternatives. The first individual theme token chooses a fixed initial theme;
 `preset` follows the selected preset, while `all`, `essential` and facet
 selectors add ordered alternatives. Omission uses the defaults shown above;
-an explicit list is exact. `build` may also contain `single_html` and
-`inline_images` output defaults. No `articles[]` entry or `lwp:meta` block
+an explicit list is exact. Root `build` may also contain `single_html` and
+`inline_images` output defaults, plus independent `index` and `nav` JSON booleans.
+An omitted key is automatic: one participating logical article omits series
+contents and placed `series-nav` slides; several retain both. Zero retains an
+empty index. Ignored entries do not count and drafts count only when included;
+drafts-only preview retains its broader navigation universe. CLI make/no switches
+override JSON; opposite switches are errors. Disabled navigation is absent, not
+an empty slide, and `--make-nav` never inserts a missing slide. Unit indexes are
+independent. No `articles[]` entry or `lwp:meta` block
 selects or refines a presentation.
 
 ## Tags And Visibility

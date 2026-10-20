@@ -78,7 +78,8 @@ With `demo --dry-run`, the files and build are only journaled as a plan;
 the existing on-disk series is not built in place of the planned demo.
 
 `build` reads `series.json` and every article it lists, and writes
-`public/*.html` plus `public/index.html`. A generated `README.md` lands
+`public/*.html`, including `public/index.html` for this multi-article demo.
+A generated `README.md` lands
 beside `series.json`, at the root of the series rather than in `public/`
 — it describes the series to whoever opens the repository, not to
 whoever visits the site.
@@ -2048,7 +2049,8 @@ page and index HTML structure is fixed, not a template.
 ## 4. Read, present and share
 
 Open the link your author sent, or extract the complete published folder and
-open its `index.html`. You need a browser, not Python or LightWebPres. Keep
+open its entry HTML: usually `index.html` for a collection, or the article itself
+for a single-article publication. You need a browser, not Python or LightWebPres. Keep
 the supplied images and assets beside the HTML. Scroll to read normally;
 use the controls below to present it one slide at a time. The index uses the
 same controls, stepping one article card at a time.
@@ -2444,7 +2446,8 @@ a different gesture; long presses and native selection keep their own behavior.
 ### Share a series, an article or a slide
 
 Press **S** or choose Share in **M**. Select the scope, then copy the link or
-show its locally generated QR code. Series points to `index.html`, article to
+show its locally generated QR code. Series points to the publication's resolved
+entry (`index.html` when contents are enabled, otherwise an emitted article), article to
 the current page, and slide to the current `slug:` anchor. On the index,
 article points to the index itself and slide scope is disabled. Slugs, not
 slide positions or headings, keep previously shared addresses stable.
@@ -2590,10 +2593,10 @@ into the chain.
 ### Publish the output, not the project
 
 Upload the contents of `public/` to a static host: the article HTML files,
-`index.html`, referenced `img/` files and any `assets/presentations/` files.
+an optional `index.html`, referenced `img/` files and any `assets/presentations/` files.
 The generated series README lives beside `series.json`, not inside `public/`.
 No Python server or LightWebPres runtime is needed on the host. Reopen the
-hosted index, follow an article link and test a slide link from another device.
+hosted entry, follow any article links and test a slide link from another device.
 Local `file://` viewing works, but does not make an address reachable by a phone.
 
 By default, only referenced images are copied from `sources/img/`; unused
@@ -2616,19 +2619,56 @@ engine does not fetch resources or rewrite the SVG. This inspection is not
 proof of offline completeness. CSS, fonts, scripts, media and arbitrary raw
 HTML dependencies are outside the image-embedding bundle.
 
-Output switches on `build`, `verify` and `watch`: `--no-index` omits series
-contents (the separate `index.html` in multipage output),
-`--no-readme` skips the series README, `--no-nav` leaves a placed `series-nav`
-without generated links. On `build` and `watch`, `--drafts-only` previews only
-drafts and `--open` opens the result. `--include-drafts` includes drafts alongside
-active articles on all three commands. `--slides-page-numbers on`
-engraves top-right numbering (off by default, independent of the live counter).
+`build`, `verify` and `watch` resolve two independent output choices:
 
-In default multipage output, a single article can set `page_dest: index.html`
-to become the directory's landing page; no redundant one-card index is then
-generated. In a multi-article
-series that name is reserved when an index is generated. `--no-index` leaves
-it available. Duplicate destinations (case-insensitive), unsafe filenames,
+| Participating logical articles | Series contents | Placed `series-nav` slides |
+|---|---|---|
+| Exactly one | Omitted | Omitted entirely |
+| Several | Generated | Generated |
+| None | Empty index retained | None |
+
+Count after effective status resolution: ignored articles never participate;
+drafts participate with `--include-drafts`. A `--drafts-only` preview retains
+its existing navigation scope, including active articles, rather than counting
+only files rebuilt. Combined HTML uses the same logical count, not its one file.
+
+Force either choice with `--make-index` / `--no-index` and `--make-nav` /
+`--no-nav`. Or persist independent booleans in the root of `series.json`:
+
+```json
+{
+  "build": {
+    "index": true,
+    "nav": false
+  }
+}
+```
+
+CLI overrides JSON; an omitted key uses the automatic rule. Only JSON booleans
+are accepted, not `"auto"`, strings, numbers or null. Opposite switches in the
+same invocation are errors, regardless of order. `--make-nav` fills a placed
+slide, never inserts one absent from the source. Disabled navigation has no
+empty section, anchor, numbered slide, unit-index link or graphic layer. Source
+slugs remain validated. Unit indexes and reader controls remain independent.
+Match explicit CLI choices in `verify`; `watch` resolves configuration and
+article counts again after changes.
+
+`--no-readme` skips the series README without deleting an existing one. On
+`build` and `watch`, `--drafts-only` previews only drafts and `--open` opens the
+result. `--include-drafts` includes drafts alongside active articles on all three
+commands. `--slides-page-numbers on` engraves top-right numbering (off by default,
+independent of the live counter).
+
+Without series contents, Home, sharing and browser opening use an emitted
+article, preserving destination spelling and URL encoding. A single article can
+set `page_dest: index.html` to serve as the directory's landing page; otherwise
+its destination is not renamed. If contents are enabled, including explicitly
+for one article, `index.html` is reserved and a colliding article is an error.
+Generated back-to-index links are absent when contents are omitted. Old generated
+files remain recorded for `clean`; a build does not silently delete an earlier
+index or an independently managed homepage.
+
+Duplicate destinations (case-insensitive), unsafe filenames,
 malformed JSON, missing slugs and duplicate slugs are fatal. Generated HTML
 is checked for tag balance before writing; that is not a security sanitizer.
 
@@ -2673,20 +2713,22 @@ copied files beside the combined
 HTML; include them when distributing it. Image embedding has the portability
 limits described above. Without `--single-html`, output remains multipage.
 
-The combined document opens on series contents by default. Readers deliberately switch
+With several participating articles, the combined document opens on series
+contents by default; with exactly one it opens that article directly. Readers deliberately switch
 to an article and back, rather than scrolling continuously through all articles.
 Only the active view is mounted in the DOM; inactive articles are stored as
 inert data. Styles, notes and IDs stay article-local. One root runtime remains
 in place, preserving fullscreen across article switches. Print uses the active,
 tag-filtered article, or only the series contents when that view is active.
 
-Add `--no-index` to omit series contents entirely and open the first published
-unit instead. One or several units are supported; `series-nav` and authored
+Use `--make-index` to require contents even for one article, or `--no-index` to
+omit them with several; `build.index` supplies the persisted choice. Without
+contents, the first published unit opens directly. One or several units are supported; enabled `series-nav` and authored
 links still reach other units, without a generated back-to-index link. An empty
 published collection fails before writes. `Home` returns to the current unit's
 start; `Ctrl+Home` and the menu's **Start of series** return to the first unit.
 Source `unit-index` slides and `--unit-index` remain independent and unchanged.
-Use the same `--no-index` choice in `verify`.
+Use the same explicit output choices in `verify`.
 
 Any `templates/nav.js` must match the built-in runtime. Nonempty
 `templates/index_extra.html` is rejected when series contents are included;

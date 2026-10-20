@@ -352,7 +352,8 @@ class GitSync(unittest.TestCase):
         self.assertEqual(actions_by_path['sources/a.md']['last_commit_id'], 'file-base')
         # public/*.html did not exist remotely -> create.
         self.assertEqual(actions_by_path['public/a.html']['action'], 'create')
-        self.assertEqual(actions_by_path['public/index.html']['action'], 'create')
+        self.assertNotIn('public/index.html', actions_by_path,
+                         'a single article has no separate index by default')
         # Build bookkeeping is local state, not repository content: it is
         # ignored by .gitignore and must stay out of the browser push too.
         self.assertNotIn('public/.lwp-manifest.json', actions_by_path)

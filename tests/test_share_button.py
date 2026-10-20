@@ -63,6 +63,7 @@ class ShareButton(unittest.TestCase):
         root = Path(cls.tmpdir.name)
         (root / 'sources').mkdir()
         (root / 'series.json').write_text(json.dumps({
+            'build': {'index': True, 'nav': True},
             'articles': [{'page_source': 'a.md'}],
         }), encoding='utf-8')
         (root / 'sources' / 'a.md').write_text(

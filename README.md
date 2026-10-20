@@ -195,8 +195,11 @@ Follow the [six guide routes](GUIDE.md) or explore the
    See the [combined-HTML guide](GUIDE.md#publish-a-series-in-one-html-file) for extension
    restrictions, links and portability limits.
 - **An index when you need one.** `series.json` determines article order and
-  navigation. A lone article can claim `index.html`; `--no-index` lets you
-  integrate pages into a site whose landing page is managed elsewhere.
+  navigation. One participating article omits series contents and `series-nav`
+  slides automatically; several retain both. Override independently with
+  `--make-index` / `--no-index` and `--make-nav` / `--no-nav`, or persist boolean
+  `build.index` / `build.nav` choices in `series.json`. A lone article may claim
+  `index.html` when no separate index is requested; destinations are never renamed.
 - **Stable links.** Explicit slide slugs preserve addresses when titles or
   order change. Sharing and QR generation happen locally, but a receiving
   phone needs a reachable HTTP(S) URL, not a local file or loopback address.

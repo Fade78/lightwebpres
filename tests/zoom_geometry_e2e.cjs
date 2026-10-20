@@ -39,7 +39,7 @@ const { chromium } = require('playwright');
       fs.copyFileSync(path.join(root, 'examples/first-article/sources/first-page.md'),
         path.join(series, 'sources/first-page.md'));
       cli('series', 'preset', 'set', series, '--preset', preset);
-      cli('build', series, '--lang', 'en', '--scroll-duration', '0');
+      cli('build', series, '--lang', 'en', '--scroll-duration', '0', '--make-index');
       for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
         const page = await browser.newPage({ viewport });
         const errors = [];

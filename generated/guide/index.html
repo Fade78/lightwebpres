@@ -3315,7 +3315,8 @@ button.share-action:hover:not(:disabled) {
       data-lwp-tag-preview="{&quot;articles&quot;:[{&quot;title&quot;:&quot;LightWebPres — the guide&quot;,&quot;tags&quot;:[],&quot;slides&quot;:[{&quot;title&quot;:&quot;LightWebPres&quot;,&quot;type&quot;:&quot;cover&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Find your route&quot;,&quot;type&quot;:&quot;unit-index&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Start from a page that already works&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Reuse the article, change its context&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Compose a kit, not a dependency chain&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Share the point, not directions to it&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Check the output you intend to publish&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Give automation a bounded job&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Put images behind or in front of content&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Theme the emphasis, not the source&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Let the kit own its marks&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;&quot;,&quot;type&quot;:&quot;series-nav&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;guide-complet&quot;,&quot;type&quot;:&quot;full-article&quot;,&quot;tags&quot;:[&quot;default&quot;]}]}]}"
       data-lwp-table-mode="clip"
       data-lwp-scroll-duration="0"
-      data-lwp-series-home="index.html">
+      data-lwp-series-home="index.html"
+      data-lwp-series-index="true">
 
 
 <nav class="nav-dots"></nav>
@@ -3348,7 +3349,7 @@ button.share-action:hover:not(:disabled) {
       <span class="help-mode-value" id="helpModeValue" aria-live="polite"></span>
     </div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.73.0</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <button type="button" class="help-about" id="helpAbout" aria-haspopup="dialog" aria-controls="aboutOverlay"><strong>LightWebPres</strong></button> v0.74.0</div>
   </div>
 </div>
 
@@ -6876,9 +6877,10 @@ document.addEventListener('DOMContentLoaded', function() {
     ['PageDown / PageUp', '', lwpString('help_next') + ' / ' + lwpString('help_prev'), ''],
     ['Space / Shift+Space', '', lwpString('help_step'), ''],
     ['Home', lwpString('help_touch_home'), lwpString('help_home')],
-    ['Ctrl+Home', seriesHomeKey
+    ['Ctrl+Home', document.body.getAttribute('data-lwp-series-index') === 'false'
       ? lwpString('menu_series_start') : lwpString('help_touch_index'),
-      seriesHomeKey ? lwpString('menu_series_start') : lwpString('help_index')],
+      document.body.getAttribute('data-lwp-series-index') === 'false'
+        ? lwpString('menu_series_start') : lwpString('help_index')],
     ['Ctrl+End', lwpString('help_touch_edges'), lwpString('help_edges')],
     ['+ / - / =', lwpString('help_touch_zoom'), lwpString('help_zoom')],
     ['D', lwpString('help_touch_reading'), lwpString('help_reading')],

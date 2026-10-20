@@ -39,8 +39,13 @@ catch (error) { console.error('Playwright unavailable'); process.exit(77); }
             'saved constructor choice remains readable after reload');
         } else {
           const home = index ? new URL('#lwp/index', url).href : new URL('Index.html', url).href;
-          assert.equal(await page.locator('.series-link').last().getAttribute('href'),
-            index ? '#lwp/index' : 'Index.html', 'physical home preserves exact spelling; combined contents stay distinct');
+          if (index) {
+            assert.equal(await page.locator('.series-link').last().getAttribute('href'), '#lwp/index',
+              'combined contents stay distinct from an Index.html article key');
+          } else {
+            assert.equal(await page.locator('.series-link').count(), 0,
+              'no-index publication does not invent a back-to-index link');
+          }
           await page.keyboard.press('s');
           await page.locator('.share-action[data-action="copy"][data-scope="series"]').click();
           assert.equal(await page.evaluate(() => window.copiedSeries), home, 'series sharing reaches the actual home');

@@ -295,6 +295,22 @@ bytes, reserved Windows names receive `series-`, and `.html` is appended.
 Set `build.single_html` in the root `series.json` object to choose the default
 combined filename for the series; an explicit CLI filename takes precedence.
 
+Root `build.index` and `build.nav` accept independent JSON booleans. Omission
+is automatic: exactly one participating logical article omits series contents
+and placed `series-nav` slides entirely, several retain both, and an empty
+collection retains its empty index. Ignore ignored articles; include drafts in
+the count only when requested. Drafts-only preview keeps its navigation scope.
+`--make-index` / `--no-index` and `--make-nav` / `--no-nav` override JSON on
+build/verify/watch. Opposite switches are errors; strings, numbers and null are
+not booleans. `--make-nav` does not insert a missing source slide. Unit indexes,
+reader controls and physical output topology remain independent. Watch resolves
+the policy again after configuration/status changes.
+
+Without contents, multipage Home, sharing and browser opening target an emitted
+article without renaming its destination. Generated back-to-index links are
+omitted; an existing index is not proof that this build owns or generated it.
+Review manifest-controlled `clean` before authorized removal of older output.
+
 An explicit bare `.html` or `.htm` filename always wins; paths, URLs and empty
 values are invalid. `--single-html=collection.html` also works. Before the
 positional series directory, a next separate value is a filename only when it
@@ -312,8 +328,9 @@ is deliberate, not continuous scrolling. Article styles, notes and IDs remain
 local, and one root runtime preserves fullscreen across switches. Print uses
 the active tag-filtered article; the contents view prints only series contents.
 
-Combined HTML opens on series contents by default. Add `--no-index` to omit
-that view and start at the first published unit, whether there is one unit or
+Combined HTML opens on series contents by default with multiple articles, but
+directly on its article with one. `--make-index` forces contents; `--no-index`
+omits that view and starts at the first published unit, whether there is one unit or
 several. An empty published collection fails before writes. Other units remain
 reachable through `series-nav` and authored links; generated back-to-index
 links are omitted. `Home` starts the current unit; `Ctrl+Home` and **Start of

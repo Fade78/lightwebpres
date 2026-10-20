@@ -106,7 +106,8 @@ class KitCompositionExample(unittest.TestCase):
         self.assertIn('id="travels-with-the-page"', html)
         self.assertIn('--color-ink: #111111', html)
         self.assertIn('--font-text: \'Nimbus Mono PS\'', html)
-        self.assertIn('first-page.html', (series / 'public/index.html').read_text())
+        self.assertFalse((series / 'public/index.html').exists())
+        self.assertIn('public/first-page.html', (series / 'README.md').read_text())
         for directory in (kit, series / 'public'):
             for path in directory.rglob('*'):
                 if path.is_file():

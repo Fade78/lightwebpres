@@ -258,6 +258,7 @@ class _ContrastSweep:
         (root / 'templates' / 'custom.css').write_text(
             _CUSTOM_CSS, encoding='utf-8')
         (root / 'series.json').write_text(json.dumps({
+            'build': {'index': True, 'nav': True},
             'series_meta': {'title': 'Contrast probe series',
                             'author': 'Probe author',
                             'license': 'Probe licence line.'},
